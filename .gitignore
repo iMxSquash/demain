@@ -1,0 +1,46 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Test output
+playwright-report/
+test-results/
+
+# Environment and secrets: only .env.example is tracked
+.env
+.env.*
+!.env.example
+
+# Personal financial data must never be committed.
+# SQLite databases, local data volumes and exports:
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/
+
+# Bank exports and sheet exports are personal data.
+# Test fixtures must be synthetic and live in tests/fixtures/.
+*.csv
+*.ofx
+*.qfx
+!tests/fixtures/**
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

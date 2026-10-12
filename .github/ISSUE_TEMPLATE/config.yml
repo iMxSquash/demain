@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/iMxSquash/demain/discussions
+    about: Ask a question or start a discussion (enable GitHub Discussions on the repository first).
+  - name: Security vulnerability
+    url: https://github.com/iMxSquash/demain/security/policy
+    about: Report vulnerabilities privately, never in a public issue. See the security policy.

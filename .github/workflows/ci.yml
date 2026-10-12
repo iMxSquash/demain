@@ -1,0 +1,56 @@
+# Third-party actions are pinned by full commit SHA, with the release in a
+# comment. Dependabot (github-actions ecosystem) keeps both up to date.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # The application does not exist yet (documentation only). The checks
+      # below start running as soon as a package.json is committed. The npm
+      # scripts "lint", "typecheck" and "test" must then exist.
+      - name: Detect application
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No package.json yet, nothing to check."
+          fi
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.detect.outputs.present == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.detect.outputs.present == 'true'
+        run: npm run lint
+
+      - name: Typecheck
+        if: steps.detect.outputs.present == 'true'
+        run: npm run typecheck
+
+      - name: Test
+        if: steps.detect.outputs.present == 'true'
+        run: npm test
