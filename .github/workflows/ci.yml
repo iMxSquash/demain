@@ -21,36 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The application does not exist yet (documentation only). The checks
-      # below start running as soon as a package.json is committed. The npm
-      # scripts "lint", "typecheck" and "test" must then exist.
-      - name: Detect application
-        id: detect
-        run: |
-          if [ -f package.json ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::No package.json yet, nothing to check."
-          fi
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: steps.detect.outputs.present == 'true'
         with:
           node-version: lts/*
           cache: npm
 
       - name: Install dependencies
-        if: steps.detect.outputs.present == 'true'
         run: npm ci
 
       - name: Lint
-        if: steps.detect.outputs.present == 'true'
         run: npm run lint
 
       - name: Typecheck
-        if: steps.detect.outputs.present == 'true'
         run: npm run typecheck
 
       - name: Test
-        if: steps.detect.outputs.present == 'true'
         run: npm test
