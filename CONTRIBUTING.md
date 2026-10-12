@@ -1,10 +1,17 @@
 # Contributing to Demain
 
-Thanks for your interest. Demain is currently in the **planning stage**: the repository contains documentation only, so useful contributions today are feedback on the documents in [docs/](docs/) and the roadmap. Code contributions become possible when the first milestone starts.
+Thanks for your interest. Demain is in early development: the application scaffold exists and the first milestone is under way. Feedback on the documents in [docs/](docs/) and the roadmap is welcome, and code contributions follow the workflow below.
 
 ## Setup
 
-The development setup does not exist yet. It will be described in the [README](README.md) once the application scaffold is committed, and this section will then list the exact commands.
+Requirements: Node.js 22.13 or later and npm.
+
+```
+npm ci
+npm run dev
+```
+
+The scripts are listed in the [README](README.md#development).
 
 ## Workflow
 
@@ -28,7 +35,15 @@ Pull request titles follow the same format.
 
 ## Tests, lint and typecheck
 
-Lint, typecheck and tests must pass locally before you open a pull request, and they are run by the CI. The commands will be documented here when the scaffold exists. The testing approach is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing-strategy).
+Lint, typecheck and tests must pass locally before you open a pull request, and they are run by the CI:
+
+```
+npm run lint
+npm run typecheck
+npm test
+```
+
+Tests live in `tests/` and match `*.test.ts`. The testing approach is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing-strategy).
 
 Every bug fix comes with a regression test that fails before the fix.
 

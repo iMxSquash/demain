@@ -9,4 +9,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Founding documentation: product, domain model, architecture decisions and roadmap.
+- Application scaffold: Next.js (App Router), strict TypeScript, Tailwind CSS v4, ESLint, Vitest and the `lint`, `typecheck` and `test` npm scripts run by the CI.
 - Repository structure: license (AGPL-3.0), `.github/` templates and CI skeleton, contribution and security policies.
