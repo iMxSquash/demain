@@ -1,0 +1,457 @@
+# Domain
+
+This document defines the vocabulary of Demain, the entities and their relationships, the rules that must always hold, and the main algorithms (monthly synthesis, planned items, matching, scenario evaluation, migration from the sheet). The product context is in [PRODUCT.md](PRODUCT.md), the technical context in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+Entities are described as tables of fields, not as code. Field names are indicative; the final schema will be defined in M1.
+
+## Glossary
+
+| Term | Definition |
+| --- | --- |
+| **Account** | A place where money is held: checking account, Livret A, Livret Jeune, or any generic account the user creates. Each account has exactly one currency and an optional deposit ceiling. |
+| **Transaction** | A real movement of money on one account at one date, usually imported from a bank export. Its kind is expense, income, interest or transfer leg. |
+| **Transfer** | A movement between two of the user's own accounts, stored as two linked transactions (one outgoing, one incoming). A transfer into a savings account is a **savings flow**. Transfers are excluded from income and expense statistics. |
+| **Deposit ceiling** | An optional maximum balance per account up to which deposits are accepted. Interest is exempt. See [Deposit ceiling and overflow](#deposit-ceiling-and-overflow). |
+| **Overflow account** | The account that receives the part of a transfer that does not fit under another account's deposit ceiling. Overflow accounts can be chained. Cycles are not allowed. |
+| **Category** | A user-defined label used to group transactions and planned items (Food, Rent, Salary, Subscriptions...). Categories are flat in V1. |
+| **Categorization rule** | A user-defined condition on an imported transaction (for example, label contains a text) that assigns a category. |
+| **Planned item** | A future movement the user expects and has dated explicitly: either a recurrence (has a repetition rule) or a firm one-off event (no repetition). Its amount and schedule are versioned by effective date. |
+| **Occurrence** | One dated instance of a planned item. A one-off planned item has exactly one occurrence; a recurrence has one per repetition. Occurrences are computed on demand, not stored. |
+| **Provision** | A planned item that accepts several transactions per occurrence (for example fuel: 90 EUR planned for the month, settled by several fill-ups). |
+| **Rolling average** | An amount mode of a planned item: the amount of an occurrence is the average of the item's previous occurrence values. See [Amount of an occurrence](#amount-of-an-occurrence). |
+| **Balance assertion** | A real balance the user records for an account at a date (for example, the balance shown on the bank website). It is compared with the computed balance to reveal unexplained gaps. |
+| **Real trajectory** | What the app shows by default: real transactions up to today and, beyond today, only planned items that are explicitly dated. It never contains an estimation of spending the user did not plan. |
+| **Estimation** | A value derived from the recent average of past spending, standing for spending the user has not planned. Estimations exist only inside simulations. |
+| **Constant-pace simulation** | The reference simulation: the real trajectory plus estimated variable spending, with no modification. It answers "what if my life rhythm does not change". |
+| **Scenario** | A named, hypothetical set of modifications applied on top of the constant-pace simulation. A scenario never changes real data until it is validated. |
+| **Modification** | One change inside a scenario, of one of 8 types (subscription change, one-off purchase, loan, income change, savings goal, interest projection, category budget change, composite life event). |
+| **Horizon** | The time range over which a simulation or a scenario comparison is computed (6, 12, 24 months or custom). |
+| **Reference currency** | The single currency chosen by the user in which totals, simulations and scenario indicators are expressed. |
+| **Exchange rate** | A dated conversion rate between two currencies, stored in the database. Entered by hand by default, optionally fetched from public ECB rates. |
+| **Minor unit** | The smallest unit of a currency (the cent for EUR). All amounts are stored as integer counts of minor units and converted to a decimal only for display. |
+
+## Entity model
+
+### Overview
+
+```mermaid
+erDiagram
+    ACCOUNT ||--o{ TRANSACTION : holds
+    ACCOUNT ||--o{ BALANCE_ASSERTION : "is checked by"
+    ACCOUNT ||--o{ PLANNED_ITEM : "is targeted by"
+    ACCOUNT |o--o| ACCOUNT : "overflows to"
+    CATEGORY ||--o{ TRANSACTION : classifies
+    CATEGORY ||--o{ PLANNED_ITEM : classifies
+    CATEGORY ||--o{ CATEGORIZATION_RULE : "is assigned by"
+    TRANSACTION |o--o| TRANSACTION : "transfer counterpart"
+    PLANNED_ITEM ||--o{ PLANNED_ITEM_VERSION : "has versions"
+    PLANNED_ITEM ||--o{ OCCURRENCE_OVERRIDE : "has recorded overrides"
+    PLANNED_ITEM |o--o{ TRANSACTION : "is settled by"
+    SCENARIO ||--o{ MODIFICATION : contains
+    IMPORT_BATCH ||--o{ TRANSACTION : produced
+```
+
+### Account
+
+| Field | Description |
+| --- | --- |
+| id | Identifier. |
+| name | Display name ("Checking", "Livret A"). |
+| kind | `checking`, `savings` or `other`. Drives default display and which accounts count as savings. |
+| currency | ISO 4217 code. Immutable once transactions exist. |
+| opening_date, opening_balance | Starting point of the computed balance, in minor units. |
+| deposit_ceiling | Optional, in minor units. Maximum balance up to which deposits are accepted. Null means no ceiling. |
+| overflow_account_id | Optional. The account that receives the surplus of a transfer that does not fit under this account's ceiling. Must respect the [protection rules](#protection-of-the-chain). |
+| archived | Hidden from views but kept for history. |
+
+### Transaction
+
+| Field | Description |
+| --- | --- |
+| id | Identifier. |
+| account_id | The account it belongs to. Its currency is the account currency (no per-transaction currency). |
+| date | Booking date as given by the bank, a calendar date without time or timezone. There is no separate value date in V1. |
+| amount | Signed integer in minor units: negative leaves the account, positive enters it. |
+| kind | `expense`, `income`, `interest` or `transfer`. |
+| label | Raw label from the bank export, kept unchanged for rules and deduplication. |
+| description | Optional user note. |
+| payment_mode | Optional: card, transfer, direct debit (kept from the sheet and from imports when available). |
+| category_id | Nullable. Null means the transaction is in the **to categorize** queue. Transfers have no category. |
+| transfer_counterpart_id | For a transfer leg, the other leg. Null otherwise. |
+| planned_item_id, occurrence_date | Set when the transaction settles an occurrence of a planned item (nominal date of that occurrence). Null otherwise. |
+| import_batch_id | The import that created it, if any. |
+| import_fingerprint | Value used to detect duplicates across imports (from OFX identifiers when present, otherwise from date, amount and label). |
+
+### Category and categorization rule
+
+| Category field | Description |
+| --- | --- |
+| id, name | Identifier and display name (translatable labels for default categories). |
+| archived | Hidden from pickers but kept for history. |
+
+| Rule field | Description |
+| --- | --- |
+| id | Identifier. |
+| condition | Field (label in V1), operator (contains, starts with, equals) and value. Case-insensitive. |
+| account_id | Optional restriction to one account. |
+| category_id | Category assigned on match. |
+| priority | Order of evaluation; the first matching rule wins. |
+
+### Planned item and versions
+
+| Planned item field | Description |
+| --- | --- |
+| id | Identifier. |
+| name | "Rent", "Salary", "Music streaming", "Car insurance", "Fuel". |
+| account_id, category_id | Target account and category. |
+| kind | `expense`, `income`, `interest` or `transfer` (a planned savings transfer also names the destination account). |
+| start_date | First nominal date. For a one-off item, its only date. |
+| end_date | Optional last date for a recurrence. |
+| accepts_multiple_transactions | True for a provision (several transactions settle one occurrence). Default false. |
+| provision_label_filter | Optional text for a provision: only transactions whose label contains it are linked automatically (for example `carburant`). |
+| match_window_days | Default 5. |
+| match_amount_tolerance | Default 5%. |
+| cancelled | A cancelled planned item produces no future occurrence. |
+| source_scenario_id | Set when the item was created by validating a scenario. |
+
+A planned item has one or more **versions**. A version applies from its `effective_from` date until the next version:
+
+| Version field | Description |
+| --- | --- |
+| planned_item_id | Owner. |
+| effective_from | Date from which this version applies. |
+| repetition | Null for a one-off event. Otherwise one of: monthly on day N, monthly on last day, yearly, every N months, quarterly, every N weeks. |
+| business_day_rule | Optional: none, previous business day, next business day. |
+| amount | Signed integer in minor units: the fixed amount, or the starting estimate when the mode is rolling average. |
+| amount_mode | `fixed` or `rolling_average`. |
+| average_window | Number of previous occurrences averaged, 3 by default (configurable, for example 6 or 12). |
+
+Examples:
+
+- A salary has a version with amount 1143.88 and a later version with amount 1171.47, effective from the date of the raise. Occurrences before that date use 1143.88, occurrences on or after use 1171.47.
+- A rent paid on the 5th moves to the 1st from March: a new version effective from March with the same amount and a new repetition. Occurrences before March keep the 5th. This is how "change all future dates of a subscription at once" works.
+
+### Occurrence override
+
+Occurrences are generated on the fly (see [invariants](#invariants)). Only the occurrences that the user changed individually are recorded:
+
+| Field | Description |
+| --- | --- |
+| planned_item_id | Owner. |
+| nominal_date | The date computed by the repetition rule, which identifies the occurrence. |
+| status | `cancelled` (a single occurrence skipped without cancelling the whole item) or `modified`. |
+| override_date | For `modified`: the date to use instead (a merchant delays one payment). Optional. |
+| override_amount | For `modified`: the amount to use instead for this occurrence only. Optional. |
+
+The user creates overrides from the calendar or from the monthly line view, on a single day, without touching the rest of the item.
+
+### Occurrence status
+
+Statuses are derived, never stored:
+
+| Status | Condition |
+| --- | --- |
+| `planned` | Not cancelled, no transaction linked, matching window not yet passed. |
+| `partial` | Provision only: some transactions are linked, the remaining amount is above zero, window not yet passed. |
+| `confirmed` | At least one transaction is linked and the occurrence is settled: for a regular item as soon as its transaction is linked, for a provision when the linked sum reaches the amount or when the window has passed. |
+| `overdue` | No transaction linked and matching window passed. |
+| `cancelled` | The item or this single occurrence is cancelled. |
+
+### Balance assertion
+
+| Field | Description |
+| --- | --- |
+| account_id, date | Account and date of the observed balance (end of day). |
+| amount | Real balance in minor units, as shown by the bank. |
+| note | Optional. |
+
+The app displays `computed balance at date - asserted amount` as the **unexplained gap**.
+
+### Scenario and modification
+
+| Scenario field | Description |
+| --- | --- |
+| id, name | Identifier and display name. |
+| status | `draft` or `validated`. |
+| validated_at | Date of validation, if any. |
+
+The constant-pace simulation is not a stored scenario: it is the evaluation with an empty list of modifications, always available.
+
+| Modification field | Description |
+| --- | --- |
+| id, scenario_id | Identifier and owner. |
+| type | One of the 8 types listed in [Scenario evaluation](#scenario-evaluation-pipeline). |
+| parameters | Type-specific parameters, validated by a schema per type. |
+| parent_id | For a composite life event, the group modification that contains it. |
+
+### Currency and exchange rate
+
+| Settings field | Description |
+| --- | --- |
+| reference_currency | ISO 4217 code used for totals and simulations. |
+| ecb_fetch_enabled | False by default. |
+
+| Exchange rate field | Description |
+| --- | --- |
+| date | Date of validity. |
+| base, quote | Currency pair. |
+| rate | Exact decimal value (never a binary float); the storage format is decided in M1. |
+| source | `manual` or `ecb`. |
+
+To convert an amount at a date, the app uses the most recent rate on or before that date. Future simulations use the most recent known rate.
+
+### Import batch
+
+| Field | Description |
+| --- | --- |
+| id | Identifier. |
+| account_id | Target account. |
+| format | `csv` or `ofx`. |
+| imported_at, file_name | Traceability. |
+| mapping | For CSV: the column mapping used, reusable for the next import from the same bank. |
+
+## Invariants
+
+These rules must hold at all times and are the first candidates for unit tests.
+
+1. **Amounts are integers in minor units.** No floating-point value is ever stored or used for money arithmetic. Text amounts ("1 143,88 €") are parsed to integer minor units by string handling, never through a float, and converted back to a decimal string only for display and export. The number of decimals comes from the currency (2 for EUR). Division (averages, percentages, interest) rounds explicitly to the minor unit at a documented step.
+2. **A transaction's currency is its account's currency.** Cross-currency views convert to the reference currency at read time using stored rates.
+3. **A transfer is exactly two linked transactions** of opposite sign, on two different accounts, each pointing to the other. Deleting one deletes both. Transfers are excluded from income and expense statistics and from category statistics; transfers into savings accounts are reported as savings flows.
+4. **Occurrences are generated, not stored.** The list of occurrences for any horizon is a pure function of the planned item (versions, business-day rule), its recorded overrides and its linked transactions. Changing a schedule from a date changes all later non-settled occurrences at once.
+5. **A transaction settles at most one occurrence**, and an occurrence is settled by at most one transaction, except for a provision, which accepts several.
+6. **The nominal rule is kept.** Matching never alters a planned item's rule; the real date and amount come from the matched transactions.
+7. **Real data is never changed by a scenario** until the scenario is validated, and validation only creates or modifies planned items, never transactions.
+8. **The computed balance of an account** at a date equals its opening balance plus the sum of its transactions up to and including that date.
+9. **The real trajectory contains no estimation.** Beyond today it contains only explicitly dated planned items (whose amount may follow a rolling average chosen by the user for that item). Estimated variable spending exists only in simulations.
+10. **The deposit ceiling holds for entered data.** See [Deposit ceiling and overflow](#deposit-ceiling-and-overflow).
+11. **Overflow chains are acyclic**, stay within one currency, and never point to an archived account.
+
+## Deposit ceiling and overflow
+
+A ceiling limits the balance an account may reach through deposits. An account may also name an **overflow account**, which receives what does not fit. Overflow accounts can be chained: an account overflows to a second one, which overflows to a third, and so on.
+
+### Rules
+
+- The ceiling applies to the **balance** and to **deposits**: an incoming transfer, or an income entered on the account. **Interest is always accepted** and may bring the balance above the ceiling. Withdrawals lower the balance and free room.
+- The **room** of an account is its ceiling minus its balance, never below zero.
+- A transfer into an account that is full, or that would become full, is **split along the chain**: the part that fits goes to the destination account, the surplus goes to its overflow account whose own room is checked the same way, and so on. What fits nowhere **stays in the source account**: it is not transferred, and it is reported as unplaced.
+- For a transfer **entered by hand**, the app shows the split before recording and offers: cancel; **deposit only the room** (the surplus is simply not transferred, as if the user had only typed that amount); or deposit the room and send the surplus to **an account chosen by the user** (the overflow account is pre-selected when there is one, and the same room check applies to the chosen account).
+- For a **planned occurrence** and for a **simulated** transfer (including a savings goal), the split follows the overflow chain **automatically**: the occurrence does not exist yet, so nothing is asked. The result is shown in the calendar and in the simulation, with any unplaced surplus flagged.
+- An **income** that would exceed a ceiling is not routed, since the money has really arrived there. It is accepted with a warning.
+- A transaction **imported from the bank is never changed**, since the movement already happened. It is accepted and flagged with a visible warning ("exceeds the declared ceiling: check it, or mark it as interest").
+
+### Protection of the chain
+
+The chain comes from user input, so it is never trusted:
+
+- **No cycle.** Saving an overflow account is refused when following the chain from the chosen target would come back to the account itself (the account itself, A to B to A, or any longer loop). The check runs on the server at every save and on every load of external data, including a restored backup or a JSON import.
+- **Same currency.** An overflow account must have the same currency as the account that overflows to it, since a transfer between currencies would need a conversion that V1 does not model.
+- **Not archived.** An overflow account cannot be archived, and an account that is referenced as an overflow account cannot be archived or deleted until the references are changed.
+- **Defensive evaluation.** Even if a cycle were present in stored data, evaluating a chain keeps the accounts already visited and stops at the first repeat. It reports the configuration as invalid and places nothing, so a computation can never loop.
+
+### Examples
+
+- A Livret Jeune with a ceiling of 1 600.00 EUR, a balance of 1 550.00 and the Livret A as overflow account. A transfer of 200.00 from checking is split into 50.00 to the Livret Jeune and 150.00 to the Livret A.
+- Same Livret Jeune, and the Livret A has a ceiling of 22 950.00 EUR and a balance of 22 900.00. The same transfer is split into 50.00, 50.00 and 100.00 that stays in checking, reported as unplaced.
+
+## Monthly synthesis
+
+The sheet's monthly tabs become filters on a single list of transactions. For a given month and account set, Demain computes three views.
+
+| View | Definition |
+| --- | --- |
+| **Net of the month** | Sum of `income` and `interest` transactions minus sum of `expense` transactions in the month. Transfers are excluded. This is the sheet's "Final balance". |
+| **Savings of the month** | Sum of transfers from non-savings accounts into savings accounts in the month, minus transfers back out. |
+| **End-of-month balances** | Computed balance of each account on the last day of the month, plus a total converted to the reference currency. |
+
+In the sheet, the Summary tab also tracked derived cumulative figures. Demain can show them as well:
+
+- **Cumulative savings** = sum of savings of the month since the start.
+- **Cumulative account** = sum of net of the month since the start minus cumulative savings. It is the change of the checking account since the start, assuming every flow goes through checking. In Demain, the checking end-of-month balance equals its opening balance plus this value, minus any unexplained gap.
+
+### Worked example from the sheet
+
+Figures from the sheet's Summary tab (EUR):
+
+| Month | Net of the month (sheet "Final balance") | Savings of the month | Cumulative savings | Cumulative account |
+| --- | ---: | ---: | ---: | ---: |
+| January | 576.14 | 573.16 | 573.16 | 576.14 - 573.16 = **2.98** |
+| February | 806.07 | 650.00 | 573.16 + 650.00 = **1223.16** | (576.14 + 806.07) - 1223.16 = 1382.21 - 1223.16 = **159.05** |
+
+In minor units, January is `57614 - 57316 = 298` and February is `(57614 + 80607) - 122316 = 15905`. After migration, Demain must reproduce these numbers exactly; this is an acceptance test of M1 (see [ROADMAP.md](ROADMAP.md#m1-ledger)).
+
+The sheet also had a real account balance and a real savings balance entered by hand each month. These become **balance assertions** at the last day of each month, and any difference with the computed balance appears as an unexplained gap instead of being silently overwritten.
+
+### The real chart
+
+The main diagram of the app, and the one the sheet already had: for each month end, two curves.
+
+- **Checking**: total of the checking accounts at the end of the month.
+- **Savings**: total of the savings accounts at the end of the month.
+
+Both are in the reference currency and are computed from real transactions only, from the first month to the last complete month. Beyond today, the chart continues with explicitly dated planned items, drawn dashed and with a distinct marker so that real and planned values are never confused (not by color alone). No estimation is ever drawn. Every chart has an equivalent data table.
+
+## Planned items and recurrence
+
+### Generating occurrences
+
+For a requested horizon `[from, to]`:
+
+1. Enumerate nominal dates from `start_date`. Each date follows the repetition rule of the version in effect at that point: dates before a version's `effective_from` follow the previous version, dates from `effective_from` follow the new one. Stop at `end_date` or `to`.
+   - "Monthly on day N" uses the last day of the month when the month is shorter than N (day 31 in February gives the 28th or 29th).
+   - "Monthly on last day" always uses the last day.
+2. Apply the business-day rule if set (move a date falling on a weekend to the previous or next weekday). Weekends only: public holidays are not handled in V1. The nominal date is still the identity of the occurrence.
+3. Apply recorded overrides: a `cancelled` occurrence is removed, a `modified` one takes its `override_date` and/or `override_amount`.
+4. Compute the amount of each occurrence (next section).
+5. Link settling transactions and derive the status (see [Occurrence status](#occurrence-status)).
+
+There is no maximum horizon: the computation is bounded only by what is displayed.
+
+### Amount of an occurrence
+
+Two modes, chosen per planned item version. **Fixed is the default.** The rolling average is an option the user turns on for a given item, and only then does it apply.
+
+**Fixed.** The occurrence amount is the `amount` of the version in effect on its nominal date.
+
+**Rolling average.** The `amount` of the version is only the starting estimate (typical for a new item, entered by hand). Then:
+
+1. The **reference value** of a previous occurrence is the sum of its linked transactions when it is settled, or its own estimated amount when it is still in the future.
+2. The **estimated amount** of an occurrence is the average of the reference values of the previous `average_window` occurrences (fewer when fewer exist). When there is no previous value, it is the starting estimate.
+3. Occurrences that were **cancelled**, or that are **overdue** without a linked transaction, are skipped: they are not payments.
+4. A new version effective from a date **restarts** the average: occurrences before that date are no longer part of the window, and the starting estimate of the new version applies again.
+5. A manual amount override on one future occurrence is used for that occurrence only and does **not** feed the average of the next ones. Real payments do.
+6. The average is computed in integer minor units and rounded to the nearest minor unit (ties away from zero) at every step.
+
+Example with a window of 3 and a starting estimate of 90:
+
+| Moment | Occurrence 1 | Occurrence 2 | Occurrence 3 | Occurrence 4 |
+| --- | ---: | ---: | ---: | ---: |
+| Nothing paid yet | 90 (starting estimate) | 90 (value of 1) | 90 (average of 1 and 2) | 90 (average of 1, 2 and 3) |
+| Occurrence 1 paid 100 | 100 (real) | 100 | 100 | 100 |
+| Occurrences 2 and 3 paid 110 and 120 | 100 (real) | 110 (real) | 120 (real) | 110 (average of 100, 110, 120) |
+
+Because the window feeds on its own estimates, the long-term estimate converges to a weighted average that favors recent values rather than to the simple average of the last real values. With real values 80, 90 and 100, the next estimates are 90.00, 93.33, 94.44, 92.59, 93.46 and so on, converging to (80 + 2 x 90 + 3 x 100) / 6 = 93.33, whereas the simple average of the last three real values is 90.
+
+### Provisions (several transactions for one occurrence)
+
+A provision is a planned item with `accepts_multiple_transactions`, such as fuel planned at 90 EUR per month on the 15th, settled in reality by several fill-ups.
+
+- **Period of an occurrence.** For an item repeating monthly, the calendar month of its nominal date. For other repetitions, from the day after the previous nominal date to its nominal date.
+- **Linking.** Transactions on the same account, with the item's category, dated within the period and, when the provision has a label filter, whose label contains the filter text, are linked to the occurrence. The filter matters when a category mixes several things (a car category holding fuel, insurance and tolls). Each linked transaction can be unlinked, and any other transaction of the period can be linked, by hand.
+- **Remaining amount.** `max(0, amount - sum of linked transactions)`. Only the remaining amount is counted at the occurrence date in the real trajectory.
+- **After the window.** Once the period has passed, any leftover provision disappears (the occurrence is `confirmed` if at least one transaction was linked, `overdue` otherwise). Spending above the amount is simply real spending.
+- The monthly total of linked transactions is the occurrence's reference value for a rolling average.
+
+### Matching planned vs actual
+
+Runs after each import, for each new non-transfer transaction (and for transfer legs against planned transfers). Regular items:
+
+1. **Candidates.** Occurrences that are not yet settled or cancelled, on the same account, whose nominal (or business-day adjusted, or overridden) date is within `match_window_days` (default 5) of the transaction date, and whose expected amount is within `match_amount_tolerance` (default 5%) of the transaction amount, with the same sign.
+2. **Decision.**
+   - Exactly one candidate occurrence, and that occurrence is the only candidate for exactly this transaction: the match is **confirmed automatically**, and shown in the import summary where it can be undone.
+   - Several candidates on either side (two similar subscriptions, two transactions of the same amount in the window): the possible pairs are **proposed for validation**. Nothing is matched silently.
+   - No candidate: the transaction stays unmatched and follows the normal categorization flow.
+3. **Effect of a confirmation.** The transaction is linked to the occurrence. If the planned item has a category and the transaction has none, the transaction inherits it.
+4. **Unmatched occurrences** stay `planned` until the window has passed, then become `overdue`. The user can then match by hand, cancel the occurrence, or leave it.
+
+Provisions follow the linking rules of the previous section instead of the window and tolerance. The window and tolerance of regular items are configurable per planned item, since some direct debits move by several days and some bills vary more than 5%.
+
+## Estimated variable spending
+
+This applies **only to simulations**. The real trajectory and the calendar never use it.
+
+Categories driven by planned items (subscriptions, rent, salary, provisions) are projected from their rules. Variable spending that the user has not planned (groceries, leisure) is estimated from history:
+
+- For each category, the estimated monthly amount is the average of the last 3 complete months (configurable to 6 or 12).
+- Only transactions **not** linked to a planned item are included, so a subscription or a provision is never counted twice.
+- The user can override the estimated amount of any category inside a simulation.
+- For the current month, only what remains is estimated: the monthly estimate minus what was already spent this month, never below zero.
+- The monthly estimate is spread **evenly over the remaining days** of the month, which only matters for the daily minimum balance indicator.
+
+## Scenario evaluation pipeline
+
+A simulation is evaluated in four steps, the same for every scenario (and for the constant-pace simulation) so that comparisons are fair.
+
+1. **Build the constant-pace cash flows** over the horizon: real history up to today, then current computed balances, planned item occurrences (with their fixed or rolling-average amounts) and estimated variable spending, all as dated flows per account.
+2. **Apply modifications** in order. Every modification type is a transformation of future cash flows: it adds flows, removes flows, or scales flows. The 8 types differ only by their input form:
+
+   | # | Type | Inputs | Transformation |
+   | --- | --- | --- | --- |
+   | 1 | Subscription change | Planned item or new subscription, mode (monthly, yearly, none), amount, start date | Removes the existing flows from the start date, adds the new ones. |
+   | 2 | One-off purchase | Date, amount, account | Adds one flow. |
+   | 3 | Instalments or loan | Principal, duration, annual rate, start date | Adds the principal as an inflow if it is a loan (optional), then constant periodic payments computed with the standard amortization formula (zero rate gives equal instalments). |
+   | 4 | Income change | Planned income item or new income, new amount or end date, effective date | Modifies or ends income flows, or adds new ones. |
+   | 5 | Savings goal | Target amount, target date, savings account; or monthly amount | Adds monthly transfers to the savings account, split along the overflow chain when a ceiling is reached (the result reports any surplus that fits nowhere, and goals that cannot be reached). Inverse mode computes the monthly amount needed to reach the target by the date, rounded up to the minor unit. |
+   | 6 | Interest projection | Savings account, annual rate entered by the user, crediting frequency | Adds interest flows computed on the projected balance. Interest is not limited by the deposit ceiling. The calculation method of regulated French accounts (fortnight rules) is not reproduced in V1; this is an estimate. |
+   | 7 | Category budget change | Category, percentage or new monthly amount, start date | Scales the estimated variable flows of that category. |
+   | 8 | Composite life event | Name, list of modifications of types 1 to 7 | Applies its children in order. |
+
+3. **Convert and aggregate.** Flows are converted to the reference currency with the latest known rate and aggregated into daily and monthly balances.
+4. **Compute indicators** for the horizon:
+
+   | Indicator | Definition |
+   | --- | --- |
+   | Final balance | Total balance on the last day of the horizon. |
+   | Minimum balance and its date | Lowest daily total balance and the first day it is reached. |
+   | Savings at a date | Total of savings accounts on a user-chosen date. |
+   | Month-end curves | Month-end checking total and month-end savings total, for each month of the horizon. |
+   | Total cost | Sum of outflows added or changed by the scenario minus the constant-pace equivalent, over the horizon. |
+
+2 to 4 scenarios are evaluated with the same real history, horizon and settings, and displayed side by side.
+
+### Comparison and diagrams
+
+- **Shared real history.** All simulations share the same real months up to today, drawn once. Each simulation diverges from today, including the constant-pace simulation, which is always present as the fair reference. The real chart of the app is therefore the left part of every simulation chart.
+- **Diagrams** available for a simulation and in the comparison: (1) the month-end checking and savings curves, the main one; (2) income and expenses per month as bars; (3) breakdown of expenses by category; (4) a comparison table (final balance, minimum balance and its date, total cost). Every diagram has an equivalent data table and never relies on color alone.
+
+**Validation.** Validating a scenario converts each modification into planned item changes (new planned items, new versions, end dates). Modifications that do not describe a future flow by themselves (type 7 changes an estimate, not a planned item) are listed to the user with how they will be applied, before confirmation.
+
+## Migration from the sheet
+
+The sheet's history is imported once, during M1.
+
+### Scope
+
+- The monthly tabs from January to October 2026 are imported, each exported as CSV.
+- The 2027 tabs are **ignored**: they are copies of the template, and planned items replace them.
+- The Summary tab is used for **verification** (and its real balances as balance assertions), not as a source of transactions.
+
+### Opening balances
+
+The sheet has two constants for the money held before it started:
+
+| Sheet constant | Amount | Demain |
+| --- | ---: | --- |
+| Base_compte | 56.27 | Opening balance of the checking account. |
+| Base_epargne | 1 476.84 | Opening balance of the Livret Jeune. The Livret A starts at 0. |
+
+Check: 56.27 + 2.98 (January cumulative account) = 59.25, which is the "real account" value of January in the sheet.
+
+### Savings destination
+
+The sheet does not record which savings account received each deposit. The owner's rule was: fill the Livret Jeune up to its ceiling of 1 600.00 EUR, then put the rest on the Livret A. The importer applies it with the account-level overflow described above: the Livret Jeune has a ceiling of 1 600.00 EUR and the Livret A as overflow account, and a savings row that crosses the ceiling is split along that chain.
+
+Example: the January savings row of 573.16 becomes a transfer of 123.16 to the Livret Jeune (1 476.84 + 123.16 = 1 600.00) and a transfer of 450.00 to the Livret A. All later rows go to the Livret A. A preview of every split is shown before the import is committed, and each destination can be corrected by hand.
+
+### Column mapping
+
+| Sheet column | Demain field | Notes |
+| --- | --- | --- |
+| Date | transaction.date | Parsed with the sheet's date format; the year comes from the tab when absent. |
+| Category | transaction.category_id | Categories are created from the distinct values. Each (label, category) pair helps bootstrap categorization rules. |
+| Description | transaction.label | Kept as label; it is the text rules will match on. |
+| Type = Expense | kind `expense`, negative amount | |
+| Type = Income | kind `income`, positive amount | |
+| Type = Savings | kind `transfer` from checking to a savings account | Destination given by the Livret Jeune and its overflow account (see above). |
+| Payment mode (Card / Transfer / Direct debit) | transaction.payment_mode | Informational. |
+| Amount | transaction.amount | Converted to integer minor units by string parsing; the sign comes from Type. |
+
+| Summary tab column | Demain usage |
+| --- | --- |
+| Savings, Final balance, cumulative savings, cumulative account | Verification only: recomputed by Demain and compared month by month. |
+| Real account balance | Balance assertion on the checking account, last day of the month. |
+| Real savings balance | The total of the two savings accounts. It is shown as a verification figure against the sum of the Livret Jeune and the Livret A, and is not split into per-account assertions. Going forward, balance assertions are recorded per account, as the bank shows them. |
+
+### Verification
+
+After import, Demain shows a month-by-month comparison between its computed figures and the Summary tab. The migration is accepted when all months match to the cent, or when each difference is explained (for example, a row mistyped in the sheet).
