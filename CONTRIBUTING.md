@@ -8,10 +8,11 @@ Requirements: Node.js 22.13 or later and npm.
 
 ```
 npm ci
+cp .env.example .env
 npm run dev
 ```
 
-The scripts are listed in the [README](README.md#development).
+The app refuses to start when a required environment variable is missing; they are listed in [.env.example](.env.example). The scripts are listed in the [README](README.md#development).
 
 ## Workflow
 
