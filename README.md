@@ -7,7 +7,7 @@ Demain is a free, open source, self-hosted personal budget web app that shows wh
 
 ## Status
 
-**Planning, no code yet.** This repository currently contains only the founding documentation. Nothing described below is implemented: no command, script, container image or feature works today. Everything is a target, tracked in the [roadmap](docs/ROADMAP.md).
+**Early development.** The repository contains the founding documentation and the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest). No product feature, container image or `compose.yaml` exists yet: everything described below, apart from the development commands, is a target tracked in the [roadmap](docs/ROADMAP.md).
 
 The repository carries its full `.github/` structure from its initialization, and it stays private until the end of the first milestone.
 
@@ -39,11 +39,34 @@ Details and definitions of done are in [ROADMAP.md](docs/ROADMAP.md).
 | Layer | Choice |
 | --- | --- |
 | Application | Next.js, TypeScript in strict mode |
+| Styling | Tailwind CSS v4 |
 | Database | SQLite through Drizzle ORM |
 | Packaging | One Docker container, multi-architecture image (x86-64 and ARM64), data in a Docker volume |
 | HTTPS | Delegated to a shared reverse proxy (Caddy documented), one subdomain per application |
 
 The reasoning behind each choice is recorded in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Development
+
+Prerequisite: Node.js 22.13 or later (the CI uses the current LTS) and npm.
+
+```
+git clone https://github.com/iMxSquash/demain.git
+cd demain
+npm ci
+npm run dev
+```
+
+The app is then served on http://localhost:3000. No environment variable is required yet.
+
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server. |
+| `npm run build` | Build the production bundle. |
+| `npm start` | Serve the production build. |
+| `npm run lint` | Run ESLint. |
+| `npm run typecheck` | Run the TypeScript compiler without emitting files. |
+| `npm test` | Run the Vitest suite once. |
 
 ## Installation (target experience, not yet available)
 
@@ -79,7 +102,7 @@ networks:
 
 ## Project structure
 
-For now the repository contains documentation and repository configuration only:
+Main folders:
 
 ```
 demain/
@@ -90,6 +113,14 @@ demain/
 ├── SECURITY.md
 ├── .env.example
 ├── .gitignore
+├── package.json
+├── tsconfig.json
+├── eslint.config.mjs
+├── vitest.config.ts
+├── postcss.config.mjs        Tailwind CSS v4 PostCSS plugin
+├── src/
+│   └── app/                  Next.js App Router (layout, pages, globals.css)
+├── tests/                    Vitest tests, synthetic fixtures in tests/fixtures/
 ├── .github/                  issue forms, PR template, CODEOWNERS, Dependabot, release notes, CI
 └── docs/
     ├── PRODUCT.md            problem, vision, user journeys, scope
