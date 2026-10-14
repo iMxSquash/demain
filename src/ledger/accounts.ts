@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import {
   assertCurrencyChangeAllowed,
@@ -35,9 +35,11 @@ export function listAccounts(
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Account[] {
   const query = db.select().from(accounts);
-  return includeArchived
-    ? query.all()
-    : query.where(eq(accounts.archived, false)).all();
+  const rows = includeArchived
+    ? query
+    : query.where(eq(accounts.archived, false));
+  // SQLite gives no order guarantee without ORDER BY: keep creation order.
+  return rows.orderBy(asc(accounts.id)).all();
 }
 
 export function updateAccount(

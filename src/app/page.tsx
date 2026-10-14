@@ -5,10 +5,7 @@ export default function HomePage() {
     <main className="p-8">
       <h1 className="text-2xl font-semibold">Demain</h1>
       <nav aria-label="Main" className="mt-4">
-        <Link
-          href="/accounts"
-          className="underline"
-        >
+        <Link href="/accounts" className="underline">
           Accounts
         </Link>
       </nav>

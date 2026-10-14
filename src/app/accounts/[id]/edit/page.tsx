@@ -33,10 +33,7 @@ export default async function EditAccountPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <Link
-        href="/accounts"
-        className="self-start underline"
-      >
+      <Link href="/accounts" className="self-start underline">
         Back to accounts
       </Link>
       <h1 className="text-2xl font-semibold">Edit {account.name}</h1>
