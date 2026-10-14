@@ -4,6 +4,7 @@ import {
   currencyDecimals,
   divideRound,
   formatAmount,
+  formatEditableAmount,
   MoneyParseError,
   parseAmount,
 } from "../../src/domain/money";
@@ -234,4 +235,32 @@ describe("formatAmount", () => {
       }
     },
   );
+});
+
+describe("formatEditableAmount", () => {
+  it.each([
+    [114388, "EUR", "1143.88"],
+    [-5, "EUR", "-0.05"],
+    [0, "EUR", "0.00"],
+    [1234, "JPY", "1234"],
+    [-1234, "JPY", "-1234"],
+    [1234567, "KWD", "1234.567"],
+  ])("writes %i %s as a plain decimal string", (minor, currency, expected) => {
+    expect(formatEditableAmount(minor, currency)).toBe(expected);
+  });
+
+  it.each(["EUR", "USD", "CAD", "AUD", "BRL", "HKD", "NZD", "JPY", "CHF", "KWD"])(
+    "round-trips through parseAmount in %s",
+    (currency) => {
+      for (const minor of [0, 7, 100, 114388, -114388, -5, 99999999]) {
+        const text = formatEditableAmount(minor, currency);
+
+        expect(parseAmount(text, currency)).toBe(minor);
+      }
+    },
+  );
+
+  it("rejects an amount that is not a safe integer", () => {
+    expect(() => formatEditableAmount(1.5, "EUR")).toThrow(RangeError);
+  });
 });
