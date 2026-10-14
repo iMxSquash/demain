@@ -28,7 +28,38 @@ describe("parseAccountForm", () => {
         currency: "EUR",
         openingDate: "2026-01-01",
         openingBalance: 5627,
+        depositCeiling: null,
+        overflowAccountId: null,
       },
+    });
+  });
+
+  it("converts the ceiling to minor units and reads the overflow account", () => {
+    const parsed = parseAccountForm(
+      formOf({ depositCeiling: "1600", overflowAccountId: "2" }),
+    );
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      input: { depositCeiling: 160_000, overflowAccountId: 2 },
+    });
+  });
+
+  it("reports an unreadable ceiling on the ceiling field", () => {
+    const parsed = parseAccountForm(formOf({ depositCeiling: "lots" }));
+
+    expect(parsed).toMatchObject({
+      ok: false,
+      error: { field: "depositCeiling" },
+    });
+  });
+
+  it("reports an unreadable overflow account on its own field", () => {
+    const parsed = parseAccountForm(formOf({ overflowAccountId: "abc" }));
+
+    expect(parsed).toMatchObject({
+      ok: false,
+      error: { field: "overflowAccountId" },
     });
   });
 

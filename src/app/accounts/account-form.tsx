@@ -8,12 +8,20 @@ import type {
   AccountFormValues,
 } from "./account-form-data";
 
+export interface OverflowOption {
+  id: number;
+  name: string;
+  currency: string;
+}
+
 interface AccountFormProps {
   action: (
     previous: AccountFormState | null,
     formData: FormData,
   ) => Promise<AccountFormState | null>;
   initialValues: AccountFormValues;
+  /** Active accounts the user may pick as overflow account (never the account itself). */
+  overflowOptions: OverflowOption[];
   submitLabel: string;
 }
 
@@ -29,6 +37,7 @@ const CONTROL_CLASS =
 export function AccountForm({
   action,
   initialValues,
+  overflowOptions,
   submitLabel,
 }: AccountFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
@@ -102,6 +111,35 @@ export function AccountForm({
           required
           autoComplete="off"
         />
+      </Field>
+
+      <Field
+        {...fieldProps(
+          "depositCeiling",
+          "Deposit ceiling (optional, leave empty for none)",
+        )}
+      >
+        <input
+          {...controlProps("depositCeiling")}
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+        />
+      </Field>
+
+      <Field {...fieldProps("overflowAccountId", "Overflow account (optional)")}>
+        {/* Same remount trick as the kind select above. */}
+        <select
+          key={values.overflowAccountId}
+          {...controlProps("overflowAccountId")}
+        >
+          <option value="">None</option>
+          {overflowOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name} ({option.currency})
+            </option>
+          ))}
+        </select>
       </Field>
 
       <button
