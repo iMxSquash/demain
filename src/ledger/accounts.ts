@@ -1,10 +1,13 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import {
+  AccountValidationError,
   assertCurrencyChangeAllowed,
   validateAccountInput,
   type AccountInput,
+  type ValidAccountInput,
 } from "../domain/account";
+import { assertOverflowTargetAllowed } from "../domain/overflow";
 import type { AppDatabase } from "../storage/database";
 import { accounts } from "../storage/schema";
 
@@ -17,6 +20,15 @@ export class AccountNotFoundError extends Error {
   }
 }
 
+export class AccountInUseError extends Error {
+  constructor(id: number, referrers: string[]) {
+    super(
+      `Account ${id} is the overflow account of ${referrers.join(", ")}: change those first`,
+    );
+    this.name = "AccountInUseError";
+  }
+}
+
 export function getAccount(db: AppDatabase, id: number): Account {
   const account = db.select().from(accounts).where(eq(accounts.id, id)).get();
   if (account === undefined) {
@@ -25,9 +37,47 @@ export function getAccount(db: AppDatabase, id: number): Account {
   return account;
 }
 
+// An archived referrer is ignored: it cannot be edited any more, so counting
+// it would lock the target for good.
+function findActiveReferrers(db: AppDatabase, id: number) {
+  return db
+    .select({ name: accounts.name, currency: accounts.currency })
+    .from(accounts)
+    .where(and(eq(accounts.overflowAccountId, id), eq(accounts.archived, false)))
+    .all();
+}
+
+// An update replaces the whole account: an omitted optional field means
+// "none", whereas Drizzle would skip an undefined value and keep the old one.
+function toRow(valid: ValidAccountInput) {
+  return {
+    ...valid,
+    depositCeiling: valid.depositCeiling ?? null,
+    overflowAccountId: valid.overflowAccountId ?? null,
+  };
+}
+
+// Checked against every stored account, archived ones included, because the
+// chain is a graph and not a single field.
+function assertOverflowAllowed(
+  db: AppDatabase,
+  accountId: number | null,
+  input: AccountInput,
+): void {
+  if (input.overflowAccountId === null || input.overflowAccountId === undefined) {
+    return;
+  }
+  assertOverflowTargetAllowed(
+    { id: accountId, currency: input.currency },
+    input.overflowAccountId,
+    listAccounts(db, { includeArchived: true }),
+  );
+}
+
 export function createAccount(db: AppDatabase, input: AccountInput): Account {
   const valid = validateAccountInput(input);
-  return db.insert(accounts).values(valid).returning().get();
+  assertOverflowAllowed(db, null, valid);
+  return db.insert(accounts).values(toRow(valid)).returning().get();
 }
 
 export function listAccounts(
@@ -49,6 +99,16 @@ export function updateAccount(
 ): Account {
   const current = getAccount(db, id);
   const valid = validateAccountInput(input);
+  assertOverflowAllowed(db, id, valid);
+  const mismatched = findActiveReferrers(db, id).find(
+    (referrer) => referrer.currency !== valid.currency,
+  );
+  if (mismatched !== undefined) {
+    throw new AccountValidationError(
+      "currency",
+      `The currency cannot change while ${mismatched.name} uses this account as its overflow account`,
+    );
+  }
   // Transactions arrive with issue #9: until then no account can have any, and
   // that issue replaces this constant with a real query.
   assertCurrencyChangeAllowed(current.currency, valid.currency, {
@@ -56,7 +116,7 @@ export function updateAccount(
   });
   return db
     .update(accounts)
-    .set(valid)
+    .set(toRow(valid))
     .where(eq(accounts.id, id))
     .returning()
     .get();
@@ -64,5 +124,12 @@ export function updateAccount(
 
 export function archiveAccount(db: AppDatabase, id: number): void {
   getAccount(db, id);
+  const referrers = findActiveReferrers(db, id);
+  if (referrers.length > 0) {
+    throw new AccountInUseError(
+      id,
+      referrers.map((referrer) => referrer.name),
+    );
+  }
   db.update(accounts).set({ archived: true }).where(eq(accounts.id, id)).run();
 }
