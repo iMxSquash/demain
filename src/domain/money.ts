@@ -187,3 +187,24 @@ export function formatAmount(
 
   return getCurrencyFormatter(locale, currency).format(exactDecimal);
 }
+
+/**
+ * Writes integer minor units as a plain decimal string ("-1143.88", "1234" for
+ * JPY) meant to pre-fill an input. Unlike `formatAmount` it has no symbol and no
+ * grouping, so `parseAmount` reads it back unchanged in every currency.
+ */
+export function formatEditableAmount(minorUnits: number, currency: string): string {
+  if (!Number.isSafeInteger(minorUnits)) {
+    throw new RangeError(
+      `formatEditableAmount expects a safe integer, got ${minorUnits}`,
+    );
+  }
+
+  const decimals = currencyDecimals(currency);
+  const sign = minorUnits < 0 ? "-" : "";
+  const digits = String(Math.abs(minorUnits)).padStart(decimals + 1, "0");
+  if (decimals === 0) return `${sign}${digits}`;
+
+  const split = digits.length - decimals;
+  return `${sign}${digits.slice(0, split)}.${digits.slice(split)}`;
+}

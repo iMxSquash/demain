@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
-import { formatAmount } from "../../../../domain/money";
+import { formatEditableAmount } from "../../../../domain/money";
 import { AccountNotFoundError, getAccount } from "../../../../ledger/accounts";
 import { withDatabase } from "../../../../storage/with-database";
 import { AccountForm } from "../../account-form";
@@ -12,8 +12,6 @@ import { updateAccountAction } from "../../actions";
 export const metadata: Metadata = {
   title: "Edit account | Demain",
 };
-
-const FORM_LOCALE = "en";
 
 export default async function EditAccountPage({
   params,
@@ -49,10 +47,9 @@ export default async function EditAccountPage({
           kind: account.kind,
           currency: account.currency,
           openingDate: account.openingDate,
-          openingBalance: formatAmount(
+          openingBalance: formatEditableAmount(
             account.openingBalance,
             account.currency,
-            FORM_LOCALE,
           ),
         }}
         submitLabel="Save changes"
