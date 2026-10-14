@@ -82,6 +82,29 @@ describe("validateAccountInput", () => {
   );
 });
 
+describe("validateAccountInput deposit ceiling", () => {
+  it("accepts a ceiling in minor units", () => {
+    const account = validateAccountInput({ ...VALID_INPUT, depositCeiling: 160_000 });
+
+    expect(account.depositCeiling).toBe(160_000);
+  });
+
+  it("accepts an account without ceiling", () => {
+    expect(() =>
+      validateAccountInput({ ...VALID_INPUT, depositCeiling: null }),
+    ).not.toThrow();
+  });
+
+  it.each([-1, 12.5, Number.NaN, Number.MAX_SAFE_INTEGER + 2])(
+    "rejects the ceiling %s",
+    (depositCeiling) => {
+      expect(() =>
+        validateAccountInput({ ...VALID_INPUT, depositCeiling }),
+      ).toThrow(expect.objectContaining({ field: "depositCeiling" }));
+    },
+  );
+});
+
 describe("assertCurrencyChangeAllowed", () => {
   it("allows changing the currency while the account has no transactions", () => {
     expect(() =>

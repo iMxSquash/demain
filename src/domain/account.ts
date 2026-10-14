@@ -14,6 +14,9 @@ export interface AccountInput {
   openingDate: string;
   /** Signed integer in minor units. */
   openingBalance: number;
+  /** Maximum balance reachable through deposits, in minor units. */
+  depositCeiling?: number | null;
+  overflowAccountId?: number | null;
 }
 
 export interface ValidAccountInput extends AccountInput {
@@ -25,7 +28,9 @@ export type AccountField =
   | "kind"
   | "currency"
   | "openingDate"
-  | "openingBalance";
+  | "openingBalance"
+  | "depositCeiling"
+  | "overflowAccountId";
 
 export class AccountValidationError extends Error {
   constructor(
@@ -81,6 +86,18 @@ export function validateAccountInput(input: AccountInput): ValidAccountInput {
     throw new AccountValidationError(
       "openingBalance",
       "The opening balance must be an integer in minor units",
+    );
+  }
+
+  const { depositCeiling } = input;
+  if (
+    depositCeiling !== null &&
+    depositCeiling !== undefined &&
+    (!Number.isSafeInteger(depositCeiling) || depositCeiling < 0)
+  ) {
+    throw new AccountValidationError(
+      "depositCeiling",
+      "The deposit ceiling must be a non-negative integer in minor units",
     );
   }
 
