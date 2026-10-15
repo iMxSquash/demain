@@ -2,19 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { formatAmount } from "../../domain/money";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
-import { DISPLAY_LOCALE } from "../display-locale";
-import {
-  archiveCategoryAction,
-  categorizeTransactionAction,
-  createCategoryAction,
-} from "./actions";
-import { CategorizeForm } from "./categorize-form";
+import { archiveCategoryAction, createCategoryAction } from "./actions";
 import { CategoryForm } from "./category-form";
+import { ToCategorizeQueue } from "./to-categorize-queue";
 
 export const metadata: Metadata = {
   title: "Categories | Demain",
@@ -28,7 +22,6 @@ export default async function CategoriesPage() {
     categories: listCategories(db),
     queue: listUncategorizedTransactions(db),
   }));
-  const accountById = new Map(accounts.map((account) => [account.id, account]));
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 p-8">
@@ -41,51 +34,11 @@ export default async function CategoriesPage() {
         <h2 id="queue-heading" className="text-xl font-semibold">
           To categorize
         </h2>
-        {queue.length === 0 ? (
-          <p>Nothing to categorize: every transaction has a category.</p>
-        ) : (
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-neutral-500">
-                <th scope="col" className="py-2 pr-4">Date</th>
-                <th scope="col" className="py-2 pr-4">Account</th>
-                <th scope="col" className="py-2 pr-4">Label</th>
-                <th scope="col" className="py-2 pr-4 text-right">Amount</th>
-                <th scope="col" className="py-2">Category</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queue.map((row) => {
-                const account = accountById.get(row.accountId);
-                if (account === undefined) {
-                  throw new Error(
-                    `Transaction ${row.id} points to unknown account ${row.accountId}`,
-                  );
-                }
-                return (
-                  <tr key={row.id} className="border-b border-neutral-300">
-                    <td className="py-2 pr-4 tabular-nums">{row.date}</td>
-                    <td className="py-2 pr-4">{account.name}</td>
-                    <th scope="row" className="py-2 pr-4 font-medium">
-                      {row.label}
-                    </th>
-                    <td className="py-2 pr-4 text-right tabular-nums">
-                      {formatAmount(row.amount, account.currency, DISPLAY_LOCALE)}
-                    </td>
-                    <td className="py-2">
-                      <CategorizeForm
-                        action={categorizeTransactionAction.bind(null, row.id)}
-                        transactionLabel={row.label}
-                        idPrefix={`queue-${row.id}`}
-                        categories={categories}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <ToCategorizeQueue
+          queue={queue}
+          accounts={accounts}
+          categories={categories}
+        />
       </section>
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
