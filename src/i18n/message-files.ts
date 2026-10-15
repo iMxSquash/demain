@@ -6,10 +6,21 @@ import path from "node:path";
 const MESSAGES_DIR = path.join(process.cwd(), "messages");
 const FILE_EXTENSION = ".json";
 
+function isLanguageTag(value: string): boolean {
+  try {
+    return Intl.getCanonicalLocales(value).length === 1;
+  } catch {
+    // Intl throws a RangeError on a structurally invalid tag.
+    return false;
+  }
+}
+
+/** Languages that ship: a file whose name is not a language tag is ignored. */
 export function listLocales(): string[] {
   return readdirSync(MESSAGES_DIR)
     .filter((file) => file.endsWith(FILE_EXTENSION))
     .map((file) => file.slice(0, -FILE_EXTENSION.length))
+    .filter(isLanguageTag)
     .sort();
 }
 
