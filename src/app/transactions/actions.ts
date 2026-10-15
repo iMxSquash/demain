@@ -11,6 +11,7 @@ import {
   type TransactionField,
 } from "../../domain/transaction";
 import { AccountNotFoundError, listAccounts } from "../../ledger/accounts";
+import { CategoryNotFoundError } from "../../ledger/categories";
 import {
   createTransaction,
   deleteTransaction,
@@ -76,6 +77,9 @@ function describeFailure(error: unknown): {
 } {
   if (error instanceof TransactionValidationError) {
     return { field: error.field, message: error.message };
+  }
+  if (error instanceof CategoryNotFoundError) {
+    return { field: "categoryId", message: "This category no longer exists." };
   }
   if (error instanceof AccountNotFoundError) {
     return { message: "This account no longer exists." };

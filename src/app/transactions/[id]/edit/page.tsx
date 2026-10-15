@@ -5,6 +5,7 @@ import { connection } from "next/server";
 
 import { formatEditableAmount } from "../../../../domain/money";
 import { getAccount, listAccounts } from "../../../../ledger/accounts";
+import { listCategories } from "../../../../ledger/categories";
 import {
   getTransaction,
   TransactionNotFoundError,
@@ -30,13 +31,15 @@ export default async function EditTransactionPage({
   let transaction;
   let account;
   let accounts;
+  let categories;
   try {
-    ({ transaction, account, accounts } = withDatabase((db) => {
+    ({ transaction, account, accounts, categories } = withDatabase((db) => {
       const found = getTransaction(db, id);
       return {
         transaction: found,
         account: getAccount(db, found.accountId),
         accounts: listAccounts(db),
+        categories: listCategories(db, { includeArchived: true }),
       };
     }));
   } catch (error) {
@@ -63,8 +66,15 @@ export default async function EditTransactionPage({
           label: transaction.label,
           description: transaction.description ?? "",
           paymentMode: transaction.paymentMode ?? "",
+          categoryId:
+            transaction.categoryId === null ? "" : String(transaction.categoryId),
         }}
         accounts={accounts}
+        // An archived category the transaction already has stays selectable,
+        // otherwise saving would silently clear it.
+        categories={categories.filter(
+          (category) => !category.archived || category.id === transaction.categoryId,
+        )}
         submitLabel="Save changes"
       />
     </main>
