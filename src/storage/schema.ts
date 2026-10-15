@@ -1,4 +1,9 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  integer,
+  sqliteTable,
+  text,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
@@ -15,4 +20,12 @@ export const accounts = sqliteTable("accounts", {
   // Signed integer in minor units.
   openingBalance: integer("opening_balance").notNull(),
   archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+  // Maximum balance reachable through deposits, in minor units. Null: no ceiling.
+  depositCeiling: integer("deposit_ceiling"),
+  // Receives what does not fit under the ceiling. Restrict: a referenced
+  // account can never be deleted (DOMAIN, protection of the chain).
+  overflowAccountId: integer("overflow_account_id").references(
+    (): AnySQLiteColumn => accounts.id,
+    { onDelete: "restrict" },
+  ),
 });

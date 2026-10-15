@@ -4,6 +4,8 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { eq } from "drizzle-orm";
+
 import {
   archiveAccount,
   createAccount,
@@ -15,6 +17,7 @@ import {
   migrateDatabase,
   openDatabase,
 } from "../../src/storage/database";
+import { accounts } from "../../src/storage/schema";
 
 const CHECKING_INPUT = {
   name: "Checking",
@@ -42,7 +45,13 @@ describe("accounts", () => {
   it("creates an account and lists it", () => {
     const created = createAccount(db, CHECKING_INPUT);
 
-    expect(created).toEqual({ ...CHECKING_INPUT, id: expect.any(Number), archived: false });
+    expect(created).toEqual({
+      ...CHECKING_INPUT,
+      id: expect.any(Number),
+      archived: false,
+      depositCeiling: null,
+      overflowAccountId: null,
+    });
     expect(listAccounts(db)).toEqual([created]);
   });
 
@@ -97,5 +106,128 @@ describe("accounts", () => {
     expect(() => archiveAccount(db, 999)).toThrow(
       expect.objectContaining({ name: "AccountNotFoundError" }),
     );
+  });
+
+  describe("overflow accounts", () => {
+    const SAVINGS_INPUT = { ...CHECKING_INPUT, kind: "savings", openingBalance: 0 };
+
+    it("stores a deposit ceiling and an overflow account", () => {
+      const livretA = createAccount(db, { ...SAVINGS_INPUT, name: "Livret A" });
+
+      const livretJeune = createAccount(db, {
+        ...SAVINGS_INPUT,
+        name: "Livret Jeune",
+        depositCeiling: 160_000,
+        overflowAccountId: livretA.id,
+      });
+
+      expect(livretJeune).toMatchObject({
+        depositCeiling: 160_000,
+        overflowAccountId: livretA.id,
+      });
+    });
+
+    it("refuses an overflow account in another currency", () => {
+      const usd = createAccount(db, { ...SAVINGS_INPUT, currency: "USD" });
+
+      expect(() =>
+        createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: usd.id }),
+      ).toThrow(expect.objectContaining({ field: "overflowAccountId" }));
+      expect(listAccounts(db)).toEqual([usd]);
+    });
+
+    it("refuses an archived overflow account", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      archiveAccount(db, livretA.id);
+
+      expect(() =>
+        createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id }),
+      ).toThrow(expect.objectContaining({ field: "overflowAccountId" }));
+    });
+
+    it("refuses an update that would close a loop", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      const livretJeune = createAccount(db, {
+        ...SAVINGS_INPUT,
+        overflowAccountId: livretA.id,
+      });
+
+      expect(() =>
+        updateAccount(db, livretA.id, {
+          ...SAVINGS_INPUT,
+          overflowAccountId: livretJeune.id,
+        }),
+      ).toThrow(expect.objectContaining({ field: "overflowAccountId" }));
+      expect(listAccounts(db)[0]?.overflowAccountId).toBeNull();
+    });
+
+    it("lets an account clear its overflow account", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      const livretJeune = createAccount(db, {
+        ...SAVINGS_INPUT,
+        overflowAccountId: livretA.id,
+      });
+
+      const updated = updateAccount(db, livretJeune.id, {
+        ...SAVINGS_INPUT,
+        overflowAccountId: null,
+      });
+
+      expect(updated.overflowAccountId).toBeNull();
+    });
+
+    it("refuses to archive an account used as an overflow account", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id });
+
+      expect(() => archiveAccount(db, livretA.id)).toThrow(
+        expect.objectContaining({ name: "AccountInUseError" }),
+      );
+      expect(listAccounts(db)).toHaveLength(2);
+    });
+
+    it("archives an account once its referrer no longer points to it", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      const livretJeune = createAccount(db, {
+        ...SAVINGS_INPUT,
+        overflowAccountId: livretA.id,
+      });
+      updateAccount(db, livretJeune.id, SAVINGS_INPUT);
+
+      archiveAccount(db, livretA.id);
+
+      expect(listAccounts(db).map((account) => account.id)).toEqual([livretJeune.id]);
+    });
+
+    it("makes the database itself refuse to delete a referenced account", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id });
+
+      expect(() =>
+        db.delete(accounts).where(eq(accounts.id, livretA.id)).run(),
+      ).toThrow();
+      expect(listAccounts(db)).toHaveLength(2);
+    });
+
+    it("refuses a currency change that would break a referrer's overflow link", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id });
+
+      expect(() =>
+        updateAccount(db, livretA.id, { ...SAVINGS_INPUT, currency: "USD" }),
+      ).toThrow(expect.objectContaining({ field: "currency" }));
+      expect(listAccounts(db)[0]?.currency).toBe("EUR");
+    });
+
+    it("lets an archived referrer release its overflow account", () => {
+      const livretA = createAccount(db, SAVINGS_INPUT);
+      const livretJeune = createAccount(db, {
+        ...SAVINGS_INPUT,
+        overflowAccountId: livretA.id,
+      });
+      archiveAccount(db, livretJeune.id);
+
+      expect(() => archiveAccount(db, livretA.id)).not.toThrow();
+    });
   });
 });

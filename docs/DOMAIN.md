@@ -62,7 +62,18 @@ erDiagram
 | opening_date, opening_balance | Starting point of the computed balance, in minor units. |
 | deposit_ceiling | Optional, in minor units. Maximum balance up to which deposits are accepted. Null means no ceiling. |
 | overflow_account_id | Optional. The account that receives the surplus of a transfer that does not fit under this account's ceiling. Must respect the [protection rules](#protection-of-the-chain). |
-| archived | Hidden from views but kept for history. |
+| archived | The account is closed: hidden from views but kept for history. See [Archiving an account](#archiving-an-account). |
+
+### Archiving an account
+
+An account that is no longer used is archived, not deleted, so that its history and the balances of past months stay correct.
+
+- **Zero balance.** An account can be archived only when its computed balance is exactly zero. A negative balance blocks the archiving as well. The user empties the account first, typically with a transfer to another account.
+- **No more entered movements.** No transaction can be entered on an archived account, and account pickers do not offer it. A planned item cannot target it, and an account targeted by a planned item that is not over cannot be archived until the item is changed.
+- **Imports are the exception.** A transaction imported from the bank has already happened, so it is accepted on an archived account and flagged with a visible warning.
+- **History stays.** Past transactions, balances and statistics of an archived account remain in the views that cover their period.
+
+Until transactions exist (issue #9) an account has only its opening balance: the zero-balance and no-movement rules take effect with that issue, like the currency rule above.
 
 ### Transaction
 
@@ -224,7 +235,8 @@ These rules must hold at all times and are the first candidates for unit tests.
 8. **The computed balance of an account** at a date equals its opening balance plus the sum of its transactions up to and including that date.
 9. **The real trajectory contains no estimation.** Beyond today it contains only explicitly dated planned items (whose amount may follow a rolling average chosen by the user for that item). Estimated variable spending exists only in simulations.
 10. **The deposit ceiling holds for entered data.** See [Deposit ceiling and overflow](#deposit-ceiling-and-overflow).
-11. **Overflow chains are acyclic**, stay within one currency, and never point to an archived account.
+11. **Overflow chains are acyclic**, stay within one currency, and are never saved with an archived account as target. An archived account keeps the link it had: it holds nothing and receives nothing, so the link is never evaluated.
+12. **An archived account has a zero balance** and receives no entered transaction. See [Archiving an account](#archiving-an-account).
 
 ## Deposit ceiling and overflow
 
@@ -245,8 +257,8 @@ A ceiling limits the balance an account may reach through deposits. An account m
 The chain comes from user input, so it is never trusted:
 
 - **No cycle.** Saving an overflow account is refused when following the chain from the chosen target would come back to the account itself (the account itself, A to B to A, or any longer loop). The check runs on the server at every save and on every load of external data, including a restored backup or a JSON import.
-- **Same currency.** An overflow account must have the same currency as the account that overflows to it, since a transfer between currencies would need a conversion that V1 does not model.
-- **Not archived.** An overflow account cannot be archived, and an account that is referenced as an overflow account cannot be archived or deleted until the references are changed.
+- **Same currency.** An overflow account must have the same currency as the account that overflows to it, since a transfer between currencies would need a conversion that V1 does not model. For the same reason, the currency of an account cannot change while an active account uses it as its overflow account.
+- **Not archived.** An archived account cannot be chosen as an overflow account. An account that is the overflow account of an active account cannot be archived or deleted until that reference is changed. An archived account that still points to another account is ignored as a referrer: it cannot be edited any more, so counting it would lock its target for good.
 - **Defensive evaluation.** Even if a cycle were present in stored data, evaluating a chain keeps the accounts already visited and stops at the first repeat. It reports the configuration as invalid and places nothing, so a computation can never loop.
 
 ### Examples

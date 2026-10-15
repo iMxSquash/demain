@@ -7,6 +7,10 @@ export interface AccountFormValues {
   currency: string;
   openingDate: string;
   openingBalance: string;
+  /** Blank means no ceiling. */
+  depositCeiling: string;
+  /** Account id as text, blank means no overflow account. */
+  overflowAccountId: string;
 }
 
 export interface AccountFormState {
@@ -32,22 +36,25 @@ export function readSubmittedValues(formData: FormData): AccountFormValues {
     currency: readText(formData, "currency"),
     openingDate: readText(formData, "openingDate"),
     openingBalance: readText(formData, "openingBalance"),
+    depositCeiling: readText(formData, "depositCeiling"),
+    overflowAccountId: readText(formData, "overflowAccountId"),
   };
 }
 
-/** Converts submitted text to a typed input. The amount never goes through a float. */
-export function parseAccountForm(formData: FormData): ParsedAccountForm {
-  const values = readSubmittedValues(formData);
-  const currency = values.currency.trim().toUpperCase();
+type AmountResult = { value: number } | { error: AccountFormState };
 
-  let openingBalance: number;
+function readAmount(
+  field: AccountField,
+  text: string,
+  currency: string,
+  values: AccountFormValues,
+): AmountResult {
   try {
-    openingBalance = parseAmount(values.openingBalance, currency);
+    return { value: parseAmount(text, currency) };
   } catch (error) {
     // RangeError: Intl refuses a malformed currency code before any parsing.
     if (error instanceof RangeError) {
       return {
-        ok: false,
         error: {
           field: "currency",
           message: `Unknown currency "${currency}"`,
@@ -56,12 +63,50 @@ export function parseAccountForm(formData: FormData): ParsedAccountForm {
       };
     }
     if (error instanceof MoneyParseError) {
-      return {
-        ok: false,
-        error: { field: "openingBalance", message: error.message, values },
-      };
+      return { error: { field, message: error.message, values } };
     }
     throw error;
+  }
+}
+
+/** Converts submitted text to a typed input. Amounts never go through a float. */
+export function parseAccountForm(formData: FormData): ParsedAccountForm {
+  const values = readSubmittedValues(formData);
+  const currency = values.currency.trim().toUpperCase();
+
+  const opening = readAmount(
+    "openingBalance",
+    values.openingBalance,
+    currency,
+    values,
+  );
+  if ("error" in opening) return { ok: false, error: opening.error };
+
+  let depositCeiling: number | null = null;
+  if (values.depositCeiling.trim() !== "") {
+    const ceiling = readAmount(
+      "depositCeiling",
+      values.depositCeiling,
+      currency,
+      values,
+    );
+    if ("error" in ceiling) return { ok: false, error: ceiling.error };
+    depositCeiling = ceiling.value;
+  }
+
+  let overflowAccountId: number | null = null;
+  if (values.overflowAccountId.trim() !== "") {
+    overflowAccountId = Number(values.overflowAccountId);
+    if (!Number.isSafeInteger(overflowAccountId)) {
+      return {
+        ok: false,
+        error: {
+          field: "overflowAccountId",
+          message: "Unknown overflow account",
+          values,
+        },
+      };
+    }
   }
 
   return {
@@ -71,7 +116,9 @@ export function parseAccountForm(formData: FormData): ParsedAccountForm {
       kind: values.kind,
       currency,
       openingDate: values.openingDate,
-      openingBalance,
+      openingBalance: opening.value,
+      depositCeiling,
+      overflowAccountId,
     },
   };
 }

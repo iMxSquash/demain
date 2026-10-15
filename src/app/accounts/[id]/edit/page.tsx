@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { formatEditableAmount } from "../../../../domain/money";
-import { AccountNotFoundError, getAccount } from "../../../../ledger/accounts";
+import {
+  AccountNotFoundError,
+  getAccount,
+  listAccounts,
+} from "../../../../ledger/accounts";
 import { withDatabase } from "../../../../storage/with-database";
 import { AccountForm } from "../../account-form";
 import { updateAccountAction } from "../../actions";
@@ -24,8 +28,12 @@ export default async function EditAccountPage({
   if (!Number.isSafeInteger(id)) notFound();
 
   let account;
+  let overflowOptions;
   try {
-    account = withDatabase((db) => getAccount(db, id));
+    ({ account, overflowOptions } = withDatabase((db) => ({
+      account: getAccount(db, id),
+      overflowOptions: listAccounts(db).filter((other) => other.id !== id),
+    })));
   } catch (error) {
     if (error instanceof AccountNotFoundError) notFound();
     throw error;
@@ -48,7 +56,16 @@ export default async function EditAccountPage({
             account.openingBalance,
             account.currency,
           ),
+          depositCeiling:
+            account.depositCeiling === null
+              ? ""
+              : formatEditableAmount(account.depositCeiling, account.currency),
+          overflowAccountId:
+            account.overflowAccountId === null
+              ? ""
+              : String(account.overflowAccountId),
         }}
+        overflowOptions={overflowOptions}
         submitLabel="Save changes"
       />
     </main>

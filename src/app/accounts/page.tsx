@@ -21,6 +21,8 @@ const NEW_ACCOUNT_DEFAULTS = {
   currency: "EUR",
   openingDate: "",
   openingBalance: "0",
+  depositCeiling: "",
+  overflowAccountId: "",
 };
 
 export default async function AccountsPage() {
@@ -41,7 +43,7 @@ export default async function AccountsPage() {
         {active.length === 0 ? (
           <p>No account yet. Add your first account below.</p>
         ) : (
-          <AccountTable accounts={active} />
+          <AccountTable accounts={active} allAccounts={all} />
         )}
       </section>
 
@@ -52,6 +54,7 @@ export default async function AccountsPage() {
         <AccountForm
           action={createAccountAction}
           initialValues={NEW_ACCOUNT_DEFAULTS}
+          overflowOptions={active}
           submitLabel="Add account"
         />
       </section>
@@ -61,14 +64,20 @@ export default async function AccountsPage() {
           <h2 id="archived-heading" className="text-xl font-semibold">
             Archived accounts
           </h2>
-          <AccountTable accounts={archived} />
+          <AccountTable accounts={archived} allAccounts={all} />
         </section>
       ) : null}
     </main>
   );
 }
 
-function AccountTable({ accounts }: { accounts: Account[] }) {
+interface AccountTableProps {
+  accounts: Account[];
+  /** Every account, archived ones included: overflow links can point to any of them. */
+  allAccounts: Account[];
+}
+
+function AccountTable({ accounts, allAccounts }: AccountTableProps) {
   return (
     <table className="w-full border-collapse text-left">
       <thead>
@@ -77,41 +86,74 @@ function AccountTable({ accounts }: { accounts: Account[] }) {
           <th scope="col" className="py-2 pr-4">Kind</th>
           <th scope="col" className="py-2 pr-4">Currency</th>
           <th scope="col" className="py-2 pr-4 text-right">Opening balance</th>
+          <th scope="col" className="py-2 pr-4 text-right">Deposit ceiling</th>
+          <th scope="col" className="py-2 pr-4">Overflow account</th>
           <th scope="col" className="py-2">Actions</th>
         </tr>
       </thead>
       <tbody>
         {accounts.map((account) => (
-          <tr key={account.id} className="border-b border-neutral-300">
-            <th scope="row" className="py-2 pr-4 font-medium">{account.name}</th>
-            <td className="py-2 pr-4">{account.kind}</td>
-            <td className="py-2 pr-4">{account.currency}</td>
-            <td className="py-2 pr-4 text-right tabular-nums">
-              {formatAmount(account.openingBalance, account.currency, DISPLAY_LOCALE)}
-            </td>
-            <td className="py-2">
-              {account.archived ? null : (
-                <div className="flex gap-2">
-                  <Link
-                    href={`/accounts/${account.id}/edit`}
-                    className="inline-flex min-h-11 items-center px-2 underline"
-                  >
-                    Edit<span className="sr-only"> {account.name}</span>
-                  </Link>
-                  <form action={archiveAccountAction.bind(null, account.id)}>
-                    <button
-                      type="submit"
-                      className="min-h-11 px-2 underline"
-                    >
-                      Archive<span className="sr-only"> {account.name}</span>
-                    </button>
-                  </form>
-                </div>
-              )}
-            </td>
-          </tr>
+          <AccountRow key={account.id} account={account} allAccounts={allAccounts} />
         ))}
       </tbody>
     </table>
+  );
+}
+
+function AccountRow({
+  account,
+  allAccounts,
+}: {
+  account: Account;
+  allAccounts: Account[];
+}) {
+  const overflowName =
+    allAccounts.find((other) => other.id === account.overflowAccountId)?.name ??
+    "None";
+  // An archived referrer is ignored, as in archiveAccount.
+  const referrers = allAccounts.filter(
+    (other) => !other.archived && other.overflowAccountId === account.id,
+  );
+
+  return (
+    <tr className="border-b border-neutral-300">
+      <th scope="row" className="py-2 pr-4 font-medium">{account.name}</th>
+      <td className="py-2 pr-4">{account.kind}</td>
+      <td className="py-2 pr-4">{account.currency}</td>
+      <td className="py-2 pr-4 text-right tabular-nums">
+        {formatAmount(account.openingBalance, account.currency, DISPLAY_LOCALE)}
+      </td>
+      <td className="py-2 pr-4 text-right tabular-nums">
+        {account.depositCeiling === null
+          ? "None"
+          : formatAmount(account.depositCeiling, account.currency, DISPLAY_LOCALE)}
+      </td>
+      <td className="py-2 pr-4">{overflowName}</td>
+      <td className="py-2">
+        {account.archived ? null : (
+          <div className="flex gap-2">
+            <Link
+              href={`/accounts/${account.id}/edit`}
+              className="inline-flex min-h-11 items-center px-2 underline"
+            >
+              Edit<span className="sr-only"> {account.name}</span>
+            </Link>
+            {referrers.length > 0 ? (
+              <p className="inline-flex min-h-11 items-center px-2">
+                Overflow account of{" "}
+                {referrers.map((referrer) => referrer.name).join(", ")}: change it
+                to archive
+              </p>
+            ) : (
+              <form action={archiveAccountAction.bind(null, account.id)}>
+                <button type="submit" className="min-h-11 px-2 underline">
+                  Archive<span className="sr-only"> {account.name}</span>
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+      </td>
+    </tr>
   );
 }
