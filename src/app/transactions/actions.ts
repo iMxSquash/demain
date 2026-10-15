@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { formatAmount } from "../../domain/money";
 import {
   TransactionValidationError,
+  type CeilingWarning,
   type TransactionField,
 } from "../../domain/transaction";
 import { AccountNotFoundError, listAccounts } from "../../ledger/accounts";
@@ -88,6 +89,16 @@ function revalidateLedger(): void {
   revalidatePath(ACCOUNTS_PATH);
 }
 
+function ceilingWarningText(
+  currencies: CurrencyByAccount,
+  accountId: number,
+  warning: CeilingWarning | null,
+): string {
+  if (warning === null) return "";
+  const excess = formatMinorUnits(currencies, accountId, warning.excess);
+  return ` Warning: this income exceeds the deposit ceiling of the account by ${excess}.`;
+}
+
 function transactionFailure(
   error: unknown,
   formData: FormData,
@@ -121,14 +132,10 @@ export async function createTransactionAction(
   }
 
   revalidateLedger();
-  const excess =
-    warning === null
-      ? ""
-      : ` Warning: this income exceeds the deposit ceiling of the account by ${formatMinorUnits(currencies, parsed.input.accountId, warning.excess)}.`;
   // Keep account and date for the next entry, clear what is specific to this one.
   return {
     status: "notice",
-    message: `Transaction recorded.${excess}`,
+    message: `Transaction recorded.${ceilingWarningText(currencies, parsed.input.accountId, warning)}`,
     values: {
       ...readTransactionValues(formData),
       amount: "",
@@ -144,18 +151,32 @@ export async function updateTransactionAction(
   _previous: TransactionFormState | null,
   formData: FormData,
 ): Promise<TransactionFormState | null> {
-  const parsed = parseTransactionForm(formData, loadCurrencies());
+  const currencies = loadCurrencies();
+  const parsed = parseTransactionForm(formData, currencies);
   if (!parsed.ok) return parsed.error;
 
+  let warning;
   try {
-    withDatabase((db) => updateTransaction(db, id, parsed.input));
+    warning = withDatabase((db) => {
+      const found = previewCeilingWarning(db, parsed.input, {
+        replacingTransactionId: id,
+      });
+      updateTransaction(db, id, parsed.input);
+      return found;
+    });
   } catch (error) {
     return transactionFailure(error, formData);
   }
 
   revalidateLedger();
-  // redirect throws, so it stays outside the try block.
-  redirect(TRANSACTIONS_PATH);
+  // redirect throws, so it stays outside the try block. A warning keeps the
+  // user on the form, since a redirect would drop the message.
+  if (warning === null) redirect(TRANSACTIONS_PATH);
+  return {
+    status: "notice",
+    message: `Changes saved.${ceilingWarningText(currencies, parsed.input.accountId, warning)}`,
+    values: readTransactionValues(formData),
+  };
 }
 
 export async function deleteTransactionAction(id: number): Promise<void> {

@@ -443,6 +443,37 @@ describe("transactions", () => {
   });
 
   describe("ceiling warning preview", () => {
+    it("leaves the edited transaction out of the balance it is checked against", () => {
+      const livretJeune = createAccount(db, {
+        ...CHECKING_INPUT,
+        kind: "savings",
+        openingBalance: 157_000,
+        depositCeiling: 160_000,
+      });
+      const gift = createTransaction(db, {
+        accountId: livretJeune.id,
+        date: "2026-03-01",
+        amount: 1_000,
+        kind: "income",
+        label: "Gift",
+      });
+
+      const warning = previewCeilingWarning(
+        db,
+        {
+          accountId: livretJeune.id,
+          date: "2026-03-01",
+          amount: 5_000,
+          kind: "income",
+          label: "Gift",
+        },
+        { replacingTransactionId: gift.id },
+      );
+
+      // 157 000 without the gift, plus 5 000: 2 000 above the ceiling.
+      expect(warning).toEqual({ excess: 2_000 });
+    });
+
     it("warns about an income above the ceiling and never about interest", () => {
       const livretJeune = createAccount(db, {
         ...CHECKING_INPUT,

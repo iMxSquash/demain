@@ -225,17 +225,25 @@ export function recordManualTransfer(
   }));
 }
 
-/** Read-only: the warning shown with an income that exceeds the ceiling. */
+/**
+ * Read-only: the warning shown with an income that exceeds the ceiling. When
+ * an existing transaction is being edited, it is left out of the balance the
+ * new amount is checked against.
+ */
 export function previewCeilingWarning(
   db: AppDatabase,
   input: TransactionInput,
+  { replacingTransactionId }: { replacingTransactionId?: number } = {},
 ): CeilingWarning | null {
   const valid = validateTransactionInput(input);
   const account = getOpenAccount(db, valid.accountId);
-  return ceilingWarningFor(valid, {
-    balance: getAccountBalance(db, account.id),
-    ceiling: account.depositCeiling,
-  });
+  let balance = getAccountBalance(db, account.id);
+  if (replacingTransactionId !== undefined) {
+    const replaced = getTransaction(db, replacingTransactionId);
+    // It only counts in this balance if it stays on the same account.
+    if (replaced.accountId === account.id) balance -= replaced.amount;
+  }
+  return ceilingWarningFor(valid, { balance, ceiling: account.depositCeiling });
 }
 
 export function updateTransaction(
