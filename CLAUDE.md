@@ -13,8 +13,8 @@ The owner's general conventions (language, commits, security, accessibility, tes
 
 ## Current state
 
-- The repository contains documentation and repository configuration only. There is no application code yet.
-- Next step: start M1 with the application scaffold (Next.js, strict TypeScript, ESLint, Vitest and the `lint`, `typecheck` and `test` npm scripts that the CI expects).
+- M1 is in progress: the scaffold, the storage layer, the money core, accounts with deposit ceilings and overflow chains, transactions and transfers, and categories with the to-categorize queue are in place. The milestone on GitHub and [docs/ROADMAP.md](docs/ROADMAP.md) say what is done and what remains.
+- Next step: take the next open issue of the milestone whose dependencies are closed.
 - Small items still open: the Discussions link in `.github/ISSUE_TEMPLATE/config.yml` points to a feature that is not enabled, `CODE_OF_CONDUCT.md` and CodeQL are due when the repository becomes public, and secret scanning and private vulnerability reporting must be enabled at that time.
 - Undecided points are listed in the open questions of the roadmap. Do not invent an answer for them: ask.
 
