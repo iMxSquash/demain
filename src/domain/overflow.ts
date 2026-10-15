@@ -36,6 +36,17 @@ export type OverflowRouting =
     }
   | { status: "invalid"; reason: "cycle" };
 
+/**
+ * Room left under the ceiling, never below zero. Interest may leave the
+ * balance above the ceiling, which simply means no room. Infinity: no ceiling.
+ */
+export function depositRoom(
+  account: Pick<OverflowAccount, "balance" | "ceiling">,
+): number {
+  if (account.ceiling === null) return Number.POSITIVE_INFINITY;
+  return Math.max(0, account.ceiling - account.balance);
+}
+
 export function routeAlongOverflowChain(
   amount: number,
   destinationId: number,
@@ -61,11 +72,7 @@ export function routeAlongOverflowChain(
       return { status: "invalid", reason: "cycle" };
     }
     visited.add(current.id);
-    const room =
-      current.ceiling === null
-        ? remaining
-        : Math.max(0, current.ceiling - current.balance);
-    const placed = Math.min(remaining, room);
+    const placed = Math.min(remaining, depositRoom(current));
     if (placed > 0) {
       placements.push({ accountId: current.id, amount: placed });
       remaining -= placed;

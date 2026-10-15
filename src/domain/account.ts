@@ -51,7 +51,7 @@ const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 // Date.UTC rolls an impossible day over to the next month, so a round trip
 // that changes the day or the month reveals a date that does not exist.
-function isCalendarDate(value: string): boolean {
+export function isCalendarDate(value: string): boolean {
   const match = ISO_DATE.exec(value);
   if (match === null) return false;
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
