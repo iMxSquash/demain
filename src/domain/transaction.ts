@@ -34,16 +34,20 @@ export interface TransactionInput {
   /** Optional user note. */
   description?: string | null;
   paymentMode?: string | null;
+  /** Null or absent: the transaction waits in the to-categorize queue. */
+  categoryId?: number | null;
 }
 
 export interface ValidTransactionInput extends TransactionInput {
   description: string | null;
   paymentMode: PaymentMode | null;
+  categoryId: number | null;
 }
 
 export type TransactionField =
   | "accountId"
   | "amount"
+  | "categoryId"
   | "date"
   | "description"
   | "kind"
@@ -116,6 +120,7 @@ export function validateTransactionInput(
     label: normalizeLabel(input.label),
     description: input.description?.trim() || null,
     paymentMode: normalizePaymentMode(input.paymentMode),
+    categoryId: input.categoryId ?? null,
   };
 }
 
