@@ -183,48 +183,73 @@ function totalsOf(balances: readonly AccountBalance[], referenceCurrency: string
   };
 }
 
-export function computeMonthlySynthesis(
-  input: SynthesisInput,
-): MonthlySynthesis[] {
-  const start = firstMonth(input);
-  if (start === null) return [];
-
-  const lookups: Lookups = {
+function buildLookups(input: SynthesisInput): Lookups {
+  return {
     accountById: new Map(input.accounts.map((account) => [account.id, account])),
     transactionById: new Map(
       input.transactions.map((transaction) => [transaction.id, transaction]),
     ),
     referenceCurrency: input.referenceCurrency,
   };
+}
+
+// Running balance of every account: seeded with its opening balance and moved
+// by each month's transactions, so no month is recomputed from the start.
+function seedBalances(
+  accounts: readonly SynthesisAccount[],
+): Map<number, number> {
+  return new Map(accounts.map((account) => [account.id, account.openingBalance]));
+}
+
+// Balances of the accounts open in the month, with the total in the reference
+// currency and the currencies left out of it.
+function balanceFiguresAt(
+  input: SynthesisInput,
+  running: ReadonlyMap<number, number>,
+  month: Month,
+) {
+  const balances = openBalances(input.accounts, running, month);
+  return { balances, ...totalsOf(balances, input.referenceCurrency) };
+}
+
+// Moves the running balances by the transactions of one month, in place.
+function applyToBalances(
+  running: Map<number, number>,
+  inMonth: readonly SynthesisTransaction[],
+): void {
+  for (const transaction of inMonth) {
+    const balance = running.get(transaction.accountId) ?? 0;
+    running.set(transaction.accountId, balance + transaction.amount);
+  }
+}
+
+export function computeMonthlySynthesis(
+  input: SynthesisInput,
+): MonthlySynthesis[] {
+  const start = firstMonth(input);
+  if (start === null) return [];
+
+  const lookups = buildLookups(input);
   const byMonth = groupByMonth(input.transactions);
-  // Running balance of every account: seeded with its opening balance and moved
-  // by each month's transactions, so no month is recomputed from the start.
-  const running = new Map(
-    input.accounts.map((account) => [account.id, account.openingBalance]),
-  );
+  const running = seedBalances(input.accounts);
 
   const rows: MonthlySynthesis[] = [];
   let cumulativeNet = 0;
   let cumulativeSavings = 0;
   for (let month = start; month <= input.throughMonth; month = nextMonth(month)) {
     const inMonth = byMonth.get(month) ?? [];
-    for (const transaction of inMonth) {
-      const balance = running.get(transaction.accountId) ?? 0;
-      running.set(transaction.accountId, balance + transaction.amount);
-    }
+    applyToBalances(running, inMonth);
     const net = netOf(lookups, inMonth);
     const savings = savingsOf(lookups, inMonth);
     cumulativeNet += net;
     cumulativeSavings += savings;
-    const balances = openBalances(input.accounts, running, month);
     rows.push({
       month,
       net,
       savings,
       cumulativeSavings,
       cumulativeAccount: cumulativeNet - cumulativeSavings,
-      balances,
-      ...totalsOf(balances, input.referenceCurrency),
+      ...balanceFiguresAt(input, running, month),
     });
   }
   return rows;
