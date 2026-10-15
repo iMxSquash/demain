@@ -252,6 +252,9 @@ export function updateTransaction(
       "A transfer cannot be edited: delete it and enter it again",
     );
   }
+  // Both ends must be open: moving a transaction out of an archived account
+  // would take its balance away from zero (DOMAIN, invariant 12).
+  getOpenAccount(db, current.accountId);
   const valid = validateTransactionInput(input);
   getOpenAccount(db, valid.accountId);
   return db

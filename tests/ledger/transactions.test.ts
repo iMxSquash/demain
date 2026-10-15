@@ -288,6 +288,22 @@ describe("transactions", () => {
       );
     });
 
+    it("refuses to move a transaction out of an archived account", () => {
+      const { closing, income } = archivedWithHistory();
+      const open = createAccount(db, { ...CHECKING_INPUT, name: "Open" });
+
+      expect(() =>
+        updateTransaction(db, income.id, {
+          accountId: open.id,
+          date: "2026-02-01",
+          amount: 700,
+          kind: "income",
+          label: "Refund",
+        }),
+      ).toThrow(TransactionValidationError);
+      expect(getAccountBalance(db, closing.id)).toBe(0);
+    });
+
     it("refuses to edit a transaction that belongs to an archived account", () => {
       const { closing, income } = archivedWithHistory();
 

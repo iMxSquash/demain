@@ -28,14 +28,14 @@ export default async function EditTransactionPage({
   if (!Number.isSafeInteger(id)) notFound();
 
   let transaction;
-  let currency;
+  let account;
   let accounts;
   try {
-    ({ transaction, currency, accounts } = withDatabase((db) => {
+    ({ transaction, account, accounts } = withDatabase((db) => {
       const found = getTransaction(db, id);
       return {
         transaction: found,
-        currency: getAccount(db, found.accountId).currency,
+        account: getAccount(db, found.accountId),
         accounts: listAccounts(db),
       };
     }));
@@ -43,8 +43,9 @@ export default async function EditTransactionPage({
     if (error instanceof TransactionNotFoundError) notFound();
     throw error;
   }
-  // A transfer is deleted and entered again, never edited leg by leg.
-  if (transaction.kind === "transfer") notFound();
+  // A transfer is deleted and entered again, never edited leg by leg, and an
+  // archived account keeps its history untouched (DOMAIN, archiving an account).
+  if (transaction.kind === "transfer" || account.archived) notFound();
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -58,7 +59,7 @@ export default async function EditTransactionPage({
           accountId: String(transaction.accountId),
           date: transaction.date,
           kind: transaction.kind,
-          amount: formatEditableAmount(Math.abs(transaction.amount), currency),
+          amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
           label: transaction.label,
           description: transaction.description ?? "",
           paymentMode: transaction.paymentMode ?? "",
