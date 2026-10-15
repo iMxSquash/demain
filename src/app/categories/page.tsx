@@ -8,12 +8,12 @@ import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { DISPLAY_LOCALE } from "../display-locale";
-import { CONTROL_CLASS } from "../form-field";
 import {
   archiveCategoryAction,
   categorizeTransactionAction,
   createCategoryAction,
 } from "./actions";
+import { CategorizeForm } from "./categorize-form";
 import { CategoryForm } from "./category-form";
 
 export const metadata: Metadata = {
@@ -73,30 +73,12 @@ export default async function CategoriesPage() {
                       {formatAmount(row.amount, account.currency, DISPLAY_LOCALE)}
                     </td>
                     <td className="py-2">
-                      <form
+                      <CategorizeForm
                         action={categorizeTransactionAction.bind(null, row.id)}
-                        className="flex gap-2"
-                      >
-                        <label htmlFor={`category-${row.id}`} className="sr-only">
-                          Category for {row.label}
-                        </label>
-                        <select
-                          id={`category-${row.id}`}
-                          name="categoryId"
-                          defaultValue=""
-                          className={CONTROL_CLASS}
-                        >
-                          <option value="">Choose a category</option>
-                          {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button type="submit" className="min-h-11 px-2 underline">
-                          Categorize<span className="sr-only"> {row.label}</span>
-                        </button>
-                      </form>
+                        transactionLabel={row.label}
+                        idPrefix={`queue-${row.id}`}
+                        categories={categories}
+                      />
                     </td>
                   </tr>
                 );

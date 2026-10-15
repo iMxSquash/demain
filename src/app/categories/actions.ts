@@ -13,7 +13,12 @@ import {
 } from "../../ledger/categories";
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
-import { readCategoryName, type CategoryFormState } from "./category-form-data";
+import {
+  parseCategoryChoice,
+  readCategoryName,
+  type CategorizeState,
+  type CategoryFormState,
+} from "./category-form-data";
 
 const CATEGORIES_PATH = "/categories";
 const TRANSACTIONS_PATH = "/transactions";
@@ -64,31 +69,41 @@ export async function renameCategoryAction(
 }
 
 export async function archiveCategoryAction(id: number): Promise<void> {
-  withDatabase((db) => archiveCategory(db, id));
+  try {
+    withDatabase((db) => archiveCategory(db, id));
+  } catch (error) {
+    // Already gone since the page was loaded: the refreshed page shows it.
+    if (!(error instanceof CategoryNotFoundError)) throw error;
+  }
   revalidatePath(CATEGORIES_PATH);
 }
 
-/** Categorizes one transaction of the queue: a blank choice does nothing. */
+/** Categorizes one transaction of the queue and says why when it is refused. */
 export async function categorizeTransactionAction(
   transactionId: number,
+  _previous: CategorizeState | null,
   formData: FormData,
-): Promise<void> {
-  const raw = formData.get("categoryId");
-  if (typeof raw !== "string") return;
-  const categoryId = Number(raw);
-  if (raw.trim() === "" || !Number.isSafeInteger(categoryId)) return;
+): Promise<CategorizeState | null> {
+  const choice = parseCategoryChoice(formData);
+  if (!choice.ok) return { message: choice.message };
 
   try {
-    withDatabase((db) => setTransactionCategory(db, transactionId, categoryId));
+    withDatabase((db) =>
+      setTransactionCategory(db, transactionId, choice.categoryId),
+    );
   } catch (error) {
-    // A stale page can offer a category archived since: refresh instead of failing.
-    if (
-      !(error instanceof CategoryNotFoundError) &&
-      !(error instanceof TransactionValidationError)
-    ) {
-      throw error;
+    if (error instanceof CategoryNotFoundError) {
+      return { message: "This category no longer exists." };
     }
+    if (error instanceof TransactionValidationError) {
+      return { message: error.message };
+    }
+    // Unexpected failures are logged with their detail, the user sees a generic message.
+    console.error("Categorize action failed", error);
+    return { message: "Something went wrong, nothing was saved." };
   }
+
   revalidatePath(CATEGORIES_PATH);
   revalidatePath(TRANSACTIONS_PATH);
+  return null;
 }
