@@ -1,0 +1,71 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
+
+import { formatEditableAmount } from "../../../../domain/money";
+import { getAccount, listAccounts } from "../../../../ledger/accounts";
+import {
+  getTransaction,
+  TransactionNotFoundError,
+} from "../../../../ledger/transactions";
+import { withDatabase } from "../../../../storage/with-database";
+import { updateTransactionAction } from "../../actions";
+import { TransactionForm } from "../../transaction-form";
+
+export const metadata: Metadata = {
+  title: "Edit transaction | Demain",
+};
+
+export default async function EditTransactionPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  await connection();
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
+
+  let transaction;
+  let currency;
+  let accounts;
+  try {
+    ({ transaction, currency, accounts } = withDatabase((db) => {
+      const found = getTransaction(db, id);
+      return {
+        transaction: found,
+        currency: getAccount(db, found.accountId).currency,
+        accounts: listAccounts(db),
+      };
+    }));
+  } catch (error) {
+    if (error instanceof TransactionNotFoundError) notFound();
+    throw error;
+  }
+  // A transfer is deleted and entered again, never edited leg by leg.
+  if (transaction.kind === "transfer") notFound();
+
+  return (
+    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
+      <Link href="/transactions" className="self-start underline">
+        Back to transactions
+      </Link>
+      <h1 className="text-2xl font-semibold">Edit {transaction.label}</h1>
+      <TransactionForm
+        action={updateTransactionAction.bind(null, transaction.id)}
+        initialValues={{
+          accountId: String(transaction.accountId),
+          date: transaction.date,
+          kind: transaction.kind,
+          amount: formatEditableAmount(Math.abs(transaction.amount), currency),
+          label: transaction.label,
+          description: transaction.description ?? "",
+          paymentMode: transaction.paymentMode ?? "",
+        }}
+        accounts={accounts}
+        submitLabel="Save changes"
+      />
+    </main>
+  );
+}

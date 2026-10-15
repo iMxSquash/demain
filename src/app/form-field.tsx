@@ -1,0 +1,26 @@
+import type { ReactNode } from "react";
+
+export const CONTROL_CLASS =
+  "min-h-11 w-full rounded border border-neutral-500 bg-white px-3 text-neutral-900 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
+
+interface FormFieldProps {
+  id: string;
+  label: string;
+  error: string | undefined;
+  children: ReactNode;
+}
+
+/** A labelled control whose error is linked to it through `aria-describedby`. */
+export function FormField({ id, label, error, children }: FormFieldProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id}>{label}</label>
+      {children}
+      {error ? (
+        <p id={`${id}-error`} className="font-medium text-red-800">
+          Error: {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
