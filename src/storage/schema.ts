@@ -29,3 +29,27 @@ export const accounts = sqliteTable("accounts", {
     { onDelete: "restrict" },
   ),
 });
+
+export const transactions = sqliteTable("transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // Restrict: an account with history is archived, never deleted.
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "restrict" }),
+  // Booking date as YYYY-MM-DD, without time or timezone.
+  date: text("date").notNull(),
+  // Signed integer in minor units: negative leaves the account.
+  amount: integer("amount").notNull(),
+  kind: text("kind", {
+    enum: ["expense", "income", "interest", "transfer"],
+  }).notNull(),
+  label: text("label").notNull(),
+  description: text("description"),
+  paymentMode: text("payment_mode", {
+    enum: ["card", "transfer", "direct_debit"],
+  }),
+  // The other leg of a transfer. Both legs are deleted together.
+  transferCounterpartId: integer("transfer_counterpart_id").references(
+    (): AnySQLiteColumn => transactions.id,
+  ),
+});

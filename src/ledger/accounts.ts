@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import {
   AccountValidationError,
@@ -7,9 +7,12 @@ import {
   type AccountInput,
   type ValidAccountInput,
 } from "../domain/account";
-import { assertOverflowTargetAllowed } from "../domain/overflow";
+import {
+  assertOverflowTargetAllowed,
+  type OverflowAccount,
+} from "../domain/overflow";
 import type { AppDatabase } from "../storage/database";
-import { accounts } from "../storage/schema";
+import { accounts, transactions } from "../storage/schema";
 
 export type Account = typeof accounts.$inferSelect;
 
@@ -29,12 +32,62 @@ export class AccountInUseError extends Error {
   }
 }
 
+export class AccountNotEmptyError extends Error {
+  constructor(id: number, balance: number) {
+    super(
+      `Account ${id} has a balance of ${balance} minor units: empty it first, then archive it`,
+    );
+    this.name = "AccountNotEmptyError";
+  }
+}
+
 export function getAccount(db: AppDatabase, id: number): Account {
   const account = db.select().from(accounts).where(eq(accounts.id, id)).get();
   if (account === undefined) {
     throw new AccountNotFoundError(id);
   }
   return account;
+}
+
+/** Opening balance plus every transaction of the account (DOMAIN, invariant 8). */
+export function getAccountBalance(db: AppDatabase, id: number): number {
+  const account = getAccount(db, id);
+  const row = db
+    .select({ total: sql<number>`coalesce(sum(${transactions.amount}), 0)` })
+    .from(transactions)
+    .where(eq(transactions.accountId, id))
+    .get();
+  return account.openingBalance + (row?.total ?? 0);
+}
+
+function hasTransactions(db: AppDatabase, id: number): boolean {
+  const row = db
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(eq(transactions.accountId, id))
+    .limit(1)
+    .get();
+  return row !== undefined;
+}
+
+/**
+ * Every account, archived ones included (the chain is a graph), with its
+ * computed balance, in the shape the pure routing functions expect.
+ */
+export function listOverflowAccounts(db: AppDatabase): OverflowAccount[] {
+  const movements = sql<number>`(select coalesce(sum(${transactions.amount}), 0) from ${transactions} where ${transactions.accountId} = ${accounts.id})`;
+  return db
+    .select({
+      id: accounts.id,
+      currency: accounts.currency,
+      archived: accounts.archived,
+      balance: sql<number>`${accounts.openingBalance} + ${movements}`,
+      ceiling: accounts.depositCeiling,
+      overflowAccountId: accounts.overflowAccountId,
+    })
+    .from(accounts)
+    .orderBy(asc(accounts.id))
+    .all();
 }
 
 // An archived referrer is ignored: it cannot be edited any more, so counting
@@ -109,10 +162,8 @@ export function updateAccount(
       `The currency cannot change while ${mismatched.name} uses this account as its overflow account`,
     );
   }
-  // Transactions arrive with issue #9: until then no account can have any, and
-  // that issue replaces this constant with a real query.
   assertCurrencyChangeAllowed(current.currency, valid.currency, {
-    hasTransactions: false,
+    hasTransactions: hasTransactions(db, id),
   });
   return db
     .update(accounts)
@@ -123,7 +174,11 @@ export function updateAccount(
 }
 
 export function archiveAccount(db: AppDatabase, id: number): void {
-  getAccount(db, id);
+  // A negative balance blocks the archiving as well (DOMAIN, archiving an account).
+  const balance = getAccountBalance(db, id);
+  if (balance !== 0) {
+    throw new AccountNotEmptyError(id, balance);
+  }
   const referrers = findActiveReferrers(db, id);
   if (referrers.length > 0) {
     throw new AccountInUseError(
