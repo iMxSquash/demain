@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { useFocusFirstError } from "../use-focus-first-error";
 import type { CategoryFormState } from "./category-form-data";
 
 interface CategoryFormProps {
@@ -20,11 +21,12 @@ export function CategoryForm({
   submitLabel,
 }: CategoryFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const formRef = useFocusFirstError(state);
   const name = state?.name ?? initialName;
   const nameError = state?.field === "name" ? state.message : undefined;
 
   return (
-    <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
+    <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
           Error: {state.message}

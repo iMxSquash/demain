@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { ACCOUNT_KINDS, type AccountField } from "../../domain/account";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { useFocusFirstError } from "../use-focus-first-error";
 import type {
   AccountFormState,
   AccountFormValues,
@@ -39,6 +40,7 @@ export function AccountForm({
   submitLabel,
 }: AccountFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const formRef = useFocusFirstError(state);
   // After a failed submit the typed values come back with the error.
   const values = state?.values ?? initialValues;
 
@@ -62,7 +64,7 @@ export function AccountForm({
   });
 
   return (
-    <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
+    <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
           Error: {state.message}

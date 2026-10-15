@@ -6,6 +6,7 @@ import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
+import { ConfirmActionButton } from "../confirm-action-button";
 import { archiveCategoryAction, createCategoryAction } from "./actions";
 import { CategoryForm } from "./category-form";
 import { ToCategorizeQueue } from "./to-categorize-queue";
@@ -62,11 +63,14 @@ export default async function CategoriesPage() {
                   >
                     Rename<span className="sr-only"> {category.name}</span>
                   </Link>
-                  <form action={archiveCategoryAction.bind(null, category.id)}>
-                    <button type="submit" className="min-h-11 px-2 underline">
-                      Archive<span className="sr-only"> {category.name}</span>
-                    </button>
-                  </form>
+                  <ConfirmActionButton
+                    action={archiveCategoryAction.bind(null, category.id)}
+                    label="Archive"
+                    subject={category.name}
+                    title={`Archive ${category.name}?`}
+                    message="The category is hidden from the pickers and kept on the transactions that already have it. It cannot be reactivated from the app."
+                    confirmLabel="Archive category"
+                  />
                 </div>
               </li>
             ))}

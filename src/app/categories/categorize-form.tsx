@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { CONTROL_CLASS } from "../form-field";
+import { useFocusFirstError } from "../use-focus-first-error";
 import type { CategorizeState } from "./category-form-data";
 
 interface CategorizeFormProps {
@@ -24,11 +25,12 @@ export function CategorizeForm({
   categories,
 }: CategorizeFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const formRef = useFocusFirstError(state);
   const selectId = `${idPrefix}-category`;
   const errorId = `${idPrefix}-error`;
 
   return (
-    <form action={formAction} className="flex flex-col gap-1">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-1">
       <div className="flex gap-2">
         <label htmlFor={selectId} className="sr-only">
           Category for {transactionLabel}
