@@ -1,5 +1,6 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
 
+import { assertCategoryAssignable } from "../domain/category";
 import {
   buildTransferLegs,
   ceilingWarningFor,
@@ -20,6 +21,7 @@ import {
   listOverflowAccounts,
   type Account,
 } from "./accounts";
+import { getCategory } from "./categories";
 
 export type Transaction = typeof transactions.$inferSelect;
 
@@ -55,12 +57,25 @@ function getOpenAccount(db: AppDatabase, id: number): Account {
   return account;
 }
 
+// A category is checked when it is newly chosen: an archived one stays on the
+// transactions that already carry it, and clearing a category is always allowed.
+function assertCategoryChoice(
+  db: AppDatabase,
+  kind: Transaction["kind"],
+  categoryId: number | null,
+  currentCategoryId: number | null,
+): void {
+  if (categoryId === null || categoryId === currentCategoryId) return;
+  assertCategoryAssignable(kind, getCategory(db, categoryId));
+}
+
 export function createTransaction(
   db: AppDatabase,
   input: TransactionInput,
 ): Transaction {
   const valid = validateTransactionInput(input);
   getOpenAccount(db, valid.accountId);
+  assertCategoryChoice(db, valid.kind, valid.categoryId, null);
   return db.insert(transactions).values(valid).returning().get();
 }
 
@@ -265,12 +280,42 @@ export function updateTransaction(
   getOpenAccount(db, current.accountId);
   const valid = validateTransactionInput(input);
   getOpenAccount(db, valid.accountId);
+  assertCategoryChoice(db, valid.kind, valid.categoryId, current.categoryId);
   return db
     .update(transactions)
     .set(valid)
     .where(eq(transactions.id, id))
     .returning()
     .get();
+}
+
+/**
+ * Categorizes from the to-categorize queue. A category does not move any
+ * balance, so it is allowed on a transaction of an archived account.
+ */
+export function setTransactionCategory(
+  db: AppDatabase,
+  id: number,
+  categoryId: number | null,
+): Transaction {
+  const current = getTransaction(db, id);
+  assertCategoryChoice(db, current.kind, categoryId, current.categoryId);
+  return db
+    .update(transactions)
+    .set({ categoryId })
+    .where(eq(transactions.id, id))
+    .returning()
+    .get();
+}
+
+/** Entered transactions that still need a category: transfers never do. */
+export function listUncategorizedTransactions(db: AppDatabase): Transaction[] {
+  return db
+    .select()
+    .from(transactions)
+    .where(and(isNull(transactions.categoryId), ne(transactions.kind, "transfer")))
+    .orderBy(asc(transactions.date), asc(transactions.id))
+    .all();
 }
 
 /** Deleting one leg of a transfer deletes the other (DOMAIN, invariant 3). */
