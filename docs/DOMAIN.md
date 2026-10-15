@@ -279,6 +279,13 @@ The sheet's monthly tabs become filters on a single list of transactions. For a 
 | **Savings of the month** | Sum of transfers from non-savings accounts into savings accounts in the month, minus transfers back out. |
 | **End-of-month balances** | Computed balance of each account on the last day of the month, plus a total converted to the reference currency. |
 
+How the figures are bounded:
+
+- **Series.** It starts at the oldest month among the opening dates of the accounts and the dates of the transactions, and runs without gaps up to the month asked for. A month without movement is kept, with zero flows.
+- **Accounts.** An account counts from the month of its opening date, with its opening balance and its transactions up to the last day of each month. Archived accounts stay in the months their history covers.
+- **Savings legs.** Only the legs of a transfer on a savings account count, and only when the other end is not a savings account: a transfer between two savings accounts (an overflow, for instance) is neither a deposit nor a withdrawal.
+- **Currencies.** Net, savings and totals are in the reference currency. Accounts in another currency are shown in their own currency and left out of these figures, and reported, until the exchange rates of the multi-currency foundations exist.
+
 In the sheet, the Summary tab also tracked derived cumulative figures. Demain can show them as well:
 
 - **Cumulative savings** = sum of savings of the month since the start.
