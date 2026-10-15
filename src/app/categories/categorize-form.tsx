@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { CONTROL_CLASS } from "../form-field";
@@ -24,6 +25,8 @@ export function CategorizeForm({
   idPrefix,
   categories,
 }: CategorizeFormProps) {
+  const t = useTranslations("categories");
+  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const selectId = `${idPrefix}-category`;
@@ -33,7 +36,7 @@ export function CategorizeForm({
     <form ref={formRef} action={formAction} className="flex flex-col gap-1">
       <div className="flex gap-2">
         <label htmlFor={selectId} className="sr-only">
-          Category for {transactionLabel}
+          {t("categoryFor", { transaction: transactionLabel })}
         </label>
         <select
           id={selectId}
@@ -43,7 +46,7 @@ export function CategorizeForm({
           aria-invalid={state ? true : undefined}
           aria-describedby={state ? errorId : undefined}
         >
-          <option value="">Choose a category</option>
+          <option value="">{t("choose")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -55,12 +58,12 @@ export function CategorizeForm({
           disabled={isPending}
           className="min-h-11 px-2 underline disabled:opacity-60"
         >
-          Categorize<span className="sr-only"> {transactionLabel}</span>
+          {t("categorize")}<span className="sr-only"> {transactionLabel}</span>
         </button>
       </div>
       {state ? (
         <p id={errorId} role="alert" className="font-medium text-red-800">
-          Error: {state.message}
+          {common("error", { message: state.message })}
         </p>
       ) : null}
     </form>

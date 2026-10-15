@@ -1,11 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { ENTERED_TRANSACTION_KINDS, PAYMENT_MODES } from "../../domain/transaction";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
-import { KIND_LABELS, PAYMENT_MODE_LABELS } from "./labels";
 import type {
   TransactionFormField,
   TransactionFormState,
@@ -43,6 +43,8 @@ export function TransactionForm({
   categories,
   submitLabel,
 }: TransactionFormProps) {
+  const t = useTranslations("transactions");
+  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   // After a submit the typed values come back with the result.
@@ -66,7 +68,7 @@ export function TransactionForm({
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state?.status === "error" && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
-          Error: {state.message}
+          {common("error", { message: state.message })}
         </p>
       ) : null}
       {state?.status === "notice" ? (
@@ -75,7 +77,11 @@ export function TransactionForm({
         </p>
       ) : null}
 
-      <FormField id="accountId" label="Account" error={errorOf("accountId")}>
+      <FormField
+        id="accountId"
+        label={t("form.account")}
+        error={errorOf("accountId")}
+      >
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
         <select key={values.accountId} {...controlProps("accountId")}>
@@ -87,15 +93,15 @@ export function TransactionForm({
         </select>
       </FormField>
 
-      <FormField id="date" label="Date" error={errorOf("date")}>
+      <FormField id="date" label={t("form.date")} error={errorOf("date")}>
         <input {...controlProps("date")} type="date" required />
       </FormField>
 
-      <FormField id="kind" label="Type" error={errorOf("kind")}>
+      <FormField id="kind" label={t("form.type")} error={errorOf("kind")}>
         <select key={values.kind} {...controlProps("kind")}>
           {ENTERED_TRANSACTION_KINDS.map((kind) => (
             <option key={kind} value={kind}>
-              {KIND_LABELS[kind]}
+              {t(`kinds.${kind}`)}
             </option>
           ))}
         </select>
@@ -103,7 +109,7 @@ export function TransactionForm({
 
       <FormField
         id="amount"
-        label="Amount (without a sign, the type sets the direction)"
+        label={t("form.amount")}
         error={errorOf("amount")}
       >
         <input
@@ -115,13 +121,13 @@ export function TransactionForm({
         />
       </FormField>
 
-      <FormField id="label" label="Label" error={errorOf("label")}>
+      <FormField id="label" label={t("form.label")} error={errorOf("label")}>
         <input {...controlProps("label")} type="text" required autoComplete="off" />
       </FormField>
 
       <FormField
         id="description"
-        label="Note (optional)"
+        label={t("form.note")}
         error={errorOf("description")}
       >
         <input {...controlProps("description")} type="text" autoComplete="off" />
@@ -129,11 +135,11 @@ export function TransactionForm({
 
       <FormField
         id="categoryId"
-        label="Category (optional, none puts it in the to-categorize queue)"
+        label={t("form.category")}
         error={errorOf("categoryId")}
       >
         <select key={values.categoryId} {...controlProps("categoryId")}>
-          <option value="">None</option>
+          <option value="">{common("none")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -144,14 +150,14 @@ export function TransactionForm({
 
       <FormField
         id="paymentMode"
-        label="Payment mode (optional)"
+        label={t("form.paymentMode")}
         error={errorOf("paymentMode")}
       >
         <select key={values.paymentMode} {...controlProps("paymentMode")}>
-          <option value="">None</option>
+          <option value="">{common("none")}</option>
           {PAYMENT_MODES.map((mode) => (
             <option key={mode} value={mode}>
-              {PAYMENT_MODE_LABELS[mode]}
+              {t(`paymentModes.${mode}`)}
             </option>
           ))}
         </select>

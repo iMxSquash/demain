@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { CategoryValidationError } from "../../domain/category";
+import { messageRef, type Translate } from "../../domain/message";
 import { TransactionValidationError } from "../../domain/transaction";
 import {
   archiveCategory,
@@ -13,6 +14,7 @@ import {
 } from "../../ledger/categories";
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
+import { getTranslator } from "../translator";
 import {
   parseCategoryChoice,
   readCategoryName,
@@ -23,16 +25,20 @@ import {
 const CATEGORIES_PATH = "/categories";
 const TRANSACTIONS_PATH = "/transactions";
 
-function toFormState(error: unknown, name: string): CategoryFormState {
+function toFormState(
+  error: unknown,
+  name: string,
+  translate: Translate,
+): CategoryFormState {
   if (error instanceof CategoryValidationError) {
-    return { field: error.field, message: error.message, name };
+    return { field: error.field, message: translate(error.ref), name };
   }
   if (error instanceof CategoryNotFoundError) {
-    return { message: "This category no longer exists.", name };
+    return { message: translate(messageRef("categoryGone")), name };
   }
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Category action failed", error);
-  return { message: "Something went wrong, the category was not saved.", name };
+  return { message: translate(messageRef("categoryNotSaved")), name };
 }
 
 export async function createCategoryAction(
@@ -43,7 +49,7 @@ export async function createCategoryAction(
   try {
     withDatabase((db) => createCategory(db, { name }));
   } catch (error) {
-    return toFormState(error, name);
+    return toFormState(error, name, await getTranslator());
   }
 
   revalidatePath(CATEGORIES_PATH);
@@ -59,7 +65,7 @@ export async function renameCategoryAction(
   try {
     withDatabase((db) => renameCategory(db, id, { name }));
   } catch (error) {
-    return toFormState(error, name);
+    return toFormState(error, name, await getTranslator());
   }
 
   revalidatePath(CATEGORIES_PATH);
@@ -84,7 +90,8 @@ export async function categorizeTransactionAction(
   _previous: CategorizeState | null,
   formData: FormData,
 ): Promise<CategorizeState | null> {
-  const choice = parseCategoryChoice(formData);
+  const translate = await getTranslator();
+  const choice = parseCategoryChoice(formData, translate);
   if (!choice.ok) return { message: choice.message };
 
   try {
@@ -93,14 +100,14 @@ export async function categorizeTransactionAction(
     );
   } catch (error) {
     if (error instanceof CategoryNotFoundError) {
-      return { message: "This category no longer exists." };
+      return { message: translate(messageRef("categoryGone")) };
     }
     if (error instanceof TransactionValidationError) {
-      return { message: error.message };
+      return { message: translate(error.ref) };
     }
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Categorize action failed", error);
-    return { message: "Something went wrong, nothing was saved." };
+    return { message: translate(messageRef("nothingSaved")) };
   }
 
   revalidatePath(CATEGORIES_PATH);

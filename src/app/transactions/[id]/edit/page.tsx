@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -14,9 +15,10 @@ import { withDatabase } from "../../../../storage/with-database";
 import { updateTransactionAction } from "../../actions";
 import { TransactionForm } from "../../transaction-form";
 
-export const metadata: Metadata = {
-  title: "Edit transaction | Demain",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("transactions");
+  return { title: t("editMetaTitle") };
+}
 
 export default async function EditTransactionPage({
   params,
@@ -24,6 +26,10 @@ export default async function EditTransactionPage({
   params: Promise<{ id: string }>;
 }) {
   await connection();
+  const [t, common] = await Promise.all([
+    getTranslations("transactions"),
+    getTranslations("common"),
+  ]);
   const { id: rawId } = await params;
   const id = Number(rawId);
   if (!Number.isSafeInteger(id)) notFound();
@@ -53,9 +59,11 @@ export default async function EditTransactionPage({
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <Link href="/transactions" className="self-start underline">
-        Back to transactions
+        {t("backToTransactions")}
       </Link>
-      <h1 className="text-2xl font-semibold">Edit {transaction.label}</h1>
+      <h1 className="text-2xl font-semibold">
+        {t("editTitle", { label: transaction.label })}
+      </h1>
       <TransactionForm
         action={updateTransactionAction.bind(null, transaction.id)}
         initialValues={{
@@ -75,7 +83,7 @@ export default async function EditTransactionPage({
         categories={categories.filter(
           (category) => !category.archived || category.id === transaction.categoryId,
         )}
-        submitLabel="Save changes"
+        submitLabel={common("saveChanges")}
       />
     </main>
   );

@@ -1,8 +1,10 @@
 "use server";
 
+import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { messageRef, type Translate } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import {
   TransactionValidationError,
@@ -25,7 +27,7 @@ import {
 } from "../../ledger/transactions";
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
-import { DISPLAY_LOCALE } from "../display-locale";
+import { getTranslator } from "../translator";
 import {
   parseTransactionForm,
   parseTransferForm,
@@ -41,7 +43,6 @@ import { TRANSFER_DECISION } from "./transfer-decision";
 
 const TRANSACTIONS_PATH = "/transactions";
 const ACCOUNTS_PATH = "/accounts";
-const GENERIC_ERROR = "Something went wrong, nothing was saved.";
 
 function loadCurrencies(): CurrencyByAccount {
   return withDatabase(
@@ -63,33 +64,40 @@ function formatMinorUnits(
   currencies: CurrencyByAccount,
   accountId: number,
   minorUnits: number,
+  locale: string,
 ): string {
   const currency = currencies.get(accountId);
   if (currency === undefined) {
     throw new Error(`Unknown account ${accountId}`);
   }
-  return formatAmount(minorUnits, currency, DISPLAY_LOCALE);
+  return formatAmount(minorUnits, currency, locale);
 }
 
-function describeFailure(error: unknown): {
+function describeFailure(
+  error: unknown,
+  translate: Translate,
+): {
   field?: TransactionField;
   message: string;
 } {
   if (error instanceof TransactionValidationError) {
-    return { field: error.field, message: error.message };
+    return { field: error.field, message: translate(error.ref) };
   }
   if (error instanceof CategoryNotFoundError) {
-    return { field: "categoryId", message: "This category no longer exists." };
+    return {
+      field: "categoryId",
+      message: translate(messageRef("categoryGone")),
+    };
   }
   if (error instanceof AccountNotFoundError) {
-    return { message: "This account no longer exists." };
+    return { message: translate(messageRef("accountGone")) };
   }
   if (error instanceof TransactionNotFoundError) {
-    return { message: "This transaction no longer exists." };
+    return { message: translate(messageRef("transactionGone")) };
   }
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Transaction action failed", error);
-  return { message: GENERIC_ERROR };
+  return { message: translate(messageRef("nothingSaved")) };
 }
 
 function revalidateLedger(): void {
@@ -98,21 +106,26 @@ function revalidateLedger(): void {
   revalidatePath(ACCOUNTS_PATH);
 }
 
-function ceilingWarningText(
+/** The notice, followed by the ceiling warning when there is one. */
+function noticeWithWarning(
+  notice: string,
   currencies: CurrencyByAccount,
   accountId: number,
   warning: CeilingWarning | null,
+  translate: Translate,
+  locale: string,
 ): string {
-  if (warning === null) return "";
-  const excess = formatMinorUnits(currencies, accountId, warning.excess);
-  return ` Warning: this income exceeds the deposit ceiling of the account by ${excess}.`;
+  if (warning === null) return notice;
+  const excess = formatMinorUnits(currencies, accountId, warning.excess, locale);
+  return `${notice} ${translate(messageRef("ceilingWarning", { excess }))}`;
 }
 
 function transactionFailure(
   error: unknown,
   formData: FormData,
+  translate: Translate,
 ): TransactionFormState {
-  const { field, message } = describeFailure(error);
+  const { field, message } = describeFailure(error, translate);
   return {
     status: "error",
     field,
@@ -125,8 +138,9 @@ export async function createTransactionAction(
   _previous: TransactionFormState | null,
   formData: FormData,
 ): Promise<TransactionFormState | null> {
+  const [translate, locale] = await Promise.all([getTranslator(), getLocale()]);
   const currencies = loadCurrencies();
-  const parsed = parseTransactionForm(formData, currencies);
+  const parsed = parseTransactionForm(formData, currencies, translate);
   if (!parsed.ok) return parsed.error;
 
   let warning;
@@ -137,14 +151,21 @@ export async function createTransactionAction(
       return found;
     });
   } catch (error) {
-    return transactionFailure(error, formData);
+    return transactionFailure(error, formData, translate);
   }
 
   revalidateLedger();
   // Keep account and date for the next entry, clear what is specific to this one.
   return {
     status: "notice",
-    message: `Transaction recorded.${ceilingWarningText(currencies, parsed.input.accountId, warning)}`,
+    message: noticeWithWarning(
+      translate(messageRef("transactionRecorded")),
+      currencies,
+      parsed.input.accountId,
+      warning,
+      translate,
+      locale,
+    ),
     values: {
       ...readTransactionValues(formData),
       amount: "",
@@ -160,8 +181,9 @@ export async function updateTransactionAction(
   _previous: TransactionFormState | null,
   formData: FormData,
 ): Promise<TransactionFormState | null> {
+  const [translate, locale] = await Promise.all([getTranslator(), getLocale()]);
   const currencies = loadCurrencies();
-  const parsed = parseTransactionForm(formData, currencies);
+  const parsed = parseTransactionForm(formData, currencies, translate);
   if (!parsed.ok) return parsed.error;
 
   let warning;
@@ -174,7 +196,7 @@ export async function updateTransactionAction(
       return found;
     });
   } catch (error) {
-    return transactionFailure(error, formData);
+    return transactionFailure(error, formData, translate);
   }
 
   revalidateLedger();
@@ -183,7 +205,14 @@ export async function updateTransactionAction(
   if (warning === null) redirect(TRANSACTIONS_PATH);
   return {
     status: "notice",
-    message: `Changes saved.${ceilingWarningText(currencies, parsed.input.accountId, warning)}`,
+    message: noticeWithWarning(
+      translate(messageRef("changesSaved")),
+      currencies,
+      parsed.input.accountId,
+      warning,
+      translate,
+      locale,
+    ),
     values: readTransactionValues(formData),
   };
 }
@@ -199,10 +228,11 @@ function askForDecision(
   split: ManualTransferSplit,
   values: TransferFormValues,
   format: (minorUnits: number) => string,
+  translate: Translate,
 ): TransferFormState {
   return {
     status: "notice",
-    message: "The destination account cannot take the whole amount.",
+    message: translate(messageRef("transferSurplusAsk")),
     values,
     surplusChoice: {
       depositedText: format(split.deposited),
@@ -221,20 +251,26 @@ function recordTransfer(
   decision: SurplusDecision | null,
   values: TransferFormValues,
   format: (minorUnits: number) => string,
+  translate: Translate,
 ): TransferFormState {
   if (decision === null) {
     const split = previewManualTransfer(db, request);
-    if (split.surplus > 0) return askForDecision(split, values, format);
+    if (split.surplus > 0) {
+      return askForDecision(split, values, format, translate);
+    }
   }
   const result = recordManualTransfer(db, request, decision);
+  const recorded = translate(messageRef("transferRecorded"));
   const unplaced =
     result.unplaced > 0
-      ? ` ${format(result.unplaced)} fits nowhere and stays in the source account.`
+      ? translate(
+          messageRef("transferUnplaced", { amount: format(result.unplaced) }),
+        )
       : "";
   revalidateLedger();
   return {
     status: "notice",
-    message: `Transfer recorded.${unplaced}`,
+    message: unplaced === "" ? recorded : `${recorded} ${unplaced}`,
     values: { ...values, amount: "", label: "" },
   };
 }
@@ -243,28 +279,29 @@ export async function createTransferAction(
   _previous: TransferFormState | null,
   formData: FormData,
 ): Promise<TransferFormState | null> {
+  const [translate, locale] = await Promise.all([getTranslator(), getLocale()]);
   const values = readTransferValues(formData);
   if (formData.get("decision") === TRANSFER_DECISION.cancel) {
     return {
       status: "notice",
-      message: "Transfer cancelled: nothing was recorded.",
+      message: translate(messageRef("transferCancelled")),
       values,
     };
   }
 
   const currencies = loadCurrencies();
-  const parsed = parseTransferForm(formData, currencies);
+  const parsed = parseTransferForm(formData, currencies, translate);
   if (!parsed.ok) return parsed.error;
   const { request, decision } = parsed;
   const format = (minorUnits: number) =>
-    formatMinorUnits(currencies, request.sourceId, minorUnits);
+    formatMinorUnits(currencies, request.sourceId, minorUnits, locale);
 
   try {
     return withDatabase((db) =>
-      recordTransfer(db, request, decision, values, format),
+      recordTransfer(db, request, decision, values, format, translate),
     );
   } catch (error) {
-    const { field, message } = describeFailure(error);
+    const { field, message } = describeFailure(error, translate);
     return {
       status: "error",
       field: field === undefined ? undefined : TRANSFER_FIELD_OF[field],

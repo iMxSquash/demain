@@ -1,8 +1,10 @@
+import { getLocale, getTranslations } from "next-intl/server";
+
 import { formatAmount } from "../../domain/money";
 import type { Account } from "../../ledger/accounts";
 import type { Category } from "../../ledger/categories";
 import type { Transaction } from "../../ledger/transactions";
-import { DISPLAY_LOCALE } from "../display-locale";
+import { formatCalendarDate } from "../../i18n/dates";
 import { categorizeTransactionAction } from "./actions";
 import { CategorizeForm } from "./categorize-form";
 
@@ -14,13 +16,17 @@ interface ToCategorizeQueueProps {
   categories: Category[];
 }
 
-export function ToCategorizeQueue({
+export async function ToCategorizeQueue({
   queue,
   accounts,
   categories,
 }: ToCategorizeQueueProps) {
+  const [t, locale] = await Promise.all([
+    getTranslations("categories"),
+    getLocale(),
+  ]);
   if (queue.length === 0) {
-    return <p>Nothing to categorize: every transaction has a category.</p>;
+    return <p>{t("queueEmpty")}</p>;
   }
   const accountById = new Map(accounts.map((account) => [account.id, account]));
 
@@ -28,11 +34,11 @@ export function ToCategorizeQueue({
     <table className="w-full border-collapse text-left">
       <thead>
         <tr className="border-b border-neutral-500">
-          <th scope="col" className="py-2 pr-4">Date</th>
-          <th scope="col" className="py-2 pr-4">Account</th>
-          <th scope="col" className="py-2 pr-4">Label</th>
-          <th scope="col" className="py-2 pr-4 text-right">Amount</th>
-          <th scope="col" className="py-2">Category</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.label")}</th>
+          <th scope="col" className="py-2 pr-4 text-right">{t("columns.amount")}</th>
+          <th scope="col" className="py-2">{t("columns.category")}</th>
         </tr>
       </thead>
       <tbody>
@@ -45,13 +51,17 @@ export function ToCategorizeQueue({
           }
           return (
             <tr key={row.id} className="border-b border-neutral-300">
-              <td className="py-2 pr-4 tabular-nums">{row.date}</td>
+              <td className="py-2 pr-4 tabular-nums">
+                <time dateTime={row.date}>
+                  {formatCalendarDate(row.date, locale)}
+                </time>
+              </td>
               <td className="py-2 pr-4">{account.name}</td>
               <th scope="row" className="py-2 pr-4 font-medium">
                 {row.label}
               </th>
               <td className="py-2 pr-4 text-right tabular-nums">
-                {formatAmount(row.amount, account.currency, DISPLAY_LOCALE)}
+                {formatAmount(row.amount, account.currency, locale)}
               </td>
               <td className="py-2">
                 <CategorizeForm

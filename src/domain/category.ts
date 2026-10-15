@@ -3,6 +3,7 @@
  * Category and categorization rule.
  */
 
+import { messageRef, type MessageRef } from "./message";
 import {
   TransactionValidationError,
   type EnteredTransactionKind,
@@ -11,7 +12,11 @@ import {
 export class CategoryValidationError extends Error {
   readonly field = "name";
 
-  constructor(message: string) {
+  constructor(
+    /** English text for logs and tests: users read the translation of `ref`. */
+    message: string,
+    readonly ref: MessageRef,
+  ) {
     super(message);
     this.name = "CategoryValidationError";
   }
@@ -20,7 +25,10 @@ export class CategoryValidationError extends Error {
 export function validateCategoryName(name: string): string {
   const trimmed = name.trim();
   if (trimmed.length === 0) {
-    throw new CategoryValidationError("The category name is required");
+    throw new CategoryValidationError(
+      "The category name is required",
+      messageRef("categoryNameRequired"),
+    );
   }
   return trimmed;
 }
@@ -43,6 +51,7 @@ export function assertCategoryNameAvailable(
   if (clash !== undefined) {
     throw new CategoryValidationError(
       `A category named "${clash.name}" already exists`,
+      messageRef("categoryNameTaken", { name: clash.name }),
     );
   }
 }
@@ -62,12 +71,14 @@ export function assertCategoryAssignable(
     throw new TransactionValidationError(
       "categoryId",
       "A transfer has no category",
+      messageRef("categoryOfTransfer"),
     );
   }
   if (category.archived) {
     throw new TransactionValidationError(
       "categoryId",
       "This category is archived and cannot be assigned",
+      messageRef("categoryArchived"),
     );
   }
 }

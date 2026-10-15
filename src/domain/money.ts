@@ -3,6 +3,8 @@
  * Pure functions, no floating-point step anywhere. See DOMAIN invariant 1 and ADR-007.
  */
 
+import { messageRef, type MessageRef } from "./message";
+
 const formatters = new Map<string, Intl.NumberFormat>();
 
 // Building an Intl.NumberFormat is far more expensive than using it, and imports
@@ -58,14 +60,22 @@ export function currencyDecimals(currency: string): number {
 }
 
 export class MoneyParseError extends Error {
-  constructor(message: string) {
+  constructor(
+    /** English text for logs and tests: users read the translation of `ref`. */
+    message: string,
+    readonly ref: MessageRef,
+  ) {
     super(message);
     this.name = "MoneyParseError";
   }
 }
 
-function invalidAmount(text: string, reason: string): MoneyParseError {
-  return new MoneyParseError(`Invalid amount "${text}": ${reason}`);
+function invalidAmount(
+  text: string,
+  reason: string,
+  ref: MessageRef,
+): MoneyParseError {
+  return new MoneyParseError(`Invalid amount "${text}": ${reason}`, ref);
 }
 
 // Sign and currency token may each sit on either side of the digits ("-12 €",
@@ -84,16 +94,28 @@ function splitSignAndBody(
   const groups = AMOUNT_PATTERN.exec(text.trim())?.groups;
   const body = groups?.["body"];
   if (groups === undefined || body === undefined) {
-    throw invalidAmount(text, "expected digits with optional separators");
+    throw invalidAmount(
+      text,
+      "expected digits with optional separators",
+      messageRef("amountExpectedDigits", { text }),
+    );
   }
 
   if (groups["signBefore"] !== undefined && groups["signAfter"] !== undefined) {
-    throw invalidAmount(text, "more than one sign");
+    throw invalidAmount(
+      text,
+      "more than one sign",
+      messageRef("amountMoreThanOneSign", { text }),
+    );
   }
   const sign = groups["signBefore"] ?? groups["signAfter"];
 
   if (groups["leadToken"] !== undefined && groups["trailToken"] !== undefined) {
-    throw invalidAmount(text, "more than one currency symbol or code");
+    throw invalidAmount(
+      text,
+      "more than one currency symbol or code",
+      messageRef("amountMoreThanOneCurrency", { text }),
+    );
   }
   const token = groups["leadToken"] ?? groups["trailToken"];
   // A symbol is not checked because it is ambiguous ("$"); an ISO code must match.
@@ -102,6 +124,11 @@ function splitSignAndBody(
     throw invalidAmount(
       text,
       `amount is in ${token.toUpperCase()}, expected ${currency}`,
+      messageRef("amountWrongCurrency", {
+        text,
+        found: token.toUpperCase(),
+        expected: currency,
+      }),
     );
   }
 
@@ -148,20 +175,36 @@ export function parseAmount(text: string, currency: string): number {
   const { integerPart, fractionPart, hasDecimalSeparator } = splitDecimal(body);
 
   if (!GROUPED_INTEGER.test(integerPart)) {
-    throw invalidAmount(text, "misplaced separator");
+    throw invalidAmount(
+      text,
+      "misplaced separator",
+      messageRef("amountMisplacedSeparator", { text }),
+    );
   }
   if (hasDecimalSeparator && fractionPart.length === 0) {
-    throw invalidAmount(text, "missing digits after the decimal separator");
+    throw invalidAmount(
+      text,
+      "missing digits after the decimal separator",
+      messageRef("amountMissingDecimals", { text }),
+    );
   }
   if (fractionPart.length > decimals) {
-    throw invalidAmount(text, `${currency} has ${decimals} decimal digits at most`);
+    throw invalidAmount(
+      text,
+      `${currency} has ${decimals} decimal digits at most`,
+      messageRef("amountTooManyDecimals", { text, currency, decimals }),
+    );
   }
 
   const digits =
     integerPart.replace(/[.,]/g, "") + fractionPart.padEnd(decimals, "0");
   const value = BigInt(digits);
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw invalidAmount(text, "amount is too large");
+    throw invalidAmount(
+      text,
+      "amount is too large",
+      messageRef("amountTooLarge", { text }),
+    );
   }
 
   // BigInt has no negative zero, so "-0,00" comes out as a plain 0.

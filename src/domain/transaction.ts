@@ -4,6 +4,7 @@
  */
 
 import { isCalendarDate } from "./account";
+import { messageRef, type MessageRef } from "./message";
 import { depositRoom, type OverflowAccount } from "./overflow";
 
 /** Kinds a user can enter directly: a transfer is created as a linked pair. */
@@ -57,7 +58,9 @@ export type TransactionField =
 export class TransactionValidationError extends Error {
   constructor(
     readonly field: TransactionField,
+    /** English text for logs and tests: users read the translation of `ref`. */
     message: string,
+    readonly ref: MessageRef,
   ) {
     super(message);
     this.name = "TransactionValidationError";
@@ -69,6 +72,7 @@ function assertNonZeroMinorUnits(amount: number): void {
     throw new TransactionValidationError(
       "amount",
       "The amount must be a non-zero integer in minor units",
+      messageRef("transactionAmountNonZero"),
     );
   }
 }
@@ -78,6 +82,7 @@ function assertCalendarDate(date: string): void {
     throw new TransactionValidationError(
       "date",
       `Invalid date "${date}", expected YYYY-MM-DD`,
+      messageRef("transactionDateInvalid", { date }),
     );
   }
 }
@@ -85,7 +90,11 @@ function assertCalendarDate(date: string): void {
 function normalizeLabel(label: string): string {
   const trimmed = label.trim();
   if (trimmed.length === 0) {
-    throw new TransactionValidationError("label", "The label is required");
+    throw new TransactionValidationError(
+      "label",
+      "The label is required",
+      messageRef("transactionLabelRequired"),
+    );
   }
   return trimmed;
 }
@@ -96,6 +105,7 @@ function normalizePaymentMode(value: string | null | undefined): PaymentMode | n
     throw new TransactionValidationError(
       "paymentMode",
       `Unknown payment mode "${value}"`,
+      messageRef("transactionPaymentModeUnknown", { mode: value }),
     );
   }
   return value;
@@ -112,6 +122,13 @@ export function validateTransactionInput(
       isExpense
         ? "An expense must have a negative amount"
         : `An ${input.kind} must have a positive amount`,
+      isExpense
+        ? messageRef("expenseMustBeNegative")
+        : messageRef(
+            input.kind === "interest"
+              ? "interestMustBePositive"
+              : "incomeMustBePositive",
+          ),
     );
   }
   assertCalendarDate(input.date);
@@ -157,18 +174,21 @@ function assertTransferEndpoints(
     throw new TransactionValidationError(
       "accountId",
       "A transfer needs two different accounts",
+      messageRef("transferSameAccount"),
     );
   }
   if (source.archived || destination.archived) {
     throw new TransactionValidationError(
       "accountId",
       "No transaction can be entered on an archived account",
+      messageRef("transactionOnArchivedAccount"),
     );
   }
   if (source.currency !== destination.currency) {
     throw new TransactionValidationError(
       "accountId",
       "A transfer cannot cross currencies",
+      messageRef("transferCrossCurrency"),
     );
   }
 }
@@ -182,6 +202,7 @@ export function buildTransferLegs(
     throw new TransactionValidationError(
       "amount",
       "The amount of a transfer must be a positive integer in minor units",
+      messageRef("transferAmountPositive"),
     );
   }
   assertCalendarDate(input.date);

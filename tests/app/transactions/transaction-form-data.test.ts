@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  parseTransactionForm,
-  parseTransferForm,
+  parseTransactionForm as parseTransaction,
+  parseTransferForm as parseTransfer,
+  type CurrencyByAccount,
 } from "../../../src/app/transactions/transaction-form-data";
+import { translateKey } from "../translate-key";
+
+const parseTransactionForm = (
+  formData: FormData,
+  currencies: CurrencyByAccount,
+) => parseTransaction(formData, currencies, translateKey);
+const parseTransferForm = (formData: FormData, currencies: CurrencyByAccount) =>
+  parseTransfer(formData, currencies, translateKey);
 
 const CHECKING_ID = 1;
 const LIVRET_A_ID = 2;
@@ -71,7 +80,10 @@ describe("parseTransactionForm", () => {
       CURRENCIES,
     );
 
-    expect(parsed).toMatchObject({ ok: false, error: { field: "amount" } });
+    expect(parsed).toMatchObject({
+      ok: false,
+      error: { field: "amount", message: "amountUnsigned" },
+    });
   });
 
   it("reports an unreadable amount on the amount field", () => {

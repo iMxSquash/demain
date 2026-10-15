@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 export const CONTROL_CLASS =
@@ -12,6 +13,8 @@ interface FormFieldProps {
 
 /** A labelled control whose error is linked to it through `aria-describedby`. */
 export function FormField({ id, label, error, children }: FormFieldProps) {
+  const t = useTranslations("common");
+
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id}>{label}</label>
@@ -22,7 +25,7 @@ export function FormField({ id, label, error, children }: FormFieldProps) {
           role="alert"
           className="font-medium text-red-800"
         >
-          Error: {error}
+          {t("error", { message: error })}
         </p>
       ) : null}
     </div>

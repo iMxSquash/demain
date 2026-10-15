@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { ACCOUNT_KINDS, type AccountField } from "../../domain/account";
@@ -27,18 +28,14 @@ interface AccountFormProps {
   submitLabel: string;
 }
 
-const KIND_LABELS: Record<(typeof ACCOUNT_KINDS)[number], string> = {
-  checking: "Checking",
-  savings: "Savings",
-  other: "Other",
-};
-
 export function AccountForm({
   action,
   initialValues,
   overflowOptions,
   submitLabel,
 }: AccountFormProps) {
+  const t = useTranslations("accounts");
+  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   // After a failed submit the typed values come back with the error.
@@ -67,29 +64,27 @@ export function AccountForm({
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
-          Error: {state.message}
+          {common("error", { message: state.message })}
         </p>
       ) : null}
 
-      <FormField {...fieldProps("name", "Name")}>
+      <FormField {...fieldProps("name", t("form.name"))}>
         <input {...controlProps("name")} type="text" required autoComplete="off" />
       </FormField>
 
-      <FormField {...fieldProps("kind", "Kind")}>
+      <FormField {...fieldProps("kind", t("form.kind"))}>
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
         <select key={values.kind} {...controlProps("kind")}>
           {ACCOUNT_KINDS.map((kind) => (
             <option key={kind} value={kind}>
-              {KIND_LABELS[kind]}
+              {t(`kinds.${kind}`)}
             </option>
           ))}
         </select>
       </FormField>
 
-      <FormField
-        {...fieldProps("currency", "Currency (ISO 4217 code, for example EUR)")}
-      >
+      <FormField {...fieldProps("currency", t("form.currency"))}>
         <input
           {...controlProps("currency")}
           type="text"
@@ -99,11 +94,11 @@ export function AccountForm({
         />
       </FormField>
 
-      <FormField {...fieldProps("openingDate", "Opening date")}>
+      <FormField {...fieldProps("openingDate", t("form.openingDate"))}>
         <input {...controlProps("openingDate")} type="date" required />
       </FormField>
 
-      <FormField {...fieldProps("openingBalance", "Opening balance")}>
+      <FormField {...fieldProps("openingBalance", t("form.openingBalance"))}>
         <input
           {...controlProps("openingBalance")}
           type="text"
@@ -114,10 +109,7 @@ export function AccountForm({
       </FormField>
 
       <FormField
-        {...fieldProps(
-          "depositCeiling",
-          "Deposit ceiling (optional, leave empty for none)",
-        )}
+        {...fieldProps("depositCeiling", t("form.depositCeiling"))}
       >
         <input
           {...controlProps("depositCeiling")}
@@ -127,13 +119,13 @@ export function AccountForm({
         />
       </FormField>
 
-      <FormField {...fieldProps("overflowAccountId", "Overflow account (optional)")}>
+      <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))}>
         {/* Same remount trick as the kind select above. */}
         <select
           key={values.overflowAccountId}
           {...controlProps("overflowAccountId")}
         >
-          <option value="">None</option>
+          <option value="">{common("none")}</option>
           {overflowOptions.map((option) => (
             <option key={option.id} value={option.id}>
               {option.name} ({option.currency})
