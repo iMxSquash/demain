@@ -6,6 +6,7 @@ import { formatAmount } from "../../domain/money";
 import { listAccounts } from "../../ledger/accounts";
 import { listTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
+import { DISPLAY_LOCALE } from "../display-locale";
 import {
   createTransactionAction,
   createTransferAction,
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
   title: "Transactions | Demain",
 };
 
-// Display locale until the i18n foundations land (issue #18).
-const DISPLAY_LOCALE = "en";
+// "YYYY-MM-DD" is the first ten characters of an ISO timestamp.
+const ISO_DATE_LENGTH = "YYYY-MM-DD".length;
 
 export default async function TransactionsPage() {
   // The page reads the database: it must run per request, never at build time.
@@ -31,7 +32,7 @@ export default async function TransactionsPage() {
   }));
   const active = accounts.filter((account) => !account.archived);
   const accountById = new Map(accounts.map((account) => [account.id, account]));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, ISO_DATE_LENGTH);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 p-8">
@@ -62,11 +63,15 @@ export default async function TransactionsPage() {
             <tbody>
               {rows.map((row) => {
                 const account = accountById.get(row.accountId);
-                const isArchived = account?.archived ?? false;
+                if (account === undefined) {
+                  throw new Error(
+                    `Transaction ${row.id} points to unknown account ${row.accountId}`,
+                  );
+                }
                 return (
                   <tr key={row.id} className="border-b border-neutral-300">
                     <td className="py-2 pr-4 tabular-nums">{row.date}</td>
-                    <td className="py-2 pr-4">{account?.name}</td>
+                    <td className="py-2 pr-4">{account.name}</td>
                     <th scope="row" className="py-2 pr-4 font-medium">
                       {row.label}
                     </th>
@@ -77,14 +82,10 @@ export default async function TransactionsPage() {
                         : PAYMENT_MODE_LABELS[row.paymentMode]}
                     </td>
                     <td className="py-2 pr-4 text-right tabular-nums">
-                      {formatAmount(
-                        row.amount,
-                        account?.currency ?? "EUR",
-                        DISPLAY_LOCALE,
-                      )}
+                      {formatAmount(row.amount, account.currency, DISPLAY_LOCALE)}
                     </td>
                     <td className="py-2">
-                      {isArchived ? (
+                      {account.archived ? (
                         <span>Archived account</span>
                       ) : (
                         <div className="flex gap-2">

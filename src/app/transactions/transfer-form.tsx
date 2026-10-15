@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 
 import { CONTROL_CLASS, FormField } from "../form-field";
 import type { AccountOption } from "./transaction-form";
+import { TRANSFER_DECISION } from "./transfer-decision";
 import type {
+  SurplusChoice,
   TransferFormField,
   TransferFormState,
   TransferFormValues,
@@ -114,56 +116,25 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       </FormField>
 
       {choice ? (
-        <fieldset className="flex flex-col gap-3 rounded border border-neutral-500 p-4">
-          <legend className="px-1 font-medium">Amount above the ceiling</legend>
-          <p>
-            {choice.depositedText} fits under the ceiling of the destination
-            account, {choice.surplusText} does not. Choose what to do with the
-            surplus.
-          </p>
-          <FormField
-            id={fieldId("surplusAccountId")}
-            label="Account that receives the surplus"
-            error={errorOf("surplusAccountId")}
-          >
-            <select
-              key={choice.suggestedAccountId}
-              {...controlProps("surplusAccountId", choice.suggestedAccountId)}
+        <SurplusChoiceFields
+          choice={choice}
+          isPending={isPending}
+          surplusField={
+            <FormField
+              id={fieldId("surplusAccountId")}
+              label="Account that receives the surplus"
+              error={errorOf("surplusAccountId")}
             >
-              <option value="">Choose an account</option>
-              {accountOptions}
-            </select>
-          </FormField>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="submit"
-              name="decision"
-              value="room-only"
-              disabled={isPending}
-              className={BUTTON_CLASS}
-            >
-              Deposit only {choice.depositedText}
-            </button>
-            <button
-              type="submit"
-              name="decision"
-              value="send-surplus"
-              disabled={isPending}
-              className={BUTTON_CLASS}
-            >
-              Send the surplus to the chosen account
-            </button>
-            <button
-              type="submit"
-              name="decision"
-              value="cancel"
-              disabled={isPending}
-              className={BUTTON_CLASS}
-            >
-              Cancel the transfer
-            </button>
-          </div>
-        </fieldset>
+              <select
+                key={choice.suggestedAccountId}
+                {...controlProps("surplusAccountId", choice.suggestedAccountId)}
+              >
+                <option value="">Choose an account</option>
+                {accountOptions}
+              </select>
+            </FormField>
+          }
+        />
       ) : (
         <button
           type="submit"
@@ -174,5 +145,53 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
         </button>
       )}
     </form>
+  );
+}
+
+interface SurplusChoiceFieldsProps {
+  choice: SurplusChoice;
+  isPending: boolean;
+  /** The select of the account that receives the surplus, with its label and error. */
+  surplusField: ReactNode;
+}
+
+function SurplusChoiceFields({
+  choice,
+  isPending,
+  surplusField,
+}: SurplusChoiceFieldsProps) {
+  const decisionButton = (value: string, label: string) => (
+    <button
+      type="submit"
+      name="decision"
+      value={value}
+      disabled={isPending}
+      className={BUTTON_CLASS}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <fieldset className="flex flex-col gap-3 rounded border border-neutral-500 p-4">
+      <legend className="px-1 font-medium">Amount above the ceiling</legend>
+      <p>
+        {choice.depositedText} fits under the ceiling of the destination
+        account, {choice.surplusText} does not. Choose what to do with the
+        surplus.
+      </p>
+      {surplusField}
+      <div className="flex flex-wrap gap-2">
+        {decisionButton(
+          TRANSFER_DECISION.roomOnly,
+          `Deposit only ${choice.depositedText}`,
+        )}
+        {decisionButton(
+          TRANSFER_DECISION.sendSurplus,
+          "Send the surplus to the chosen account",
+        )}
+        {decisionButton(TRANSFER_DECISION.cancel, "Cancel the transfer")}
+      </div>
+    </fieldset>
   );
 }

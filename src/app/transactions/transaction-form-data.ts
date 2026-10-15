@@ -4,6 +4,7 @@ import type {
   SurplusDecision,
   TransferRequest,
 } from "../../ledger/transactions";
+import { TRANSFER_DECISION } from "./transfer-decision";
 
 /** Currency of each known account, so that text amounts are read exactly. */
 export type CurrencyByAccount = ReadonlyMap<number, string>;
@@ -168,6 +169,28 @@ export function parseTransactionForm(
   };
 }
 
+type DecisionResult =
+  | { value: SurplusDecision | null }
+  | { message: string };
+
+// No decision is the normal first submit: the form then shows the split.
+function readDecision(
+  formData: FormData,
+  currencies: CurrencyByAccount,
+): DecisionResult {
+  const decision = readText(formData, "decision");
+  if (decision === TRANSFER_DECISION.roomOnly) {
+    return { value: { kind: "room-only" } };
+  }
+  if (decision !== TRANSFER_DECISION.sendSurplus) return { value: null };
+
+  const account = readAccount(readText(formData, "surplusAccountId"), currencies);
+  if (account === null) {
+    return { message: "Choose the account that receives the surplus" };
+  }
+  return { value: { kind: "send-surplus", accountId: account.id } };
+}
+
 export function parseTransferForm(
   formData: FormData,
   currencies: CurrencyByAccount,
@@ -196,23 +219,7 @@ export function parseTransferForm(
     label: values.label,
   };
 
-  const decisionText = readText(formData, "decision");
-  if (decisionText === "room-only") {
-    return { ok: true, request, decision: { kind: "room-only" } };
-  }
-  if (decisionText === "send-surplus") {
-    const surplusAccount = readAccount(
-      readText(formData, "surplusAccountId"),
-      currencies,
-    );
-    if (surplusAccount === null) {
-      return fail("surplusAccountId", "Choose the account that receives the surplus");
-    }
-    return {
-      ok: true,
-      request,
-      decision: { kind: "send-surplus", accountId: surplusAccount.id },
-    };
-  }
-  return { ok: true, request, decision: null };
+  const decision = readDecision(formData, currencies);
+  if ("message" in decision) return fail("surplusAccountId", decision.message);
+  return { ok: true, request, decision: decision.value };
 }

@@ -9,15 +9,13 @@ import {
   type Account,
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
+import { DISPLAY_LOCALE } from "../display-locale";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Accounts | Demain",
 };
-
-// Display locale until the i18n foundations land (issue #18).
-const DISPLAY_LOCALE = "en";
 
 const NEW_ACCOUNT_DEFAULTS = {
   name: "",

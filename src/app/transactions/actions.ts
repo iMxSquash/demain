@@ -7,6 +7,7 @@ import { formatAmount } from "../../domain/money";
 import {
   TransactionValidationError,
   type CeilingWarning,
+  type ManualTransferSplit,
   type TransactionField,
 } from "../../domain/transaction";
 import { AccountNotFoundError, listAccounts } from "../../ledger/accounts";
@@ -18,8 +19,12 @@ import {
   recordManualTransfer,
   TransactionNotFoundError,
   updateTransaction,
+  type SurplusDecision,
+  type TransferRequest,
 } from "../../ledger/transactions";
+import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
+import { DISPLAY_LOCALE } from "../display-locale";
 import {
   parseTransactionForm,
   parseTransferForm,
@@ -29,12 +34,12 @@ import {
   type TransactionFormState,
   type TransferFormField,
   type TransferFormState,
+  type TransferFormValues,
 } from "./transaction-form-data";
+import { TRANSFER_DECISION } from "./transfer-decision";
 
 const TRANSACTIONS_PATH = "/transactions";
 const ACCOUNTS_PATH = "/accounts";
-// Display locale until the i18n foundations land (issue #18).
-const DISPLAY_LOCALE = "en";
 const GENERIC_ERROR = "Something went wrong, nothing was saved.";
 
 function loadCurrencies(): CurrencyByAccount {
@@ -184,12 +189,58 @@ export async function deleteTransactionAction(id: number): Promise<void> {
   revalidateLedger();
 }
 
+// First submit of a transfer that does not fit: nothing is recorded, the form
+// shows the split and waits for the decision of the user.
+function askForDecision(
+  split: ManualTransferSplit,
+  values: TransferFormValues,
+  format: (minorUnits: number) => string,
+): TransferFormState {
+  return {
+    status: "notice",
+    message: "The destination account cannot take the whole amount.",
+    values,
+    surplusChoice: {
+      depositedText: format(split.deposited),
+      surplusText: format(split.surplus),
+      suggestedAccountId:
+        split.suggestedOverflowAccountId === null
+          ? ""
+          : String(split.suggestedOverflowAccountId),
+    },
+  };
+}
+
+function recordTransfer(
+  db: AppDatabase,
+  request: TransferRequest,
+  decision: SurplusDecision | null,
+  values: TransferFormValues,
+  format: (minorUnits: number) => string,
+): TransferFormState {
+  if (decision === null) {
+    const split = previewManualTransfer(db, request);
+    if (split.surplus > 0) return askForDecision(split, values, format);
+  }
+  const result = recordManualTransfer(db, request, decision);
+  const unplaced =
+    result.unplaced > 0
+      ? ` ${format(result.unplaced)} fits nowhere and stays in the source account.`
+      : "";
+  revalidateLedger();
+  return {
+    status: "notice",
+    message: `Transfer recorded.${unplaced}`,
+    values: { ...values, amount: "", label: "" },
+  };
+}
+
 export async function createTransferAction(
   _previous: TransferFormState | null,
   formData: FormData,
 ): Promise<TransferFormState | null> {
   const values = readTransferValues(formData);
-  if (formData.get("decision") === "cancel") {
+  if (formData.get("decision") === TRANSFER_DECISION.cancel) {
     return {
       status: "notice",
       message: "Transfer cancelled: nothing was recorded.",
@@ -205,37 +256,9 @@ export async function createTransferAction(
     formatMinorUnits(currencies, request.sourceId, minorUnits);
 
   try {
-    return withDatabase((db): TransferFormState | null => {
-      if (decision === null) {
-        const split = previewManualTransfer(db, request);
-        if (split.surplus > 0) {
-          return {
-            status: "notice",
-            message: "The destination account cannot take the whole amount.",
-            values,
-            surplusChoice: {
-              depositedText: format(split.deposited),
-              surplusText: format(split.surplus),
-              suggestedAccountId:
-                split.suggestedOverflowAccountId === null
-                  ? ""
-                  : String(split.suggestedOverflowAccountId),
-            },
-          };
-        }
-      }
-      const result = recordManualTransfer(db, request, decision);
-      const unplaced =
-        result.unplaced > 0
-          ? ` ${format(result.unplaced)} fits nowhere and stays in the source account.`
-          : "";
-      revalidateLedger();
-      return {
-        status: "notice",
-        message: `Transfer recorded.${unplaced}`,
-        values: { ...values, amount: "", label: "" },
-      };
-    });
+    return withDatabase((db) =>
+      recordTransfer(db, request, decision, values, format),
+    );
   } catch (error) {
     const { field, message } = describeFailure(error);
     return {
