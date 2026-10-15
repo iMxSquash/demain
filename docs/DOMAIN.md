@@ -69,11 +69,9 @@ erDiagram
 An account that is no longer used is archived, not deleted, so that its history and the balances of past months stay correct.
 
 - **Zero balance.** An account can be archived only when its computed balance is exactly zero. A negative balance blocks the archiving as well. The user empties the account first, typically with a transfer to another account.
-- **No more entered movements.** No transaction can be entered on an archived account, and account pickers do not offer it. A planned item cannot target it, and an account targeted by a planned item that is not over cannot be archived until the item is changed.
+- **No more entered movements.** No transaction can be entered on an archived account, and account pickers do not offer it. Its existing transactions can be neither edited nor deleted, since that would move its balance away from zero. A planned item cannot target it, and an account targeted by a planned item that is not over cannot be archived until the item is changed.
 - **Imports are the exception.** A transaction imported from the bank has already happened, so it is accepted on an archived account and flagged with a visible warning.
 - **History stays.** Past transactions, balances and statistics of an archived account remain in the views that cover their period.
-
-Until transactions exist (issue #9) an account has only its opening balance: the zero-balance and no-movement rules take effect with that issue, like the currency rule above.
 
 ### Transaction
 
