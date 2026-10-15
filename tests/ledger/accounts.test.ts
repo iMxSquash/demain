@@ -10,8 +10,10 @@ import {
   archiveAccount,
   createAccount,
   listAccounts,
+  listOverflowAccounts,
   updateAccount,
 } from "../../src/ledger/accounts";
+import { createTransaction, createTransfer } from "../../src/ledger/transactions";
 import {
   type AppDatabase,
   migrateDatabase,
@@ -106,6 +108,110 @@ describe("accounts", () => {
     expect(() => archiveAccount(db, 999)).toThrow(
       expect.objectContaining({ name: "AccountNotFoundError" }),
     );
+  });
+
+  describe("archiving and transactions", () => {
+    const EXPENSE = {
+      date: "2026-02-10",
+      amount: -1_250,
+      kind: "expense" as const,
+      label: "Groceries",
+    };
+
+    it("refuses to archive an account whose balance is not zero", () => {
+      const checking = createAccount(db, CHECKING_INPUT);
+
+      expect(() => archiveAccount(db, checking.id)).toThrow(
+        expect.objectContaining({ name: "AccountNotEmptyError" }),
+      );
+      expect(listAccounts(db)).toHaveLength(1);
+    });
+
+    it("refuses to archive an account whose balance is negative", () => {
+      const checking = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
+      createTransaction(db, { ...EXPENSE, accountId: checking.id });
+
+      expect(() => archiveAccount(db, checking.id)).toThrow(
+        expect.objectContaining({ name: "AccountNotEmptyError" }),
+      );
+    });
+
+    it("archives an account once a transfer has emptied it", () => {
+      const checking = createAccount(db, CHECKING_INPUT);
+      const livretA = createAccount(db, { ...CHECKING_INPUT, name: "Livret A" });
+      createTransfer(db, {
+        sourceId: checking.id,
+        destinationId: livretA.id,
+        amount: 5_627,
+        date: "2026-02-15",
+        label: "Empty checking",
+      });
+
+      expect(() => archiveAccount(db, checking.id)).not.toThrow();
+    });
+
+    it("refuses a currency change once the account has a transaction", () => {
+      const checking = createAccount(db, CHECKING_INPUT);
+      createTransaction(db, { ...EXPENSE, accountId: checking.id });
+
+      expect(() =>
+        updateAccount(db, checking.id, { ...CHECKING_INPUT, currency: "USD" }),
+      ).toThrow(expect.objectContaining({ field: "currency" }));
+    });
+  });
+
+  describe("overflow accounts with balances", () => {
+    it("lists every account with its computed balance, ceiling and link", () => {
+      const livretA = createAccount(db, {
+        ...CHECKING_INPUT,
+        name: "Livret A",
+        kind: "savings",
+        openingBalance: 100_000,
+      });
+      const livretJeune = createAccount(db, {
+        ...CHECKING_INPUT,
+        name: "Livret Jeune",
+        kind: "savings",
+        openingBalance: 150_000,
+        depositCeiling: 160_000,
+        overflowAccountId: livretA.id,
+      });
+      createTransaction(db, {
+        accountId: livretJeune.id,
+        date: "2026-02-01",
+        amount: 5_000,
+        kind: "interest",
+        label: "Interest",
+      });
+
+      expect(listOverflowAccounts(db)).toEqual([
+        {
+          id: livretA.id,
+          currency: "EUR",
+          archived: false,
+          balance: 100_000,
+          ceiling: null,
+          overflowAccountId: null,
+        },
+        {
+          id: livretJeune.id,
+          currency: "EUR",
+          archived: false,
+          balance: 155_000,
+          ceiling: 160_000,
+          overflowAccountId: livretA.id,
+        },
+      ]);
+    });
+
+    it("keeps archived accounts, flagged, since the chain is a graph", () => {
+      const closed = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
+      archiveAccount(db, closed.id);
+
+      expect(listOverflowAccounts(db)).toEqual([
+        expect.objectContaining({ id: closed.id, archived: true, balance: 0 }),
+      ]);
+    });
   });
 
   describe("overflow accounts", () => {

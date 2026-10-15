@@ -1,0 +1,289 @@
+import { asc, eq, inArray } from "drizzle-orm";
+
+import {
+  buildTransferLegs,
+  ceilingWarningFor,
+  splitManualTransfer,
+  TransactionValidationError,
+  validateTransactionInput,
+  type CeilingWarning,
+  type ManualTransferSplit,
+  type TransactionInput,
+  type TransferLeg,
+} from "../domain/transaction";
+import type { OverflowAccount } from "../domain/overflow";
+import type { AppDatabase } from "../storage/database";
+import { transactions } from "../storage/schema";
+import {
+  getAccount,
+  getAccountBalance,
+  listOverflowAccounts,
+  type Account,
+} from "./accounts";
+
+export type Transaction = typeof transactions.$inferSelect;
+
+export class TransactionNotFoundError extends Error {
+  constructor(id: number) {
+    super(`Transaction ${id} does not exist`);
+    this.name = "TransactionNotFoundError";
+  }
+}
+
+export function getTransaction(db: AppDatabase, id: number): Transaction {
+  const transaction = db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, id))
+    .get();
+  if (transaction === undefined) {
+    throw new TransactionNotFoundError(id);
+  }
+  return transaction;
+}
+
+// An archived account holds nothing and takes no entered movement (DOMAIN,
+// archiving an account). Imports are the documented exception, handled apart.
+function getOpenAccount(db: AppDatabase, id: number): Account {
+  const account = getAccount(db, id);
+  if (account.archived) {
+    throw new TransactionValidationError(
+      "accountId",
+      "No transaction can be entered on an archived account",
+    );
+  }
+  return account;
+}
+
+export function createTransaction(
+  db: AppDatabase,
+  input: TransactionInput,
+): Transaction {
+  const valid = validateTransactionInput(input);
+  getOpenAccount(db, valid.accountId);
+  return db.insert(transactions).values(valid).returning().get();
+}
+
+export interface TransferRequest {
+  sourceId: number;
+  destinationId: number;
+  /** Positive integer in minor units, the amount leaving the source. */
+  amount: number;
+  date: string;
+  label: string;
+}
+
+type Writer = Pick<AppDatabase, "insert" | "update">;
+
+// Validates the request against the stored accounts and returns the two legs.
+function buildLegsFor(
+  db: AppDatabase,
+  request: TransferRequest,
+): [outgoing: TransferLeg, incoming: TransferLeg] {
+  return buildTransferLegs({
+    source: getOpenAccount(db, request.sourceId),
+    destination: getOpenAccount(db, request.destinationId),
+    amount: request.amount,
+    date: request.date,
+    label: request.label,
+  });
+}
+
+function insertTransferLegs(
+  writer: Writer,
+  [outgoingLeg, incomingLeg]: [TransferLeg, TransferLeg],
+): [outgoing: Transaction, incoming: Transaction] {
+  const outgoing = writer
+    .insert(transactions)
+    .values(outgoingLeg)
+    .returning()
+    .get();
+  const incoming = writer
+    .insert(transactions)
+    .values({ ...incomingLeg, transferCounterpartId: outgoing.id })
+    .returning()
+    .get();
+  const linked = writer
+    .update(transactions)
+    .set({ transferCounterpartId: incoming.id })
+    .where(eq(transactions.id, outgoing.id))
+    .returning()
+    .get();
+  return [linked, incoming];
+}
+
+/**
+ * Records the two legs of a transfer. The caller has already settled any
+ * ceiling split (DOMAIN, deposit ceiling and overflow): the amount given is
+ * what is really transferred.
+ */
+export function createTransfer(
+  db: AppDatabase,
+  request: TransferRequest,
+): [outgoing: Transaction, incoming: Transaction] {
+  const legs = buildLegsFor(db, request);
+  // Both legs or none: a lone leg would break invariant 3.
+  return db.transaction((tx) => insertTransferLegs(tx, legs));
+}
+
+export type SurplusDecision =
+  | { kind: "room-only" }
+  | { kind: "send-surplus"; accountId: number };
+
+export interface ManualTransferResult {
+  transfers: [outgoing: Transaction, incoming: Transaction][];
+  /** Part that stays in the source account because it fits nowhere. */
+  unplaced: number;
+}
+
+export class SurplusDecisionRequiredError extends Error {
+  constructor(readonly split: ManualTransferSplit) {
+    super(
+      `${split.surplus} minor units do not fit under the ceiling: a decision is required`,
+    );
+    this.name = "SurplusDecisionRequiredError";
+  }
+}
+
+function splitFor(
+  request: TransferRequest,
+  accounts: readonly OverflowAccount[],
+): ManualTransferSplit {
+  return splitManualTransfer(request.amount, request.destinationId, accounts);
+}
+
+/** The split shown before recording a transfer entered by hand. */
+export function previewManualTransfer(
+  db: AppDatabase,
+  request: TransferRequest,
+): ManualTransferSplit {
+  // Validates the whole request first: archived accounts, currencies, amount.
+  buildLegsFor(db, request);
+  return splitFor(request, listOverflowAccounts(db));
+}
+
+// What becomes of the surplus of a split, following the user's decision.
+function planSurplus(
+  db: AppDatabase,
+  request: TransferRequest,
+  split: ManualTransferSplit,
+  decision: SurplusDecision | null,
+  accounts: readonly OverflowAccount[],
+): { part: TransferRequest | null; unplaced: number } {
+  if (split.surplus === 0) return { part: null, unplaced: 0 };
+  if (decision === null) throw new SurplusDecisionRequiredError(split);
+  if (decision.kind === "room-only") {
+    return { part: null, unplaced: split.surplus };
+  }
+  getOpenAccount(db, decision.accountId);
+  // The same room check applies to the account the user chose.
+  const second = splitManualTransfer(split.surplus, decision.accountId, accounts);
+  return {
+    part:
+      second.deposited > 0
+        ? {
+            ...request,
+            destinationId: decision.accountId,
+            amount: second.deposited,
+          }
+        : null,
+    unplaced: second.surplus,
+  };
+}
+
+/**
+ * Records a transfer entered by hand. When the destination cannot take the
+ * whole amount the decision of the user is applied, and everything is recorded
+ * in one database transaction (DOMAIN, deposit ceiling and overflow).
+ */
+export function recordManualTransfer(
+  db: AppDatabase,
+  request: TransferRequest,
+  decision: SurplusDecision | null,
+): ManualTransferResult {
+  buildLegsFor(db, request);
+  const accounts = listOverflowAccounts(db);
+  const split = splitFor(request, accounts);
+  const surplus = planSurplus(db, request, split, decision, accounts);
+
+  const parts: TransferRequest[] = [];
+  if (split.deposited > 0) {
+    parts.push({ ...request, amount: split.deposited });
+  }
+  if (surplus.part !== null) parts.push(surplus.part);
+  if (parts.length === 0) {
+    throw new TransactionValidationError(
+      "amount",
+      "Nothing fits under the ceilings: no transfer was recorded",
+    );
+  }
+
+  const legs = parts.map((part) => buildLegsFor(db, part));
+  return db.transaction((tx) => ({
+    transfers: legs.map((pair) => insertTransferLegs(tx, pair)),
+    unplaced: surplus.unplaced,
+  }));
+}
+
+/** Read-only: the warning shown with an income that exceeds the ceiling. */
+export function previewCeilingWarning(
+  db: AppDatabase,
+  input: TransactionInput,
+): CeilingWarning | null {
+  const valid = validateTransactionInput(input);
+  const account = getOpenAccount(db, valid.accountId);
+  return ceilingWarningFor(valid, {
+    balance: getAccountBalance(db, account.id),
+    ceiling: account.depositCeiling,
+  });
+}
+
+export function updateTransaction(
+  db: AppDatabase,
+  id: number,
+  input: TransactionInput,
+): Transaction {
+  const current = getTransaction(db, id);
+  // The two legs of a transfer stay consistent only if they change together:
+  // the user deletes the transfer and enters it again.
+  if (current.kind === "transfer") {
+    throw new TransactionValidationError(
+      "kind",
+      "A transfer cannot be edited: delete it and enter it again",
+    );
+  }
+  const valid = validateTransactionInput(input);
+  getOpenAccount(db, valid.accountId);
+  return db
+    .update(transactions)
+    .set(valid)
+    .where(eq(transactions.id, id))
+    .returning()
+    .get();
+}
+
+/** Deleting one leg of a transfer deletes the other (DOMAIN, invariant 3). */
+export function deleteTransaction(db: AppDatabase, id: number): void {
+  const transaction = getTransaction(db, id);
+  // An archived account keeps a zero balance (DOMAIN, invariant 12): none of
+  // its transactions can disappear, nor the transfer they belong to.
+  getOpenAccount(db, transaction.accountId);
+  const counterpartId = transaction.transferCounterpartId;
+  if (counterpartId !== null) {
+    getOpenAccount(db, getTransaction(db, counterpartId).accountId);
+  }
+  const ids =
+    counterpartId === null ? [transaction.id] : [transaction.id, counterpartId];
+  // One statement: the legs reference each other, and SQLite checks the
+  // foreign key at the end of the statement.
+  db.delete(transactions).where(inArray(transactions.id, ids)).run();
+}
+
+export function listTransactions(db: AppDatabase): Transaction[] {
+  // SQLite gives no order guarantee without ORDER BY.
+  return db
+    .select()
+    .from(transactions)
+    .orderBy(asc(transactions.date), asc(transactions.id))
+    .all();
+}
