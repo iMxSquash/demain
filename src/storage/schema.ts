@@ -1,7 +1,9 @@
+import { sql } from "drizzle-orm";
 import {
   integer,
   sqliteTable,
   text,
+  uniqueIndex,
   type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
@@ -30,12 +32,20 @@ export const accounts = sqliteTable("accounts", {
   ),
 });
 
-export const categories = sqliteTable("categories", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  // Hidden from pickers but kept for history: never deleted.
-  archived: integer("archived", { mode: "boolean" }).notNull().default(false),
-});
+export const categories = sqliteTable(
+  "categories",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    // Hidden from pickers but kept for history: never deleted.
+    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+  },
+  (table) => [
+    // Names are unique regardless of case, archived categories included: the
+    // application checks it first, this is the guarantee behind it.
+    uniqueIndex("categories_name_unique").on(sql`lower(${table.name})`),
+  ],
+);
 
 export const transactions = sqliteTable("transactions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
