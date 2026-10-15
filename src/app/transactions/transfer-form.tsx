@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, type ReactNode } from "react";
 
 import { CONTROL_CLASS, FormField } from "../form-field";
@@ -31,6 +32,8 @@ const BUTTON_CLASS =
   "min-h-11 rounded border border-blue-800 px-4 font-medium text-blue-900 disabled:opacity-60";
 
 export function TransferForm({ action, initialValues, accounts }: TransferFormProps) {
+  const t = useTranslations("transactions.transferForm");
+  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const values = state?.values ?? initialValues;
@@ -59,7 +62,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state?.status === "error" && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
-          Error: {state.message}
+          {common("error", { message: state.message })}
         </p>
       ) : null}
       {state?.status === "notice" ? (
@@ -68,7 +71,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
         </p>
       ) : null}
 
-      <FormField id={fieldId("sourceId")} label="From account" error={errorOf("sourceId")}>
+      <FormField id={fieldId("sourceId")} label={t("from")} error={errorOf("sourceId")}>
         <select
           key={values.sourceId}
           {...controlProps("sourceId", values.sourceId)}
@@ -79,7 +82,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
 
       <FormField
         id={fieldId("destinationId")}
-        label="To account"
+        label={t("to")}
         error={errorOf("destinationId")}
       >
         <select
@@ -90,7 +93,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
         </select>
       </FormField>
 
-      <FormField id={fieldId("date")} label="Date" error={errorOf("date")}>
+      <FormField id={fieldId("date")} label={t("date")} error={errorOf("date")}>
         <input
           {...controlProps("date", values.date)}
           type="date"
@@ -98,7 +101,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
         />
       </FormField>
 
-      <FormField id={fieldId("amount")} label="Amount" error={errorOf("amount")}>
+      <FormField id={fieldId("amount")} label={t("amount")} error={errorOf("amount")}>
         <input
           {...controlProps("amount", values.amount)}
           type="text"
@@ -108,7 +111,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
         />
       </FormField>
 
-      <FormField id={fieldId("label")} label="Label" error={errorOf("label")}>
+      <FormField id={fieldId("label")} label={t("label")} error={errorOf("label")}>
         <input
           {...controlProps("label", values.label)}
           type="text"
@@ -124,14 +127,14 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
           surplusField={
             <FormField
               id={fieldId("surplusAccountId")}
-              label="Account that receives the surplus"
+              label={t("surplusAccount")}
               error={errorOf("surplusAccountId")}
             >
               <select
                 key={choice.suggestedAccountId}
                 {...controlProps("surplusAccountId", choice.suggestedAccountId)}
               >
-                <option value="">Choose an account</option>
+                <option value="">{t("chooseAccount")}</option>
                 {accountOptions}
               </select>
             </FormField>
@@ -143,7 +146,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
           disabled={isPending}
           className="min-h-11 self-start rounded bg-blue-800 px-4 font-medium text-white disabled:opacity-60"
         >
-          Record transfer
+          {t("submit")}
         </button>
       )}
     </form>
@@ -162,6 +165,7 @@ function SurplusChoiceFields({
   isPending,
   surplusField,
 }: SurplusChoiceFieldsProps) {
+  const t = useTranslations("transactions.transferForm");
   const decisionButton = (value: string, label: string) => (
     <button
       type="submit"
@@ -176,23 +180,24 @@ function SurplusChoiceFields({
 
   return (
     <fieldset className="flex flex-col gap-3 rounded border border-neutral-500 p-4">
-      <legend className="px-1 font-medium">Amount above the ceiling</legend>
+      <legend className="px-1 font-medium">{t("surplusLegend")}</legend>
       <p>
-        {choice.depositedText} fits under the ceiling of the destination
-        account, {choice.surplusText} does not. Choose what to do with the
-        surplus.
+        {t("surplusIntro", {
+          deposited: choice.depositedText,
+          surplus: choice.surplusText,
+        })}
       </p>
       {surplusField}
       <div className="flex flex-wrap gap-2">
         {decisionButton(
           TRANSFER_DECISION.roomOnly,
-          `Deposit only ${choice.depositedText}`,
+          t("roomOnly", { deposited: choice.depositedText }),
         )}
         {decisionButton(
           TRANSFER_DECISION.sendSurplus,
-          "Send the surplus to the chosen account",
+          t("sendSurplus"),
         )}
-        {decisionButton(TRANSFER_DECISION.cancel, "Cancel the transfer")}
+        {decisionButton(TRANSFER_DECISION.cancel, t("cancel"))}
       </div>
     </fieldset>
   );

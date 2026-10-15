@@ -11,6 +11,7 @@ import {
   assertOverflowTargetAllowed,
   type OverflowAccount,
 } from "../domain/overflow";
+import { messageRef } from "../domain/message";
 import type { AppDatabase } from "../storage/database";
 import { accounts, transactions } from "../storage/schema";
 
@@ -160,6 +161,7 @@ export function updateAccount(
     throw new AccountValidationError(
       "currency",
       `The currency cannot change while ${mismatched.name} uses this account as its overflow account`,
+      messageRef("accountCurrencyInUseByOverflow", { name: mismatched.name }),
     );
   }
   assertCurrencyChangeAllowed(current.currency, valid.currency, {

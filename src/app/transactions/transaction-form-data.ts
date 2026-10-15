@@ -1,3 +1,4 @@
+import { messageRef, type Translate } from "../../domain/message";
 import { MoneyParseError, parseAmount } from "../../domain/money";
 import type { TransactionInput } from "../../domain/transaction";
 import type {
@@ -125,17 +126,21 @@ type AmountResult = { value: number } | { message: string };
 
 // The amount is typed without a sign: a minus sign is refused rather than
 // guessed, since "expense" and "-" would otherwise contradict each other.
-function readUnsignedAmount(text: string, currency: string): AmountResult {
+function readUnsignedAmount(
+  text: string,
+  currency: string,
+  translate: Translate,
+): AmountResult {
   try {
     const value = parseAmount(text, currency);
     if (value < 0) {
-      return {
-        message: "Enter the amount without a sign: the type sets the direction",
-      };
+      return { message: translate(messageRef("amountUnsigned")) };
     }
     return { value };
   } catch (error) {
-    if (error instanceof MoneyParseError) return { message: error.message };
+    if (error instanceof MoneyParseError) {
+      return { message: translate(error.ref) };
+    }
     throw error;
   }
 }
@@ -144,6 +149,7 @@ function readUnsignedAmount(text: string, currency: string): AmountResult {
 export function parseTransactionForm(
   formData: FormData,
   currencies: CurrencyByAccount,
+  translate: Translate,
 ): ParsedTransactionForm {
   const values = readTransactionValues(formData);
   const fail = (field: TransactionFormField, message: string) => ({
@@ -152,15 +158,17 @@ export function parseTransactionForm(
   });
 
   const account = readAccount(values.accountId, currencies);
-  if (account === null) return fail("accountId", "Unknown account");
+  if (account === null) {
+    return fail("accountId", translate(messageRef("accountUnknown")));
+  }
 
-  const amount = readUnsignedAmount(values.amount, account.currency);
+  const amount = readUnsignedAmount(values.amount, account.currency, translate);
   if ("message" in amount) return fail("amount", amount.message);
 
   const rawCategory = values.categoryId.trim();
   const categoryId = rawCategory === "" ? null : Number(rawCategory);
   if (categoryId !== null && !Number.isSafeInteger(categoryId)) {
-    return fail("categoryId", "Unknown category");
+    return fail("categoryId", translate(messageRef("categoryUnknown")));
   }
 
   const isExpense = values.kind === "expense";
@@ -188,6 +196,7 @@ type DecisionResult =
 function readDecision(
   formData: FormData,
   currencies: CurrencyByAccount,
+  translate: Translate,
 ): DecisionResult {
   const decision = readText(formData, "decision");
   if (decision === TRANSFER_DECISION.roomOnly) {
@@ -197,7 +206,7 @@ function readDecision(
 
   const account = readAccount(readText(formData, "surplusAccountId"), currencies);
   if (account === null) {
-    return { message: "Choose the account that receives the surplus" };
+    return { message: translate(messageRef("transferSurplusAccountChoose")) };
   }
   return { value: { kind: "send-surplus", accountId: account.id } };
 }
@@ -205,6 +214,7 @@ function readDecision(
 export function parseTransferForm(
   formData: FormData,
   currencies: CurrencyByAccount,
+  translate: Translate,
 ): ParsedTransferForm {
   const values = readTransferValues(formData);
   const fail = (field: TransferFormField, message: string) => ({
@@ -213,13 +223,18 @@ export function parseTransferForm(
   });
 
   const source = readAccount(values.sourceId, currencies);
-  if (source === null) return fail("sourceId", "Unknown source account");
+  if (source === null) {
+    return fail("sourceId", translate(messageRef("transferSourceUnknown")));
+  }
   const destination = readAccount(values.destinationId, currencies);
   if (destination === null) {
-    return fail("destinationId", "Unknown destination account");
+    return fail(
+      "destinationId",
+      translate(messageRef("transferDestinationUnknown")),
+    );
   }
 
-  const amount = readUnsignedAmount(values.amount, source.currency);
+  const amount = readUnsignedAmount(values.amount, source.currency, translate);
   if ("message" in amount) return fail("amount", amount.message);
 
   const request: TransferRequest = {
@@ -230,7 +245,7 @@ export function parseTransferForm(
     label: values.label,
   };
 
-  const decision = readDecision(formData, currencies);
+  const decision = readDecision(formData, currencies, translate);
   if ("message" in decision) return fail("surplusAccountId", decision.message);
   return { ok: true, request, decision: decision.value };
 }

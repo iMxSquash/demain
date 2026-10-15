@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseAccountForm } from "../../../src/app/accounts/account-form-data";
+import { parseAccountForm as parse } from "../../../src/app/accounts/account-form-data";
+import { translateKey } from "../translate-key";
+
+const parseAccountForm = (formData: FormData) => parse(formData, translateKey);
 
 function formOf(overrides: Record<string, string> = {}): FormData {
   const fields = {
@@ -86,7 +89,10 @@ describe("parseAccountForm", () => {
   it("reports a malformed currency code on the currency field", () => {
     const parsed = parseAccountForm(formOf({ currency: "EU" }));
 
-    expect(parsed).toMatchObject({ ok: false, error: { field: "currency" } });
+    expect(parsed).toMatchObject({
+      ok: false,
+      error: { field: "currency", message: "accountCurrencyUnknown" },
+    });
   });
 
   it("sends back what the user typed so the form can be refilled", () => {

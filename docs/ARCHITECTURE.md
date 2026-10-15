@@ -44,7 +44,7 @@ The application is split into modules with explicit responsibilities. The projec
 | **planning** | Planned items and their versions, occurrence generation, overrides, business-day rules, rolling-average amounts, provisions, planned vs actual matching, calendar data. | ledger, currency |
 | **scenarios** | Constant-pace simulation, estimated variable spending, scenarios, modifications, the cash flow transformation engine, indicators, comparison, validation into planned items. | planning, currency |
 | **currency** | Minor unit arithmetic, parsing and formatting of amounts, exchange rates, conversion to the reference currency, optional ECB fetcher. | storage |
-| **i18n** | Translation files (French and English at launch), locale-aware formatting of dates, numbers and amounts. | none |
+| **i18n** | Translation files (French and English at launch), language negotiation, locale-aware formatting of dates, numbers and amounts. See ADR-014. | none |
 | **export** | Encrypted database snapshot, JSON export. | storage |
 | **storage** | Drizzle schema, migrations, database access. Only module that talks to SQLite. | none |
 
@@ -250,6 +250,20 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *A single level of overflow.* Does not cover an account that overflows to a second capped account.
 
 **Consequences.** The account screen must validate a graph, not just a field. The routing logic is a pure function shared by manual entry, planned items, simulations and the sheet migration, and it needs thorough tests for cycles and partial fits.
+
+### ADR-014: Language from a cookie, translation files discovered on disk, domain messages as keys
+
+**Context.** The interface must exist in French and English from the first milestone, and a contributor must be able to add a language without touching the code. The domain is pure and must stay free of any language, yet its validation errors are shown to the user.
+
+**Decision.** One JSON file per language in `messages/`, named after its BCP 47 tag, `en.json` being the reference. The language of a request is the cookie set by the header selector, then the `Accept-Language` header, then English; there is no locale prefix in the URLs. The domain raises a message reference (a key of the `feedback` namespace plus values) next to its English log message, and the application translates it on the server. Calendar dates are shown as UTC days, and "today" follows the time zone of the server (`TZ`).
+
+**Alternatives rejected.**
+
+- *A locale prefix in the URL (`/fr`, `/en`).* Useful for search engines, pointless for a private authenticated app, and it complicates every link and redirect.
+- *A static registry of languages in the code.* Safer for bundling, but adding a language would then require a code change.
+- *Translating in the domain.* Ties the pure core to a language and to a request context.
+
+**Consequences.** The `messages/` directory is read at runtime and must ship next to the application, which the Docker packaging has to account for. A test checks that every file has the keys and placeholders of the reference. A new domain error needs its key in the translation files and its reference at the throw site.
 
 ## Tooling
 

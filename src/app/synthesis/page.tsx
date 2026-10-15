@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
 import { formatAmount } from "../../domain/money";
 import { monthOf } from "../../domain/synthesis";
+import { formatMonth, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { getMonthlySynthesis } from "../../ledger/synthesis";
 import { withDatabase } from "../../storage/with-database";
-import { DISPLAY_LOCALE } from "../display-locale";
 
-export const metadata: Metadata = {
-  title: "Monthly synthesis | Demain",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("synthesis");
+  return { title: t("metaTitle") };
+}
 
 // Single reference currency until the multi-currency foundations land (#19).
 const REFERENCE_CURRENCY = "EUR";
@@ -21,7 +23,13 @@ const NUMBER_CELL = "py-2 pr-4 text-right tabular-nums";
 export default async function SynthesisPage() {
   // The page reads the database and the clock: it must run per request.
   await connection();
-  const throughMonth = monthOf(new Date().toISOString());
+  const [t, common, locale, timeZone] = await Promise.all([
+    getTranslations("synthesis"),
+    getTranslations("common"),
+    getLocale(),
+    getTimeZone(),
+  ]);
+  const throughMonth = monthOf(todayIn(timeZone, new Date()));
   const { accounts, months } = withDatabase((db) => ({
     accounts: listAccounts(db, { includeArchived: true }),
     months: getMonthlySynthesis(db, {
@@ -30,7 +38,7 @@ export default async function SynthesisPage() {
     }),
   }));
   const money = (minorUnits: number, currency = REFERENCE_CURRENCY) =>
-    formatAmount(minorUnits, currency, DISPLAY_LOCALE);
+    formatAmount(minorUnits, currency, locale);
   const unconverted = [
     ...new Set(months.flatMap((month) => month.unconvertedCurrencies)),
   ].sort();
@@ -38,53 +46,53 @@ export default async function SynthesisPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 p-8">
       <Link href="/" className="self-start underline">
-        Back to home
+        {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">Monthly synthesis</h1>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       {unconverted.length > 0 ? (
         <p role="status">
-          Accounts in {unconverted.join(", ")} are shown in their own currency
-          and left out of the totals and of the net and savings figures.
+          {t("unconverted", { currencies: unconverted.join(", ") })}
         </p>
       ) : null}
 
       {months.length === 0 ? (
         <p>
-          Nothing to show yet. Add an account on the{" "}
-          <Link href="/accounts" className="underline">
-            accounts page
-          </Link>{" "}
-          first.
+          {t.rich("empty", {
+            link: (chunks) => (
+              <Link href="/accounts" className="underline">
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       ) : (
         // A focusable region: the table is wider than a phone, and keyboard
         // users must be able to scroll it.
         <div
           role="region"
-          aria-label="Monthly synthesis table"
+          aria-label={t("regionLabel")}
           tabIndex={0}
           className="overflow-x-auto"
         >
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
-              Net, savings, cumulative figures and end-of-month balances, month
-              by month, in {REFERENCE_CURRENCY} unless stated.
+              {t("caption", { currency: REFERENCE_CURRENCY })}
             </caption>
             <thead>
               <tr className="border-b border-neutral-500">
-                <th scope="col" className="py-2 pr-4">Month</th>
-                <th scope="col" className={NUMBER_HEADER}>Net</th>
-                <th scope="col" className={NUMBER_HEADER}>Savings</th>
-                <th scope="col" className={NUMBER_HEADER}>Cumulative savings</th>
-                <th scope="col" className={NUMBER_HEADER}>Cumulative account</th>
+                <th scope="col" className="py-2 pr-4">{t("columns.month")}</th>
+                <th scope="col" className={NUMBER_HEADER}>{t("columns.net")}</th>
+                <th scope="col" className={NUMBER_HEADER}>{t("columns.savings")}</th>
+                <th scope="col" className={NUMBER_HEADER}>{t("columns.cumulativeSavings")}</th>
+                <th scope="col" className={NUMBER_HEADER}>{t("columns.cumulativeAccount")}</th>
                 {accounts.map((account) => (
                   <th key={account.id} scope="col" className={NUMBER_HEADER}>
                     {account.name}
-                    {account.archived ? " (archived)" : ""}
+                    {account.archived ? ` ${t("archivedSuffix")}` : ""}
                   </th>
                 ))}
-                <th scope="col" className="py-2 text-right">Total</th>
+                <th scope="col" className="py-2 text-right">{t("columns.total")}</th>
               </tr>
             </thead>
             <tbody>
@@ -95,7 +103,9 @@ export default async function SynthesisPage() {
                 return (
                   <tr key={month.month} className="border-b border-neutral-300">
                     <th scope="row" className="py-2 pr-4 font-medium tabular-nums">
-                      {month.month}
+                      <time dateTime={month.month}>
+                        {formatMonth(month.month, locale)}
+                      </time>
                     </th>
                     <td className={NUMBER_CELL}>{money(month.net)}</td>
                     <td className={NUMBER_CELL}>{money(month.savings)}</td>

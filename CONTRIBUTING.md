@@ -57,6 +57,19 @@ Every bug fix comes with a regression test that fails before the fix.
 - Accessibility target is WCAG 2.2 level AA.
 - Never commit personal financial data, secrets or real bank exports. Test fixtures must be synthetic and live in `tests/fixtures/`.
 
+## Translations
+
+The interface texts live in `messages/<language>.json`, one file per language, named after its BCP 47 tag (`en`, `fr`, `pt-BR`). `messages/en.json` is the reference.
+
+To add a language:
+
+1. Copy `messages/en.json` to `messages/<tag>.json` and translate every value. Keep the `{placeholders}` and `<tags>` of the original.
+2. Run `npm test`: it checks that the file has exactly the keys of the reference, no empty message, the same placeholders, and that every message formats.
+
+No code change is needed: the language shows up in the selector and in the language negotiation. The `messages/` directory must ship next to the application.
+
+Rules for developers: no user-facing string in the code, read it with `useTranslations` (client) or `getTranslations` (server). The domain stays free of any language: it raises a `MessageRef` (a key of the `feedback` namespace plus values) that the application translates. Calendar dates and months go through `src/i18n/dates.ts`, amounts through `formatAmount` with the locale of the request.
+
 ## Reporting bugs and proposing features
 
 Use the issue forms: bug report or feature request. Security vulnerabilities must **not** be reported in a public issue: see [SECURITY.md](SECURITY.md).

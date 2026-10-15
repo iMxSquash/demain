@@ -1,3 +1,5 @@
+import { messageRef, type Translate } from "../../domain/message";
+
 export interface CategoryFormState {
   field?: "name";
   message: string;
@@ -19,14 +21,17 @@ export type ParsedCategoryChoice =
   | { ok: true; categoryId: number }
   | { ok: false; message: string };
 
-export function parseCategoryChoice(formData: FormData): ParsedCategoryChoice {
+export function parseCategoryChoice(
+  formData: FormData,
+  translate: Translate,
+): ParsedCategoryChoice {
   const raw = formData.get("categoryId");
   if (typeof raw !== "string" || raw.trim() === "") {
-    return { ok: false, message: "Choose a category" };
+    return { ok: false, message: translate(messageRef("categoryChoose")) };
   }
   const categoryId = Number(raw);
   if (!Number.isSafeInteger(categoryId)) {
-    return { ok: false, message: "Unknown category" };
+    return { ok: false, message: translate(messageRef("categoryUnknown")) };
   }
   return { ok: true, categoryId };
 }

@@ -1,4 +1,5 @@
 import type { AccountField, AccountInput } from "../../domain/account";
+import { messageRef, type Translate } from "../../domain/message";
 import { MoneyParseError, parseAmount } from "../../domain/money";
 
 export interface AccountFormValues {
@@ -48,6 +49,7 @@ function readAmount(
   text: string,
   currency: string,
   values: AccountFormValues,
+  translate: Translate,
 ): AmountResult {
   try {
     return { value: parseAmount(text, currency) };
@@ -57,20 +59,23 @@ function readAmount(
       return {
         error: {
           field: "currency",
-          message: `Unknown currency "${currency}"`,
+          message: translate(messageRef("accountCurrencyUnknown", { currency })),
           values,
         },
       };
     }
     if (error instanceof MoneyParseError) {
-      return { error: { field, message: error.message, values } };
+      return { error: { field, message: translate(error.ref), values } };
     }
     throw error;
   }
 }
 
 /** Converts submitted text to a typed input. Amounts never go through a float. */
-export function parseAccountForm(formData: FormData): ParsedAccountForm {
+export function parseAccountForm(
+  formData: FormData,
+  translate: Translate,
+): ParsedAccountForm {
   const values = readSubmittedValues(formData);
   const currency = values.currency.trim().toUpperCase();
 
@@ -79,6 +84,7 @@ export function parseAccountForm(formData: FormData): ParsedAccountForm {
     values.openingBalance,
     currency,
     values,
+    translate,
   );
   if ("error" in opening) return { ok: false, error: opening.error };
 
@@ -89,6 +95,7 @@ export function parseAccountForm(formData: FormData): ParsedAccountForm {
       values.depositCeiling,
       currency,
       values,
+      translate,
     );
     if ("error" in ceiling) return { ok: false, error: ceiling.error };
     depositCeiling = ceiling.value;
@@ -102,7 +109,7 @@ export function parseAccountForm(formData: FormData): ParsedAccountForm {
         ok: false,
         error: {
           field: "overflowAccountId",
-          message: "Unknown overflow account",
+          message: translate(messageRef("overflowAccountUnknown")),
           values,
         },
       };

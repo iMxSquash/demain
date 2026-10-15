@@ -12,6 +12,7 @@ import {
   type TransactionInput,
   type TransferLeg,
 } from "../domain/transaction";
+import { messageRef } from "../domain/message";
 import type { OverflowAccount } from "../domain/overflow";
 import type { AppDatabase } from "../storage/database";
 import { transactions } from "../storage/schema";
@@ -52,6 +53,7 @@ function getOpenAccount(db: AppDatabase, id: number): Account {
     throw new TransactionValidationError(
       "accountId",
       "No transaction can be entered on an archived account",
+      messageRef("transactionOnArchivedAccount"),
     );
   }
   return account;
@@ -230,6 +232,7 @@ export function recordManualTransfer(
     throw new TransactionValidationError(
       "amount",
       "Nothing fits under the ceilings: no transfer was recorded",
+      messageRef("transferNothingFits"),
     );
   }
 
@@ -273,6 +276,7 @@ export function updateTransaction(
     throw new TransactionValidationError(
       "kind",
       "A transfer cannot be edited: delete it and enter it again",
+      messageRef("transferNotEditable"),
     );
   }
   // Both ends must be open: moving a transaction out of an archived account

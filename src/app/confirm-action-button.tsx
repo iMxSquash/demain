@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useRef } from "react";
 
 interface ConfirmActionButtonProps {
@@ -26,6 +27,7 @@ export function ConfirmActionButton({
   message,
   confirmLabel,
 }: ConfirmActionButtonProps) {
+  const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -57,7 +59,7 @@ export function ConfirmActionButton({
               onClick={() => dialogRef.current?.close()}
               className="min-h-11 rounded border border-neutral-500 px-4"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"

@@ -2,6 +2,8 @@
  * Account rules. Pure functions: no database, no clock. See DOMAIN, entity Account.
  */
 
+import { messageRef, type MessageRef } from "./message";
+
 export const ACCOUNT_KINDS = ["checking", "savings", "other"] as const;
 
 export type AccountKind = (typeof ACCOUNT_KINDS)[number];
@@ -35,7 +37,9 @@ export type AccountField =
 export class AccountValidationError extends Error {
   constructor(
     readonly field: AccountField,
+    /** English text for logs and tests: users read the translation of `ref`. */
     message: string,
+    readonly ref: MessageRef,
   ) {
     super(message);
     this.name = "AccountValidationError";
@@ -66,12 +70,17 @@ function isAccountKind(value: string): value is AccountKind {
 export function validateAccountInput(input: AccountInput): ValidAccountInput {
   const name = input.name.trim();
   if (name.length === 0) {
-    throw new AccountValidationError("name", "The account name is required");
+    throw new AccountValidationError(
+      "name",
+      "The account name is required",
+      messageRef("accountNameRequired"),
+    );
   }
   if (!isAccountKind(input.kind)) {
     throw new AccountValidationError(
       "kind",
       `Unknown account kind "${input.kind}"`,
+      messageRef("accountKindUnknown", { kind: input.kind }),
     );
   }
 
@@ -79,6 +88,7 @@ export function validateAccountInput(input: AccountInput): ValidAccountInput {
     throw new AccountValidationError(
       "currency",
       `Unknown currency "${input.currency}", expected an ISO 4217 code such as EUR`,
+      messageRef("accountCurrencyUnknown", { currency: input.currency }),
     );
   }
 
@@ -86,6 +96,7 @@ export function validateAccountInput(input: AccountInput): ValidAccountInput {
     throw new AccountValidationError(
       "openingBalance",
       "The opening balance must be an integer in minor units",
+      messageRef("accountOpeningBalanceInvalid"),
     );
   }
 
@@ -98,6 +109,7 @@ export function validateAccountInput(input: AccountInput): ValidAccountInput {
     throw new AccountValidationError(
       "depositCeiling",
       "The deposit ceiling must be a non-negative integer in minor units",
+      messageRef("accountDepositCeilingInvalid"),
     );
   }
 
@@ -105,6 +117,7 @@ export function validateAccountInput(input: AccountInput): ValidAccountInput {
     throw new AccountValidationError(
       "openingDate",
       `Invalid opening date "${input.openingDate}", expected YYYY-MM-DD`,
+      messageRef("accountOpeningDateInvalid", { date: input.openingDate }),
     );
   }
 
@@ -124,6 +137,7 @@ export function assertCurrencyChangeAllowed(
     throw new AccountValidationError(
       "currency",
       "The currency cannot change once the account has transactions",
+      messageRef("accountCurrencyLocked"),
     );
   }
 }

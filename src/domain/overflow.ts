@@ -4,6 +4,7 @@
  */
 
 import { AccountValidationError } from "./account";
+import { messageRef } from "./message";
 
 export interface OverflowAccount {
   id: number;
@@ -104,18 +105,21 @@ export function assertOverflowTargetAllowed(
     throw new AccountValidationError(
       "overflowAccountId",
       "The overflow account does not exist",
+      messageRef("overflowAccountMissing"),
     );
   }
   if (target.archived) {
     throw new AccountValidationError(
       "overflowAccountId",
       "The overflow account is archived",
+      messageRef("overflowAccountArchived"),
     );
   }
   if (target.currency !== candidate.currency) {
     throw new AccountValidationError(
       "overflowAccountId",
       "The overflow account must have the same currency",
+      messageRef("overflowAccountCurrencyMismatch"),
     );
   }
 
@@ -128,6 +132,7 @@ export function assertOverflowTargetAllowed(
       throw new AccountValidationError(
         "overflowAccountId",
         "The overflow chain would loop back to this account",
+        messageRef("overflowChainLoop"),
       );
     }
     visited.add(current.id);

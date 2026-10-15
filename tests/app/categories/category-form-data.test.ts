@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCategoryChoice } from "../../../src/app/categories/category-form-data";
+import { parseCategoryChoice as parse } from "../../../src/app/categories/category-form-data";
+import { translateKey } from "../translate-key";
+
+const parseCategoryChoice = (formData: FormData) => parse(formData, translateKey);
 
 function formOf(categoryId?: string): FormData {
   const formData = new FormData();

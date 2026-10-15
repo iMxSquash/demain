@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
+import type { AccountKind } from "../../domain/account";
 import { formatAmount } from "../../domain/money";
 import {
   listAccounts,
@@ -10,13 +12,13 @@ import {
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
 import { ConfirmActionButton } from "../confirm-action-button";
-import { DISPLAY_LOCALE } from "../display-locale";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
 
-export const metadata: Metadata = {
-  title: "Accounts | Demain",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("accounts");
+  return { title: t("metaTitle") };
+}
 
 const NEW_ACCOUNT_DEFAULTS = {
   name: "",
@@ -31,6 +33,7 @@ const NEW_ACCOUNT_DEFAULTS = {
 export default async function AccountsPage() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
+  const t = await getTranslations("accounts");
   const { all, balances } = withDatabase((db) => ({
     all: listAccounts(db, { includeArchived: true }),
     balances: new Map(
@@ -42,14 +45,14 @@ export default async function AccountsPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-10 p-8">
-      <h1 className="text-2xl font-semibold">Accounts</h1>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       <section aria-labelledby="active-heading" className="flex flex-col gap-3">
         <h2 id="active-heading" className="text-xl font-semibold">
-          Active accounts
+          {t("activeHeading")}
         </h2>
         {active.length === 0 ? (
-          <p>No account yet. Add your first account below.</p>
+          <p>{t("empty")}</p>
         ) : (
           <AccountTable accounts={active} allAccounts={all} balances={balances} />
         )}
@@ -57,20 +60,20 @@ export default async function AccountsPage() {
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
         <h2 id="new-heading" className="text-xl font-semibold">
-          Add an account
+          {t("addHeading")}
         </h2>
         <AccountForm
           action={createAccountAction}
           initialValues={NEW_ACCOUNT_DEFAULTS}
           overflowOptions={active}
-          submitLabel="Add account"
+          submitLabel={t("addSubmit")}
         />
       </section>
 
       {archived.length > 0 ? (
         <section aria-labelledby="archived-heading" className="flex flex-col gap-3">
           <h2 id="archived-heading" className="text-xl font-semibold">
-            Archived accounts
+            {t("archivedHeading")}
           </h2>
           <AccountTable accounts={archived} allAccounts={all} balances={balances} />
         </section>
@@ -87,19 +90,28 @@ interface AccountTableProps {
   balances: ReadonlyMap<number, number>;
 }
 
-function AccountTable({ accounts, allAccounts, balances }: AccountTableProps) {
+async function AccountTable({
+  accounts,
+  allAccounts,
+  balances,
+}: AccountTableProps) {
+  const [t, common] = await Promise.all([
+    getTranslations("accounts"),
+    getTranslations("common"),
+  ]);
+
   return (
     <table className="w-full border-collapse text-left">
       <thead>
         <tr className="border-b border-neutral-500">
-          <th scope="col" className="py-2 pr-4">Name</th>
-          <th scope="col" className="py-2 pr-4">Kind</th>
-          <th scope="col" className="py-2 pr-4">Currency</th>
-          <th scope="col" className="py-2 pr-4 text-right">Opening balance</th>
-          <th scope="col" className="py-2 pr-4 text-right">Balance</th>
-          <th scope="col" className="py-2 pr-4 text-right">Deposit ceiling</th>
-          <th scope="col" className="py-2 pr-4">Overflow account</th>
-          <th scope="col" className="py-2">Actions</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.name")}</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.kind")}</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.currency")}</th>
+          <th scope="col" className="py-2 pr-4 text-right">{t("columns.openingBalance")}</th>
+          <th scope="col" className="py-2 pr-4 text-right">{t("columns.balance")}</th>
+          <th scope="col" className="py-2 pr-4 text-right">{t("columns.depositCeiling")}</th>
+          <th scope="col" className="py-2 pr-4">{t("columns.overflowAccount")}</th>
+          <th scope="col" className="py-2">{common("actions")}</th>
         </tr>
       </thead>
       <tbody>
@@ -116,7 +128,7 @@ function AccountTable({ accounts, allAccounts, balances }: AccountTableProps) {
   );
 }
 
-function AccountRow({
+async function AccountRow({
   account,
   allAccounts,
   balance,
@@ -125,9 +137,14 @@ function AccountRow({
   allAccounts: Account[];
   balance: number;
 }) {
+  const [t, common, locale] = await Promise.all([
+    getTranslations("accounts"),
+    getTranslations("common"),
+    getLocale(),
+  ]);
   const overflowName =
     allAccounts.find((other) => other.id === account.overflowAccountId)?.name ??
-    "None";
+    common("none");
   // An archived referrer is ignored, as in archiveAccount.
   const referrers = allAccounts.filter(
     (other) => !other.archived && other.overflowAccountId === account.id,
@@ -136,18 +153,18 @@ function AccountRow({
   return (
     <tr className="border-b border-neutral-300">
       <th scope="row" className="py-2 pr-4 font-medium">{account.name}</th>
-      <td className="py-2 pr-4">{account.kind}</td>
+      <td className="py-2 pr-4">{t(`kinds.${account.kind as AccountKind}`)}</td>
       <td className="py-2 pr-4">{account.currency}</td>
       <td className="py-2 pr-4 text-right tabular-nums">
-        {formatAmount(account.openingBalance, account.currency, DISPLAY_LOCALE)}
+        {formatAmount(account.openingBalance, account.currency, locale)}
       </td>
       <td className="py-2 pr-4 text-right tabular-nums">
-        {formatAmount(balance, account.currency, DISPLAY_LOCALE)}
+        {formatAmount(balance, account.currency, locale)}
       </td>
       <td className="py-2 pr-4 text-right tabular-nums">
         {account.depositCeiling === null
-          ? "None"
-          : formatAmount(account.depositCeiling, account.currency, DISPLAY_LOCALE)}
+          ? common("none")
+          : formatAmount(account.depositCeiling, account.currency, locale)}
       </td>
       <td className="py-2 pr-4">{overflowName}</td>
       <td className="py-2">
@@ -157,26 +174,26 @@ function AccountRow({
               href={`/accounts/${account.id}/edit`}
               className="inline-flex min-h-11 items-center px-2 underline"
             >
-              Edit<span className="sr-only"> {account.name}</span>
+              {t("edit")}<span className="sr-only"> {account.name}</span>
             </Link>
             {referrers.length > 0 ? (
               <p className="inline-flex min-h-11 items-center px-2">
-                Overflow account of{" "}
-                {referrers.map((referrer) => referrer.name).join(", ")}: change it
-                to archive
+                {t("overflowOf", {
+                  names: referrers.map((referrer) => referrer.name).join(", "),
+                })}
               </p>
             ) : balance !== 0 ? (
               <p className="inline-flex min-h-11 items-center px-2">
-                Balance is not zero: empty this account first to archive it
+                {t("balanceNotZero")}
               </p>
             ) : (
               <ConfirmActionButton
                 action={archiveAccountAction.bind(null, account.id)}
-                label="Archive"
+                label={common("archive")}
                 subject={account.name}
-                title={`Archive ${account.name}?`}
-                message="The account is hidden from the active list and kept for history. It cannot be reopened from the app."
-                confirmLabel="Archive account"
+                title={t("archiveTitle", { name: account.name })}
+                message={t("archiveMessage")}
+                confirmLabel={t("archiveConfirm")}
               />
             )}
           </div>

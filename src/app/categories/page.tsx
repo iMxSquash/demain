@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
@@ -11,13 +12,18 @@ import { archiveCategoryAction, createCategoryAction } from "./actions";
 import { CategoryForm } from "./category-form";
 import { ToCategorizeQueue } from "./to-categorize-queue";
 
-export const metadata: Metadata = {
-  title: "Categories | Demain",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("categories");
+  return { title: t("metaTitle") };
+}
 
 export default async function CategoriesPage() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
+  const [t, common] = await Promise.all([
+    getTranslations("categories"),
+    getTranslations("common"),
+  ]);
   const { accounts, categories, queue } = withDatabase((db) => ({
     accounts: listAccounts(db, { includeArchived: true }),
     categories: listCategories(db),
@@ -27,13 +33,13 @@ export default async function CategoriesPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 p-8">
       <Link href="/" className="self-start underline">
-        Back to home
+        {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">Categories</h1>
+      <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       <section aria-labelledby="queue-heading" className="flex flex-col gap-3">
         <h2 id="queue-heading" className="text-xl font-semibold">
-          To categorize
+          {t("queueHeading")}
         </h2>
         <ToCategorizeQueue
           queue={queue}
@@ -44,10 +50,10 @@ export default async function CategoriesPage() {
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
         <h2 id="list-heading" className="text-xl font-semibold">
-          Active categories
+          {t("listHeading")}
         </h2>
         {categories.length === 0 ? (
-          <p>No category yet. Add your first category below.</p>
+          <p>{t("empty")}</p>
         ) : (
           <ul className="flex flex-col">
             {categories.map((category) => (
@@ -61,15 +67,15 @@ export default async function CategoriesPage() {
                     href={`/categories/${category.id}/edit`}
                     className="inline-flex min-h-11 items-center px-2 underline"
                   >
-                    Rename<span className="sr-only"> {category.name}</span>
+                    {t("rename")}<span className="sr-only"> {category.name}</span>
                   </Link>
                   <ConfirmActionButton
                     action={archiveCategoryAction.bind(null, category.id)}
-                    label="Archive"
+                    label={common("archive")}
                     subject={category.name}
-                    title={`Archive ${category.name}?`}
-                    message="The category is hidden from the pickers and kept on the transactions that already have it. It cannot be reactivated from the app."
-                    confirmLabel="Archive category"
+                    title={t("archiveTitle", { name: category.name })}
+                    message={t("archiveMessage")}
+                    confirmLabel={t("archiveConfirm")}
                   />
                 </div>
               </li>
@@ -80,12 +86,12 @@ export default async function CategoriesPage() {
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
         <h2 id="new-heading" className="text-xl font-semibold">
-          Add a category
+          {t("addHeading")}
         </h2>
         <CategoryForm
           action={createCategoryAction}
           initialName=""
-          submitLabel="Add category"
+          submitLabel={t("addSubmit")}
         />
       </section>
     </main>
