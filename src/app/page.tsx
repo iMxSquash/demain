@@ -21,6 +21,11 @@ export default function HomePage() {
               Categories
             </Link>
           </li>
+          <li>
+            <Link href="/synthesis" className="underline">
+              Monthly synthesis
+            </Link>
+          </li>
         </ul>
       </nav>
     </main>
