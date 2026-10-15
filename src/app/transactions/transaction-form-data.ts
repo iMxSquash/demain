@@ -16,7 +16,8 @@ export type TransactionFormField =
   | "amount"
   | "label"
   | "description"
-  | "paymentMode";
+  | "paymentMode"
+  | "categoryId";
 
 export interface TransactionFormValues {
   accountId: string;
@@ -27,6 +28,8 @@ export interface TransactionFormValues {
   label: string;
   description: string;
   paymentMode: string;
+  /** Category id as text, blank means none: the transaction is to categorize. */
+  categoryId: string;
 }
 
 export interface TransactionFormState {
@@ -95,6 +98,7 @@ export function readTransactionValues(formData: FormData): TransactionFormValues
     label: readText(formData, "label"),
     description: readText(formData, "description"),
     paymentMode: readText(formData, "paymentMode"),
+    categoryId: readText(formData, "categoryId"),
   };
 }
 
@@ -153,6 +157,12 @@ export function parseTransactionForm(
   const amount = readUnsignedAmount(values.amount, account.currency);
   if ("message" in amount) return fail("amount", amount.message);
 
+  const rawCategory = values.categoryId.trim();
+  const categoryId = rawCategory === "" ? null : Number(rawCategory);
+  if (categoryId !== null && !Number.isSafeInteger(categoryId)) {
+    return fail("categoryId", "Unknown category");
+  }
+
   const isExpense = values.kind === "expense";
   return {
     ok: true,
@@ -165,6 +175,7 @@ export function parseTransactionForm(
       label: values.label,
       description: values.description,
       paymentMode: values.paymentMode === "" ? null : values.paymentMode,
+      categoryId,
     },
   };
 }

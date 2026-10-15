@@ -30,6 +30,13 @@ export const accounts = sqliteTable("accounts", {
   ),
 });
 
+export const categories = sqliteTable("categories", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  // Hidden from pickers but kept for history: never deleted.
+  archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+});
+
 export const transactions = sqliteTable("transactions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   // Restrict: an account with history is archived, never deleted.
@@ -47,6 +54,10 @@ export const transactions = sqliteTable("transactions", {
   description: text("description"),
   paymentMode: text("payment_mode", {
     enum: ["card", "transfer", "direct_debit"],
+  }),
+  // Null: the transaction is in the to-categorize queue. A transfer has none.
+  categoryId: integer("category_id").references(() => categories.id, {
+    onDelete: "restrict",
   }),
   // The other leg of a transfer. Both legs are deleted together.
   transferCounterpartId: integer("transfer_counterpart_id").references(

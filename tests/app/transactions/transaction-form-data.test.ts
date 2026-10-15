@@ -92,6 +92,29 @@ describe("parseTransactionForm", () => {
     expect(parsed).toMatchObject({ ok: false, error: { field: "accountId" } });
   });
 
+  it("reads the optional category and treats blank as none", () => {
+    const chosen = parseTransactionForm(
+      transactionForm({ categoryId: "4" }),
+      CURRENCIES,
+    );
+    const blank = parseTransactionForm(
+      transactionForm({ categoryId: "" }),
+      CURRENCIES,
+    );
+
+    expect(chosen).toMatchObject({ ok: true, input: { categoryId: 4 } });
+    expect(blank).toMatchObject({ ok: true, input: { categoryId: null } });
+  });
+
+  it("reports an unreadable category on the category field", () => {
+    const parsed = parseTransactionForm(
+      transactionForm({ categoryId: "groceries" }),
+      CURRENCIES,
+    );
+
+    expect(parsed).toMatchObject({ ok: false, error: { field: "categoryId" } });
+  });
+
   it("sends back what the user typed with the error", () => {
     const parsed = parseTransactionForm(
       transactionForm({ amount: "lots", label: "Keep me" }),

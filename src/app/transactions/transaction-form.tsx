@@ -17,6 +17,11 @@ export interface AccountOption {
   currency: string;
 }
 
+export interface CategoryOption {
+  id: number;
+  name: string;
+}
+
 interface TransactionFormProps {
   action: (
     previous: TransactionFormState | null,
@@ -25,6 +30,8 @@ interface TransactionFormProps {
   initialValues: TransactionFormValues;
   /** Active accounts only: no transaction can be entered on an archived one. */
   accounts: AccountOption[];
+  /** Active categories, plus the one the transaction already has if archived. */
+  categories: CategoryOption[];
   submitLabel: string;
 }
 
@@ -32,6 +39,7 @@ export function TransactionForm({
   action,
   initialValues,
   accounts,
+  categories,
   submitLabel,
 }: TransactionFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
@@ -115,6 +123,21 @@ export function TransactionForm({
         error={errorOf("description")}
       >
         <input {...controlProps("description")} type="text" autoComplete="off" />
+      </FormField>
+
+      <FormField
+        id="categoryId"
+        label="Category (optional, none puts it in the to-categorize queue)"
+        error={errorOf("categoryId")}
+      >
+        <select key={values.categoryId} {...controlProps("categoryId")}>
+          <option value="">None</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
       </FormField>
 
       <FormField

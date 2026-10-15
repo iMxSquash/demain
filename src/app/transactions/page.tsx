@@ -4,7 +4,8 @@ import { connection } from "next/server";
 
 import { formatAmount } from "../../domain/money";
 import { listAccounts } from "../../ledger/accounts";
-import { listTransactions } from "../../ledger/transactions";
+import { listCategories } from "../../ledger/categories";
+import { listTransactions, type Transaction } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { DISPLAY_LOCALE } from "../display-locale";
 import {
@@ -26,12 +27,22 @@ const ISO_DATE_LENGTH = "YYYY-MM-DD".length;
 export default async function TransactionsPage() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
-  const { accounts, rows } = withDatabase((db) => ({
+  const { accounts, categories, rows } = withDatabase((db) => ({
     accounts: listAccounts(db, { includeArchived: true }),
+    categories: listCategories(db, { includeArchived: true }),
     rows: listTransactions(db),
   }));
   const active = accounts.filter((account) => !account.archived);
   const accountById = new Map(accounts.map((account) => [account.id, account]));
+  const categoryNameById = new Map(
+    categories.map((category) => [category.id, category.name]),
+  );
+  // A transfer never has a category, any other one waits in the queue without it.
+  const categoryLabel = (row: Transaction) => {
+    if (row.kind === "transfer") return "";
+    if (row.categoryId === null) return "To categorize";
+    return categoryNameById.get(row.categoryId);
+  };
   const today = new Date().toISOString().slice(0, ISO_DATE_LENGTH);
 
   return (
@@ -55,6 +66,7 @@ export default async function TransactionsPage() {
                 <th scope="col" className="py-2 pr-4">Account</th>
                 <th scope="col" className="py-2 pr-4">Label</th>
                 <th scope="col" className="py-2 pr-4">Type</th>
+                <th scope="col" className="py-2 pr-4">Category</th>
                 <th scope="col" className="py-2 pr-4">Payment mode</th>
                 <th scope="col" className="py-2 pr-4 text-right">Amount</th>
                 <th scope="col" className="py-2">Actions</th>
@@ -76,6 +88,7 @@ export default async function TransactionsPage() {
                       {row.label}
                     </th>
                     <td className="py-2 pr-4">{KIND_LABELS[row.kind]}</td>
+                    <td className="py-2 pr-4">{categoryLabel(row)}</td>
                     <td className="py-2 pr-4">
                       {row.paymentMode === null
                         ? ""
@@ -135,8 +148,10 @@ export default async function TransactionsPage() {
                 label: "",
                 description: "",
                 paymentMode: "",
+                categoryId: "",
               }}
               accounts={active}
+              categories={categories.filter((category) => !category.archived)}
               submitLabel="Add transaction"
             />
           </section>

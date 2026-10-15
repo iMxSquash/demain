@@ -16,6 +16,11 @@ export default function HomePage() {
               Transactions
             </Link>
           </li>
+          <li>
+            <Link href="/categories" className="underline">
+              Categories
+            </Link>
+          </li>
         </ul>
       </nav>
     </main>

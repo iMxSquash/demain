@@ -76,7 +76,16 @@ describe("validateTransactionInput", () => {
       ...input({ label: "Groceries" }),
       description: null,
       paymentMode: null,
+      categoryId: null,
     });
+  });
+
+  it("keeps the category of a transaction and turns an absent one into none", () => {
+    const categorized = validateTransactionInput(input({ categoryId: 7 }));
+    const plain = validateTransactionInput(input());
+
+    expect(categorized.categoryId).toBe(7);
+    expect(plain.categoryId).toBeNull();
   });
 
   it("keeps a known payment mode", () => {
