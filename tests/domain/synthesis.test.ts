@@ -125,12 +125,14 @@ describe("computeMonthlySynthesis", () => {
     expect(
       result.map((month) => [
         month.month,
+        month.net,
+        month.savings,
         month.cumulativeSavings,
         month.cumulativeAccount,
       ]),
     ).toEqual([
-      ["2026-01", 57_316, 298],
-      ["2026-02", 122_316, 15_905],
+      ["2026-01", 57_614, 57_316, 57_316, 298],
+      ["2026-02", 80_607, 65_000, 122_316, 15_905],
     ]);
   });
 
@@ -227,22 +229,26 @@ describe("computeMonthlySynthesis", () => {
     });
   });
 
-  it("returns nothing when there is no account and no transaction, or when the last month is before the start", () => {
-    const empty = computeMonthlySynthesis({
+  it("returns nothing when there is no account and no transaction", () => {
+    const result = computeMonthlySynthesis({
       accounts: [],
       transactions: [],
       referenceCurrency: "EUR",
       throughMonth: "2026-06",
     });
-    const tooEarly = computeMonthlySynthesis({
+
+    expect(result).toEqual([]);
+  });
+
+  it("returns nothing when the last month is before the start of the series", () => {
+    const result = computeMonthlySynthesis({
       accounts: [checking],
       transactions: [],
       referenceCurrency: "EUR",
       throughMonth: "2025-12",
     });
 
-    expect(empty).toEqual([]);
-    expect(tooEarly).toEqual([]);
+    expect(result).toEqual([]);
   });
 
   it("keeps the months without movement and crosses a year boundary", () => {
