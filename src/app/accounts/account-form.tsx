@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, type ReactNode } from "react";
+import { useActionState } from "react";
 
 import { ACCOUNT_KINDS, type AccountField } from "../../domain/account";
+import { CONTROL_CLASS, FormField } from "../form-field";
 import type {
   AccountFormState,
   AccountFormValues,
@@ -31,9 +32,6 @@ const KIND_LABELS: Record<(typeof ACCOUNT_KINDS)[number], string> = {
   other: "Other",
 };
 
-const CONTROL_CLASS =
-  "min-h-11 w-full rounded border border-neutral-500 bg-white px-3 text-neutral-900 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
-
 export function AccountForm({
   action,
   initialValues,
@@ -58,7 +56,7 @@ export function AccountForm({
     };
   };
   const fieldProps = (field: AccountField, label: string) => ({
-    field,
+    id: field,
     label,
     error: errorOf(field),
   });
@@ -71,11 +69,11 @@ export function AccountForm({
         </p>
       ) : null}
 
-      <Field {...fieldProps("name", "Name")}>
+      <FormField {...fieldProps("name", "Name")}>
         <input {...controlProps("name")} type="text" required autoComplete="off" />
-      </Field>
+      </FormField>
 
-      <Field {...fieldProps("kind", "Kind")}>
+      <FormField {...fieldProps("kind", "Kind")}>
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
         <select key={values.kind} {...controlProps("kind")}>
@@ -85,9 +83,9 @@ export function AccountForm({
             </option>
           ))}
         </select>
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         {...fieldProps("currency", "Currency (ISO 4217 code, for example EUR)")}
       >
         <input
@@ -97,13 +95,13 @@ export function AccountForm({
           autoComplete="off"
           maxLength={3}
         />
-      </Field>
+      </FormField>
 
-      <Field {...fieldProps("openingDate", "Opening date")}>
+      <FormField {...fieldProps("openingDate", "Opening date")}>
         <input {...controlProps("openingDate")} type="date" required />
-      </Field>
+      </FormField>
 
-      <Field {...fieldProps("openingBalance", "Opening balance")}>
+      <FormField {...fieldProps("openingBalance", "Opening balance")}>
         <input
           {...controlProps("openingBalance")}
           type="text"
@@ -111,9 +109,9 @@ export function AccountForm({
           required
           autoComplete="off"
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         {...fieldProps(
           "depositCeiling",
           "Deposit ceiling (optional, leave empty for none)",
@@ -125,9 +123,9 @@ export function AccountForm({
           inputMode="decimal"
           autoComplete="off"
         />
-      </Field>
+      </FormField>
 
-      <Field {...fieldProps("overflowAccountId", "Overflow account (optional)")}>
+      <FormField {...fieldProps("overflowAccountId", "Overflow account (optional)")}>
         {/* Same remount trick as the kind select above. */}
         <select
           key={values.overflowAccountId}
@@ -140,7 +138,7 @@ export function AccountForm({
             </option>
           ))}
         </select>
-      </Field>
+      </FormField>
 
       <button
         type="submit"
@@ -150,26 +148,5 @@ export function AccountForm({
         {submitLabel}
       </button>
     </form>
-  );
-}
-
-interface FieldProps {
-  field: AccountField;
-  label: string;
-  error: string | undefined;
-  children: ReactNode;
-}
-
-function Field({ field, label, error, children }: FieldProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={field}>{label}</label>
-      {children}
-      {error ? (
-        <p id={`${field}-error`} className="font-medium text-red-800">
-          Error: {error}
-        </p>
-      ) : null}
-    </div>
   );
 }
