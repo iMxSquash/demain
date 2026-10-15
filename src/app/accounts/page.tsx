@@ -9,6 +9,7 @@ import {
   type Account,
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
+import { ConfirmActionButton } from "../confirm-action-button";
 import { DISPLAY_LOCALE } from "../display-locale";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
@@ -169,11 +170,14 @@ function AccountRow({
                 Balance is not zero: empty this account first to archive it
               </p>
             ) : (
-              <form action={archiveAccountAction.bind(null, account.id)}>
-                <button type="submit" className="min-h-11 px-2 underline">
-                  Archive<span className="sr-only"> {account.name}</span>
-                </button>
-              </form>
+              <ConfirmActionButton
+                action={archiveAccountAction.bind(null, account.id)}
+                label="Archive"
+                subject={account.name}
+                title={`Archive ${account.name}?`}
+                message="The account is hidden from the active list and kept for history. It cannot be reopened from the app."
+                confirmLabel="Archive account"
+              />
             )}
           </div>
         )}

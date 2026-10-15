@@ -7,6 +7,7 @@ import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
+import { ConfirmActionButton } from "../confirm-action-button";
 import { DISPLAY_LOCALE } from "../display-locale";
 import {
   createTransactionAction,
@@ -110,12 +111,18 @@ export default async function TransactionsPage() {
                               Edit<span className="sr-only"> {row.label}</span>
                             </Link>
                           )}
-                          <form action={deleteTransactionAction.bind(null, row.id)}>
-                            <button type="submit" className="min-h-11 px-2 underline">
-                              {row.kind === "transfer" ? "Delete transfer" : "Delete"}
-                              <span className="sr-only"> {row.label}</span>
-                            </button>
-                          </form>
+                          <ConfirmActionButton
+                            action={deleteTransactionAction.bind(null, row.id)}
+                            label={row.kind === "transfer" ? "Delete transfer" : "Delete"}
+                            subject={row.label}
+                            title={`Delete ${row.label}?`}
+                            message={
+                              row.kind === "transfer"
+                                ? "Both legs of the transfer are deleted and the balances of both accounts change back."
+                                : "The transaction is deleted and the balance of its account changes back."
+                            }
+                            confirmLabel="Delete"
+                          />
                         </div>
                       )}
                     </td>

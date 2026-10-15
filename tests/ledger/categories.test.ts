@@ -73,6 +73,15 @@ describe("categories", () => {
     expect(again).toEqual({ ...category, name: "Food" });
   });
 
+  it("makes the database itself refuse two names that differ only by case", () => {
+    db.insert(categories).values({ name: "Rent" }).run();
+
+    expect(() =>
+      db.insert(categories).values({ name: "RENT" }).run(),
+    ).toThrow();
+    expect(listCategories(db, { includeArchived: true })).toHaveLength(1);
+  });
+
   it("refuses to rename a category to the name of another one", () => {
     createCategory(db, { name: "Groceries" });
     const rent = createCategory(db, { name: "Rent" });

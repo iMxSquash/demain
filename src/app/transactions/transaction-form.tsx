@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { ENTERED_TRANSACTION_KINDS, PAYMENT_MODES } from "../../domain/transaction";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { useFocusFirstError } from "../use-focus-first-error";
 import { KIND_LABELS, PAYMENT_MODE_LABELS } from "./labels";
 import type {
   TransactionFormField,
@@ -43,6 +44,7 @@ export function TransactionForm({
   submitLabel,
 }: TransactionFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const formRef = useFocusFirstError(state);
   // After a submit the typed values come back with the result.
   const values = state?.values ?? initialValues;
 
@@ -61,7 +63,7 @@ export function TransactionForm({
   };
 
   return (
-    <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
+    <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state?.status === "error" && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
           Error: {state.message}

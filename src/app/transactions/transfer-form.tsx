@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { useFocusFirstError } from "../use-focus-first-error";
 import type { AccountOption } from "./transaction-form";
 import { TRANSFER_DECISION } from "./transfer-decision";
 import type {
@@ -31,6 +32,7 @@ const BUTTON_CLASS =
 
 export function TransferForm({ action, initialValues, accounts }: TransferFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
+  const formRef = useFocusFirstError(state);
   const values = state?.values ?? initialValues;
   const choice = state?.surplusChoice;
 
@@ -54,7 +56,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
   ));
 
   return (
-    <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
+    <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {state?.status === "error" && !state.field ? (
         <p role="alert" className="font-medium text-red-800">
           Error: {state.message}
