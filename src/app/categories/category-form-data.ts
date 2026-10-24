@@ -12,9 +12,34 @@ export function readCategoryName(formData: FormData): string {
   return typeof value === "string" ? value : "";
 }
 
+/** What the user typed in one row of the queue, with the rule suggestion. */
+export interface CategorizeValues {
+  categoryId: string;
+  createRule: boolean;
+  ruleOperator: string;
+  ruleValue: string;
+}
+
 /** What the user said about one row of the to-categorize queue. */
 export interface CategorizeState {
   message: string;
+  /** The control the message is about, so that it is linked to that one. */
+  field: "category" | "rule";
+  /** Sent back for a refused rule: React resets the form after an action. */
+  values?: CategorizeValues;
+}
+
+export function readCategorizeValues(formData: FormData): CategorizeValues {
+  const text = (name: string) => {
+    const value = formData.get(name);
+    return typeof value === "string" ? value : "";
+  };
+  return {
+    categoryId: text("categoryId"),
+    createRule: formData.get("createRule") !== null,
+    ruleOperator: text("ruleOperator"),
+    ruleValue: text("ruleValue"),
+  };
 }
 
 export type ParsedCategoryChoice =

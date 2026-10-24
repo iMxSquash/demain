@@ -20,7 +20,8 @@
     "transactions": "Transactions",
     "categories": "Categories",
     "synthesis": "Monthly synthesis",
-    "imports": "Import"
+    "imports": "Import",
+    "rules": "Categorization rules"
   },
   "accounts": {
     "metaTitle": "Accounts | Demain",
@@ -156,7 +157,41 @@
       "label": "Label",
       "amount": "Amount",
       "category": "Category"
-    }
+    },
+    "ruleSummary": "Also create a rule",
+    "ruleCreate": "Create a rule for the next imports"
+  },
+  "rules": {
+    "metaTitle": "Categorization rules | Demain",
+    "title": "Categorization rules",
+    "intro": "At each import, a transaction takes the category of the first rule that matches its label, from top to bottom. A rule never changes transactions already recorded.",
+    "listHeading": "Rules in order",
+    "empty": "No rule yet. Add one below, or tick the rule option when you categorize a transaction.",
+    "addHeading": "Add a rule",
+    "addSubmit": "Add rule",
+    "operator": "Condition",
+    "operators": {
+      "contains": "Label contains",
+      "starts_with": "Label starts with",
+      "equals": "Label equals"
+    },
+    "value": "Text to match",
+    "account": "Account",
+    "allAccounts": "Every account",
+    "category": "Category",
+    "chooseCategory": "Choose a category",
+    "condition": "{operator} \"{value}\"",
+    "archivedSuffix": "(archived)",
+    "columns": {
+      "order": "Order",
+      "condition": "Condition",
+      "account": "Account",
+      "category": "Category",
+      "actions": "Actions"
+    },
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "delete": "Delete"
   },
   "synthesis": {
     "metaTitle": "Monthly synthesis | Demain",
@@ -254,6 +289,8 @@
     "categoryOfTransfer": "A transfer has no category",
     "categoryArchived": "This category is archived and cannot be assigned",
     "categoryUnknown": "Unknown category",
+    "ruleValueRequired": "The text to look for is required",
+    "ruleOperatorUnknown": "The matching condition is not valid",
     "categoryChoose": "Choose a category",
     "transactionAmountNonZero": "The amount must be a non-zero integer in minor units",
     "transactionDateInvalid": "Invalid date \"{date}\", expected YYYY-MM-DD",
@@ -314,7 +351,8 @@
     "authPasswordMismatch": "The two passwords do not match",
     "authSetupRefused": "Setup refused. Check the setup token.",
     "authPasswordWrong": "Incorrect password",
-    "authNotSaved": "The request could not be processed. Try again."
+    "authNotSaved": "The request could not be processed. Try again.",
+    "ruleAccountUnknown": "Unknown account"
   },
   "auth": {
     "signOut": "Sign out",
