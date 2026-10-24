@@ -3,7 +3,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
 import {
-  applyCsvMapping,
+  chooseCsvMapping,
   detectDelimiter,
   parseCsv,
   suggestCsvMapping,
@@ -76,8 +76,10 @@ function readOfx(text: string, currency: string): StatementReading {
   };
 }
 
-// The mapping comes from the form once the user has seen it, otherwise from the
-// last import on the account, otherwise from a guess on the header row.
+// The mapping comes from the form once the user has seen it. Before that, the
+// one of the last import on the account is tried first, then a guess on the
+// header row: the first that reads the whole file wins, otherwise the first
+// one is kept so that the user sees what is wrong and can fix it.
 function readCsv(
   text: string,
   formData: FormData,
@@ -85,14 +87,20 @@ function readCsv(
   currency: string,
 ): StatementReading {
   const submitted = readMappingFields(formData);
-  const saved =
-    submitted ?? withDatabase((db) => getLastCsvMapping(db, accountId));
-  const delimiter = saved?.delimiter ?? detectDelimiter(text);
+  const delimiter = submitted?.delimiter ?? detectDelimiter(text);
   const parsed = parseCsv(text, delimiter);
   const rawRows = parsed.slice(0, RAW_ROW_COUNT);
-  const used = saved ?? suggestCsvMapping(parsed[0] ?? [], delimiter);
 
-  if (used === null) {
+  const saved = withDatabase((db) => getLastCsvMapping(db, accountId));
+  const candidates = submitted
+    ? [submitted]
+    : [
+        saved?.delimiter === delimiter ? saved : null,
+        suggestCsvMapping(parsed[0] ?? [], delimiter),
+      ].filter((candidate): candidate is CsvMapping => candidate !== null);
+
+  const chosen = chooseCsvMapping(parsed, candidates, currency);
+  if (chosen === null) {
     return {
       rows: [],
       errors: [],
@@ -102,10 +110,10 @@ function readCsv(
     };
   }
   return {
-    ...applyCsvMapping(parsed, used, currency),
-    mapping: mappingToFields(used),
+    ...chosen.reading,
+    mapping: mappingToFields(chosen.mapping),
     rawRows,
-    used,
+    used: chosen.mapping,
   };
 }
 
@@ -132,6 +140,13 @@ export async function importAction(
     canImport: false,
   };
   const fail = (message: string): ImportFormState => ({ ...base, message });
+  // The line comes from the error, not from its text: every cause reads the same way.
+  const describe = (error: ImportParseError): string => {
+    const message = translate(error.ref);
+    return error.line === null
+      ? message
+      : t("problemAtLine", { line: error.line, message });
+  };
 
   const accountId = Number(accountText);
   if (!Number.isInteger(accountId) || accountId < 1) {
@@ -157,9 +172,7 @@ export async function importAction(
         ? readOfx(text, account.currency)
         : readCsv(text, formData, accountId, account.currency);
 
-    const problems = errors
-      .slice(0, PROBLEM_COUNT)
-      .map((error) => translate(error.ref));
+    const problems = errors.slice(0, PROBLEM_COUNT).map(describe);
     if (errors.length > PROBLEM_COUNT) {
       problems.push(
         t("moreProblems", { count: errors.length - PROBLEM_COUNT }),
@@ -236,7 +249,7 @@ export async function importAction(
       }),
     };
   } catch (error) {
-    if (error instanceof ImportParseError) return fail(translate(error.ref));
+    if (error instanceof ImportParseError) return fail(describe(error));
     if (error instanceof AccountNotFoundError)
       return fail(translate({ key: "accountGone" }));
     throw error;

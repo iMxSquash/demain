@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -6,7 +6,11 @@ import {
   CSV_DELIMITERS,
   type CsvMapping,
 } from "../domain/import-csv";
-import { fingerprintRows, type ImportedRow } from "../domain/import-row";
+import {
+  fingerprintRows,
+  type FingerprintedRow,
+  type ImportedRow,
+} from "../domain/import-row";
 import {
   ceilingWarningFor,
   validateTransactionInput,
@@ -21,8 +25,8 @@ export type ImportBatch = typeof importBatches.$inferSelect;
 export type ImportFormat = ImportBatch["format"];
 
 // Keeps each query under SQLite's limit on bound variables.
-const FINGERPRINT_CHUNK_SIZE = 500;
-// 10 bound columns per row: 100 rows stay far below SQLite's variable limit.
+const KEY_CHUNK_SIZE = 500;
+// 11 bound columns per row: 100 rows stay far below SQLite's variable limit.
 const INSERT_CHUNK_SIZE = 100;
 
 const column = z.number().int().min(0);
@@ -77,36 +81,63 @@ export interface ImportResult extends ImportPreview {
 
 interface ImportPlan extends ImportPreview {
   /** The rows to record, validated once, with their fingerprint. */
-  fresh: { input: ValidTransactionInput; fingerprint: string }[];
+  fresh: {
+    input: ValidTransactionInput;
+    fingerprint: string;
+    contentKey: string;
+  }[];
 }
 
-function findKnownFingerprints(
+interface KnownKeys {
+  /** Fingerprints of the stored movements: bank identifiers, or content keys when there was none. */
+  fingerprints: Set<string>;
+  /** Content keys of every stored movement. */
+  contentKeys: Set<string>;
+}
+
+function findKnownKeys(
   db: AppDatabase,
   accountId: number,
-  fingerprints: readonly string[],
-): Set<string> {
-  const known = new Set<string>();
-  for (
-    let start = 0;
-    start < fingerprints.length;
-    start += FINGERPRINT_CHUNK_SIZE
-  ) {
-    const chunk = fingerprints.slice(start, start + FINGERPRINT_CHUNK_SIZE);
+  rows: readonly FingerprintedRow[],
+): KnownKeys {
+  const keys = [
+    ...new Set(rows.flatMap((row) => [row.fingerprint, row.contentKey])),
+  ];
+  const known: KnownKeys = { fingerprints: new Set(), contentKeys: new Set() };
+  for (let start = 0; start < keys.length; start += KEY_CHUNK_SIZE) {
+    const chunk = keys.slice(start, start + KEY_CHUNK_SIZE);
     const found = db
-      .select({ fingerprint: transactions.importFingerprint })
+      .select({
+        fingerprint: transactions.importFingerprint,
+        contentKey: transactions.importContentKey,
+      })
       .from(transactions)
       .where(
         and(
           eq(transactions.accountId, accountId),
-          inArray(transactions.importFingerprint, chunk),
+          or(
+            inArray(transactions.importFingerprint, chunk),
+            inArray(transactions.importContentKey, chunk),
+          ),
         ),
       )
       .all();
-    for (const { fingerprint } of found) {
-      if (fingerprint !== null) known.add(fingerprint);
+    for (const { fingerprint, contentKey } of found) {
+      if (fingerprint !== null) known.fingerprints.add(fingerprint);
+      if (contentKey !== null) known.contentKeys.add(contentKey);
     }
   }
   return known;
+}
+
+// A bank identifier is authoritative against other identifiers. Against a stored
+// movement that had none (a CSV export) only the content can be compared, and
+// the other way round: a file without identifiers is compared with all stored content.
+function isKnown(row: FingerprintedRow, known: KnownKeys): boolean {
+  if (known.fingerprints.has(row.fingerprint)) return true;
+  return row.externalId === null
+    ? known.contentKeys.has(row.contentKey)
+    : known.fingerprints.has(row.contentKey);
 }
 
 function toTransactionInput(
@@ -152,16 +183,13 @@ function findCeilingExcesses(
 function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
   const fingerprinted = fingerprintRows(request.rows);
-  const known = findKnownFingerprints(
-    db,
-    account.id,
-    fingerprinted.map((row) => row.fingerprint),
-  );
+  const known = findKnownKeys(db, account.id, fingerprinted);
   const fresh = fingerprinted
-    .filter((row) => !known.has(row.fingerprint))
+    .filter((row) => !isKnown(row, known))
     .map((row) => ({
       input: toTransactionInput(account.id, row),
       fingerprint: row.fingerprint,
+      contentKey: row.contentKey,
     }));
 
   return {
@@ -224,10 +252,11 @@ export function commitImport(
         .values(
           fresh
             .slice(start, start + INSERT_CHUNK_SIZE)
-            .map(({ input, fingerprint }) => ({
+            .map(({ input, fingerprint, contentKey }) => ({
               ...input,
               importBatchId: batch.id,
               importFingerprint: fingerprint,
+              importContentKey: contentKey,
             })),
         )
         .run();

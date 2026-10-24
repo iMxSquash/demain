@@ -59,6 +59,14 @@ describe("fingerprintRows", () => {
     expect(second).toEqual(first);
   });
 
+  it("gives a row with a bank identifier the same content key as the same row without one", () => {
+    const [withId] = fingerprintRows([row({ externalId: "FIT-1" })]);
+    const [withoutId] = fingerprintRows([row()]);
+
+    expect(withId?.contentKey).toBe(withoutId?.contentKey);
+    expect(withoutId?.fingerprint).toBe(withoutId?.contentKey);
+  });
+
   it("does not confuse a bank identifier with a derived fingerprint", () => {
     const [byId] = fingerprintRows([row({ externalId: "2026-02-01|-1250|card shop|0" })]);
     const [derived] = fingerprintRows([row()]);

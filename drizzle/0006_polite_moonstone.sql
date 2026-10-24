@@ -10,4 +10,5 @@ CREATE TABLE `import_batches` (
 --> statement-breakpoint
 ALTER TABLE `transactions` ADD `import_batch_id` integer REFERENCES import_batches(id);--> statement-breakpoint
 ALTER TABLE `transactions` ADD `import_fingerprint` text;--> statement-breakpoint
+ALTER TABLE `transactions` ADD `import_content_key` text;--> statement-breakpoint
 CREATE UNIQUE INDEX `transactions_import_fingerprint_unique` ON `transactions` (`account_id`,`import_fingerprint`) WHERE "transactions"."import_fingerprint" is not null;

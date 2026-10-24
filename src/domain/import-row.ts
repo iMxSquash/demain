@@ -19,7 +19,10 @@ export interface ImportedRow {
 }
 
 export interface FingerprintedRow extends ImportedRow {
+  /** What identifies the movement: the bank identifier when there is one, else the content key. */
   fingerprint: string;
+  /** Built from date, amount and label only, so that a file without identifiers still matches one with them. */
+  contentKey: string;
 }
 
 export class ImportParseError extends Error {
@@ -63,7 +66,7 @@ export function parseRowAmount(
     throw importParseError(
       `Row ${line} has a zero amount`,
       "importAmountZero",
-      { line },
+      undefined,
       line,
     );
   }
@@ -75,7 +78,7 @@ export function requireRowLabel(label: string, line: number): string {
     throw importParseError(
       `Row ${line} has no label`,
       "importLabelRequired",
-      { line },
+      undefined,
       line,
     );
   }
@@ -87,22 +90,26 @@ function normalizeLabel(label: string): string {
 }
 
 /**
- * Gives each row the value that detects it when the same movement is imported
- * again. A bank identifier is the most reliable; without one the fingerprint
- * comes from date, amount and label, numbered within the file so that two
- * genuine identical movements (two coffees the same day) both survive.
+ * Gives each row the values that detect it when the same movement is imported
+ * again. A bank identifier is the most reliable fingerprint; without one the
+ * fingerprint is the content key, built from date, amount and label and
+ * numbered within the file so that two genuine identical movements (two coffees
+ * the same day) both survive.
  */
 export function fingerprintRows(
   rows: readonly ImportedRow[],
 ): FingerprintedRow[] {
   const seen = new Map<string, number>();
   return rows.map((row) => {
-    if (row.externalId !== null) {
-      return { ...row, fingerprint: `id:${row.externalId}` };
-    }
     const base = `${row.date}|${row.amount}|${normalizeLabel(row.label)}`;
     const occurrence = seen.get(base) ?? 0;
     seen.set(base, occurrence + 1);
-    return { ...row, fingerprint: `row:${base}|${occurrence}` };
+    const contentKey = `row:${base}|${occurrence}`;
+    return {
+      ...row,
+      fingerprint:
+        row.externalId === null ? contentKey : `id:${row.externalId}`,
+      contentKey,
+    };
   });
 }

@@ -113,7 +113,7 @@ export function parseCsv(text: string, delimiter: CsvDelimiter): string[][] {
     throw importParseError(
       `A quoted cell opened at line ${quoteOpenedAtLine} is never closed`,
       "importCsvUnclosedQuote",
-      { line: quoteOpenedAtLine },
+      undefined,
       quoteOpenedAtLine,
     );
   }
@@ -151,7 +151,7 @@ function readDate(text: string, format: CsvDateFormat, line: number): string {
     throw importParseError(
       `Invalid date "${text}" at row ${line}`,
       "importCsvDateInvalid",
-      { line, date: text },
+      { date: text },
       line,
     );
   }
@@ -168,7 +168,7 @@ function readCell(
     throw importParseError(
       `Row ${line} has no column ${column + 1}`,
       "importCsvColumnMissing",
-      { line, column: column + 1 },
+      { column: column + 1 },
       line,
     );
   }
@@ -191,7 +191,7 @@ function readAmount(
     throw importParseError(
       `Row ${line} has both a debit and a credit`,
       "importCsvDebitAndCredit",
-      { line },
+      undefined,
       line,
     );
   }
@@ -199,7 +199,7 @@ function readAmount(
     throw importParseError(
       `Row ${line} has neither a debit nor a credit`,
       "importCsvNoAmount",
-      { line },
+      undefined,
       line,
     );
   }
@@ -248,6 +248,31 @@ export function applyCsvMapping(
     }
   });
   return reading;
+}
+
+export interface ChosenMapping {
+  mapping: CsvMapping;
+  reading: CsvReading;
+}
+
+/**
+ * Applies the candidate mappings and keeps the one that reads the file with the
+ * fewest errors, the earlier candidate winning a tie. When none reads it whole,
+ * the problems of the best one can be shown and fixed. Null without candidate.
+ */
+export function chooseCsvMapping(
+  rows: readonly (readonly string[])[],
+  candidates: readonly CsvMapping[],
+  currency: string,
+): ChosenMapping | null {
+  let best: ChosenMapping | null = null;
+  for (const mapping of candidates) {
+    const reading = applyCsvMapping(rows, mapping, currency);
+    if (best === null || reading.errors.length < best.reading.errors.length) {
+      best = { mapping, reading };
+    }
+  }
+  return best;
 }
 
 // Lowercase, without accents or punctuation: "Date de l'opération" -> "datedeloperation".

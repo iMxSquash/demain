@@ -62,7 +62,7 @@ function readDate(block: string, line: number): string {
     throw importParseError(
       `Invalid posting date "${posted ?? ""}" at line ${line}`,
       "importOfxDateInvalid",
-      { line, date: posted ?? "" },
+      { date: posted ?? "" },
       line,
     );
   }
@@ -75,7 +75,7 @@ function readAmount(block: string, currency: string, line: number): number {
     throw importParseError(
       `Missing amount at line ${line}`,
       "importOfxAmountMissing",
-      { line },
+      undefined,
       line,
     );
   }

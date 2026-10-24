@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyCsvMapping,
+  chooseCsvMapping,
   detectDelimiter,
   parseCsv,
   suggestCsvMapping,
@@ -58,11 +59,15 @@ describe("parseCsv", () => {
 
 describe("detectDelimiter", () => {
   it("prefers the semicolon of French bank exports", () => {
-    expect(detectDelimiter("Date;Libelle;Montant\n01/02/2026;CB;-12,50")).toBe(";");
+    expect(detectDelimiter("Date;Libelle;Montant\n01/02/2026;CB;-12,50")).toBe(
+      ";",
+    );
   });
 
   it("detects commas and tabs", () => {
-    expect(detectDelimiter("Date,Label,Amount\n2026-02-01,CB,-12.50")).toBe(",");
+    expect(detectDelimiter("Date,Label,Amount\n2026-02-01,CB,-12.50")).toBe(
+      ",",
+    );
     expect(detectDelimiter("Date\tLabel\tAmount")).toBe("\t");
   });
 
@@ -86,13 +91,26 @@ describe("applyCsvMapping", () => {
 
     expect(result.errors).toEqual([]);
     expect(result.rows).toEqual([
-      { date: "2026-02-01", label: "CARD SHOP", amount: -1_250, externalId: null },
-      { date: "2026-02-05", label: "SALARY", amount: 114_388, externalId: null },
+      {
+        date: "2026-02-01",
+        label: "CARD SHOP",
+        amount: -1_250,
+        externalId: null,
+      },
+      {
+        date: "2026-02-05",
+        label: "SALARY",
+        amount: 114_388,
+        externalId: null,
+      },
     ]);
   });
 
   it("reads separate debit and credit columns", () => {
-    const rows = parseCsv("Date;Label;Debit;Credit\n01/02/2026;SHOP;12,50;\n02/02/2026;SALARY;;100,00", ";");
+    const rows = parseCsv(
+      "Date;Label;Debit;Credit\n01/02/2026;SHOP;12,50;\n02/02/2026;SALARY;;100,00",
+      ";",
+    );
 
     const result = applyCsvMapping(
       rows,
@@ -188,7 +206,10 @@ describe("applyCsvMapping", () => {
 describe("suggestCsvMapping", () => {
   it("recognizes French headers", () => {
     expect(
-      suggestCsvMapping(["Date de l'opération", "Libellé", "Débit", "Crédit"], ";"),
+      suggestCsvMapping(
+        ["Date de l'opération", "Libellé", "Débit", "Crédit"],
+        ";",
+      ),
     ).toEqual({
       delimiter: ";",
       hasHeader: true,
@@ -200,7 +221,9 @@ describe("suggestCsvMapping", () => {
   });
 
   it("recognizes English headers with a single amount column", () => {
-    expect(suggestCsvMapping(["Date", "Description", "Amount"], ",")).toMatchObject({
+    expect(
+      suggestCsvMapping(["Date", "Description", "Amount"], ","),
+    ).toMatchObject({
       dateColumn: 0,
       labelColumn: 1,
       amount: { kind: "single", column: 2 },
@@ -209,5 +232,49 @@ describe("suggestCsvMapping", () => {
 
   it("returns null when the headers say nothing", () => {
     expect(suggestCsvMapping(["a", "b", "c"], ";")).toBeNull();
+  });
+});
+
+describe("chooseCsvMapping", () => {
+  const SPLIT: CsvMapping = {
+    ...SEMICOLON_MAPPING,
+    amount: { kind: "split", debitColumn: 2, creditColumn: 3 },
+  };
+  const rows = parseCsv("Date;Label;Amount\n01/02/2026;SHOP;-12,50", ";");
+
+  it("keeps the first mapping that reads the whole file", () => {
+    const chosen = chooseCsvMapping(rows, [SPLIT, SEMICOLON_MAPPING], "EUR");
+
+    expect(chosen?.mapping).toEqual(SEMICOLON_MAPPING);
+    expect(chosen?.reading.errors).toEqual([]);
+  });
+
+  it("prefers the earlier candidate when both read the file", () => {
+    const chosen = chooseCsvMapping(rows, [SEMICOLON_MAPPING, SPLIT], "EUR");
+
+    expect(chosen?.mapping).toEqual(SEMICOLON_MAPPING);
+  });
+
+  it("keeps the first candidate, with its errors, when none reads the file", () => {
+    const chosen = chooseCsvMapping(rows, [SPLIT], "EUR");
+
+    expect(chosen?.mapping).toEqual(SPLIT);
+    expect(chosen?.reading.errors).toHaveLength(1);
+  });
+
+  it("keeps the candidate with the fewest errors when none reads the whole file", () => {
+    const flawed = parseCsv(
+      "Date;Label;Amount\n31/02/2026;BAD DATE;-1,00\n01/03/2026;SHOP;-2,00",
+      ";",
+    );
+
+    const chosen = chooseCsvMapping(flawed, [SPLIT, SEMICOLON_MAPPING], "EUR");
+
+    expect(chosen?.mapping).toEqual(SEMICOLON_MAPPING);
+    expect(chosen?.reading.errors).toHaveLength(1);
+  });
+
+  it("returns null without any candidate", () => {
+    expect(chooseCsvMapping(rows, [], "EUR")).toBeNull();
   });
 });

@@ -133,12 +133,56 @@ describe("imports", () => {
     expect(listTransactions(db)).toHaveLength(2);
   });
 
+  it("does not import again a later export that holds only one of two identical movements", () => {
+    importRows([row(), row()]);
+
+    const result = importRows([row()]);
+
+    expect(result.newCount).toBe(0);
+    expect(listTransactions(db)).toHaveLength(2);
+  });
+
+  it("imports the new identical movement of a later export that overlaps the first", () => {
+    importRows([row()]);
+
+    const result = importRows([row(), row()]);
+
+    expect(result.newCount).toBe(1);
+    expect(listTransactions(db)).toHaveLength(2);
+  });
+
   it("dedupes on the bank identifier even when the label changed", () => {
     importRows([row({ externalId: "FIT-1" })]);
 
     const result = importRows([row({ externalId: "FIT-1", label: "CARD SHOP 2" })]);
 
     expect(result.duplicateCount).toBe(1);
+  });
+
+  it("recognizes a CSV movement later exported again as OFX", () => {
+    importRows([row()], MAPPING);
+
+    const result = importRows([row({ externalId: "FIT-1" })]);
+
+    expect(result.newCount).toBe(0);
+    expect(listTransactions(db)).toHaveLength(1);
+  });
+
+  it("recognizes an OFX movement later exported again as CSV", () => {
+    importRows([row({ externalId: "FIT-1" })]);
+
+    const result = importRows([row()], MAPPING);
+
+    expect(result.newCount).toBe(0);
+    expect(listTransactions(db)).toHaveLength(1);
+  });
+
+  it("trusts bank identifiers: two OFX movements with the same content but other identifiers are both kept", () => {
+    importRows([row({ externalId: "FIT-1" })]);
+
+    const result = importRows([row({ externalId: "FIT-2" })]);
+
+    expect(result.newCount).toBe(1);
   });
 
   it("does not treat another account's movement as a duplicate", () => {

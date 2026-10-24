@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "663a7e85-4954-4cba-9566-e29f46d5286a",
+  "id": "b62f636e-5f27-49b5-bdd5-c8ae44c51e3c",
   "prevId": "09d951f9-fb44-4e9e-a209-2b90440f41aa",
   "tables": {
     "accounts": {
@@ -304,6 +304,13 @@
         },
         "import_fingerprint": {
           "name": "import_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "import_content_key": {
+          "name": "import_content_key",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

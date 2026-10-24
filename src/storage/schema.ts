@@ -99,6 +99,9 @@ export const transactions = sqliteTable(
     ),
     // Detects the same movement imported twice, see DOMAIN entity Transaction.
     importFingerprint: text("import_fingerprint"),
+    // Date, amount and label of an imported movement, kept even when the bank gave an
+    // identifier, to recognize the same movement exported again in another format.
+    importContentKey: text("import_content_key"),
   },
   (table) => [
     // The guarantee behind the application check: one movement, one row per
