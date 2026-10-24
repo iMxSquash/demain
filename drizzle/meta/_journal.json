@@ -43,6 +43,13 @@
       "when": 1792081622360,
       "tag": "0005_rapid_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792846157035,
+      "tag": "0006_abandoned_cerise",
+      "breakpoints": true
     }
   ]
 }

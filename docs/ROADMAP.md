@@ -146,6 +146,5 @@ These are intentionally left undecided. Each will be resolved when its milestone
 | Which aggregator to use for bank sync, under which terms. | M4 |
 | Exact CSV column mappings per bank (beyond the owner's bank, Societe Generale). The importer is bank-agnostic; preset mappings can be contributed. | M1 and ongoing |
 | Storage format of exchange rates (exact decimal, for example scaled integers). | M1 |
-| Maximum size of an uploaded import file. | M1 |
 | Whether to add notifications later, and in which form (local web push is the candidate). | After M3 |
 | Dark theme and phone layout details. | M2 |

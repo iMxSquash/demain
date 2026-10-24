@@ -326,7 +326,7 @@ Demain stores financial data, so the baseline applies from M1, not later.
 | **Sessions** | Session cookie `HttpOnly`, `Secure`, `SameSite`. No authentication token in `localStorage`. |
 | **Brute force** | Rate limiting on login (and on TOTP verification). In-process limiting is sufficient for a single instance. |
 | **CSRF** | `SameSite` cookies plus anti-CSRF protection on every state-changing request. |
-| **Input validation** | Every external input (forms, query parameters, uploaded CSV and OFX files, future aggregator payloads) is validated server-side with a schema validator (Zod). Upload size is limited and file content is parsed, never executed. |
+| **Input validation** | Every external input (forms, query parameters, uploaded CSV and OFX files, future aggregator payloads) is validated server-side with a schema validator (Zod). Upload size is limited to 20 MB and file content is parsed, never executed. The CSV and OFX readers are hand-written, with no XML parser: nothing in a file can declare an entity, load another file or reach the network. |
 | **Injection** | Parameterized queries only, through the ORM. No string-built SQL. |
 | **XSS** | Output escaping by default. Imported labels are untrusted text and are never rendered as HTML. |
 | **Headers** | `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`. |
