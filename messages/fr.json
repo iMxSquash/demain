@@ -62,7 +62,39 @@
       "openingBalance": "Solde d'ouverture",
       "depositCeiling": "Plafond de dépôt (facultatif, laisser vide s'il n'y en a pas)",
       "overflowAccount": "Compte de débordement (facultatif)"
-    }
+    },
+    "balances": "Soldes"
+  },
+  "balances": {
+    "metaTitle": "Soldes constatés | Demain",
+    "title": "Soldes constatés : {name}",
+    "intro": "Enregistrez le solde affiché par votre banque pour ce compte. L'écart inexpliqué est le solde calculé par Demain à la fin de ce jour moins le montant enregistré.",
+    "addHeading": "Enregistrer un solde",
+    "listHeading": "Soldes enregistrés",
+    "empty": "Aucun solde enregistré pour ce compte.",
+    "regionLabel": "Soldes constatés, tableau défilable",
+    "caption": "Soldes enregistrés pour {name}, du plus récent au plus ancien",
+    "submit": "Enregistrer le solde",
+    "form": {
+      "date": "Date (fin de journée)",
+      "amount": "Solde affiché par la banque",
+      "note": "Note (facultatif)"
+    },
+    "columns": {
+      "date": "Date",
+      "asserted": "Solde de la banque",
+      "computed": "Solde calculé",
+      "gap": "Écart inexpliqué",
+      "note": "Note",
+      "actions": "Actions"
+    },
+    "gapNone": "Aucun écart",
+    "gapDemainHigher": "Demain compte plus que la banque",
+    "gapBankHigher": "La banque affiche plus que Demain",
+    "delete": "Supprimer",
+    "deleteTitle": "Supprimer le solde du {date} ?",
+    "deleteMessage": "Seul le solde enregistré est supprimé. Vos transactions ne sont pas modifiées.",
+    "deleteConfirm": "Supprimer le solde"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -282,6 +314,10 @@
     "accountOpeningDateInvalid": "Date d'ouverture invalide « {date} », format AAAA-MM-JJ attendu",
     "accountCurrencyLocked": "La devise ne peut plus changer une fois que le compte a des transactions",
     "accountCurrencyInUseByOverflow": "La devise ne peut pas changer tant que {name} utilise ce compte comme compte de débordement",
+    "balanceAssertionDateInvalid": "Date invalide « {date} », format AAAA-MM-JJ attendu",
+    "balanceAssertionBeforeOpening": "La date ne peut pas précéder l'ouverture du compte ({openingDate})",
+    "balanceAssertionAmountInvalid": "Le solde doit être un entier en unités mineures",
+    "balanceAssertionOnArchivedAccount": "Ce compte est archivé : aucun solde ne peut y être enregistré",
     "overflowAccountMissing": "Le compte de débordement n'existe pas",
     "overflowAccountArchived": "Le compte de débordement est archivé",
     "overflowAccountCurrencyMismatch": "Le compte de débordement doit avoir la même devise",
@@ -355,7 +391,8 @@
     "authSetupRefused": "Configuration refusée. Vérifiez le jeton de configuration.",
     "authPasswordWrong": "Mot de passe incorrect",
     "authNotSaved": "La demande n'a pas pu être traitée. Réessayez.",
-    "ruleAccountUnknown": "Compte inconnu"
+    "ruleAccountUnknown": "Compte inconnu",
+    "balanceAssertionNotSaved": "Le solde n'a pas pu être enregistré"
   },
   "auth": {
     "signOut": "Se déconnecter",

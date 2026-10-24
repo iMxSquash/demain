@@ -178,6 +178,12 @@ async function AccountRow({
             >
               {t("edit")}<span className="sr-only"> {account.name}</span>
             </Link>
+            <Link
+              href={`/accounts/${account.id}/balances`}
+              className="inline-flex min-h-11 items-center px-2 underline"
+            >
+              {t("balances")}<span className="sr-only"> {account.name}</span>
+            </Link>
             {referrers.length > 0 ? (
               <p className="inline-flex min-h-11 items-center px-2">
                 {t("overflowOf", {

@@ -29,7 +29,7 @@ Details and definitions of done are in [ROADMAP.md](docs/ROADMAP.md).
 
 | Milestone | Scope |
 | --- | --- |
-| **M1: Ledger** | Accounts (with optional deposit ceilings and overflow accounts), transactions, categories, monthly synthesis (net of the month, savings of the month, end-of-month balances), the real chart (month-end checking and savings curves), CSV/OFX import with categorization rules, one-time import of the sheet history, authentication, Docker packaging, encrypted backup and JSON export, i18n (French, English) and multi-currency foundations. |
+| **M1: Ledger** | Accounts (with optional deposit ceilings and overflow accounts), transactions, categories, monthly synthesis (net of the month, savings of the month, end-of-month balances), balance assertions with the unexplained gap, the real chart (month-end checking and savings curves), CSV/OFX import with categorization rules, one-time import of the sheet history, authentication, Docker packaging, encrypted backup and JSON export, i18n (French, English) and multi-currency foundations. |
 | **M2: Planning** | Planned items (recurrences and one-off events) with versions, single-occurrence changes, rolling-average amounts and provisions, planned vs actual matching on import, calendar and monthly line views. M1 + M2 replace the sheet day to day. |
 | **M3: Simulations** | Constant-pace simulation, scenario engine with 8 modification types, side-by-side comparison of 2 to 4 scenarios with diagrams, validating a scenario into planned items. |
 | **M4: Bank sync** | Optional bank synchronization through a licensed aggregator, disabled by default. |

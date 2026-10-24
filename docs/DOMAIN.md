@@ -186,6 +186,8 @@ Statuses are derived, never stored:
 
 The app displays `computed balance at date - asserted amount` as the **unexplained gap**.
 
+There is at most one assertion per account and date: recording the same day again replaces the earlier amount and note. The date cannot be before the opening date of the account, since the computed balance starts there. No assertion can be recorded on an archived account, which is no longer used (see [Archiving an account](#archiving-an-account)); the ones it already has stay listed. The computed balance at a date is the opening balance plus every transaction of the account dated on or before that day.
+
 ### Scenario and modification
 
 | Scenario field | Description |

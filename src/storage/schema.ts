@@ -130,6 +130,30 @@ export const transactions = sqliteTable(
   ],
 );
 
+// A real balance observed at the bank. One per account and day: recording the
+// same day again replaces the earlier value.
+export const balanceAssertions = sqliteTable(
+  "balance_assertions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // Restrict: an account with history is archived, never deleted.
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    // Calendar date as YYYY-MM-DD, end of day.
+    date: text("date").notNull(),
+    // Signed integer in minor units.
+    amount: integer("amount").notNull(),
+    note: text("note"),
+  },
+  (table) => [
+    uniqueIndex("balance_assertions_account_date_unique").on(
+      table.accountId,
+      table.date,
+    ),
+  ],
+);
+
 // The single account of the instance. The check makes a second row impossible
 // even if the application guard around the setup token were bypassed.
 export const owner = sqliteTable(
