@@ -20,7 +20,8 @@
     "transactions": "Transactions",
     "categories": "Catégories",
     "synthesis": "Synthèse mensuelle",
-    "imports": "Import"
+    "imports": "Import",
+    "rules": "Règles de catégorisation"
   },
   "accounts": {
     "metaTitle": "Comptes | Demain",
@@ -156,7 +157,44 @@
       "label": "Libellé",
       "amount": "Montant",
       "category": "Catégorie"
-    }
+    },
+    "ruleSummary": "Créer aussi une règle",
+    "ruleCreate": "Créer une règle pour les prochains imports"
+  },
+  "rules": {
+    "metaTitle": "Règles de catégorisation | Demain",
+    "title": "Règles de catégorisation",
+    "intro": "À chaque import, une transaction prend la catégorie de la première règle qui correspond à son libellé, de haut en bas. Une règle ne modifie jamais les transactions déjà enregistrées.",
+    "listHeading": "Règles dans l'ordre",
+    "empty": "Aucune règle pour l'instant. Ajoutez-en une ci-dessous, ou cochez l'option de règle en catégorisant une transaction.",
+    "addHeading": "Ajouter une règle",
+    "addSubmit": "Ajouter la règle",
+    "operator": "Condition",
+    "operators": {
+      "contains": "Le libellé contient",
+      "starts_with": "Le libellé commence par",
+      "equals": "Le libellé est égal à"
+    },
+    "value": "Texte à rechercher",
+    "account": "Compte",
+    "allAccounts": "Tous les comptes",
+    "category": "Catégorie",
+    "chooseCategory": "Choisir une catégorie",
+    "condition": "{operator} « {value} »",
+    "archivedSuffix": "(archivée)",
+    "columns": {
+      "order": "Ordre",
+      "condition": "Condition",
+      "account": "Compte",
+      "category": "Catégorie",
+      "actions": "Actions"
+    },
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "delete": "Supprimer",
+    "deleteTitle": "Supprimer cette règle ?",
+    "deleteMessage": "La règle est supprimée. Les transactions déjà catégorisées gardent leur catégorie.",
+    "deleteConfirm": "Supprimer la règle"
   },
   "synthesis": {
     "metaTitle": "Synthèse mensuelle | Demain",
@@ -254,6 +292,8 @@
     "categoryOfTransfer": "Un virement n'a pas de catégorie",
     "categoryArchived": "Cette catégorie est archivée et ne peut pas être attribuée",
     "categoryUnknown": "Catégorie inconnue",
+    "ruleValueRequired": "Le texte à rechercher est obligatoire",
+    "ruleOperatorUnknown": "La condition de correspondance n'est pas valide",
     "categoryChoose": "Choisissez une catégorie",
     "transactionAmountNonZero": "Le montant doit être un entier non nul en unités mineures",
     "transactionDateInvalid": "Date invalide « {date} », format AAAA-MM-JJ attendu",
@@ -314,7 +354,8 @@
     "authPasswordMismatch": "Les deux mots de passe ne correspondent pas",
     "authSetupRefused": "Configuration refusée. Vérifiez le jeton de configuration.",
     "authPasswordWrong": "Mot de passe incorrect",
-    "authNotSaved": "La demande n'a pas pu être traitée. Réessayez."
+    "authNotSaved": "La demande n'a pas pu être traitée. Réessayez.",
+    "ruleAccountUnknown": "Compte inconnu"
   },
   "auth": {
     "signOut": "Se déconnecter",

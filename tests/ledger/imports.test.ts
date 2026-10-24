@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CsvMapping } from "../../src/domain/import-csv";
 import type { ImportedRow } from "../../src/domain/import-row";
 import { archiveAccount, createAccount } from "../../src/ledger/accounts";
+import { archiveCategory, createCategory } from "../../src/ledger/categories";
+import { createRule, moveRule } from "../../src/ledger/categorization-rules";
 import {
   commitImport,
   getLastCsvMapping,
@@ -303,5 +305,58 @@ describe("imports", () => {
 
     expect(listTransactions(db)).toEqual([]);
     expect(listImportBatches(db, accountId)).toEqual([]);
+  });
+
+  it("categorizes the rows matching a rule and queues the others", () => {
+    const shopping = createCategory(db, { name: "Shopping" });
+    createRule(db, {
+      operator: "contains",
+      value: "shop",
+      categoryId: shopping.id,
+    });
+
+    importRows([row(), row({ date: "2026-02-05", amount: 114_388, label: "SALARY" })]);
+
+    expect(
+      listTransactions(db).map((t) => [t.label, t.categoryId]),
+    ).toEqual([
+      ["CARD SHOP", shopping.id],
+      ["SALARY", null],
+    ]);
+    expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual([
+      "SALARY",
+    ]);
+  });
+
+  it("gives the row to the first rule in the user-defined order", () => {
+    const shopping = createCategory(db, { name: "Shopping" });
+    const cards = createCategory(db, { name: "Cards" });
+    createRule(db, { operator: "contains", value: "shop", categoryId: shopping.id });
+    const later = createRule(db, {
+      operator: "contains",
+      value: "card",
+      categoryId: cards.id,
+    });
+    moveRule(db, later.id, "up");
+
+    importRows([row()]);
+
+    expect(listTransactions(db).map((t) => t.categoryId)).toEqual([cards.id]);
+  });
+
+  it("ignores a rule whose category has been archived", () => {
+    const shopping = createCategory(db, { name: "Shopping" });
+    createRule(db, {
+      operator: "contains",
+      value: "shop",
+      categoryId: shopping.id,
+    });
+    archiveCategory(db, shopping.id);
+
+    importRows([row()]);
+
+    expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual([
+      "CARD SHOP",
+    ]);
   });
 });

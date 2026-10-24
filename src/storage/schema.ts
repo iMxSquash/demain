@@ -48,6 +48,23 @@ export const categories = sqliteTable(
   ],
 );
 
+export const categorizationRules = sqliteTable("categorization_rules", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  operator: text("operator", {
+    enum: ["contains", "starts_with", "equals"],
+  }).notNull(),
+  value: text("value").notNull(),
+  // Null: the rule applies to every account.
+  accountId: integer("account_id").references(() => accounts.id, {
+    onDelete: "restrict",
+  }),
+  categoryId: integer("category_id")
+    .notNull()
+    .references(() => categories.id, { onDelete: "restrict" }),
+  // Lower comes first: the first matching rule wins.
+  priority: integer("priority").notNull(),
+});
+
 export const importBatches = sqliteTable("import_batches", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   // Restrict: an account with imports is archived, never deleted.

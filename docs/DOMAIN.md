@@ -112,6 +112,10 @@ An account that is no longer used is archived, not deleted, so that its history 
 | category_id | Category assigned on match. |
 | priority | Order of evaluation; the first matching rule wins. |
 
+- **Rules apply to imports only.** A rule never changes a transaction already recorded, and creating or deleting a rule recategorizes nothing.
+- **Archived categories.** A rule pointing to an archived category is kept but skipped, so the transaction goes to the to-categorize queue.
+- **Order.** A new rule goes last; the user moves rules up or down, which swaps their priorities.
+
 ### Planned item and versions
 
 | Planned item field | Description |

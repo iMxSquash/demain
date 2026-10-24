@@ -6,6 +6,7 @@ import {
   CSV_DELIMITERS,
   type CsvMapping,
 } from "../domain/import-csv";
+import { findMatchingRule } from "../domain/categorization-rule";
 import {
   fingerprintRows,
   type FingerprintedRow,
@@ -19,6 +20,7 @@ import {
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
 import { getAccount, getAccountBalance } from "./accounts";
+import { listApplicableRules } from "./categorization-rules";
 
 export type ImportBatch = typeof importBatches.$inferSelect;
 
@@ -143,6 +145,7 @@ function isKnown(row: FingerprintedRow, known: KnownKeys): boolean {
 function toTransactionInput(
   accountId: number,
   row: ImportedRow,
+  categoryId: number | null,
 ): ValidTransactionInput {
   return validateTransactionInput({
     accountId,
@@ -150,6 +153,7 @@ function toTransactionInput(
     amount: row.amount,
     kind: row.amount > 0 ? "income" : "expense",
     label: row.label,
+    categoryId,
   });
 }
 
@@ -184,10 +188,16 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
   const fingerprinted = fingerprintRows(request.rows);
   const known = findKnownKeys(db, account.id, fingerprinted);
+  const rules = listApplicableRules(db);
   const fresh = fingerprinted
     .filter((row) => !isKnown(row, known))
     .map((row) => ({
-      input: toTransactionInput(account.id, row),
+      input: toTransactionInput(
+        account.id,
+        row,
+        findMatchingRule(rules, { label: row.label, accountId: account.id })
+          ?.categoryId ?? null,
+      ),
       fingerprint: row.fingerprint,
       contentKey: row.contentKey,
     }));
@@ -220,8 +230,9 @@ export function previewImport(
 }
 
 /**
- * Records the rows that are not already known as transactions waiting for a
- * category, under one batch, all or nothing. An archived account and a ceiling
+ * Records the rows that are not already known as transactions, under one
+ * batch, all or nothing. A row matching a categorization rule is categorized,
+ * the others wait in the to-categorize queue. An archived account and a ceiling
  * exceeded do not refuse the import (DOMAIN, imports are the exception).
  */
 export function commitImport(

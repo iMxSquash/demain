@@ -7,7 +7,7 @@ Demain is a free, open source, self-hosted personal budget web app that shows wh
 
 ## Status
 
-**Early development.** The repository contains the founding documentation, the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest), authentication (password, optional TOTP), accounts with deposit ceilings and overflow chains, transactions and transfers entered by hand, flat categories with a to-categorize queue, and the monthly synthesis. No container image or `compose.yaml` exists yet: everything else described below is a target tracked in the [roadmap](docs/ROADMAP.md).
+**Early development.** The repository contains the founding documentation, the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest), authentication (password, optional TOTP), accounts with deposit ceilings and overflow chains, transactions and transfers entered by hand, flat categories with a to-categorize queue and categorization rules, and the monthly synthesis. No container image or `compose.yaml` exists yet: everything else described below is a target tracked in the [roadmap](docs/ROADMAP.md).
 
 The repository carries its full `.github/` structure from its initialization, and it stays private until the end of the first milestone.
 

@@ -16,8 +16,10 @@ import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { getTranslator } from "../translator";
+import { parseRuleSuggestion } from "../rules/rule-form-data";
 import {
   parseCategoryChoice,
+  readCategorizeValues,
   readCategoryName,
   type CategorizeState,
   type CategoryFormState,
@@ -25,6 +27,7 @@ import {
 
 const CATEGORIES_PATH = "/categories";
 const TRANSACTIONS_PATH = "/transactions";
+const RULES_PATH = "/rules";
 
 function toFormState(
   error: unknown,
@@ -97,25 +100,37 @@ export async function categorizeTransactionAction(
   await requireSession();
   const translate = await getTranslator();
   const choice = parseCategoryChoice(formData, translate);
-  if (!choice.ok) return { message: choice.message };
+  if (!choice.ok) return { field: "category", message: choice.message };
+  // Parsed first, so that a refused suggestion is reported before the database is touched.
+  const suggestion = parseRuleSuggestion(formData, translate);
+  if (!suggestion.ok) {
+    return {
+      field: "rule",
+      message: suggestion.message,
+      values: readCategorizeValues(formData),
+    };
+  }
 
   try {
     withDatabase((db) =>
-      setTransactionCategory(db, transactionId, choice.categoryId),
+      setTransactionCategory(db, transactionId, choice.categoryId, {
+        rule: suggestion.rule,
+      }),
     );
   } catch (error) {
     if (error instanceof CategoryNotFoundError) {
-      return { message: translate(messageRef("categoryGone")) };
+      return { field: "category", message: translate(messageRef("categoryGone")) };
     }
     if (error instanceof TransactionValidationError) {
-      return { message: translate(error.ref) };
+      return { field: "category", message: translate(error.ref) };
     }
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Categorize action failed", error);
-    return { message: translate(messageRef("nothingSaved")) };
+    return { field: "category", message: translate(messageRef("nothingSaved")) };
   }
 
   revalidatePath(CATEGORIES_PATH);
   revalidatePath(TRANSACTIONS_PATH);
+  revalidatePath(RULES_PATH);
   return null;
 }
