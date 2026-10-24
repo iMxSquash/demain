@@ -89,7 +89,8 @@ An account that is no longer used is archived, not deleted, so that its history 
 | transfer_counterpart_id | For a transfer leg, the other leg. Null otherwise. |
 | planned_item_id, occurrence_date | Set when the transaction settles an occurrence of a planned item (nominal date of that occurrence). Null otherwise. |
 | import_batch_id | The import that created it, if any. |
-| import_fingerprint | Value used to detect duplicates across imports (from OFX identifiers when present, otherwise from date, amount and label). |
+| import_fingerprint | Value used to detect duplicates across imports, unique per account. It is the OFX identifier (`FITID`) when present, otherwise the content key: built from date, amount and normalized label (case and spacing ignored) plus the rank of the row among identical rows of the file, so that two genuine identical movements both survive and are both recognized the next time. Without a bank identifier, a movement identical to an earlier one that first appears in an export starting between them (same day, same amount, same label) cannot be told from the earlier one and is ignored as a duplicate: the preview shows the number of duplicates so that it can be checked. |
+| import_content_key | The content key of every imported transaction, kept even when the bank gave an identifier. It lets the same movement exported again in the other format (CSV after OFX, OFX after CSV) be recognized. Bank identifiers stay authoritative between themselves: two OFX movements with the same content but other identifiers are both kept. |
 
 ### Category and categorization rule
 

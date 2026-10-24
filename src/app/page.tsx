@@ -6,6 +6,7 @@ export default async function HomePage() {
   const links = [
     { href: "/accounts", label: t("accounts") },
     { href: "/transactions", label: t("transactions") },
+    { href: "/imports", label: t("imports") },
     { href: "/categories", label: t("categories") },
     { href: "/synthesis", label: t("synthesis") },
   ];

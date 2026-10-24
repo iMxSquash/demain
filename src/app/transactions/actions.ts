@@ -1,7 +1,6 @@
 "use server";
 
 import { getLocale } from "next-intl/server";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { messageRef, type Translate } from "../../domain/message";
@@ -27,6 +26,7 @@ import {
 } from "../../ledger/transactions";
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
+import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
 import {
   parseTransactionForm,
@@ -42,7 +42,6 @@ import {
 import { TRANSFER_DECISION } from "./transfer-decision";
 
 const TRANSACTIONS_PATH = "/transactions";
-const ACCOUNTS_PATH = "/accounts";
 
 function loadCurrencies(): CurrencyByAccount {
   return withDatabase(
@@ -98,12 +97,6 @@ function describeFailure(
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Transaction action failed", error);
   return { message: translate(messageRef("nothingSaved")) };
-}
-
-function revalidateLedger(): void {
-  // Balances on the accounts page change with every movement.
-  revalidatePath(TRANSACTIONS_PATH);
-  revalidatePath(ACCOUNTS_PATH);
 }
 
 /** The notice, followed by the ceiling warning when there is one. */

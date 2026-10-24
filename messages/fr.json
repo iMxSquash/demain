@@ -19,7 +19,8 @@
     "accounts": "Comptes",
     "transactions": "Transactions",
     "categories": "Catégories",
-    "synthesis": "Synthèse mensuelle"
+    "synthesis": "Synthèse mensuelle",
+    "imports": "Import"
   },
   "accounts": {
     "metaTitle": "Comptes | Demain",
@@ -174,6 +175,66 @@
       "total": "Total"
     }
   },
+  "imports": {
+    "metaTitle": "Import | Demain",
+    "title": "Importer un relevé bancaire",
+    "intro": "Importez un fichier CSV ou OFX exporté par votre banque. Le fichier est lu sur ce serveur et ne va nulle part ailleurs. Importer deux fois le même fichier n'ajoute rien.",
+    "accountLabel": "Compte",
+    "chooseAccount": "Choisir un compte",
+    "noAccount": "Aucun compte actif pour l'instant. Ajoutez un compte avant d'importer.",
+    "fileLabel": "Fichier (CSV ou OFX, 20 Mo maximum)",
+    "previewSubmit": "Prévisualiser",
+    "importSubmit": "Importer",
+    "mappingHeading": "Colonnes du CSV",
+    "mappingHint": "Les colonnes sont numérotées à partir de 1, de gauche à droite. Le mappage est mémorisé pour le prochain import sur ce compte.",
+    "rawHeading": "Premières lignes du fichier",
+    "rawColumn": "Colonne {number}",
+    "delimiter": "Séparateur",
+    "delimiters": {
+      "semicolon": "Point-virgule (;)",
+      "comma": "Virgule (,)",
+      "tab": "Tabulation"
+    },
+    "hasHeader": "La première ligne contient les noms de colonnes",
+    "dateColumn": "Colonne de la date",
+    "dateFormat": "Format de la date",
+    "dateFormats": {
+      "dmy": "Jour / mois / année",
+      "mdy": "Mois / jour / année",
+      "ymd": "Année / mois / jour"
+    },
+    "labelColumn": "Colonne du libellé",
+    "amountKind": "Montants",
+    "amountKinds": {
+      "single": "Une colonne de montant signé",
+      "split": "Colonnes débit et crédit séparées"
+    },
+    "amountColumn": "Colonne du montant",
+    "debitColumn": "Colonne du débit",
+    "creditColumn": "Colonne du crédit",
+    "sampleHeading": "Comment les premières lignes seront lues",
+    "columns": {
+      "date": "Date",
+      "label": "Libellé",
+      "amount": "Montant"
+    },
+    "problemsHeading": "Lignes illisibles",
+    "moreProblems": "Et {count} autres.",
+    "warningsHeading": "À vérifier",
+    "ceilingWarning": "{label} ({date}) dépasse le plafond de dépôt de {excess} : vérifiez-la, ou marquez-la comme intérêts.",
+    "archivedWarning": "Ce compte est archivé : les mouvements sont importés quand même, car ils ont déjà eu lieu.",
+    "accountRequired": "Choisissez le compte dans lequel importer.",
+    "fileRequired": "Choisissez un fichier à importer.",
+    "fileTooLarge": "Ce fichier dépasse {max} Mo.",
+    "fileEmpty": "Le fichier est vide.",
+    "mappingNeeded": "Les colonnes n'ont pas pu être devinées. Renseignez les colonnes du CSV ci-dessous, puis prévisualisez à nouveau.",
+    "previewSummary": "Nouvelles transactions : {newCount}. Doublons ignorés : {duplicateCount}.",
+    "imported": "Transactions importées : {imported}. Doublons ignorés : {duplicates}.",
+    "nothingToImport": "Rien à importer : toutes les lignes sont déjà dans ce compte.",
+    "fixProblems": "Corrigez les lignes ci-dessous ou le mappage, puis prévisualisez à nouveau. Rien n'est importé tant qu'une ligne est invalide.",
+    "toCategorize": "Catégoriser les transactions importées",
+    "problemAtLine": "Ligne {line} : {message}"
+  },
   "feedback": {
     "accountNameRequired": "Le nom du compte est obligatoire",
     "accountKindUnknown": "Type de compte inconnu « {kind} »",
@@ -220,6 +281,18 @@
     "amountMissingDecimals": "Montant invalide « {text} » : chiffres manquants après le séparateur décimal",
     "amountTooManyDecimals": "Montant invalide « {text} » : {currency} a au plus {decimals} décimales",
     "amountTooLarge": "Montant invalide « {text} » : montant trop grand",
+    "importCsvUnclosedQuote": "Une cellule entre guillemets n'est jamais fermée",
+    "importCsvDateInvalid": "Date invalide « {date} »",
+    "importCsvColumnMissing": "La colonne {column} est absente",
+    "importCsvDebitAndCredit": "Un débit et un crédit sont tous deux renseignés",
+    "importCsvNoAmount": "Ni débit ni crédit renseigné",
+    "importLabelRequired": "Le libellé est obligatoire",
+    "importAmountZero": "Le montant ne peut pas être nul",
+    "importOfxNotOfx": "Le fichier n'est pas un relevé OFX",
+    "importOfxNoTransaction": "Le relevé ne contient aucune transaction",
+    "importOfxCurrencyMismatch": "Le relevé est en {found}, mais le compte est en {expected}",
+    "importOfxDateInvalid": "Date de comptabilisation invalide « {date} »",
+    "importOfxAmountMissing": "Le montant est absent",
     "accountGone": "Ce compte n'existe plus.",
     "categoryGone": "Cette catégorie n'existe plus.",
     "transactionGone": "Cette transaction n'existe plus.",

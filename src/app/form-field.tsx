@@ -7,7 +7,7 @@ export const CONTROL_CLASS =
 interface FormFieldProps {
   id: string;
   label: string;
-  error: string | undefined;
+  error?: string | undefined;
   children: ReactNode;
 }
 

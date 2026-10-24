@@ -82,7 +82,7 @@ The goal is that self-hosting Demain takes a few minutes on a PC, a VPS or a Ras
 2. Fill in the required environment variables, including the one-time setup token. The app refuses to start if one is missing.
 3. Run `docker compose up -d`.
 4. Point your reverse proxy at the container, on a dedicated subdomain (a Caddy example is documented).
-5. Open the app in a browser, create the single user account with the setup token, and import your first bank export.
+5. Open the app in a browser, create the single user account with the setup token, and import your first bank export (CSV or OFX, 20 MB at most) from the Import screen.
 
 Conceptually, the compose file declares one service and one volume, attached to the network your reverse proxy already uses. The port is never published on the host and the proxy is not part of this file, so several applications can share one host:
 

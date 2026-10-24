@@ -19,7 +19,8 @@
     "accounts": "Accounts",
     "transactions": "Transactions",
     "categories": "Categories",
-    "synthesis": "Monthly synthesis"
+    "synthesis": "Monthly synthesis",
+    "imports": "Import"
   },
   "accounts": {
     "metaTitle": "Accounts | Demain",
@@ -174,6 +175,66 @@
       "total": "Total"
     }
   },
+  "imports": {
+    "metaTitle": "Import | Demain",
+    "title": "Import a bank statement",
+    "intro": "Import a CSV or OFX file exported by your bank. The file is read on this server and goes nowhere else. Importing the same file twice adds nothing.",
+    "accountLabel": "Account",
+    "chooseAccount": "Choose an account",
+    "noAccount": "No active account yet. Add an account before importing.",
+    "fileLabel": "File (CSV or OFX, 20 MB at most)",
+    "previewSubmit": "Preview",
+    "importSubmit": "Import",
+    "mappingHeading": "CSV columns",
+    "mappingHint": "Columns are numbered from 1, left to right. The mapping is remembered for the next import on this account.",
+    "rawHeading": "First rows of the file",
+    "rawColumn": "Column {number}",
+    "delimiter": "Separator",
+    "delimiters": {
+      "semicolon": "Semicolon (;)",
+      "comma": "Comma (,)",
+      "tab": "Tab"
+    },
+    "hasHeader": "The first row contains column names",
+    "dateColumn": "Date column",
+    "dateFormat": "Date format",
+    "dateFormats": {
+      "dmy": "Day / month / year",
+      "mdy": "Month / day / year",
+      "ymd": "Year / month / day"
+    },
+    "labelColumn": "Label column",
+    "amountKind": "Amounts",
+    "amountKinds": {
+      "single": "One signed amount column",
+      "split": "Separate debit and credit columns"
+    },
+    "amountColumn": "Amount column",
+    "debitColumn": "Debit column",
+    "creditColumn": "Credit column",
+    "sampleHeading": "How the first rows will be read",
+    "columns": {
+      "date": "Date",
+      "label": "Label",
+      "amount": "Amount"
+    },
+    "problemsHeading": "Rows that cannot be read",
+    "moreProblems": "And {count} more.",
+    "warningsHeading": "To check",
+    "ceilingWarning": "{label} ({date}) exceeds the deposit ceiling by {excess}: check it, or mark it as interest.",
+    "archivedWarning": "This account is archived: the movements are imported anyway because they already happened.",
+    "accountRequired": "Choose the account to import into.",
+    "fileRequired": "Choose a file to import.",
+    "fileTooLarge": "This file is larger than {max} MB.",
+    "fileEmpty": "The file is empty.",
+    "mappingNeeded": "The columns could not be guessed. Fill in the CSV columns below, then preview again.",
+    "previewSummary": "New transactions: {newCount}. Duplicates ignored: {duplicateCount}.",
+    "imported": "Transactions imported: {imported}. Duplicates ignored: {duplicates}.",
+    "nothingToImport": "Nothing to import: every row is already in this account.",
+    "fixProblems": "Fix the rows below or the mapping, then preview again. Nothing is imported while a row is invalid.",
+    "toCategorize": "Categorize the imported transactions",
+    "problemAtLine": "Line {line}: {message}"
+  },
   "feedback": {
     "accountNameRequired": "The account name is required",
     "accountKindUnknown": "Unknown account kind \"{kind}\"",
@@ -220,6 +281,18 @@
     "amountMissingDecimals": "Invalid amount \"{text}\": missing digits after the decimal separator",
     "amountTooManyDecimals": "Invalid amount \"{text}\": {currency} has {decimals} decimal digits at most",
     "amountTooLarge": "Invalid amount \"{text}\": amount is too large",
+    "importCsvUnclosedQuote": "A quoted cell is never closed",
+    "importCsvDateInvalid": "Invalid date \"{date}\"",
+    "importCsvColumnMissing": "Column {column} is missing",
+    "importCsvDebitAndCredit": "Both a debit and a credit are filled in",
+    "importCsvNoAmount": "Neither a debit nor a credit is filled in",
+    "importLabelRequired": "The label is required",
+    "importAmountZero": "The amount cannot be zero",
+    "importOfxNotOfx": "The file is not an OFX statement",
+    "importOfxNoTransaction": "The statement contains no transaction",
+    "importOfxCurrencyMismatch": "The statement is in {found}, but the account is in {expected}",
+    "importOfxDateInvalid": "Invalid posting date \"{date}\"",
+    "importOfxAmountMissing": "The amount is missing",
     "accountGone": "This account no longer exists.",
     "categoryGone": "This category no longer exists.",
     "transactionGone": "This transaction no longer exists.",
