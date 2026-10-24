@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  check,
   integer,
   sqliteTable,
   text,
@@ -111,3 +112,35 @@ export const transactions = sqliteTable(
       .where(sql`${table.importFingerprint} is not null`),
   ],
 );
+
+// The single account of the instance. The check makes a second row impossible
+// even if the application guard around the setup token were bypassed.
+export const owner = sqliteTable(
+  "owner",
+  {
+    id: integer("id").primaryKey(),
+    // argon2id hash in PHC format.
+    passwordHash: text("password_hash").notNull(),
+    // Base32 secret, stored in clear: encryption at rest is delegated to the
+    // host (ADR-005). Null: TOTP is not enabled.
+    totpSecret: text("totp_secret"),
+    // Last accepted TOTP time step, so a code cannot be used twice.
+    totpLastStep: integer("totp_last_step"),
+    // JSON array of SHA-256 hex hashes of the unused backup codes.
+    backupCodeHashes: text("backup_code_hashes").notNull().default("[]"),
+    // ISO 8601 instant, UTC.
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [check("owner_single_row", sql`${table.id} = 1`)],
+);
+
+export const sessions = sqliteTable("sessions", {
+  // SHA-256 hex of the cookie token: a copy of the database cannot be replayed.
+  id: text("id").primaryKey(),
+  // ISO 8601 instants, UTC.
+  createdAt: text("created_at").notNull(),
+  lastSeenAt: text("last_seen_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  // True between the password step and the TOTP step: grants no access.
+  mfaPending: integer("mfa_pending", { mode: "boolean" }).notNull().default(false),
+});

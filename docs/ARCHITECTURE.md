@@ -148,7 +148,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Context.** Ports 80 and 443 of a host can be used by one process only, and the host may run other applications next to Demain (the owner plans a second system). Certificate management differs from one setup to another.
 
-**Decision.** The container serves HTTP on a private port that is never published on the host. HTTPS is terminated by a single reverse proxy shared by all the applications of the host, which routes by host name. Demain gets its own subdomain (for example `demain.example.com`), not a sub-path. The proxy is not part of Demain's compose file: Demain joins an external Docker network that the proxy also joins. Caddy is the documented proxy, with one complete example. The documentation also lists what Demain expects from any proxy: terminate HTTPS, forward the original host and protocol, never expose the app port directly.
+**Decision.** The container serves HTTP on a private port that is never published on the host. HTTPS is terminated by a single reverse proxy shared by all the applications of the host, which routes by host name. Demain gets its own subdomain (for example `demain.example.com`), not a sub-path. The proxy is not part of Demain's compose file: Demain joins an external Docker network that the proxy also joins. Caddy is the documented proxy, with one complete example. The documentation also lists what Demain expects from any proxy: terminate HTTPS, forward the original host and protocol (the `Host` header must reach the app unchanged, Server Actions refuse a request whose `Origin` differs from it), put the client address as the last entry of `X-Forwarded-For` (login rate limiting is counted per address), never expose the app port directly.
 
 **Alternatives rejected.**
 
@@ -303,7 +303,7 @@ Docker volume (SQLite file)
 - **Host firewall:** only ports 22 (SSH), 80 and 443 are open.
 - **Upgrades:** pulling a new image applies pending database migrations at startup. Migrations are versioned and never edited once released. Taking a backup before upgrading is documented as the standard procedure.
 - **First run:** the setup page that creates the single user account is protected by a one-time setup token provided through the environment, and is disabled as soon as an account exists. Anyone reaching a fresh instance before the owner cannot take it over without that token.
-- **Lost password:** there is no e-mail reset (no third party). A documented command run inside the container resets the password, access to the host being the proof of ownership. TOTP enrollment generates backup codes.
+- **Lost password:** there is no e-mail reset (no third party). A documented command run inside the container resets the password, access to the host being the proof of ownership. The image therefore ships `scripts/`, `src/` and `drizzle/` and runs on a Node.js that executes TypeScript natively (24), so that `node scripts/reset-password.ts` works inside the container. TOTP enrollment generates backup codes.
 - **Repository:** private until the end of M1, with the full `.github/` structure from its initialization. The image is published on GitHub Container Registry.
 
 ### Backups
@@ -323,8 +323,8 @@ Demain stores financial data, so the baseline applies from M1, not later.
 | Area | Measure |
 | --- | --- |
 | **Authentication** | Always on, single user. Passwords hashed with argon2id. Optional TOTP second factor with backup codes. Generic error messages ("invalid credentials"). First account created only through a one-time setup token. No e-mail reset: offline recovery command inside the container. |
-| **Sessions** | Session cookie `HttpOnly`, `Secure`, `SameSite`. No authentication token in `localStorage`. |
-| **Brute force** | Rate limiting on login (and on TOTP verification). In-process limiting is sufficient for a single instance. |
+| **Sessions** | Session cookie `HttpOnly`, `Secure`, `SameSite=Lax`, with the `__Host-` prefix in production. No authentication token in `localStorage`. Server-side sessions: only a hash of the token is stored, 30 days at most and 7 days without use (the last use is recorded at most once a minute), and a session that passed the password step but not the TOTP step grants nothing and lapses after 5 minutes. A proxy denies every page without a complete session, and each page and Server Action checks it again because a Server Function is a plain POST that a matcher change could leave uncovered. |
+| **Brute force** | Rate limiting on login (and on TOTP verification): 5 failures per client address in 15 minutes, counted in memory (sufficient for a single instance, reset by a restart). The address is the last entry of `X-Forwarded-For`, the one written by the reverse proxy whether it overwrites or appends, which is only reliable because the app port is never published. One budget per address, so a stranger cannot lock the owner out. |
 | **CSRF** | `SameSite` cookies plus anti-CSRF protection on every state-changing request. |
 | **Input validation** | Every external input (forms, query parameters, uploaded CSV and OFX files, future aggregator payloads) is validated server-side with a schema validator (Zod). Upload size is limited to 20 MB and file content is parsed, never executed. The CSV and OFX readers are hand-written, with no XML parser: nothing in a file can declare an entity, load another file or reach the network. |
 | **Injection** | Parameterized queries only, through the ORM. No string-built SQL. |

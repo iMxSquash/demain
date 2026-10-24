@@ -15,3 +15,16 @@ export function withDatabase<T>(work: (db: AppDatabase) => T): T {
     db.$client.close();
   }
 }
+
+/** Same as `withDatabase` for work that awaits, such as password hashing. */
+export async function withDatabaseAsync<T>(
+  work: (db: AppDatabase) => Promise<T>,
+): Promise<T> {
+  const env = parseEnv(process.env);
+  const db = openDatabase(env.DEMAIN_DATA_DIR);
+  try {
+    return await work(db);
+  } finally {
+    db.$client.close();
+  }
+}

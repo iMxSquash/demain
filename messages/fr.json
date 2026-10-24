@@ -305,6 +305,60 @@
     "transferRecorded": "Virement enregistré.",
     "transferUnplaced": "{amount} ne tient nulle part et reste sur le compte source.",
     "transferSurplusAsk": "Le compte de destination ne peut pas recevoir tout le montant.",
-    "transferCancelled": "Virement annulé : rien n'a été enregistré."
+    "transferCancelled": "Virement annulé : rien n'a été enregistré.",
+    "authInvalidCredentials": "Identifiants invalides",
+    "authInvalidCode": "Code invalide",
+    "authTooManyAttempts": "Trop de tentatives échouées. Réessayez dans {minutes} min.",
+    "authPasswordTooShort": "Le mot de passe doit faire au moins {min} caractères",
+    "authPasswordTooLong": "Le mot de passe doit faire au plus {max} caractères",
+    "authPasswordMismatch": "Les deux mots de passe ne correspondent pas",
+    "authSetupRefused": "Configuration refusée. Vérifiez le jeton de configuration.",
+    "authPasswordWrong": "Mot de passe incorrect",
+    "authNotSaved": "La demande n'a pas pu être traitée. Réessayez."
+  },
+  "auth": {
+    "signOut": "Se déconnecter",
+    "security": "Sécurité",
+    "login": {
+      "metaTitle": "Connexion | Demain",
+      "title": "Connexion",
+      "password": "Mot de passe",
+      "submit": "Se connecter"
+    },
+    "totp": {
+      "metaTitle": "Second facteur | Demain",
+      "title": "Second facteur",
+      "intro": "Saisissez le code à 6 chiffres de votre application d'authentification, ou l'un de vos codes de secours.",
+      "code": "Code",
+      "submit": "Vérifier"
+    },
+    "setup": {
+      "metaTitle": "Configuration | Demain",
+      "title": "Créer votre compte",
+      "intro": "Cette instance n'a pas encore de compte. Saisissez le jeton de configuration défini dans la variable d'environnement DEMAIN_SETUP_TOKEN, puis choisissez un mot de passe d'au moins {min} caractères.",
+      "unavailable": "Aucun jeton de configuration n'est défini. Renseignez la variable d'environnement DEMAIN_SETUP_TOKEN (au moins 32 caractères), redémarrez le serveur, puis rechargez cette page.",
+      "token": "Jeton de configuration",
+      "password": "Mot de passe",
+      "confirm": "Confirmez le mot de passe",
+      "submit": "Créer le compte"
+    },
+    "securityPage": {
+      "metaTitle": "Sécurité | Demain",
+      "title": "Sécurité",
+      "totpHeading": "Authentification à deux facteurs",
+      "totpOff": "L'authentification à deux facteurs est désactivée.",
+      "totpOn": "L'authentification à deux facteurs est activée.",
+      "enrollIntro": "Ajoutez ce compte à votre application d'authentification, puis saisissez le code qu'elle affiche pour activer la fonction.",
+      "openInApp": "Ouvrir dans l'application d'authentification de cet appareil",
+      "secretLabel": "Ou saisissez cette clé dans l'application :",
+      "code": "Code de l'application",
+      "enable": "Activer",
+      "backupHeading": "Vos codes de secours",
+      "backupIntro": "Conservez ces codes en lieu sûr. Chacun fonctionne une fois si vous perdez votre application. Ils ne seront plus affichés.",
+      "disableHeading": "Désactiver",
+      "disableIntro": "Saisissez votre mot de passe pour désactiver l'authentification à deux facteurs.",
+      "password": "Mot de passe",
+      "disable": "Désactiver"
+    }
   }
 }

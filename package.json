@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "auth:reset-password": "node scripts/reset-password.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",

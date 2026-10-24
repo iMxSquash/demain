@@ -14,6 +14,7 @@ import {
 } from "../../ledger/categories";
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
+import { requireSession } from "../auth/session";
 import { getTranslator } from "../translator";
 import {
   parseCategoryChoice,
@@ -45,6 +46,7 @@ export async function createCategoryAction(
   _previous: CategoryFormState | null,
   formData: FormData,
 ): Promise<CategoryFormState | null> {
+  await requireSession();
   const name = readCategoryName(formData);
   try {
     withDatabase((db) => createCategory(db, { name }));
@@ -61,6 +63,7 @@ export async function renameCategoryAction(
   _previous: CategoryFormState | null,
   formData: FormData,
 ): Promise<CategoryFormState | null> {
+  await requireSession();
   const name = readCategoryName(formData);
   try {
     withDatabase((db) => renameCategory(db, id, { name }));
@@ -75,6 +78,7 @@ export async function renameCategoryAction(
 }
 
 export async function archiveCategoryAction(id: number): Promise<void> {
+  await requireSession();
   try {
     withDatabase((db) => archiveCategory(db, id));
   } catch (error) {
@@ -90,6 +94,7 @@ export async function categorizeTransactionAction(
   _previous: CategorizeState | null,
   formData: FormData,
 ): Promise<CategorizeState | null> {
+  await requireSession();
   const translate = await getTranslator();
   const choice = parseCategoryChoice(formData, translate);
   if (!choice.ok) return { message: choice.message };

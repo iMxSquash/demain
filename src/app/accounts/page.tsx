@@ -14,6 +14,7 @@ import { withDatabase } from "../../storage/with-database";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
+import { requireSession } from "../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("accounts");
@@ -31,6 +32,7 @@ const NEW_ACCOUNT_DEFAULTS = {
 };
 
 export default async function AccountsPage() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("accounts");

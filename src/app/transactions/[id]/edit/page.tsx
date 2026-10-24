@@ -14,6 +14,7 @@ import {
 import { withDatabase } from "../../../../storage/with-database";
 import { updateTransactionAction } from "../../actions";
 import { TransactionForm } from "../../transaction-form";
+import { requireSession } from "../../../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("transactions");
@@ -25,6 +26,7 @@ export default async function EditTransactionPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireSession();
   await connection();
   const [t, common] = await Promise.all([
     getTranslations("transactions"),

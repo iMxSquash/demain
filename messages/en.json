@@ -305,6 +305,60 @@
     "transferRecorded": "Transfer recorded.",
     "transferUnplaced": "{amount} fits nowhere and stays in the source account.",
     "transferSurplusAsk": "The destination account cannot take the whole amount.",
-    "transferCancelled": "Transfer cancelled: nothing was recorded."
+    "transferCancelled": "Transfer cancelled: nothing was recorded.",
+    "authInvalidCredentials": "Invalid credentials",
+    "authInvalidCode": "Invalid code",
+    "authTooManyAttempts": "Too many failed attempts. Try again in {minutes} min.",
+    "authPasswordTooShort": "The password must be at least {min} characters",
+    "authPasswordTooLong": "The password must be at most {max} characters",
+    "authPasswordMismatch": "The two passwords do not match",
+    "authSetupRefused": "Setup refused. Check the setup token.",
+    "authPasswordWrong": "Incorrect password",
+    "authNotSaved": "The request could not be processed. Try again."
+  },
+  "auth": {
+    "signOut": "Sign out",
+    "security": "Security",
+    "login": {
+      "metaTitle": "Sign in | Demain",
+      "title": "Sign in",
+      "password": "Password",
+      "submit": "Sign in"
+    },
+    "totp": {
+      "metaTitle": "Second factor | Demain",
+      "title": "Second factor",
+      "intro": "Enter the 6-digit code from your authenticator app, or one of your backup codes.",
+      "code": "Code",
+      "submit": "Verify"
+    },
+    "setup": {
+      "metaTitle": "Setup | Demain",
+      "title": "Create your account",
+      "intro": "This instance has no account yet. Enter the setup token defined in the DEMAIN_SETUP_TOKEN environment variable, then choose a password of at least {min} characters.",
+      "unavailable": "No setup token is configured. Set the DEMAIN_SETUP_TOKEN environment variable (at least 32 characters), restart the server, then reload this page.",
+      "token": "Setup token",
+      "password": "Password",
+      "confirm": "Confirm the password",
+      "submit": "Create the account"
+    },
+    "securityPage": {
+      "metaTitle": "Security | Demain",
+      "title": "Security",
+      "totpHeading": "Two-factor authentication",
+      "totpOff": "Two-factor authentication is off.",
+      "totpOn": "Two-factor authentication is on.",
+      "enrollIntro": "Add this account to your authenticator app, then enter the code it shows to turn the feature on.",
+      "openInApp": "Open in the authenticator app on this device",
+      "secretLabel": "Or type this key in the app:",
+      "code": "Code from the app",
+      "enable": "Turn on",
+      "backupHeading": "Your backup codes",
+      "backupIntro": "Keep these codes somewhere safe. Each one works once if you lose your authenticator. They are not shown again.",
+      "disableHeading": "Turn off",
+      "disableIntro": "Enter your password to turn two-factor authentication off.",
+      "password": "Password",
+      "disable": "Turn off"
+    }
   }
 }

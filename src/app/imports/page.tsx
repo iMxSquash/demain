@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { listAccounts } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
 import { ImportForm } from "./import-form";
+import { requireSession } from "../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("imports");
@@ -13,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ImportsPage() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common] = await Promise.all([

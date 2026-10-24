@@ -13,6 +13,7 @@ import {
 import { withDatabase } from "../../../../storage/with-database";
 import { AccountForm } from "../../account-form";
 import { updateAccountAction } from "../../actions";
+import { requireSession } from "../../../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("accounts");
@@ -24,6 +25,7 @@ export default async function EditAccountPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireSession();
   await connection();
   const t = await getTranslations("accounts");
   const common = await getTranslations("common");

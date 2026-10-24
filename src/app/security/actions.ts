@@ -1,0 +1,88 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import { authenticatePassword, disableTotp, enableTotp } from "../../auth/owner";
+import { messageRef, type Translate } from "../../domain/message";
+import { withDatabase, withDatabaseAsync } from "../../storage/with-database";
+import { readText, type AuthFormState } from "../auth/auth-form-data";
+import { clientAddress, loginLimiter, tooManyAttemptsMessage } from "../auth/limiters";
+import { requireSession } from "../auth/session";
+import { getTranslator } from "../translator";
+
+const SECURITY_PATH = "/security";
+// The secret travels in a hidden field: refuse anything that is not a secret
+// we could have generated, so a malformed value never reaches the decoder.
+const SECRET_PATTERN = /^[A-Z2-7]{32}$/;
+
+export interface EnrollState {
+  message?: string;
+  backupCodes?: string[];
+}
+
+export async function enableTotpAction(
+  _previous: EnrollState | null,
+  formData: FormData,
+): Promise<EnrollState | null> {
+  await requireSession();
+  const translate = await getTranslator();
+  const secret = readText(formData, "secret");
+  if (!SECRET_PATTERN.test(secret)) {
+    return { message: translate(messageRef("authNotSaved")) };
+  }
+
+  const refusal = await confirmPassword(formData, translate);
+  if (refusal) {
+    return { message: refusal };
+  }
+
+  const enabled = withDatabase((db) =>
+    enableTotp(db, { secret, code: readText(formData, "code"), now: new Date() }),
+  );
+  if (!enabled) {
+    return { message: translate(messageRef("authInvalidCode")) };
+  }
+  // No revalidation: the page would swap this form for the "on" state and the
+  // backup codes, shown only once, would vanish before they are read.
+  return { backupCodes: enabled.backupCodes };
+}
+
+/** Turning the second factor off asks for the password again, as turning it on does. */
+export async function disableTotpAction(
+  _previous: AuthFormState | null,
+  formData: FormData,
+): Promise<AuthFormState | null> {
+  await requireSession();
+  const refusal = await confirmPassword(formData, await getTranslator());
+  if (refusal) {
+    return { message: refusal };
+  }
+
+  withDatabase(disableTotp);
+  revalidatePath(SECURITY_PATH);
+  return null;
+}
+
+/**
+ * Changes to the second factor ask for the password again: a stolen session is
+ * not enough. Returns the message of the refusal, or null once confirmed. A
+ * wrong password counts against the same budget as a failed login.
+ */
+async function confirmPassword(formData: FormData, translate: Translate): Promise<string | null> {
+  const client = await clientAddress();
+  const now = Date.now();
+
+  const gate = loginLimiter.check(client, now);
+  if (!gate.allowed) {
+    return tooManyAttemptsMessage(translate, gate.retryAfterMs);
+  }
+  const isPasswordRight = await withDatabaseAsync((db) =>
+    authenticatePassword(db, readText(formData, "password")),
+  );
+  if (!isPasswordRight) {
+    loginLimiter.recordFailure(client, now);
+    return translate(messageRef("authPasswordWrong"));
+  }
+  loginLimiter.reset(client);
+  return null;
+}

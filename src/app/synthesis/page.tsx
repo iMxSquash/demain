@@ -9,6 +9,7 @@ import { formatMonth, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { getMonthlySynthesis } from "../../ledger/synthesis";
 import { withDatabase } from "../../storage/with-database";
+import { requireSession } from "../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("synthesis");
@@ -21,6 +22,7 @@ const NUMBER_HEADER = "py-2 pr-4 text-right";
 const NUMBER_CELL = "py-2 pr-4 text-right tabular-nums";
 
 export default async function SynthesisPage() {
+  await requireSession();
   // The page reads the database and the clock: it must run per request.
   await connection();
   const [t, common, locale, timeZone] = await Promise.all([

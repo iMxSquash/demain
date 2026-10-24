@@ -11,6 +11,7 @@ import { ConfirmActionButton } from "../confirm-action-button";
 import { archiveCategoryAction, createCategoryAction } from "./actions";
 import { CategoryForm } from "./category-form";
 import { ToCategorizeQueue } from "./to-categorize-queue";
+import { requireSession } from "../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("categories");
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CategoriesPage() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common] = await Promise.all([
