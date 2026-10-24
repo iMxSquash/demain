@@ -64,6 +64,13 @@
       "when": 1792853880945,
       "tag": "0008_puzzling_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792858436618,
+      "tag": "0009_balance_assertions",
+      "breakpoints": true
     }
   ]
 }

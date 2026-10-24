@@ -62,7 +62,39 @@
       "openingBalance": "Opening balance",
       "depositCeiling": "Deposit ceiling (optional, leave empty for none)",
       "overflowAccount": "Overflow account (optional)"
-    }
+    },
+    "balances": "Balances"
+  },
+  "balances": {
+    "metaTitle": "Balance assertions | Demain",
+    "title": "Balance assertions: {name}",
+    "intro": "Record the balance your bank shows for this account. The unexplained gap is the balance Demain computes at the end of that day minus the amount you record.",
+    "addHeading": "Record a balance",
+    "listHeading": "Recorded balances",
+    "empty": "No balance recorded for this account yet.",
+    "regionLabel": "Balance assertions, scrollable table",
+    "caption": "Balances recorded for {name}, most recent first",
+    "submit": "Record balance",
+    "form": {
+      "date": "Date (end of day)",
+      "amount": "Balance shown by the bank",
+      "note": "Note (optional)"
+    },
+    "columns": {
+      "date": "Date",
+      "asserted": "Bank balance",
+      "computed": "Computed balance",
+      "gap": "Unexplained gap",
+      "note": "Note",
+      "actions": "Actions"
+    },
+    "gapNone": "No gap",
+    "gapDemainHigher": "Demain holds more than the bank",
+    "gapBankHigher": "The bank shows more than Demain",
+    "delete": "Delete",
+    "deleteTitle": "Delete the balance of {date}?",
+    "deleteMessage": "Only the recorded balance is deleted. Your transactions are not touched.",
+    "deleteConfirm": "Delete balance"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -282,6 +314,10 @@
     "accountOpeningDateInvalid": "Invalid opening date \"{date}\", expected YYYY-MM-DD",
     "accountCurrencyLocked": "The currency cannot change once the account has transactions",
     "accountCurrencyInUseByOverflow": "The currency cannot change while {name} uses this account as its overflow account",
+    "balanceAssertionDateInvalid": "Invalid date \"{date}\", expected YYYY-MM-DD",
+    "balanceAssertionBeforeOpening": "The date cannot be before the opening of the account ({openingDate})",
+    "balanceAssertionAmountInvalid": "The balance must be an integer in minor units",
+    "balanceAssertionOnArchivedAccount": "This account is archived: no balance can be recorded on it",
     "overflowAccountMissing": "The overflow account does not exist",
     "overflowAccountArchived": "The overflow account is archived",
     "overflowAccountCurrencyMismatch": "The overflow account must have the same currency",
@@ -355,7 +391,8 @@
     "authSetupRefused": "Setup refused. Check the setup token.",
     "authPasswordWrong": "Incorrect password",
     "authNotSaved": "The request could not be processed. Try again.",
-    "ruleAccountUnknown": "Unknown account"
+    "ruleAccountUnknown": "Unknown account",
+    "balanceAssertionNotSaved": "The balance could not be saved"
   },
   "auth": {
     "signOut": "Sign out",
