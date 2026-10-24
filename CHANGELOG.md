@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Next.js is upgraded from 16.4.0 to 16.4.3, which fixes three advisories reported by `npm audit` (two unauthenticated remote code execution flaws in the image optimization API and in `use cache`, neither used by Demain, and a denial of service through Server Actions, which Demain exposes). The minimum version in `package.json` is raised to match.
 - Archiving an account is refused unless its computed balance is exactly zero (a negative balance included). No transaction can be entered on, edited on or deleted from an archived account, and the currency of an account cannot change once it has a transaction.
 - Field errors of the forms are announced to assistive technologies and focus moves to the first invalid field after a refused submit.
 - Validation errors of the domain carry a translation key (`MessageRef`) besides their English message, and form errors are translated server side.
