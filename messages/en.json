@@ -191,7 +191,10 @@
     },
     "moveUp": "Move up",
     "moveDown": "Move down",
-    "delete": "Delete"
+    "delete": "Delete",
+    "deleteTitle": "Delete this rule?",
+    "deleteMessage": "The rule is removed. Transactions that already have a category keep it.",
+    "deleteConfirm": "Delete rule"
   },
   "synthesis": {
     "metaTitle": "Monthly synthesis | Demain",

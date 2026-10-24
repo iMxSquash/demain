@@ -53,27 +53,34 @@ export function listApplicableRules(db: RuleReader): CategorizationRule[] {
     .all();
 }
 
+/** The caller has validated the value and checked that the category and account exist. */
+export function insertRule(
+  writer: Pick<AppDatabase, "select" | "insert">,
+  rule: Omit<CategorizationRule, "id" | "priority">,
+): CategorizationRule {
+  const last = writer
+    .select({ priority: max(categorizationRules.priority) })
+    .from(categorizationRules)
+    .get();
+  return writer
+    .insert(categorizationRules)
+    .values({ ...rule, priority: (last?.priority ?? 0) + 1 })
+    .returning()
+    .get();
+}
+
 export function createRule(db: AppDatabase, input: NewRule): CategorizationRule {
   const value = validateRuleValue(input.value);
   const accountId = input.accountId ?? null;
   getCategory(db, input.categoryId);
   if (accountId !== null) getAccount(db, accountId);
 
-  const last = db
-    .select({ priority: max(categorizationRules.priority) })
-    .from(categorizationRules)
-    .get();
-  return db
-    .insert(categorizationRules)
-    .values({
-      operator: input.operator,
-      value,
-      accountId,
-      categoryId: input.categoryId,
-      priority: (last?.priority ?? 0) + 1,
-    })
-    .returning()
-    .get();
+  return insertRule(db, {
+    operator: input.operator,
+    value,
+    accountId,
+    categoryId: input.categoryId,
+  });
 }
 
 /** Swaps the rule with its neighbour; the first rule cannot go up, nor the last go down. */

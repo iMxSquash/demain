@@ -191,7 +191,10 @@
     },
     "moveUp": "Monter",
     "moveDown": "Descendre",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "deleteTitle": "Supprimer cette règle ?",
+    "deleteMessage": "La règle est supprimée. Les transactions déjà catégorisées gardent leur catégorie.",
+    "deleteConfirm": "Supprimer la règle"
   },
   "synthesis": {
     "metaTitle": "Synthèse mensuelle | Demain",

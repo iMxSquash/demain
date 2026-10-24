@@ -53,7 +53,6 @@ export const categorizationRules = sqliteTable("categorization_rules", {
   operator: text("operator", {
     enum: ["contains", "starts_with", "equals"],
   }).notNull(),
-  // Compared with the transaction label, case-insensitively.
   value: text("value").notNull(),
   // Null: the rule applies to every account.
   accountId: integer("account_id").references(() => accounts.id, {

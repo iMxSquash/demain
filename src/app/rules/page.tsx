@@ -8,6 +8,7 @@ import { listCategories } from "../../ledger/categories";
 import { listRules } from "../../ledger/categorization-rules";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { ConfirmActionButton } from "../confirm-action-button";
 import { deleteRuleAction, createRuleAction, moveRuleAction } from "./actions";
 import { RuleForm } from "./rule-form";
 
@@ -105,11 +106,14 @@ export default async function RulesPage() {
                             {t("moveDown")}<span className="sr-only"> {subject}</span>
                           </button>
                         </form>
-                        <form action={deleteRuleAction.bind(null, rule.id)}>
-                          <button type="submit" className="min-h-11 px-2 underline">
-                            {t("delete")}<span className="sr-only"> {subject}</span>
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={deleteRuleAction.bind(null, rule.id)}
+                          label={t("delete")}
+                          subject={subject}
+                          title={t("deleteTitle")}
+                          message={t("deleteMessage")}
+                          confirmLabel={t("deleteConfirm")}
+                        />
                       </div>
                     </td>
                   </tr>

@@ -12,7 +12,6 @@ import {
   createCategory,
   renameCategory,
 } from "../../ledger/categories";
-import { createRule } from "../../ledger/categorization-rules";
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
@@ -102,7 +101,7 @@ export async function categorizeTransactionAction(
   const translate = await getTranslator();
   const choice = parseCategoryChoice(formData, translate);
   if (!choice.ok) return { field: "category", message: choice.message };
-  // Checked before anything is written: a refused rule must not leave the row half done.
+  // Parsed first, so that a refused suggestion is reported before the database is touched.
   const suggestion = parseRuleSuggestion(formData, translate);
   if (!suggestion.ok) {
     return {
@@ -113,12 +112,11 @@ export async function categorizeTransactionAction(
   }
 
   try {
-    withDatabase((db) => {
-      setTransactionCategory(db, transactionId, choice.categoryId);
-      if (suggestion.rule !== null) {
-        createRule(db, { ...suggestion.rule, categoryId: choice.categoryId });
-      }
-    });
+    withDatabase((db) =>
+      setTransactionCategory(db, transactionId, choice.categoryId, {
+        rule: suggestion.rule,
+      }),
+    );
   } catch (error) {
     if (error instanceof CategoryNotFoundError) {
       return { field: "category", message: translate(messageRef("categoryGone")) };

@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { at } from "../auth/at";
+import { createAccount } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
 import {
   createRule,
@@ -12,6 +13,11 @@ import {
   listRules,
   moveRule,
 } from "../../src/ledger/categorization-rules";
+import {
+  createTransaction,
+  listUncategorizedTransactions,
+  setTransactionCategory,
+} from "../../src/ledger/transactions";
 import {
   type AppDatabase,
   migrateDatabase,
@@ -98,5 +104,61 @@ describe("categorization rules", () => {
       at(rules, 0).id,
       at(rules, 2).id,
     ]);
+  });
+
+  describe("categorizing with a rule", () => {
+    function setup() {
+      const account = createAccount(db, {
+        name: "Checking",
+        kind: "checking",
+        currency: "EUR",
+        openingDate: "2026-01-01",
+        openingBalance: 0,
+      });
+      const category = createCategory(db, { name: "Groceries" });
+      const transaction = createTransaction(db, {
+        accountId: account.id,
+        date: "2026-02-10",
+        amount: -1_250,
+        kind: "expense",
+        label: "CARD SHOP PARIS",
+      });
+      return { category, transaction };
+    }
+
+    it("categorizes the transaction and records the rule together", () => {
+      const { category, transaction } = setup();
+
+      const updated = setTransactionCategory(db, transaction.id, category.id, {
+        rule: { operator: "contains", value: " shop " },
+      });
+
+      expect(updated.categoryId).toBe(category.id);
+      expect(listRules(db)).toEqual([
+        {
+          id: expect.any(Number),
+          operator: "contains",
+          value: "shop",
+          accountId: null,
+          categoryId: category.id,
+          priority: 1,
+        },
+      ]);
+    });
+
+    it("leaves the transaction in the queue when the rule cannot be stored", () => {
+      const { category, transaction } = setup();
+      db.$client.exec("DROP TABLE categorization_rules");
+
+      expect(() =>
+        setTransactionCategory(db, transaction.id, category.id, {
+          rule: { operator: "contains", value: "shop" },
+        }),
+      ).toThrow();
+
+      expect(listUncategorizedTransactions(db).map((t) => t.id)).toEqual([
+        transaction.id,
+      ]);
+    });
   });
 });

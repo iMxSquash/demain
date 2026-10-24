@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
 
 import { assertCategoryAssignable } from "../domain/category";
+import { validateRuleValue, type RuleOperator } from "../domain/categorization-rule";
 import {
   buildTransferLegs,
   ceilingWarningFor,
@@ -23,6 +24,7 @@ import {
   type Account,
 } from "./accounts";
 import { getCategory } from "./categories";
+import { insertRule } from "./categorization-rules";
 
 export type Transaction = typeof transactions.$inferSelect;
 
@@ -295,16 +297,42 @@ export function updateTransaction(
 
 /**
  * Categorizes from the to-categorize queue. A category does not move any
- * balance, so it is allowed on a transaction of an archived account.
+ * balance, so it is allowed on a transaction of an archived account. With
+ * `rule`, the rule suggested by the user is recorded in the same operation,
+ * so that either both happen or neither does.
  */
 export function setTransactionCategory(
   db: AppDatabase,
   id: number,
   categoryId: number | null,
+  { rule = null }: { rule?: { operator: RuleOperator; value: string } | null } = {},
 ): Transaction {
   const current = getTransaction(db, id);
   assertCategoryChoice(db, current.kind, categoryId, current.categoryId);
-  return db
+  if (rule === null) return writeCategory(db, id, categoryId);
+
+  if (categoryId === null) {
+    throw new Error("A rule needs a category to assign");
+  }
+  const value = validateRuleValue(rule.value);
+  return db.transaction((tx) => {
+    const updated = writeCategory(tx, id, categoryId);
+    insertRule(tx, {
+      operator: rule.operator,
+      value,
+      accountId: null,
+      categoryId,
+    });
+    return updated;
+  });
+}
+
+function writeCategory(
+  writer: Pick<AppDatabase, "update">,
+  id: number,
+  categoryId: number | null,
+): Transaction {
+  return writer
     .update(transactions)
     .set({ categoryId })
     .where(eq(transactions.id, id))
