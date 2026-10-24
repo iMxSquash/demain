@@ -12,6 +12,7 @@ import {
   updateAccount,
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
+import { requireSession } from "../auth/session";
 import { getTranslator } from "../translator";
 import {
   parseAccountForm,
@@ -42,6 +43,7 @@ export async function createAccountAction(
   _previous: AccountFormState | null,
   formData: FormData,
 ): Promise<AccountFormState | null> {
+  await requireSession();
   const translate = await getTranslator();
   const parsed = parseAccountForm(formData, translate);
   if (!parsed.ok) return parsed.error;
@@ -61,6 +63,7 @@ export async function updateAccountAction(
   _previous: AccountFormState | null,
   formData: FormData,
 ): Promise<AccountFormState | null> {
+  await requireSession();
   const translate = await getTranslator();
   const parsed = parseAccountForm(formData, translate);
   if (!parsed.ok) return parsed.error;
@@ -77,6 +80,7 @@ export async function updateAccountAction(
 }
 
 export async function archiveAccountAction(id: number): Promise<void> {
+  await requireSession();
   withDatabase((db) => archiveAccount(db, id));
   revalidatePath(ACCOUNTS_PATH);
 }

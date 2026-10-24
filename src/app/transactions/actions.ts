@@ -27,6 +27,7 @@ import {
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
 import { revalidateLedger } from "../revalidate-ledger";
+import { requireSession } from "../auth/session";
 import { getTranslator } from "../translator";
 import {
   parseTransactionForm,
@@ -131,6 +132,7 @@ export async function createTransactionAction(
   _previous: TransactionFormState | null,
   formData: FormData,
 ): Promise<TransactionFormState | null> {
+  await requireSession();
   const [translate, locale] = await Promise.all([getTranslator(), getLocale()]);
   const currencies = loadCurrencies();
   const parsed = parseTransactionForm(formData, currencies, translate);
@@ -174,6 +176,7 @@ export async function updateTransactionAction(
   _previous: TransactionFormState | null,
   formData: FormData,
 ): Promise<TransactionFormState | null> {
+  await requireSession();
   const [translate, locale] = await Promise.all([getTranslator(), getLocale()]);
   const currencies = loadCurrencies();
   const parsed = parseTransactionForm(formData, currencies, translate);
@@ -211,6 +214,7 @@ export async function updateTransactionAction(
 }
 
 export async function deleteTransactionAction(id: number): Promise<void> {
+  await requireSession();
   withDatabase((db) => deleteTransaction(db, id));
   revalidateLedger();
 }
@@ -272,6 +276,7 @@ export async function createTransferAction(
   _previous: TransferFormState | null,
   formData: FormData,
 ): Promise<TransferFormState | null> {
+  await requireSession();
   const [translate, locale] = await Promise.all([getTranslator(), getLocale()]);
   const values = readTransferValues(formData);
   if (formData.get("decision") === TRANSFER_DECISION.cancel) {

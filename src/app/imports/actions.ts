@@ -23,6 +23,7 @@ import {
 } from "../../ledger/imports";
 import { withDatabase } from "../../storage/with-database";
 import { revalidateLedger } from "../revalidate-ledger";
+import { requireSession } from "../auth/session";
 import { getTranslator } from "../translator";
 import {
   decodeImportFile,
@@ -121,6 +122,7 @@ export async function importAction(
   _previous: ImportFormState | null,
   formData: FormData,
 ): Promise<ImportFormState> {
+  await requireSession();
   const [t, translate, locale] = await Promise.all([
     getTranslations("imports"),
     getTranslator(),

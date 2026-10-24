@@ -17,6 +17,7 @@ import {
 } from "./actions";
 import { TransactionForm } from "./transaction-form";
 import { TransferForm } from "./transfer-form";
+import { requireSession } from "../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("transactions");
@@ -24,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TransactionsPage() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common, locale, timeZone] = await Promise.all([

@@ -11,6 +11,7 @@ import {
 import { withDatabase } from "../../../../storage/with-database";
 import { renameCategoryAction } from "../../actions";
 import { CategoryForm } from "../../category-form";
+import { requireSession } from "../../../auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("categories");
@@ -22,6 +23,7 @@ export default async function RenameCategoryPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireSession();
   await connection();
   const [t, common] = await Promise.all([
     getTranslations("categories"),
