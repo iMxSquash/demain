@@ -7,6 +7,7 @@ export default async function HomePage() {
     { href: "/accounts", label: t("accounts") },
     { href: "/transactions", label: t("transactions") },
     { href: "/imports", label: t("imports") },
+    { href: "/migration", label: t("migration") },
     { href: "/categories", label: t("categories") },
     { href: "/rules", label: t("rules") },
     { href: "/synthesis", label: t("synthesis") },
