@@ -108,7 +108,7 @@ function buildLegsFor(
   });
 }
 
-function insertTransferLegs(
+export function insertTransferLegs(
   writer: Writer,
   [outgoingLeg, incomingLeg]: [TransferLeg, TransferLeg],
 ): [outgoing: Transaction, incoming: Transaction] {
