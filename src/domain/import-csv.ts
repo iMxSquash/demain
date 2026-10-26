@@ -4,6 +4,7 @@
  */
 
 import { isCalendarDate } from "./account";
+import type { MessageRef } from "./message";
 import {
   importParseError,
   ImportParseError,
@@ -137,17 +138,64 @@ const DATE_ORDER: Record<
   mdy: [3, 1, 2],
 };
 
-function readDate(text: string, format: CsvDateFormat, line: number): string {
+// A two-digit year would be a guess about the century.
+function parseDate(text: string, format: CsvDateFormat): string | null {
   const parts = DATE_PATTERN.exec(text.trim());
   const [year, month, day] = DATE_ORDER[format].map(
     (position) => parts?.[position],
   );
-  // A two-digit year would be a guess about the century.
   const date =
     year?.length === 4 && month !== undefined && day !== undefined
       ? `${year}-${pad(month, 2)}-${pad(day, 2)}`
       : null;
-  if (date === null || !isCalendarDate(date)) {
+  return date !== null && isCalendarDate(date) ? date : null;
+}
+
+// A day and a month with nothing else: "13/01".
+const YEARLESS_DATE_PATTERN = /^(\d{1,2})([/.-])(\d{1,2})$/;
+
+/** Whether every filled cell is a day and a month with no year, and at least one is filled. */
+export function datesLackYear(cells: readonly string[]): boolean {
+  const filled = cells.map((cell) => cell.trim()).filter((cell) => cell !== "");
+  return (
+    filled.length > 0 &&
+    filled.every((cell) => YEARLESS_DATE_PATTERN.test(cell))
+  );
+}
+
+/** "13/01" becomes "13/01/2026"; any other text is returned as it is. */
+export function completeDateYear(text: string, year: number): string {
+  const match = YEARLESS_DATE_PATTERN.exec(text.trim());
+  if (match === null) return text;
+  const [, first = "", separator = "", second = ""] = match;
+  return `${first}${separator}${second}${separator}${year}`;
+}
+
+export interface DateFormatDetection {
+  format: CsvDateFormat;
+  /** Several formats read every date: this one is the likeliest, to confirm. */
+  isAmbiguous: boolean;
+}
+
+/**
+ * The format that reads every date. When several do, the first of
+ * `CSV_DATE_FORMATS` wins (French exports write the day first) and the result
+ * is flagged. Null when no format reads them all, or without dates.
+ */
+export function detectDateFormat(
+  dates: readonly string[],
+): DateFormatDetection | null {
+  const readable = CSV_DATE_FORMATS.filter((format) =>
+    dates.every((text) => parseDate(text, format) !== null),
+  );
+  const [format] = readable;
+  if (dates.length === 0 || format === undefined) return null;
+  return { format, isAmbiguous: readable.length > 1 };
+}
+
+function readDate(text: string, format: CsvDateFormat, line: number): string {
+  const date = parseDate(text, format);
+  if (date === null) {
     throw importParseError(
       `Invalid date "${text}" at row ${line}`,
       "importCsvDateInvalid",
@@ -276,7 +324,7 @@ export function chooseCsvMapping(
 }
 
 // Lowercase, without accents or punctuation: "Date de l'opération" -> "datedeloperation".
-function normalizeHeader(header: string): string {
+export function normalizeHeader(header: string): string {
   return header
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
@@ -293,6 +341,45 @@ function findColumn(
   );
 }
 
+/** What the headers name, role by role: null for a role no header names. */
+export interface SuggestedColumns {
+  dateColumn: number | null;
+  labelColumn: number | null;
+  amount: CsvAmountMapping | null;
+}
+
+export function suggestMappingColumns(
+  headerRow: readonly string[],
+): SuggestedColumns {
+  const headers = headerRow.map(normalizeHeader);
+  const orNull = (column: number): number | null =>
+    column === -1 ? null : column;
+  const debitColumn = findColumn(headers, ["debit"]);
+  const creditColumn = findColumn(headers, ["credit"]);
+  const amountColumn = findColumn(headers, ["montant", "amount", "somme"]);
+
+  return {
+    dateColumn: orNull(findColumn(headers, ["date"])),
+    labelColumn: orNull(
+      findColumn(headers, [
+        "libelle",
+        "label",
+        "description",
+        "intitule",
+        "detail",
+        "memo",
+        "payee",
+      ]),
+    ),
+    amount:
+      debitColumn !== -1 && creditColumn !== -1
+        ? { kind: "split", debitColumn, creditColumn }
+        : amountColumn !== -1
+          ? { kind: "single", column: amountColumn }
+          : null,
+  };
+}
+
 /**
  * Guesses a mapping from the header row, so that a first import starts with
  * a sensible form. Returns null when the headers do not name the essentials.
@@ -301,28 +388,10 @@ export function suggestCsvMapping(
   headerRow: readonly string[],
   delimiter: CsvDelimiter,
 ): CsvMapping | null {
-  const headers = headerRow.map(normalizeHeader);
-  const dateColumn = findColumn(headers, ["date"]);
-  const labelColumn = findColumn(headers, [
-    "libelle",
-    "label",
-    "description",
-    "intitule",
-    "detail",
-    "memo",
-    "payee",
-  ]);
-  const debitColumn = findColumn(headers, ["debit"]);
-  const creditColumn = findColumn(headers, ["credit"]);
-  const amountColumn = findColumn(headers, ["montant", "amount", "somme"]);
-
-  const amount: CsvAmountMapping | null =
-    debitColumn !== -1 && creditColumn !== -1
-      ? { kind: "split", debitColumn, creditColumn }
-      : amountColumn !== -1
-        ? { kind: "single", column: amountColumn }
-        : null;
-  if (dateColumn === -1 || labelColumn === -1 || amount === null) return null;
+  const { dateColumn, labelColumn, amount } = suggestMappingColumns(headerRow);
+  if (dateColumn === null || labelColumn === null || amount === null) {
+    return null;
+  }
 
   return {
     delimiter,
@@ -332,4 +401,42 @@ export function suggestCsvMapping(
     labelColumn,
     amount,
   };
+}
+
+/** A problem with the file as a whole: nothing can be read from it. */
+export type CsvFileIssue =
+  | { kind: "emptyFile" }
+  /** One cell per row: the delimiter was a fallback, not a finding. */
+  | { kind: "delimiterNotFound" }
+  | { kind: "unreadableFile"; ref: MessageRef; line: number | null };
+
+export type CsvFile =
+  | { delimiter: CsvDelimiter; table: string[][] }
+  | { delimiter: CsvDelimiter; issue: CsvFileIssue };
+
+/**
+ * Splits a file into rows of cells, or says why it cannot be done. `delimiter`
+ * is the one the user chose after a `delimiterNotFound`; without it, the
+ * delimiter is detected from the file.
+ */
+export function parseCsvFile(
+  text: string,
+  delimiter: CsvDelimiter = detectDelimiter(text),
+): CsvFile {
+  let table: string[][];
+  try {
+    table = parseCsv(text, delimiter);
+  } catch (error) {
+    if (!(error instanceof ImportParseError)) throw error;
+    return {
+      delimiter,
+      issue: { kind: "unreadableFile", ref: error.ref, line: error.line },
+    };
+  }
+
+  if (table.length === 0) return { delimiter, issue: { kind: "emptyFile" } };
+  if (table.every((row) => row.length === 1)) {
+    return { delimiter, issue: { kind: "delimiterNotFound" } };
+  }
+  return { delimiter, table };
 }
