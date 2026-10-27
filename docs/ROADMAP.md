@@ -35,7 +35,7 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 **Definition of done.**
 
 - [ ] The sheet history from January to October 2026 is imported, and the monthly figures match the Summary tab to the cent for every month, or each difference is explained (acceptance test includes the [worked example](DOMAIN.md#worked-example-from-the-sheet): January cumulative account 2.98, February 159.05, and 56.27 + 2.98 = 59.25).
-- [ ] The first savings row of the sheet is split into 123.16 to the Livret Jeune and 450.00 to the Livret A, with a preview before commit.
+- [x] The first savings row of the sheet is split into 123.16 to the Livret Jeune and 450.00 to the Livret A, with a preview before commit.
 - [ ] A real bank CSV or OFX export can be imported twice without creating duplicates.
 - [x] Categorizing a transaction by hand offers to create a rule, and the rule applies on the next import.
 - [ ] The three monthly views, the real chart and the balance assertion gap are correct, verified by unit tests on the synthesis.

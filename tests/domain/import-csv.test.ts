@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyCsvMapping,
   chooseCsvMapping,
+  detectDateFormat,
   detectDelimiter,
   parseCsv,
   suggestCsvMapping,
@@ -276,5 +277,51 @@ describe("chooseCsvMapping", () => {
 
   it("returns null without any candidate", () => {
     expect(chooseCsvMapping(rows, [], "EUR")).toBeNull();
+  });
+});
+
+describe("detectDateFormat", () => {
+  it("reads a first number above 12 as the day", () => {
+    expect(detectDateFormat(["13/02/2026", "01/02/2026"])).toEqual({
+      format: "dmy",
+      isAmbiguous: false,
+    });
+  });
+
+  it("reads a second number above 12 as the day", () => {
+    expect(detectDateFormat(["02/13/2026", "02/01/2026"])).toEqual({
+      format: "mdy",
+      isAmbiguous: false,
+    });
+  });
+
+  it("reads a four-digit first number as the year", () => {
+    expect(detectDateFormat(["2026-02-01", "2026-03-04"])).toEqual({
+      format: "ymd",
+      isAmbiguous: false,
+    });
+  });
+
+  it("proposes day first, flagged as ambiguous, when every number is 12 or less", () => {
+    expect(detectDateFormat(["03/04/2026", "01/02/2026"])).toEqual({
+      format: "dmy",
+      isAmbiguous: true,
+    });
+  });
+
+  it("returns null without dates", () => {
+    expect(detectDateFormat([])).toBeNull();
+  });
+
+  it("returns null when a value is not a date", () => {
+    expect(detectDateFormat(["01/02/2026", "SHOP"])).toBeNull();
+  });
+
+  it("returns null when the dates contradict each other", () => {
+    expect(detectDateFormat(["13/02/2026", "02/13/2026"])).toBeNull();
+  });
+
+  it("returns null when day-first dates are mixed with year-first dates", () => {
+    expect(detectDateFormat(["13/02/2026", "2026-02-01"])).toBeNull();
   });
 });

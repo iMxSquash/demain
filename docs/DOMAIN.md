@@ -484,3 +484,12 @@ Example: the January savings row of 573.16 becomes a transfer of 123.16 to the L
 ### Verification
 
 After import, Demain shows a month-by-month comparison between its computed figures and the Summary tab. The migration is accepted when all months match to the cent, or when each difference is explained (for example, a row mistyped in the sheet).
+
+### How the files are read and recorded
+
+- **Any CSV.** The separator, the header row, the date format and the columns that hold the type (expense, income, savings), the category and the payment mode are detected from the file, in French and in English. A date written without a year takes the year given by the user, or the only year in the file name (shown to confirm); without either, no row is read and the year is asked for.
+- **Nothing is dropped silently.** A column that is not found, a value that is not recognized, a row that cannot be read, a month missing on one side of the comparison: each is reported with its file and line. What would lose or misread a row of a monthly tab, and everything the ledger refuses, stops the migration. The rest (a guessed date format, an optional column missing, an existing rule, a difference with the Summary) is shown to be read, and the user ticks a box before migrating.
+- **Savings.** A savings row is split along the overflow chain of the savings accounts, in date order, from the balances the migration sets. A part that fits nowhere along the chain stops the migration.
+- **Rules.** One global `equals` rule is created for each distinct (label, category) pair, in order of appearance. A label seen with several categories gets no rule and is reported, and a label that already has a rule is left alone.
+- **Verification scope.** The Summary months compared are those from the first to the last month of the imported rows. The others (months still to come, left empty in the sheet) are named as ignored. The months before the first row hold only the opening balances and are not compared.
+- **One time, all or nothing.** The migration is refused when one of the accounts already has transactions, and everything is recorded in one transaction: the opening balances, the categories, the transactions, the split transfers, the balance assertions and the rules.
