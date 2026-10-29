@@ -2,7 +2,7 @@
 
 Demain is built in four milestones. Each one delivers something usable and ends with an explicit definition of done. There are no dates: milestones are ordered by value, and the order matters more than the pace. The product context is in [PRODUCT.md](PRODUCT.md), the model in [DOMAIN.md](DOMAIN.md), the technical decisions in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Current status: planning, no code yet.**
+**Current status: M1 (Ledger) in progress.**
 
 | Milestone | Theme | Outcome |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 - [ ] An overflow chain that would create a cycle (direct or through several accounts), cross currencies or point to an archived account is refused, and evaluating corrupted data that contains a cycle terminates with an error instead of looping.
 - [ ] Amounts typed or imported as text ("1 143,88 €") are converted to integer minor units without any floating-point step, and displayed back correctly.
 - [ ] The UI is fully available in French and English, with locale-aware number and date formatting.
-- [ ] An account in a second currency is converted to the reference currency in totals using a stored rate.
+- [x] An account in a second currency is converted to the reference currency in totals using a stored rate.
 - [ ] With default settings, the app makes no outbound network call.
 - [ ] The image runs on `linux/amd64` and `linux/arm64`; the app refuses to start when a required environment variable is missing.
 - [ ] A fresh instance creates its single account only through the setup token, and a forgotten password can be reset with the documented command.
@@ -145,6 +145,5 @@ These are intentionally left undecided. Each will be resolved when its milestone
 | --- | --- |
 | Which aggregator to use for bank sync, under which terms. | M4 |
 | Exact CSV column mappings per bank (beyond the owner's bank, Societe Generale). The importer is bank-agnostic; preset mappings can be contributed. | M1 and ongoing |
-| Storage format of exchange rates (exact decimal, for example scaled integers). | M1 |
 | Whether to add notifications later, and in which form (local web push is the candidate). | After M3 |
 | Dark theme and phone layout details. | M2 |

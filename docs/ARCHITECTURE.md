@@ -170,7 +170,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *Floats or decimals as strings everywhere.* Floats are wrong; decimal strings make arithmetic error-prone.
 - *Automatic rate fetch on by default.* It is an outbound call, which breaks the default "nothing leaves the server" promise even if no personal data is sent.
 
-**Consequences.** Every division (averages, percentages, interest, loan payments) needs an explicit rounding step, which is tested. Exchange rates must also be stored exactly (for example as scaled integers). Simulations in the reference currency depend on the latest known rate.
+**Consequences.** Every division (averages, percentages, interest, loan payments) needs an explicit rounding step, which is tested. Exchange rates are stored as integers scaled by 10^8 (`1.0821` is `108210000`), read from text by string handling and applied with `BigInt` so that the intermediate product cannot lose precision; a result outside the safe integer range is refused. Eight decimals cover the precision of the ECB feed and the smallest rates between common currencies, at the cost of a maximum rate of about 90 million, far above any real pair. Each flow is converted and rounded on its own, at the rate of its date, and balances are converted at the end of their month. Simulations in the reference currency depend on the latest known rate.
 
 ### ADR-008: License AGPL-3.0
 

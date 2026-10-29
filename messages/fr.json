@@ -22,7 +22,8 @@
     "synthesis": "Synthèse mensuelle",
     "imports": "Import",
     "rules": "Règles de catégorisation",
-    "migration": "Migration de la feuille"
+    "migration": "Migration de la feuille",
+    "currencies": "Devises"
   },
   "accounts": {
     "metaTitle": "Comptes | Demain",
@@ -232,7 +233,7 @@
   "synthesis": {
     "metaTitle": "Synthèse mensuelle | Demain",
     "title": "Synthèse mensuelle",
-    "unconverted": "Les comptes en {currencies} sont affichés dans leur propre devise et exclus des totaux et des chiffres de net et d'épargne.",
+    "unconverted": "Les comptes et les flux en {currencies} n'ont pas de taux de change à leur date : ils sont écartés des chiffres qui en ont besoin. Saisissez un taux sur la page des devises.",
     "empty": "Rien à afficher pour l'instant. Ajoutez d'abord un compte sur la <link>page des comptes</link>.",
     "regionLabel": "Tableau de la synthèse mensuelle",
     "caption": "Net, épargne, cumuls et soldes de fin de mois, mois par mois, en {currency} sauf mention contraire.",
@@ -245,6 +246,49 @@
       "cumulativeAccount": "Compte cumulé",
       "total": "Total"
     }
+  },
+  "currencies": {
+    "metaTitle": "Devises et taux de change | Demain",
+    "title": "Devises et taux de change",
+    "referenceHeading": "Devise de référence",
+    "referenceIntro": "Les totaux et la synthèse mensuelle sont exprimés dans cette devise. Les comptes dans une autre devise sont convertis avec les taux ci-dessous.",
+    "referenceLabel": "Devise de référence (code ISO 4217, par exemple EUR)",
+    "referenceSubmit": "Enregistrer la devise de référence",
+    "ratesHeading": "Taux de change",
+    "ratesIntro": "Une unité de la devise de base vaut le taux dans la devise cotée. Un taux s'applique à partir de sa date jusqu'à ce qu'un plus récent soit saisi, dans les deux sens de la paire. Une devise sans taux est écartée des chiffres qui en ont besoin, et signalée.",
+    "addRateHeading": "Saisir un taux",
+    "listHeading": "Taux enregistrés",
+    "empty": "Aucun taux de change enregistré pour l'instant.",
+    "regionLabel": "Taux de change, tableau défilant",
+    "caption": "Taux de change enregistrés, par paire de devises puis par date",
+    "rateSubmit": "Enregistrer le taux",
+    "form": {
+      "date": "Date de validité",
+      "base": "Devise de base (par exemple EUR)",
+      "quote": "Devise cotée (par exemple USD)",
+      "rate": "Taux (par exemple 1,0821, 8 décimales au plus)"
+    },
+    "columns": {
+      "date": "Date",
+      "pair": "Paire",
+      "rate": "Taux",
+      "source": "Source",
+      "actions": "Actions"
+    },
+    "sourceManual": "Saisi à la main",
+    "sourceEcb": "Banque centrale européenne",
+    "delete": "Supprimer",
+    "deleteTitle": "Supprimer le taux {pair} du {date} ?",
+    "deleteMessage": "Les totaux n'utiliseront plus ce taux.",
+    "deleteConfirm": "Supprimer le taux",
+    "ecbHeading": "Taux de la Banque centrale européenne",
+    "ecbIntro": "Désactivé par défaut, pour que Demain n'émette aucun appel sortant. Une fois activé, le bouton ci-dessous envoie une requête à ecb.europa.eu pour obtenir les taux de référence du jour contre l'euro. Rien sur vous ni sur vos comptes n'est envoyé. Un taux saisi à la main pour le même jour est conservé. Rien n'est récupéré automatiquement.",
+    "ecbEnabled": "La récupération des taux de la BCE est activée.",
+    "ecbDisabled": "La récupération des taux de la BCE est désactivée.",
+    "ecbEnable": "Activer la récupération BCE",
+    "ecbDisable": "Désactiver la récupération BCE",
+    "ecbFetch": "Récupérer les taux de la BCE maintenant",
+    "ecbFetched": "Taux enregistrés : {count}."
   },
   "imports": {
     "metaTitle": "Import | Demain",
@@ -517,6 +561,9 @@
     "amountMissingDecimals": "Montant invalide « {text} » : chiffres manquants après le séparateur décimal",
     "amountTooManyDecimals": "Montant invalide « {text} » : {currency} a au plus {decimals} décimales",
     "amountTooLarge": "Montant invalide « {text} » : montant trop grand",
+    "exchangeRateInvalid": "Taux de change invalide « {text} » : un nombre positif avec au plus {decimals} décimales est attendu",
+    "exchangeRateDateInvalid": "Date invalide « {date} », format AAAA-MM-JJ attendu",
+    "exchangeRateSameCurrency": "Un taux relie deux devises différentes",
     "importCsvUnclosedQuote": "Une cellule entre guillemets n'est jamais fermée",
     "importCsvDateInvalid": "Date invalide « {date} »",
     "importCsvColumnMissing": "La colonne {column} est absente",
@@ -552,7 +599,10 @@
     "authPasswordWrong": "Mot de passe incorrect",
     "authNotSaved": "La demande n'a pas pu être traitée. Réessayez.",
     "ruleAccountUnknown": "Compte inconnu",
-    "balanceAssertionNotSaved": "Le solde n'a pas pu être enregistré"
+    "balanceAssertionNotSaved": "Le solde n'a pas pu être enregistré",
+    "exchangeRateNotSaved": "Le taux de change n'a pas pu être enregistré",
+    "ecbFetchDisabled": "La récupération des taux de la BCE est désactivée : activez-la d'abord",
+    "ecbFetchFailed": "Les taux de la BCE n'ont pas pu être récupérés, voir les logs du serveur pour le détail"
   },
   "auth": {
     "signOut": "Se déconnecter",

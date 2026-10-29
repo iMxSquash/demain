@@ -71,6 +71,13 @@
       "when": 1792858436618,
       "tag": "0009_balance_assertions",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793284193082,
+      "tag": "0010_exchange_rates",
+      "breakpoints": true
     }
   ]
 }

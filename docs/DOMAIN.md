@@ -216,10 +216,10 @@ The constant-pace simulation is not a stored scenario: it is the evaluation with
 | --- | --- |
 | date | Date of validity. |
 | base, quote | Currency pair. |
-| rate | Exact decimal value (never a binary float); the storage format is decided in M1. |
+| rate | Exact value stored as an integer scaled by 10^8 (1.0821 is 108210000), never a binary float. Positive, at most 8 decimals. |
 | source | `manual` or `ecb`. |
 
-To convert an amount at a date, the app uses the most recent rate on or before that date. Future simulations use the most recent known rate.
+To convert an amount at a date, the app uses the most recent rate on or before that date, stored in either direction of the pair (a EUR to USD rate also converts USD to EUR). One rate per pair and day: entering the same day again replaces it, except that a rate fetched from the ECB never replaces one entered by hand. Future simulations use the most recent known rate.
 
 ### Import batch
 
@@ -291,7 +291,7 @@ How the figures are bounded:
 - **Series.** It starts at the oldest month among the opening dates of the accounts and the dates of the transactions, and runs without gaps up to the month asked for. A month without movement is kept, with zero flows.
 - **Accounts.** An account counts from the month of its opening date, with its opening balance and its transactions up to the last day of each month. Archived accounts stay in the months their history covers.
 - **Savings legs.** Only the legs of a transfer on a savings account count, and only when the other end is not a savings account: a transfer between two savings accounts (an overflow, for instance) is neither a deposit nor a withdrawal.
-- **Currencies.** Net, savings and totals are in the reference currency. Accounts in another currency are shown in their own currency and left out of these figures, and reported, until the exchange rates of the multi-currency foundations exist.
+- **Currencies.** Net, savings and totals are in the reference currency. Accounts in another currency are shown in their own currency. Their end-of-month balance enters the total converted at the rate in force on the last day of the month, and each net or savings flow is converted at the rate in force on its own date, each rounded to the minor unit on its own. A balance or a flow with no rate on or before its date is left out of the figures and its currency is reported for the month.
 
 In the sheet, the Summary tab also tracked derived cumulative figures. Demain can show them as well:
 

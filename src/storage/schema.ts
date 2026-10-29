@@ -154,6 +154,31 @@ export const balanceAssertions = sqliteTable(
   ],
 );
 
+// 1 `base` is worth `rate / 10^8` `quote`. One rate per pair and day: entering
+// the same day again replaces it.
+export const exchangeRates = sqliteTable(
+  "exchange_rates",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // Calendar date of validity as YYYY-MM-DD.
+    date: text("date").notNull(),
+    base: text("base").notNull(),
+    quote: text("quote").notNull(),
+    // Exact scaled integer, never a float (ADR-007).
+    rate: integer("rate").notNull(),
+    source: text("source", { enum: ["manual", "ecb"] }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("exchange_rates_pair_date_unique").on(
+      table.base,
+      table.quote,
+      table.date,
+    ),
+    check("exchange_rates_rate_positive", sql`${table.rate} > 0`),
+    check("exchange_rates_distinct_currencies", sql`${table.base} <> ${table.quote}`),
+  ],
+);
+
 // The single account of the instance. The check makes a second row impossible
 // even if the application guard around the setup token were bypassed.
 export const owner = sqliteTable(
