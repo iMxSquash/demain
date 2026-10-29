@@ -51,6 +51,10 @@ const KNOWN_CURRENCIES: ReadonlySet<string> = new Set(
   Intl.supportedValuesOf("currency"),
 );
 
+export function isKnownCurrency(code: string): boolean {
+  return KNOWN_CURRENCIES.has(code);
+}
+
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 // Date.UTC rolls an impossible day over to the next month, so a round trip

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { ExchangeRate } from "../../src/domain/exchange-rate";
 import {
   computeMonthlySynthesis,
   type SynthesisAccount,
@@ -199,7 +200,7 @@ describe("computeMonthlySynthesis", () => {
     expect(checkingBalance).toBe(12_345 + (january?.cumulativeAccount ?? 0));
   });
 
-  it("reports another currency instead of adding it to the totals", () => {
+  it("reports a currency without any rate instead of adding it to the totals", () => {
     const dollars = account({
       id: 9,
       currency: "USD",
@@ -227,6 +228,132 @@ describe("computeMonthlySynthesis", () => {
       currency: "USD",
       balance: 60_100,
     });
+  });
+
+  it("converts the balance of another currency into the total at the rate of the end of the month", () => {
+    const dollars = account({ id: 9, currency: "USD", openingBalance: 70_000 });
+    const eurUsd: ExchangeRate = {
+      date: "2026-01-05",
+      base: "EUR",
+      quote: "USD",
+      rate: 110_000_000,
+    };
+    const transactions = [
+      transaction({ accountId: CHECKING_ID, date: "2026-01-10", amount: -500, kind: "expense" }),
+      transaction({ accountId: 9, date: "2026-01-11", amount: -9_900, kind: "expense" }),
+    ];
+
+    const [january] = computeMonthlySynthesis({
+      accounts: [checking, dollars],
+      transactions,
+      referenceCurrency: "EUR",
+      exchangeRates: [eurUsd],
+      throughMonth: "2026-01",
+    });
+
+    // 601.00 USD at 1.1 is 546.3636... EUR, which rounds to 546.36.
+    expect(january).toMatchObject({ total: -500 + 54_636, unconvertedCurrencies: [] });
+    expect(january?.balances).toContainEqual({
+      accountId: 9,
+      currency: "USD",
+      balance: 60_100,
+    });
+  });
+
+  it("values each month with the rate in force at its own end, and reports the months before the first rate", () => {
+    const dollars = account({ id: 9, currency: "USD", openingBalance: 10_000 });
+    const rates: ExchangeRate[] = [
+      { date: "2026-02-10", base: "EUR", quote: "USD", rate: 100_000_000 },
+      { date: "2026-03-10", base: "EUR", quote: "USD", rate: 200_000_000 },
+    ];
+
+    const months = computeMonthlySynthesis({
+      accounts: [dollars],
+      transactions: [],
+      referenceCurrency: "EUR",
+      exchangeRates: rates,
+      throughMonth: "2026-03",
+    });
+
+    expect(months.map((m) => [m.month, m.total, m.unconvertedCurrencies])).toEqual([
+      ["2026-01", 0, ["USD"]],
+      ["2026-02", 10_000, []],
+      ["2026-03", 5_000, []],
+    ]);
+  });
+
+  it("converts each flow of another currency into the net at the rate of its own date", () => {
+    const dollars = account({ id: 9, currency: "USD" });
+    const rates: ExchangeRate[] = [
+      { date: "2026-01-01", base: "EUR", quote: "USD", rate: 100_000_000 },
+      { date: "2026-01-15", base: "EUR", quote: "USD", rate: 200_000_000 },
+    ];
+    const transactions = [
+      transaction({ accountId: CHECKING_ID, date: "2026-01-02", amount: -500, kind: "expense" }),
+      transaction({ accountId: 9, date: "2026-01-10", amount: -1_000, kind: "expense" }),
+      transaction({ accountId: 9, date: "2026-01-20", amount: -1_000, kind: "expense" }),
+    ];
+
+    const [january] = computeMonthlySynthesis({
+      accounts: [checking, dollars],
+      transactions,
+      referenceCurrency: "EUR",
+      exchangeRates: rates,
+      throughMonth: "2026-01",
+    });
+
+    // 10.00 USD at 1.0 is 10.00 EUR, then at 2.0 it is 5.00 EUR.
+    expect(january?.net).toBe(-500 - 1_000 - 500);
+  });
+
+  it("reports a currency whose flow predates its first rate, and leaves that flow out of the net", () => {
+    const dollars = account({ id: 9, currency: "USD", openingBalance: 10_000 });
+    const rate: ExchangeRate = {
+      date: "2026-01-20",
+      base: "EUR",
+      quote: "USD",
+      rate: 100_000_000,
+    };
+    const transactions = [
+      transaction({ accountId: 9, date: "2026-01-11", amount: -1_000, kind: "expense" }),
+    ];
+
+    const [january] = computeMonthlySynthesis({
+      accounts: [dollars],
+      transactions,
+      referenceCurrency: "EUR",
+      exchangeRates: [rate],
+      throughMonth: "2026-01",
+    });
+
+    // The balance is valued at the end of the month, but the flow had no rate on its day.
+    expect(january).toMatchObject({
+      net: 0,
+      total: 9_000,
+      unconvertedCurrencies: ["USD"],
+    });
+  });
+
+  it("converts the savings of another currency at the rate of the transfer date", () => {
+    const dollarChecking = account({ id: 8, currency: "USD" });
+    const dollarSavings = account({ id: 9, kind: "savings", currency: "USD" });
+    const rate: ExchangeRate = {
+      date: "2026-01-01",
+      base: "EUR",
+      quote: "USD",
+      rate: 125_000_000,
+    };
+
+    const [january] = computeMonthlySynthesis({
+      accounts: [dollarChecking, dollarSavings],
+      transactions: transfer(8, 9, "2026-01-15", 10_000),
+      referenceCurrency: "EUR",
+      exchangeRates: [rate],
+      throughMonth: "2026-01",
+    });
+
+    // 100.00 USD at 1.25 is 80.00 EUR.
+    expect(january?.savings).toBe(8_000);
   });
 
   it("returns nothing when there is no account and no transaction", () => {

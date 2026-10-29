@@ -22,7 +22,8 @@
     "synthesis": "Monthly synthesis",
     "imports": "Import",
     "rules": "Categorization rules",
-    "migration": "Sheet migration"
+    "migration": "Sheet migration",
+    "currencies": "Currencies"
   },
   "accounts": {
     "metaTitle": "Accounts | Demain",
@@ -232,7 +233,7 @@
   "synthesis": {
     "metaTitle": "Monthly synthesis | Demain",
     "title": "Monthly synthesis",
-    "unconverted": "Accounts in {currencies} are shown in their own currency and left out of the totals and of the net and savings figures.",
+    "unconverted": "Accounts and flows in {currencies} have no exchange rate for their date: they are left out of the figures that need one. Enter a rate on the currencies page.",
     "empty": "Nothing to show yet. Add an account on the <link>accounts page</link> first.",
     "regionLabel": "Monthly synthesis table",
     "caption": "Net, savings, cumulative figures and end-of-month balances, month by month, in {currency} unless stated.",
@@ -245,6 +246,49 @@
       "cumulativeAccount": "Cumulative account",
       "total": "Total"
     }
+  },
+  "currencies": {
+    "metaTitle": "Currencies and exchange rates | Demain",
+    "title": "Currencies and exchange rates",
+    "referenceHeading": "Reference currency",
+    "referenceIntro": "Totals and the monthly synthesis are expressed in this currency. Accounts in another currency are converted with the exchange rates below.",
+    "referenceLabel": "Reference currency (ISO 4217 code, for example EUR)",
+    "referenceSubmit": "Save reference currency",
+    "ratesHeading": "Exchange rates",
+    "ratesIntro": "One unit of the base currency is worth the rate in the quote currency. A rate applies from its date until a more recent one is entered, in either direction of the pair. A currency without a rate is left out of the figures that need one, and reported.",
+    "addRateHeading": "Enter a rate",
+    "listHeading": "Recorded rates",
+    "empty": "No exchange rate recorded yet.",
+    "regionLabel": "Exchange rates, scrollable table",
+    "caption": "Recorded exchange rates, by currency pair then date",
+    "rateSubmit": "Save rate",
+    "form": {
+      "date": "Date of validity",
+      "base": "Base currency (for example EUR)",
+      "quote": "Quote currency (for example USD)",
+      "rate": "Rate (for example 1.0821, up to 8 decimals)"
+    },
+    "columns": {
+      "date": "Date",
+      "pair": "Pair",
+      "rate": "Rate",
+      "source": "Source",
+      "actions": "Actions"
+    },
+    "sourceManual": "Entered by hand",
+    "sourceEcb": "European Central Bank",
+    "delete": "Delete",
+    "deleteTitle": "Delete the {pair} rate of {date}?",
+    "deleteMessage": "Totals will no longer use this rate.",
+    "deleteConfirm": "Delete rate",
+    "ecbHeading": "European Central Bank rates",
+    "ecbIntro": "Disabled by default, so that Demain makes no outbound call. When enabled, the button below sends one request to ecb.europa.eu for the daily reference rates against the euro. Nothing about you or your accounts is sent. A rate you entered by hand for the same day is kept. Nothing is fetched automatically.",
+    "ecbEnabled": "ECB fetch is enabled.",
+    "ecbDisabled": "ECB fetch is disabled.",
+    "ecbEnable": "Enable ECB fetch",
+    "ecbDisable": "Disable ECB fetch",
+    "ecbFetch": "Fetch the ECB rates now",
+    "ecbFetched": "Rates stored: {count}."
   },
   "imports": {
     "metaTitle": "Import | Demain",
@@ -517,6 +561,9 @@
     "amountMissingDecimals": "Invalid amount \"{text}\": missing digits after the decimal separator",
     "amountTooManyDecimals": "Invalid amount \"{text}\": {currency} has {decimals} decimal digits at most",
     "amountTooLarge": "Invalid amount \"{text}\": amount is too large",
+    "exchangeRateInvalid": "Invalid exchange rate \"{text}\": expected a positive number with {decimals} decimal digits at most",
+    "exchangeRateDateInvalid": "Invalid date \"{date}\", expected YYYY-MM-DD",
+    "exchangeRateSameCurrency": "A rate links two different currencies",
     "importCsvUnclosedQuote": "A quoted cell is never closed",
     "importCsvDateInvalid": "Invalid date \"{date}\"",
     "importCsvColumnMissing": "Column {column} is missing",
@@ -552,7 +599,10 @@
     "authPasswordWrong": "Incorrect password",
     "authNotSaved": "The request could not be processed. Try again.",
     "ruleAccountUnknown": "Unknown account",
-    "balanceAssertionNotSaved": "The balance could not be saved"
+    "balanceAssertionNotSaved": "The balance could not be saved",
+    "exchangeRateNotSaved": "The exchange rate could not be saved",
+    "ecbFetchDisabled": "The ECB fetch is disabled: enable it first",
+    "ecbFetchFailed": "The ECB rates could not be fetched, see the server logs for the detail"
   },
   "auth": {
     "signOut": "Sign out",

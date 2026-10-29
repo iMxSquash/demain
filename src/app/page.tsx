@@ -11,6 +11,7 @@ export default async function HomePage() {
     { href: "/categories", label: t("categories") },
     { href: "/rules", label: t("rules") },
     { href: "/synthesis", label: t("synthesis") },
+    { href: "/currencies", label: t("currencies") },
   ];
 
   return (

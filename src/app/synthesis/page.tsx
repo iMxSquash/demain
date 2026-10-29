@@ -7,6 +7,7 @@ import { formatAmount } from "../../domain/money";
 import { monthOf } from "../../domain/synthesis";
 import { formatMonth, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
+import { getReferenceCurrency } from "../../ledger/exchange-rates";
 import { getMonthlySynthesis } from "../../ledger/synthesis";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
@@ -16,8 +17,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-// Single reference currency until the multi-currency foundations land (#19).
-const REFERENCE_CURRENCY = "EUR";
 const NUMBER_HEADER = "py-2 pr-4 text-right";
 const NUMBER_CELL = "py-2 pr-4 text-right tabular-nums";
 
@@ -32,14 +31,15 @@ export default async function SynthesisPage() {
     getTimeZone(),
   ]);
   const throughMonth = monthOf(todayIn(timeZone, new Date()));
-  const { accounts, months } = withDatabase((db) => ({
-    accounts: listAccounts(db, { includeArchived: true }),
-    months: getMonthlySynthesis(db, {
-      referenceCurrency: REFERENCE_CURRENCY,
-      throughMonth,
-    }),
-  }));
-  const money = (minorUnits: number, currency = REFERENCE_CURRENCY) =>
+  const { accounts, months, referenceCurrency } = withDatabase((db) => {
+    const referenceCurrency = getReferenceCurrency(db);
+    return {
+      accounts: listAccounts(db, { includeArchived: true }),
+      months: getMonthlySynthesis(db, { referenceCurrency, throughMonth }),
+      referenceCurrency,
+    };
+  });
+  const money = (minorUnits: number, currency = referenceCurrency) =>
     formatAmount(minorUnits, currency, locale);
   const unconverted = [
     ...new Set(months.flatMap((month) => month.unconvertedCurrencies)),
@@ -79,7 +79,7 @@ export default async function SynthesisPage() {
         >
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
-              {t("caption", { currency: REFERENCE_CURRENCY })}
+              {t("caption", { currency: referenceCurrency })}
             </caption>
             <thead>
               <tr className="border-b border-neutral-500">
