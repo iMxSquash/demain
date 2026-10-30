@@ -1,0 +1,23 @@
+# One service, one volume, attached to the network of your reverse proxy. No port
+# is published: only the proxy reaches the app (see the README, "Reverse proxy").
+services:
+  demain:
+    image: ghcr.io/imxsquash/demain:latest
+    env_file: .env
+    environment:
+      # Pinned to the mounted volume: a value pointing elsewhere would write the
+      # database inside the container, where a recreation erases it.
+      DEMAIN_DATA_DIR: /data
+    volumes:
+      - demain-data:/data
+    networks:
+      - proxy
+    restart: unless-stopped
+
+volumes:
+  demain-data:
+
+networks:
+  proxy:
+    # Name of the Docker network your reverse proxy is attached to.
+    external: true

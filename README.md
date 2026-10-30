@@ -7,7 +7,7 @@ Demain is a free, open source, self-hosted personal budget web app that shows wh
 
 ## Status
 
-**Early development.** The repository contains the founding documentation, the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest), authentication (password, optional TOTP), accounts with deposit ceilings and overflow chains, transactions and transfers entered by hand, flat categories with a to-categorize queue and categorization rules, the monthly synthesis, multi-currency totals with dated exchange rates, and the one-time migration of the sheet history. No container image or `compose.yaml` exists yet: everything else described below is a target tracked in the [roadmap](docs/ROADMAP.md).
+**Early development.** The repository contains the founding documentation, the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest), authentication (password, optional TOTP), accounts with deposit ceilings and overflow chains, transactions and transfers entered by hand, flat categories with a to-categorize queue and categorization rules, the monthly synthesis, multi-currency totals with dated exchange rates, and the one-time migration of the sheet history. A Docker image and a `compose.yaml` are provided (see [Installation](#installation)); everything else described below is a target tracked in the [roadmap](docs/ROADMAP.md).
 
 The repository carries its full `.github/` structure from its initialization, and it stays private until the end of the first milestone.
 
@@ -62,7 +62,7 @@ The app is then served on http://localhost:3000. Every environment variable is l
 
 On a fresh instance every page redirects to `/setup`, which creates the single account. It asks for the value of `DEMAIN_SETUP_TOKEN` and a password of at least 12 characters, and it is closed as soon as the account exists. Two-factor authentication (TOTP, with backup codes) is turned on from the Security page; the key is typed or opened as an `otpauth://` link in the authenticator app, there is no QR code.
 
-A forgotten password is reset on the host, there is no e-mail reset: run `npm run auth:reset-password` (inside the container, `node scripts/reset-password.ts`) with `DEMAIN_DATA_DIR` set. The command asks for the new password without echoing it, replaces it and signs out every open session. It needs a Node.js that runs TypeScript natively (24, as in the future image).
+A forgotten password is reset on the host, there is no e-mail reset: run `npm run auth:reset-password` (inside the container, `docker compose exec demain node scripts/reset-password.ts`) with `DEMAIN_DATA_DIR` set. The command asks for the new password without echoing it, replaces it and signs out every open session. It needs a Node.js that runs TypeScript natively (24, as in the image).
 
 The interface is available in French and English. The language is the one chosen with the selector in the page header (kept in a cookie), otherwise the first supported language of the browser, otherwise English. Calendar dates and "today" follow the time zone of the server: set `TZ` (for example `Europe/Paris`) when it differs from the one you live in.
 
@@ -77,37 +77,69 @@ The interface is available in French and English. The language is the one chosen
 | `npm run auth:reset-password` | Reset the password of the single account (see above). |
 | `npm run db:generate` | Generate a SQL migration in `drizzle/` after a change to `src/storage/schema.ts`. Migrations are committed and never edited once released. |
 
-## Installation (target experience, not yet available)
+## Installation
 
-> **Not available yet.** No image is published and no `compose.yaml` exists. This section describes the experience Demain aims for at the end of M1, so that design decisions stay aligned with it.
+Demain runs as one Docker container (`linux/amd64` and `linux/arm64`: a PC, a VPS or a Raspberry-class machine) behind a reverse proxy that you already run, or that you set up below.
 
-The goal is that self-hosting Demain takes a few minutes on a PC, a VPS or a Raspberry-class machine:
+### Prerequisites
 
-1. Copy a provided `compose.yaml` and `.env.example` (renamed to `.env`) into a folder.
-2. Fill in the required environment variables, including the one-time setup token. The app refuses to start if one is missing.
-3. Run `docker compose up -d`.
-4. Point your reverse proxy at the container, on a dedicated subdomain (a Caddy example is documented).
-5. Open the app in a browser, create the single user account with the setup token, and import your first bank export (CSV or OFX, 20 MB at most) from the Import screen.
+- Docker with the Compose plugin.
+- A reverse proxy that terminates HTTPS on a dedicated subdomain (for example `demain.example.com`), attached to a Docker network. A Caddy setup is given below.
+- The image is published on the GitHub Container Registry for each version tag. While the repository is private, log in first with `docker login ghcr.io` (a personal access token with the `read:packages` scope).
 
-Conceptually, the compose file declares one service and one volume, attached to the network your reverse proxy already uses. The port is never published on the host and the proxy is not part of this file, so several applications can share one host:
+### Steps
+
+1. Copy [`compose.yaml`](compose.yaml) and [`.env.example`](.env.example) from the repository into a folder, and rename the second one to `.env`.
+2. In `.env`, set `DEMAIN_SETUP_TOKEN` to a random value of at least 32 characters (for example the output of `openssl rand -base64 32`). It protects the setup page of a fresh instance. `DEMAIN_DATA_DIR` is set by `compose.yaml` to the volume, whatever `.env` says.
+3. In `compose.yaml`, replace `proxy` by the name of your reverse proxy network (`docker network create proxy` if you have none yet).
+4. Run `docker compose up -d`.
+5. Point your reverse proxy at `demain:3000` (see below).
+6. Open the app in a browser, create the single user account with the setup token, then remove the token from `.env`. Import your first bank export (CSV or OFX, 20 MB at most) from the Import screen.
+
+The compose file declares one service and one named volume (`demain-data`, mounted on `/data`, which holds the SQLite database), attached to the network of your reverse proxy. The port is never published on the host and the proxy is not part of this file, so several applications can share one host. The container runs as an unprivileged user, makes no outbound network call by default, and stops at startup, with a message in `docker compose logs demain`, when the environment is invalid.
+
+To upgrade, run `docker compose pull && docker compose up -d`: pending database migrations are applied at startup. Back up the volume first. A forgotten password is reset with `docker compose exec demain node scripts/reset-password.ts`.
+
+### Reverse proxy
+
+Whatever proxy you use, it must:
+
+- terminate HTTPS and redirect HTTP to HTTPS (the session cookie is `Secure`);
+- forward the original `Host` header unchanged (Server Actions refuse a request whose `Origin` differs from it);
+- put the address of the client as the last entry of `X-Forwarded-For` (login attempts are limited per address, so a header passed through from the client would let anyone dodge the limit);
+- be the only way in: never publish port 3000 of the container.
+
+Caddy does all of this by default. With Caddy running in Docker, attached to the same network, publishing ports 80 and 443 and reading this `Caddyfile`:
+
+```
+demain.example.com {
+	reverse_proxy demain:3000
+}
+```
+
+the certificate is obtained and renewed automatically. A minimal Caddy service, in a compose file of its own:
 
 ```yaml
-# Conceptual only: image name, variables and paths will be defined during M1.
 services:
-  demain:
-    image: <to be published>
-    env_file: .env
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - demain-data:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
     networks:
       - proxy
     restart: unless-stopped
 volumes:
-  demain-data:
+  caddy-data:
 networks:
   proxy:
     external: true
 ```
+
+Traefik and nginx users follow the list above.
 
 ## Project structure
 
@@ -122,6 +154,8 @@ demain/
 ├── SECURITY.md
 ├── .env.example
 ├── .gitignore
+├── Dockerfile                One image for linux/amd64 and linux/arm64
+├── compose.yaml              One service, one volume, the external proxy network
 ├── package.json
 ├── tsconfig.json
 ├── eslint.config.mjs
@@ -139,7 +173,7 @@ demain/
 ├── messages/                 One translation file per language (en.json is the reference)
 ├── drizzle/                  Versioned SQL migrations generated by drizzle-kit
 ├── tests/                    Vitest tests, synthetic fixtures in tests/fixtures/
-├── .github/                  issue forms, PR template, CODEOWNERS, Dependabot, release notes, CI
+├── .github/                  issue forms, PR template, CODEOWNERS, Dependabot, release notes, CI, image publication
 └── docs/
     ├── PRODUCT.md            problem, vision, user journeys, scope
     ├── DOMAIN.md             glossary, entity model, invariants, algorithms
