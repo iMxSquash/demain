@@ -1,5 +1,5 @@
 export const STATIC_SECURITY_HEADERS = [
-  // Browsers ignore it over plain HTTP: it takes effect behind the HTTPS reverse proxy.
+  // Two years. Browsers ignore it over plain HTTP: it takes effect behind the HTTPS reverse proxy.
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "no-referrer" },
