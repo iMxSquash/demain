@@ -10,6 +10,13 @@
     "skipToContent": "Aller au contenu",
     "actions": "Actions"
   },
+  "errors": {
+    "errorTitle": "Une erreur est survenue",
+    "errorBody": "La requête n'a pas pu aboutir. Réessayez, et si le problème persiste, consultez les journaux du serveur.",
+    "errorRetry": "Réessayer",
+    "notFoundTitle": "Page introuvable",
+    "notFoundBody": "Cette page n'existe pas, ou l'élément qu'elle affichait n'existe plus."
+  },
   "locale": {
     "label": "Langue",
     "apply": "Changer de langue"

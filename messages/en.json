@@ -10,6 +10,13 @@
     "skipToContent": "Skip to content",
     "actions": "Actions"
   },
+  "errors": {
+    "errorTitle": "Something went wrong",
+    "errorBody": "The request could not be completed. Try again, and if the problem persists, check the server logs.",
+    "errorRetry": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "This page does not exist, or the item it showed is gone."
+  },
   "locale": {
     "label": "Language",
     "apply": "Change language"
