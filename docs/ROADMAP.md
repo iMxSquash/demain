@@ -44,11 +44,11 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 - [x] Amounts typed or imported as text ("1 143,88 €") are converted to integer minor units without any floating-point step, and displayed back correctly.
 - [x] The UI is fully available in French and English, with locale-aware number and date formatting.
 - [x] An account in a second currency is converted to the reference currency in totals using a stored rate.
-- [ ] With default settings, the app makes no outbound network call.
+- [x] With default settings, the app makes no outbound network call.
 - [x] The image runs on `linux/amd64` and `linux/arm64`; the app refuses to start when a required environment variable is missing.
 - [x] A fresh instance creates its single account only through the setup token, and a forgotten password can be reset with the documented command.
 - [x] A backup can be restored from both the encrypted snapshot and the volume procedure, and the JSON export is valid against its documented schema.
-- [ ] The security baseline in [ARCHITECTURE.md](ARCHITECTURE.md#security) is in place, and an accessibility check (axe and keyboard navigation) passes on the main screens.
+- [x] The security baseline in [ARCHITECTURE.md](ARCHITECTURE.md#security) is in place, and an accessibility check (axe and keyboard navigation) passes on the main screens.
 - [ ] CI is green: lint, typecheck, tests.
 
 ## M2: Planning

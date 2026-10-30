@@ -276,7 +276,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | i18n | next-intl | Built for Next.js, locale-aware formatting of dates, numbers and amounts. |
 | Unit and integration tests | Vitest | The risky core is pure code that runs fast without a browser. |
 | End-to-end journeys | Manual walkthrough in a real browser, no automated browser suite | A few critical journeys only: not worth a heavy dependency and browser binaries in CI. The logic they cross is covered by unit and integration tests. |
-| Accessibility checks | axe-core in tests, plus a manual Lighthouse audit on the main screens | Automated regression catch plus a periodic human-readable report. |
+| Accessibility checks | axe-core run by hand in a browser on the real screens (procedure in CONTRIBUTING), plus a manual Lighthouse audit | Axe needs a rendered page with a session and data, so it is a manual step before a milestone closes. |
 | Package manager | npm | Ships with Node, nothing extra for a contributor to install. |
 | Reverse proxy | Caddy (documented) | See ADR-006. |
 | Image registry | GitHub Container Registry | See ADR-004. |
@@ -331,12 +331,12 @@ Demain stores financial data, so the baseline applies from M1, not later.
 | **Input validation** | Every external input (forms, query parameters, uploaded CSV and OFX files, future aggregator payloads) is validated server-side with a schema validator (Zod). Upload size is limited to 20 MB and file content is parsed, never executed. The CSV and OFX readers are hand-written, with no XML parser: nothing in a file can declare an entity, load another file or reach the network. |
 | **Injection** | Parameterized queries only, through the ORM. No string-built SQL. |
 | **XSS** | Output escaping by default. Imported labels are untrusted text and are never rendered as HTML. |
-| **Headers** | `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`. |
+| **Headers** | `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy`. The last four are static (`next.config.ts`). The policy is built per request by the proxy with a nonce: scripts and styles run only from the app itself or with that nonce, nothing else is loaded from another origin, the app cannot be framed and forms post to the app only. Every page is rendered on demand (it reads the session), which the nonce requires. |
 | **Secrets** | Only in environment variables, validated at startup, never committed, never logged. `.env.example` uses placeholders. |
 | **Logs** | Structured, with levels. No passwords, tokens, amounts, labels or other personal financial data in logs. |
-| **Outbound calls** | None by default. Each optional outbound feature is opt-in and documented with exactly what it sends. |
+| **Outbound calls** | None by default. Each optional outbound feature is opt-in and documented with exactly what it sends. Enforced by a test. |
 | **Co-hosting** | The container joins only the proxy network, shares no volume or database with other applications, and never mounts the Docker socket. |
-| **Errors** | Generic messages to the user, details only in server logs. No stack traces in responses. |
+| **Errors** | Generic messages to the user, details only in server logs. No stack traces in responses. Log lines have a constant message (enforced by a test) followed by the unexpected failure, and SQLite errors carry no row values. |
 
 ## Accessibility
 

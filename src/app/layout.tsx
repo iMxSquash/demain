@@ -10,16 +10,19 @@ import { LocaleSwitcher } from "./locale/locale-switcher";
 
 import "./globals.css";
 
+const CONTENT_ID = "content";
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("home");
   return { title: "Demain", description: t("metaDescription") };
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [locale, session, t] = await Promise.all([
+  const [locale, session, t, tCommon] = await Promise.all([
     getLocale(),
     readSession(),
     getTranslations("auth"),
+    getTranslations("common"),
   ]);
   const isSignedIn = session !== null && !session.mfaPending;
 
@@ -27,6 +30,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang={locale}>
       <body>
         <NextIntlClientProvider>
+          <a
+            href={`#${CONTENT_ID}`}
+            className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:text-neutral-900"
+          >
+            {tCommon("skipToContent")}
+          </a>
           <header className="flex items-center justify-end gap-6 px-8 pt-4">
             {isSignedIn ? (
               <>
@@ -42,7 +51,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             ) : null}
             <LocaleSwitcher />
           </header>
-          {children}
+          {/* Focus target of the skip link; each page renders its own <main>. */}
+          <div id={CONTENT_ID} tabIndex={-1}>
+            {children}
+          </div>
         </NextIntlClientProvider>
       </body>
     </html>
