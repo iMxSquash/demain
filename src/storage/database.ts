@@ -1,9 +1,10 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { z } from "zod";
 
 import * as schema from "./schema.ts";
 
@@ -12,6 +13,8 @@ export const DATABASE_FILE_NAME = "demain.db";
 // Resolved from the working directory: the app is always started from the
 // project root (or the image workdir), where drizzle-kit writes its output.
 const MIGRATIONS_FOLDER = path.join(process.cwd(), "drizzle");
+
+const journalSchema = z.object({ entries: z.array(z.object({ when: z.number() })).min(1) });
 
 export type AppDatabase = ReturnType<typeof openDatabase>;
 
@@ -29,4 +32,15 @@ export function openDatabase(dataDir: string) {
 
 export function migrateDatabase(db: AppDatabase): void {
   migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+}
+
+/**
+ * Creation time of the newest migration this build knows, as drizzle records
+ * it. A database whose latest migration is newer comes from a later release.
+ */
+export function latestKnownMigrationTime(): number {
+  const journal = journalSchema.parse(
+    JSON.parse(readFileSync(path.join(MIGRATIONS_FOLDER, "meta", "_journal.json"), "utf8")),
+  );
+  return Math.max(...journal.entries.map((entry) => entry.when));
 }

@@ -19,6 +19,7 @@ export default async function HomePage() {
     { href: "/rules", label: t("rules") },
     { href: "/synthesis", label: t("synthesis") },
     { href: "/currencies", label: t("currencies") },
+    { href: "/backup", label: t("backup") },
   ];
 
   return (

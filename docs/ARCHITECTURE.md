@@ -45,7 +45,7 @@ The application is split into modules with explicit responsibilities. The projec
 | **scenarios** | Constant-pace simulation, estimated variable spending, scenarios, modifications, the cash flow transformation engine, indicators, comparison, validation into planned items. | planning, currency |
 | **currency** | Minor unit arithmetic, parsing and formatting of amounts, exchange rates, conversion to the reference currency, optional ECB fetcher. | storage |
 | **i18n** | Translation files (French and English at launch), language negotiation, locale-aware formatting of dates, numbers and amounts. See ADR-014. | none |
-| **export** | Encrypted database snapshot, JSON export. | storage |
+| **export** | Encrypted database snapshot and its restoration, JSON export. | storage, auth (to sign everyone out after a restore) |
 | **storage** | Drizzle schema, migrations, database access. Only module that talks to SQLite. | none |
 
 Rules:
@@ -310,9 +310,11 @@ Docker volume (SQLite file)
 
 Three mechanisms, all documented:
 
-1. **Encrypted snapshot (backup and restore).** A consistent copy of the database produced with SQLite's online backup mechanism (no need to stop the container), encrypted with a key derived from a password chosen at export time (argon2id key derivation and AES-256-GCM, in a versioned file format). It is the file to store off-site and the one used to restore.
-2. **JSON export (portability).** A readable, versioned export of all the data with a documented schema, amounts as integers in minor units with their currency code. It is not encrypted by default and the interface says so when the file is created; the same password-based encryption is available as an option. The JSON export is for leaving or inspecting the data; restoring goes through the encrypted snapshot.
-3. **Volume backup.** A procedure to back up the Docker volume. Copying a SQLite file while the app is writing can produce an inconsistent copy, so the procedure uses the online backup mechanism rather than a plain file copy.
+1. **Encrypted snapshot (backup and restore).** A consistent copy of the database produced with SQLite's online backup mechanism (no need to stop the container), encrypted with a key derived from a password chosen at export time (argon2id key derivation and AES-256-GCM, in a versioned file format). It is the file to store off-site and the one used to restore. Restoring is done from the app: the file is checked first (password, SQLite integrity, produced by Demain, not from a newer release, valid overflow chains) and only then does it replace the content of the live database, through the online backup mechanism in the other direction, so no file is swapped under an open connection. The replaced data is kept as `before-restore.db`. Everything in the snapshot comes back, the account and its password included.
+2. **JSON export (portability).** A readable, versioned export of all the data with a documented schema ([export.schema.json](export.schema.json), generated from the Zod schema that also validates the export before it is written), amounts as integers in minor units with their currency code. It is not encrypted by default and the interface says so when the file is created; the same password-based encryption is available as an option. The credentials of the account (password hash, second factor, sessions) are never exported. The JSON export is for leaving or inspecting the data; restoring goes through the encrypted snapshot.
+3. **Volume backup.** A procedure to back up the Docker volume with the container stopped. Copying a SQLite file while the app is writing can produce an inconsistent copy, so the container is stopped first, which leaves no writer; the online mechanism of the snapshot is the way to back up a running instance.
+
+The formats and the procedures are described in [BACKUPS.md](BACKUPS.md).
 
 Restoring from the snapshot and from the volume backup is part of the M1 definition of done.
 
