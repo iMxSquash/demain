@@ -38,7 +38,7 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 - [x] The first savings row of the sheet is split into 123.16 to the Livret Jeune and 450.00 to the Livret A, with a preview before commit.
 - [x] A real bank CSV or OFX export can be imported twice without creating duplicates.
 - [x] Categorizing a transaction by hand offers to create a rule, and the rule applies on the next import.
-- [ ] The three monthly views, the real chart and the balance assertion gap are correct, verified by unit tests on the synthesis.
+- [x] The three monthly views, the real chart and the balance assertion gap are correct, verified by unit tests on the synthesis.
 - [x] A manual transfer above an account's ceiling shows the split and offers to deposit only the remaining room or to send the surplus to a chosen account (the overflow account pre-selected), interest is accepted, and an imported transaction above the ceiling is accepted with a warning.
 - [x] An overflow chain that would create a cycle (direct or through several accounts), cross currencies or point to an archived account is refused, and evaluating corrupted data that contains a cycle terminates with an error instead of looping.
 - [x] Amounts typed or imported as text ("1 143,88 €") are converted to integer minor units without any floating-point step, and displayed back correctly.

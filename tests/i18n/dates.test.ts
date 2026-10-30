@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCalendarDate, formatMonth, todayIn } from "../../src/i18n/dates";
+import {
+  formatCalendarDate,
+  formatMonth,
+  formatShortMonth,
+  todayIn,
+} from "../../src/i18n/dates";
 
 describe("formatCalendarDate", () => {
   it("writes the same day in every locale", () => {
@@ -13,6 +18,13 @@ describe("formatMonth", () => {
   it("writes the month name and the year", () => {
     expect(formatMonth("2026-03", "fr")).toBe("mars 2026");
     expect(formatMonth("2026-03", "en")).toBe("March 2026");
+  });
+});
+
+describe("formatShortMonth", () => {
+  it("abbreviates the month and the year for an axis label", () => {
+    expect(formatShortMonth("2026-01", "fr")).toBe("janv. 26");
+    expect(formatShortMonth("2026-01", "en")).toBe("Jan 26");
   });
 });
 
