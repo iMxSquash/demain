@@ -36,3 +36,28 @@ export function flashError(ref: MessageRef): Promise<void> {
 export async function readFlash(): Promise<Flash | null> {
   return decodeFlash((await cookies()).get(FLASH_COOKIE)?.value);
 }
+
+interface Outcome {
+  /** Told when the change is made; omitted when the page already shows it. */
+  success?: FeedbackKey | undefined;
+  /** Turns what was thrown into the message of the toast, and logs what is unexpected. */
+  describeFailure: (error: unknown) => MessageRef;
+}
+
+/**
+ * Runs a change that has no form to answer in, such as an archive or a
+ * delete behind a confirmation dialog, and tells its outcome in a toast.
+ * Without this a refusal would be an unhandled exception.
+ */
+export async function runWithNotice(
+  change: () => void | Promise<void>,
+  { success, describeFailure }: Outcome,
+): Promise<void> {
+  try {
+    await change();
+  } catch (error) {
+    await flashError(describeFailure(error));
+    return;
+  }
+  if (success !== undefined) await flashSuccess(success);
+}

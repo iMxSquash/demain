@@ -6,26 +6,23 @@ import { authenticatePassword, isTotpEnabled, verifySecondFactor } from "../../a
 import { completeMfa, createSession, getSession, revokeSession } from "../../auth/sessions";
 import { messageRef } from "../../domain/message";
 import { withDatabase, withDatabaseAsync } from "../../storage/with-database";
-import { readText, type AuthFormState } from "../auth/auth-form-data";
-import { clientAddress, loginLimiter, tooManyAttemptsMessage, totpLimiter } from "../auth/limiters";
+import { readText } from "../auth/auth-form-data";
+import { clientAddress, loginLimiter, tooManyAttempts, totpLimiter } from "../auth/limiters";
 import { clearSessionCookie, readSessionToken, setSessionCookie } from "../auth/session";
-import { getTranslator } from "../translator";
+import { refuse } from "../auth/refuse";
+import { flashSuccess } from "../feedback/flash";
 
 const HOME_PATH = "/";
 const LOGIN_PATH = "/login";
 const TOTP_PATH = "/login/totp";
 
-export async function loginAction(
-  _previous: AuthFormState | null,
-  formData: FormData,
-): Promise<AuthFormState | null> {
-  const translate = await getTranslator();
+export async function loginAction(_previous: null, formData: FormData): Promise<null> {
   const client = await clientAddress();
   const now = new Date();
 
   const gate = loginLimiter.check(client, now.getTime());
   if (!gate.allowed) {
-    return { message: tooManyAttemptsMessage(translate, gate.retryAfterMs) };
+    return refuse(tooManyAttempts(gate.retryAfterMs));
   }
 
   const password = readText(formData, "password");
@@ -38,7 +35,7 @@ export async function loginAction(
   });
   if (!session) {
     loginLimiter.recordFailure(client, now.getTime());
-    return { message: translate(messageRef("authInvalidCredentials")) };
+    return refuse(messageRef("authInvalidCredentials"));
   }
 
   loginLimiter.reset(client);
@@ -46,11 +43,7 @@ export async function loginAction(
   redirect(session.mfaPending ? TOTP_PATH : HOME_PATH);
 }
 
-export async function verifyTotpAction(
-  _previous: AuthFormState | null,
-  formData: FormData,
-): Promise<AuthFormState | null> {
-  const translate = await getTranslator();
+export async function verifyTotpAction(_previous: null, formData: FormData): Promise<null> {
   const client = await clientAddress();
   const token = await readSessionToken();
   const now = new Date();
@@ -62,7 +55,7 @@ export async function verifyTotpAction(
 
   const gate = totpLimiter.check(client, now.getTime());
   if (!gate.allowed) {
-    return { message: tooManyAttemptsMessage(translate, gate.retryAfterMs) };
+    return refuse(tooManyAttempts(gate.retryAfterMs));
   }
 
   const verified = withDatabase((db) => {
@@ -74,7 +67,7 @@ export async function verifyTotpAction(
   });
   if (!verified) {
     totpLimiter.recordFailure(client, now.getTime());
-    return { message: translate(messageRef("authInvalidCode")) };
+    return refuse(messageRef("authInvalidCode"));
   }
 
   totpLimiter.reset(client);
@@ -88,5 +81,6 @@ export async function logoutAction(): Promise<void> {
     withDatabase((db) => revokeSession(db, token));
   }
   await clearSessionCookie();
+  await flashSuccess("signedOut");
   redirect(LOGIN_PATH);
 }

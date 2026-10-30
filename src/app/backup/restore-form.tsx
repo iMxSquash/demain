@@ -12,17 +12,11 @@ const RESTORE_BUTTON_CLASS =
 
 export function RestoreForm() {
   const t = useTranslations("backup");
-  const common = useTranslations("common");
-  const [state, formAction] = useActionState(restoreSnapshotAction, null);
+  const [, formAction] = useActionState(restoreSnapshotAction, null);
   const formId = useId();
 
   return (
     <form id={formId} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
       <FormField id="snapshot" label={t("snapshotFile")}>
         <input id="snapshot" name="snapshot" type="file" required className={CONTROL_CLASS} />
       </FormField>

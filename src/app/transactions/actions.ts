@@ -3,7 +3,7 @@
 import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 
-import { messageRef, type Translate } from "../../domain/message";
+import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import {
   TransactionValidationError,
@@ -28,6 +28,7 @@ import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
 import { revalidateLedger } from "../revalidate-ledger";
 import { requireSession } from "../auth/session";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
   parseTransactionForm,
@@ -73,57 +74,55 @@ function formatMinorUnits(
   return formatAmount(minorUnits, currency, locale);
 }
 
-function describeFailure(
-  error: unknown,
-  translate: Translate,
-): {
+function describeFailure(error: unknown): {
   field?: TransactionField;
-  message: string;
+  ref: MessageRef;
 } {
   if (error instanceof TransactionValidationError) {
-    return { field: error.field, message: translate(error.ref) };
+    return { field: error.field, ref: error.ref };
   }
   if (error instanceof CategoryNotFoundError) {
-    return {
-      field: "categoryId",
-      message: translate(messageRef("categoryGone")),
-    };
+    return { field: "categoryId", ref: messageRef("categoryGone") };
   }
   if (error instanceof AccountNotFoundError) {
-    return { message: translate(messageRef("accountGone")) };
+    return { ref: messageRef("accountGone") };
   }
   if (error instanceof TransactionNotFoundError) {
-    return { message: translate(messageRef("transactionGone")) };
+    return { ref: messageRef("transactionGone") };
   }
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Transaction action failed", error);
-  return { message: translate(messageRef("nothingSaved")) };
+  return { ref: messageRef("nothingSaved") };
 }
 
-/** The notice, followed by the ceiling warning when there is one. */
-function noticeWithWarning(
-  notice: string,
+/**
+ * The ceiling warning stays next to the form: it carries a figure, and the
+ * toast only holds a message key. Null when there is nothing to warn about.
+ */
+function ceilingNotice(
   currencies: CurrencyByAccount,
   accountId: number,
   warning: CeilingWarning | null,
   translate: Translate,
   locale: string,
-): string {
-  if (warning === null) return notice;
+): string | null {
+  if (warning === null) return null;
   const excess = formatMinorUnits(currencies, accountId, warning.excess, locale);
-  return `${notice} ${translate(messageRef("ceilingWarning", { excess }))}`;
+  return translate(messageRef("ceilingWarning", { excess }));
 }
 
-function transactionFailure(
+/** A failure that no field explains is told in a toast. */
+async function transactionFailure(
   error: unknown,
   formData: FormData,
   translate: Translate,
-): TransactionFormState {
-  const { field, message } = describeFailure(error, translate);
+): Promise<TransactionFormState> {
+  const { field, ref } = describeFailure(error);
+  if (field === undefined) await flashError(ref);
   return {
     status: "error",
     field,
-    message,
+    message: translate(ref),
     values: readTransactionValues(formData),
   };
 }
@@ -146,29 +145,23 @@ export async function createTransactionAction(
       return found;
     });
   } catch (error) {
-    return transactionFailure(error, formData, translate);
+    return await transactionFailure(error, formData, translate);
   }
 
   revalidateLedger();
+  await flashSuccess("transactionRecorded");
   // Keep account and date for the next entry, clear what is specific to this one.
-  return {
-    status: "notice",
-    message: noticeWithWarning(
-      translate(messageRef("transactionRecorded")),
-      currencies,
-      parsed.input.accountId,
-      warning,
-      translate,
-      locale,
-    ),
-    values: {
-      ...readTransactionValues(formData),
-      amount: "",
-      label: "",
-      description: "",
-      paymentMode: "",
-    },
+  const values = {
+    ...readTransactionValues(formData),
+    amount: "",
+    label: "",
+    description: "",
+    paymentMode: "",
   };
+  const notice = ceilingNotice(currencies, parsed.input.accountId, warning, translate, locale);
+  return notice === null
+    ? { status: "saved", values }
+    : { status: "notice", message: notice, values };
 }
 
 export async function updateTransactionAction(
@@ -192,30 +185,30 @@ export async function updateTransactionAction(
       return found;
     });
   } catch (error) {
-    return transactionFailure(error, formData, translate);
+    return await transactionFailure(error, formData, translate);
   }
 
   revalidateLedger();
+  await flashSuccess("changesSaved");
   // redirect throws, so it stays outside the try block. A warning keeps the
-  // user on the form, since a redirect would drop the message.
-  if (warning === null) redirect(TRANSACTIONS_PATH);
-  return {
-    status: "notice",
-    message: noticeWithWarning(
-      translate(messageRef("changesSaved")),
-      currencies,
-      parsed.input.accountId,
-      warning,
-      translate,
-      locale,
-    ),
-    values: readTransactionValues(formData),
-  };
+  // user on the form, since a redirect would drop it.
+  const notice = ceilingNotice(currencies, parsed.input.accountId, warning, translate, locale);
+  if (notice === null) redirect(TRANSACTIONS_PATH);
+  return { status: "notice", message: notice, values: readTransactionValues(formData) };
+}
+
+function describeDeleteFailure(error: unknown): MessageRef {
+  if (error instanceof TransactionNotFoundError) return messageRef("transactionGone");
+  console.error("Transaction delete failed", error);
+  return messageRef("transactionNotDeleted");
 }
 
 export async function deleteTransactionAction(id: number): Promise<void> {
   await requireSession();
-  withDatabase((db) => deleteTransaction(db, id));
+  await runWithNotice(() => withDatabase((db) => deleteTransaction(db, id)), {
+    success: "transactionDeleted",
+    describeFailure: describeDeleteFailure,
+  });
   revalidateLedger();
 }
 
@@ -242,6 +235,12 @@ function askForDecision(
   };
 }
 
+/** What the form shows next, and whether the transfer was recorded (a toast then tells it). */
+interface TransferOutcome {
+  state: TransferFormState;
+  isRecorded: boolean;
+}
+
 function recordTransfer(
   db: AppDatabase,
   request: TransferRequest,
@@ -249,27 +248,28 @@ function recordTransfer(
   values: TransferFormValues,
   format: (minorUnits: number) => string,
   translate: Translate,
-): TransferFormState {
+): TransferOutcome {
   if (decision === null) {
     const split = previewManualTransfer(db, request);
     if (split.surplus > 0) {
-      return askForDecision(split, values, format, translate);
+      return { state: askForDecision(split, values, format, translate), isRecorded: false };
     }
   }
   const result = recordManualTransfer(db, request, decision);
-  const recorded = translate(messageRef("transferRecorded"));
-  const unplaced =
-    result.unplaced > 0
-      ? translate(
-          messageRef("transferUnplaced", { amount: format(result.unplaced) }),
-        )
-      : "";
   revalidateLedger();
-  return {
-    status: "notice",
-    message: unplaced === "" ? recorded : `${recorded} ${unplaced}`,
-    values: { ...values, amount: "", label: "" },
-  };
+  const clearedValues = { ...values, amount: "", label: "" };
+  // The unplaced surplus carries a figure, so it stays next to the form.
+  const state: TransferFormState =
+    result.unplaced > 0
+      ? {
+          status: "notice",
+          message: translate(
+            messageRef("transferUnplaced", { amount: format(result.unplaced) }),
+          ),
+          values: clearedValues,
+        }
+      : { status: "saved", values: clearedValues };
+  return { state, isRecorded: true };
 }
 
 export async function createTransferAction(
@@ -294,17 +294,17 @@ export async function createTransferAction(
   const format = (minorUnits: number) =>
     formatMinorUnits(currencies, request.sourceId, minorUnits, locale);
 
+  let outcome: TransferOutcome;
   try {
-    return withDatabase((db) =>
+    outcome = withDatabase((db) =>
       recordTransfer(db, request, decision, values, format, translate),
     );
   } catch (error) {
-    const { field, message } = describeFailure(error, translate);
-    return {
-      status: "error",
-      field: field === undefined ? undefined : TRANSFER_FIELD_OF[field],
-      message,
-      values,
-    };
+    const { field, ref } = describeFailure(error);
+    const transferField = field === undefined ? undefined : TRANSFER_FIELD_OF[field];
+    if (transferField === undefined) await flashError(ref);
+    return { status: "error", field: transferField, message: translate(ref), values };
   }
+  if (outcome.isRecorded) await flashSuccess("transferRecorded");
+  return outcome.state;
 }

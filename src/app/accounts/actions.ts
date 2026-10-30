@@ -15,7 +15,7 @@ import {
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
-import { flashError, flashSuccess } from "../feedback/flash";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
   parseAccountForm,
@@ -99,13 +99,9 @@ export async function updateAccountAction(
 
 export async function archiveAccountAction(id: number): Promise<void> {
   await requireSession();
-  try {
-    withDatabase((db) => archiveAccount(db, id));
-  } catch (error) {
-    await flashError(describeArchiveFailure(error));
-    revalidatePath(ACCOUNTS_PATH);
-    return;
-  }
+  await runWithNotice(() => withDatabase((db) => archiveAccount(db, id)), {
+    success: "accountArchived",
+    describeFailure: describeArchiveFailure,
+  });
   revalidatePath(ACCOUNTS_PATH);
-  await flashSuccess("accountArchived");
 }

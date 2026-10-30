@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { ExchangeRateValidationError } from "../../domain/exchange-rate";
-import { messageRef, type Translate } from "../../domain/message";
+import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import {
   deleteExchangeRate,
   EcbFetchDisabledError,
@@ -14,12 +14,12 @@ import {
 } from "../../ledger/exchange-rates";
 import { withDatabase, withDatabaseAsync } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
 import {
   readCurrency,
   readRateValues,
-  type EcbFetchState,
   type RateFormState,
   type ReferenceCurrencyFormState,
 } from "./currency-form-data";
@@ -51,21 +51,25 @@ export async function saveReferenceCurrencyAction(
   }
 
   revalidateConversions();
+  await flashSuccess("referenceCurrencySaved");
   return null;
 }
 
-function toRateFormState(
+/** A failure that no field explains is told in a toast. */
+async function toRateFormState(
   error: unknown,
   formData: FormData,
   translate: Translate,
-): RateFormState {
+): Promise<RateFormState> {
   const values = readRateValues(formData);
   if (error instanceof ExchangeRateValidationError) {
     return { field: error.field, message: translate(error.ref), values };
   }
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Exchange rate action failed", error);
-  return { message: translate(messageRef("exchangeRateNotSaved")), values };
+  const ref = messageRef("exchangeRateNotSaved");
+  await flashError(ref);
+  return { message: translate(ref), values };
 }
 
 export async function saveExchangeRateAction(
@@ -78,16 +82,25 @@ export async function saveExchangeRateAction(
   try {
     withDatabase((db) => saveExchangeRate(db, readRateValues(formData)));
   } catch (error) {
-    return toRateFormState(error, formData, translate);
+    return await toRateFormState(error, formData, translate);
   }
 
   revalidateConversions();
+  await flashSuccess("exchangeRateSaved");
   return null;
+}
+
+function describeSettingFailure(error: unknown): MessageRef {
+  console.error("Currency change failed", error);
+  return messageRef("nothingSaved");
 }
 
 export async function deleteExchangeRateAction(id: number): Promise<void> {
   await requireSession();
-  withDatabase((db) => deleteExchangeRate(db, id));
+  await runWithNotice(() => withDatabase((db) => deleteExchangeRate(db, id)), {
+    success: "exchangeRateDeleted",
+    describeFailure: describeSettingFailure,
+  });
   revalidateConversions();
 }
 
@@ -95,24 +108,29 @@ export async function setEcbFetchEnabledAction(
   enabled: boolean,
 ): Promise<void> {
   await requireSession();
-  withDatabase((db) => setEcbFetchEnabled(db, enabled));
+  await runWithNotice(() => withDatabase((db) => setEcbFetchEnabled(db, enabled)), {
+    success: enabled ? "ecbFetchTurnedOn" : "ecbFetchTurnedOff",
+    describeFailure: describeSettingFailure,
+  });
   revalidatePath(CURRENCIES_PATH);
 }
 
-/** The only outbound call of the app, made on the owner's click and nowhere else. */
-export async function fetchEcbRatesAction(): Promise<EcbFetchState> {
-  await requireSession();
-  const translate = await getTranslator();
+function describeEcbFetchFailure(error: unknown): MessageRef {
+  if (error instanceof EcbFetchDisabledError) return messageRef("ecbFetchDisabled");
+  console.error("ECB fetch failed", error);
+  return messageRef("ecbFetchFailed");
+}
 
+/** The only outbound call of the app, made on the owner's click and nowhere else. */
+export async function fetchEcbRatesAction(): Promise<void> {
+  await requireSession();
+  let storedCount: number;
   try {
-    const count = await withDatabaseAsync((db) => fetchEcbRates(db, fetch));
-    revalidateConversions();
-    return { storedCount: count };
+    storedCount = await withDatabaseAsync((db) => fetchEcbRates(db, fetch));
   } catch (error) {
-    if (error instanceof EcbFetchDisabledError) {
-      return { error: translate(messageRef("ecbFetchDisabled")) };
-    }
-    console.error("ECB fetch failed", error);
-    return { error: translate(messageRef("ecbFetchFailed")) };
+    await flashError(describeEcbFetchFailure(error));
+    return;
   }
+  revalidateConversions();
+  await flashSuccess("ecbRatesStored", { count: storedCount });
 }
