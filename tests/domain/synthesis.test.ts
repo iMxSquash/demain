@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ExchangeRate } from "../../src/domain/exchange-rate";
 import {
   computeMonthlySynthesis,
+  lastCompleteMonth,
   type SynthesisAccount,
   type SynthesisTransaction,
 } from "../../src/domain/synthesis";
@@ -198,6 +199,46 @@ describe("computeMonthlySynthesis", () => {
       (entry) => entry.accountId === CHECKING_ID,
     )?.balance;
     expect(checkingBalance).toBe(12_345 + (january?.cumulativeAccount ?? 0));
+  });
+
+  it("splits the total by kind of account, converting other currencies and leaving other accounts out of both curves", () => {
+    const dollarSavings = account({
+      id: 9,
+      kind: "savings",
+      currency: "USD",
+      openingBalance: 110_000,
+    });
+    const wallet = account({ id: 10, kind: "other", openingBalance: 7_000 });
+    const eurUsd: ExchangeRate = {
+      date: "2026-01-05",
+      base: "EUR",
+      quote: "USD",
+      rate: 110_000_000,
+    };
+
+    const [january] = computeMonthlySynthesis({
+      accounts: [
+        account({ id: CHECKING_ID, openingBalance: 30_000 }),
+        account({ id: 11, openingBalance: 5_000 }),
+        livretA,
+        dollarSavings,
+        wallet,
+      ],
+      transactions: [
+        transaction({ accountId: LIVRET_A_ID, date: "2026-01-20", amount: 1_500, kind: "interest" }),
+      ],
+      referenceCurrency: "EUR",
+      exchangeRates: [eurUsd],
+      throughMonth: "2026-01",
+    });
+
+    // 1100.00 USD at 1.1 is 1000.00 EUR.
+    expect(january?.totalByKind).toEqual({
+      checking: 35_000,
+      savings: 1_500 + 100_000,
+      other: 7_000,
+    });
+    expect(january?.total).toBe(35_000 + 101_500 + 7_000);
   });
 
   it("reports a currency without any rate instead of adding it to the totals", () => {
@@ -399,5 +440,20 @@ describe("computeMonthlySynthesis", () => {
       ["2025-12", 0, 5_000],
       ["2026-01", -700, 4_300],
     ]);
+  });
+});
+
+describe("lastCompleteMonth", () => {
+  it("is the month before the one of today", () => {
+    expect(lastCompleteMonth("2026-10-30")).toBe("2026-09");
+  });
+
+  it("is the same whatever the day of the month, including its first and last", () => {
+    expect(lastCompleteMonth("2026-10-01")).toBe("2026-09");
+    expect(lastCompleteMonth("2026-10-31")).toBe("2026-09");
+  });
+
+  it("crosses a year boundary", () => {
+    expect(lastCompleteMonth("2027-01-15")).toBe("2026-12");
   });
 });

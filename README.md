@@ -7,7 +7,7 @@ Demain is a free, open source, self-hosted personal budget web app that shows wh
 
 ## Status
 
-**Early development.** The repository contains the founding documentation, the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest), authentication (password, optional TOTP), accounts with deposit ceilings and overflow chains, transactions and transfers entered by hand, flat categories with a to-categorize queue and categorization rules, the monthly synthesis, multi-currency totals with dated exchange rates, and the one-time migration of the sheet history. A Docker image and a `compose.yaml` are provided (see [Installation](#installation)); everything else described below is a target tracked in the [roadmap](docs/ROADMAP.md).
+**Early development.** The repository contains the founding documentation, the application scaffold (Next.js, strict TypeScript, Tailwind CSS, ESLint, Vitest), authentication (password, optional TOTP), accounts with deposit ceilings and overflow chains, transactions and transfers entered by hand, flat categories with a to-categorize queue and categorization rules, the monthly synthesis and the real chart of the month-end checking and savings totals, multi-currency totals with dated exchange rates, and the one-time migration of the sheet history. A Docker image and a `compose.yaml` are provided (see [Installation](#installation)); everything else described below is a target tracked in the [roadmap](docs/ROADMAP.md).
 
 The repository carries its full `.github/` structure from its initialization, and it stays private until the end of the first milestone.
 
@@ -166,6 +166,7 @@ demain/
 │   ├── auth/                 Password hashing, TOTP, backup codes, sessions, rate limiting, the single account
 │   ├── proxy.ts              Deny-by-default access check for every page
 │   ├── i18n/                 Language negotiation, calendar date formatting, next-intl request setup
+│   ├── charts/               SVG chart components and their pure geometry (d3-scale, d3-shape)
 │   ├── domain/               Pure domain logic, no clock, database or network (money core, account, transaction and overflow rules)
 │   ├── ledger/               Account and transaction use cases on top of the storage layer
 │   └── storage/              Drizzle schema, SQLite access, environment validation

@@ -19,6 +19,15 @@ export function formatMonth(month: string, locale: string): string {
   }).format(new Date(`${month}-01T00:00:00Z`));
 }
 
+/** A compact `formatMonth` for an axis label: "Jan 26". `month` is "YYYY-MM". */
+export function formatShortMonth(month: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    year: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-01T00:00:00Z`));
+}
+
 /** The calendar date, YYYY-MM-DD, of an instant in the given IANA time zone. */
 export function todayIn(timeZone: string, now: Date): string {
   // The en-CA locale writes dates as YYYY-MM-DD.

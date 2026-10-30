@@ -5,7 +5,7 @@
  * synthesis.
  */
 
-import type { AccountKind } from "./account";
+import { ACCOUNT_KINDS, type AccountKind } from "./account";
 import { convertAmount, type ExchangeRate } from "./exchange-rate";
 import type { EnteredTransactionKind } from "./transaction";
 
@@ -58,6 +58,8 @@ export interface MonthlySynthesis {
   balances: AccountBalance[];
   /** Sum of the balances in the reference currency. */
   total: number;
+  /** The total split by kind of account, in the reference currency. */
+  totalByKind: Record<AccountKind, number>;
   /**
    * Currencies with a balance or a flow left out of the figures because no
    * rate applied, sorted.
@@ -86,10 +88,17 @@ export function monthOf(date: string): Month {
   return date.slice(0, MONTH_LENGTH);
 }
 
-function nextMonth(month: Month): Month {
-  // Date rolls December over to January of the next year.
+function shiftMonth(month: Month, offset: number): Month {
+  // Date rolls the month over to the neighboring year when needed.
   const [year = 0, number = 1] = month.split("-").map(Number);
-  return new Date(Date.UTC(year, number, 1)).toISOString().slice(0, MONTH_LENGTH);
+  return new Date(Date.UTC(year, number - 1 + offset, 1))
+    .toISOString()
+    .slice(0, MONTH_LENGTH);
+}
+
+/** The latest month that is over on `today` (YYYY-MM-DD). */
+export function lastCompleteMonth(today: string): Month {
+  return shiftMonth(monthOf(today), -1);
 }
 
 // The series starts at the oldest month of an account opening or a transaction.
@@ -227,26 +236,33 @@ function endOfMonth(month: Month): string {
 // Balances are valued with the rate in force at the end of their month.
 function totalsOf(
   balances: readonly AccountBalance[],
-  input: SynthesisInput,
+  lookups: Lookups,
   month: Month,
 ) {
-  let total = 0;
+  const totalByKind = Object.fromEntries(
+    ACCOUNT_KINDS.map((kind) => [kind, 0]),
+  ) as Record<AccountKind, number>;
   const unconverted = new Set<string>();
   for (const entry of balances) {
     const converted = convertAmount(
       entry.balance,
       entry.currency,
-      input.referenceCurrency,
+      lookups.referenceCurrency,
       endOfMonth(month),
-      input.exchangeRates ?? [],
+      lookups.exchangeRates,
     );
-    if (converted === null) {
+    const kind = lookups.accountById.get(entry.accountId)?.kind;
+    if (converted === null || kind === undefined) {
       unconverted.add(entry.currency);
     } else {
-      total += converted;
+      totalByKind[kind] += converted;
     }
   }
-  return { total, unconvertedCurrencies: [...unconverted].sort() };
+  return {
+    total: Object.values(totalByKind).reduce((sum, amount) => sum + amount, 0),
+    totalByKind,
+    unconvertedCurrencies: [...unconverted].sort(),
+  };
 }
 
 function buildLookups(input: SynthesisInput): Lookups {
@@ -272,11 +288,12 @@ function seedBalances(
 // currency and the currencies left out of it.
 function balanceFiguresAt(
   input: SynthesisInput,
+  lookups: Lookups,
   running: ReadonlyMap<number, number>,
   month: Month,
 ) {
   const balances = openBalances(input.accounts, running, month);
-  return { balances, ...totalsOf(balances, input, month) };
+  return { balances, ...totalsOf(balances, lookups, month) };
 }
 
 // Moves the running balances by the transactions of one month, in place.
@@ -303,14 +320,14 @@ export function computeMonthlySynthesis(
   const rows: MonthlySynthesis[] = [];
   let cumulativeNet = 0;
   let cumulativeSavings = 0;
-  for (let month = start; month <= input.throughMonth; month = nextMonth(month)) {
+  for (let month = start; month <= input.throughMonth; month = shiftMonth(month, 1)) {
     const inMonth = byMonth.get(month) ?? [];
     applyToBalances(running, inMonth);
     const net = netOf(lookups, inMonth);
     const savings = savingsOf(lookups, inMonth);
     cumulativeNet += net.total;
     cumulativeSavings += savings.total;
-    const figures = balanceFiguresAt(input, running, month);
+    const figures = balanceFiguresAt(input, lookups, running, month);
     rows.push({
       month,
       net: net.total,
