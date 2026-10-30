@@ -107,7 +107,8 @@ Whatever proxy you use, it must:
 - terminate HTTPS and redirect HTTP to HTTPS (the session cookie is `Secure`);
 - forward the original `Host` header unchanged (Server Actions refuse a request whose `Origin` differs from it);
 - put the address of the client as the last entry of `X-Forwarded-For` (login attempts are limited per address, so a header passed through from the client would let anyone dodge the limit);
-- be the only way in: never publish port 3000 of the container.
+- be the only way in: never publish port 3000 of the container;
+- leave the security headers of the application untouched: the `Content-Security-Policy` carries a nonce that changes with each request, so a proxy that rewrites it breaks the pages.
 
 Caddy does all of this by default. With Caddy running in Docker, attached to the same network, publishing ports 80 and 443 and reading this `Caddyfile`:
 

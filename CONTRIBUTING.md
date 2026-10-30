@@ -48,6 +48,15 @@ Tests live in `tests/` and match `*.test.ts`. The testing approach is described 
 
 Every bug fix comes with a regression test that fails before the fix.
 
+### Accessibility check
+
+Axe is not part of the CI: it needs a browser on real pages with a session. Before closing a milestone, and after any change to a screen, run it by hand on every screen linked from the home page, with data in the database so that tables and the chart are rendered:
+
+1. Build and start the app on a throwaway data directory (`npm run build`, then `DEMAIN_DATA_DIR=/tmp/demain-a11y DEMAIN_SETUP_TOKEN=<a token of 32 characters or more> npm start`), create the account on `/setup` and add a few accounts and transactions.
+2. Serve `node_modules/axe-core/axe.min.js` from the app (a temporary `public/` directory, removed afterwards and never committed) and load it in the page from the browser console, copying the nonce of an existing script, because the content security policy refuses any other script: `const s = document.createElement("script"); s.nonce = document.querySelector("script[nonce]").nonce; s.src = "/axe.min.js"; document.head.append(s);`.
+3. Run `await axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] })` and expect no violation. The text of the chart axes is reported as "incomplete" for the contrast rule, because axe cannot read a background under an SVG: check it by hand (the text is `neutral-700` on white).
+4. Check the keyboard by hand: the first Tab reaches the "Skip to content" link, Enter moves to the content, every control is reachable with a visible focus, a confirmation dialog opens on its cancel button and Escape closes it, and the chart is read with the arrow keys.
+
 ## Code standards
 
 - TypeScript in strict mode, no `any` (use `unknown` and narrow).
