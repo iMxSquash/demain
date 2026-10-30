@@ -275,7 +275,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | SQLite driver | better-sqlite3 | Standard driver with Drizzle; the native dependency already anticipated in ADR-003. |
 | i18n | next-intl | Built for Next.js, locale-aware formatting of dates, numbers and amounts. |
 | Unit and integration tests | Vitest | The risky core is pure code that runs fast without a browser. |
-| End-to-end tests | Playwright | A few critical journeys only. |
+| End-to-end journeys | Manual walkthrough in a real browser, no automated browser suite | A few critical journeys only: not worth a heavy dependency and browser binaries in CI. The logic they cross is covered by unit and integration tests. |
 | Accessibility checks | axe-core in tests, plus a manual Lighthouse audit on the main screens | Automated regression catch plus a periodic human-readable report. |
 | Package manager | npm | Ships with Node, nothing extra for a contributor to install. |
 | Reverse proxy | Caddy (documented) | See ADR-006. |
@@ -352,7 +352,7 @@ Target: WCAG 2.2 level AA.
 | --- | --- | --- |
 | **Unit (most tests)** | Occurrence generation (month ends, leap years, business-day rules, versions, overrides), rolling average (window, restart, exclusions, rounding), provisions, deposit ceilings and overflow chains (splits, cycles, currencies, corrupted data), projection, scenario transformations and indicators, minor unit arithmetic, rounding and text parsing of amounts, currency conversion, monthly synthesis (including the [worked example](DOMAIN.md#worked-example-from-the-sheet)). | The projection and recurrence engine is the risky core; errors there silently produce wrong futures. |
 | **Integration** | CSV and OFX import, deduplication, categorization rules, planned vs actual matching (unique, ambiguous, none, provisions), sheet migration with the overflow rule, encrypted snapshot and JSON export, migrations on a real SQLite file. | These cross module and storage boundaries. |
-| **End-to-end (few)** | First-run setup and login, monthly import routine, creating a planned item and seeing it in the calendar, moving a single occurrence, comparing scenarios. | Critical user journeys from [PRODUCT.md](PRODUCT.md#user-journeys). |
+| **End-to-end (manual, few)** | First-run setup and login, monthly import routine, creating a planned item and seeing it in the calendar, moving a single occurrence, comparing scenarios. | Critical user journeys from [PRODUCT.md](PRODUCT.md#user-journeys). |
 
 Rules:
 

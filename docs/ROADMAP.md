@@ -36,17 +36,17 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 
 - [ ] The sheet history from January to October 2026 is imported, and the monthly figures match the Summary tab to the cent for every month, or each difference is explained (acceptance test includes the [worked example](DOMAIN.md#worked-example-from-the-sheet): January cumulative account 2.98, February 159.05, and 56.27 + 2.98 = 59.25).
 - [x] The first savings row of the sheet is split into 123.16 to the Livret Jeune and 450.00 to the Livret A, with a preview before commit.
-- [ ] A real bank CSV or OFX export can be imported twice without creating duplicates.
+- [x] A real bank CSV or OFX export can be imported twice without creating duplicates.
 - [x] Categorizing a transaction by hand offers to create a rule, and the rule applies on the next import.
 - [ ] The three monthly views, the real chart and the balance assertion gap are correct, verified by unit tests on the synthesis.
-- [ ] A manual transfer above an account's ceiling shows the split and offers to deposit only the remaining room or to send the surplus to a chosen account (the overflow account pre-selected), interest is accepted, and an imported transaction above the ceiling is accepted with a warning.
-- [ ] An overflow chain that would create a cycle (direct or through several accounts), cross currencies or point to an archived account is refused, and evaluating corrupted data that contains a cycle terminates with an error instead of looping.
-- [ ] Amounts typed or imported as text ("1 143,88 €") are converted to integer minor units without any floating-point step, and displayed back correctly.
-- [ ] The UI is fully available in French and English, with locale-aware number and date formatting.
+- [x] A manual transfer above an account's ceiling shows the split and offers to deposit only the remaining room or to send the surplus to a chosen account (the overflow account pre-selected), interest is accepted, and an imported transaction above the ceiling is accepted with a warning.
+- [x] An overflow chain that would create a cycle (direct or through several accounts), cross currencies or point to an archived account is refused, and evaluating corrupted data that contains a cycle terminates with an error instead of looping.
+- [x] Amounts typed or imported as text ("1 143,88 €") are converted to integer minor units without any floating-point step, and displayed back correctly.
+- [x] The UI is fully available in French and English, with locale-aware number and date formatting.
 - [x] An account in a second currency is converted to the reference currency in totals using a stored rate.
 - [ ] With default settings, the app makes no outbound network call.
 - [ ] The image runs on `linux/amd64` and `linux/arm64`; the app refuses to start when a required environment variable is missing.
-- [ ] A fresh instance creates its single account only through the setup token, and a forgotten password can be reset with the documented command.
+- [x] A fresh instance creates its single account only through the setup token, and a forgotten password can be reset with the documented command.
 - [ ] A backup can be restored from both the encrypted snapshot and the volume procedure, and the JSON export is valid against its documented schema.
 - [ ] The security baseline in [ARCHITECTURE.md](ARCHITECTURE.md#security) is in place, and an accessibility check (axe and keyboard navigation) passes on the main screens.
 - [ ] CI is green: lint, typecheck, tests.
