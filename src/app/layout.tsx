@@ -5,8 +5,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { readSession } from "./auth/session";
+import { readFlash } from "./feedback/flash";
+import { Toaster, type Notice } from "./feedback/toaster";
 import { logoutAction } from "./login/actions";
 import { LocaleSwitcher } from "./locale/locale-switcher";
+import { getTranslator } from "./translator";
 
 import "./globals.css";
 
@@ -17,12 +20,20 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: "Demain", description: t("metaDescription") };
 }
 
+async function readNotice(): Promise<Notice | null> {
+  const flash = await readFlash();
+  if (flash === null) return null;
+  const translate = await getTranslator();
+  return { id: flash.id, kind: flash.kind, message: translate(flash.ref) };
+}
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [locale, session, t, tCommon] = await Promise.all([
+  const [locale, session, t, tCommon, notice] = await Promise.all([
     getLocale(),
     readSession(),
     getTranslations("auth"),
     getTranslations("common"),
+    readNotice(),
   ]);
   const isSignedIn = session !== null && !session.mfaPending;
 
@@ -55,6 +66,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <div id={CONTENT_ID} tabIndex={-1}>
             {children}
           </div>
+          <Toaster notice={notice} />
         </NextIntlClientProvider>
       </body>
     </html>
