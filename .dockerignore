@@ -1,0 +1,25 @@
+# Keep personal data, secrets and local state out of the build context, so that
+# they can never end up in an image layer.
+.git
+.github
+node_modules
+.next
+data
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.csv
+*.ofx
+*.qfx
+*.log
+
+# Not needed to build or run the app.
+docs
+tests
+*.md
+.DS_Store
+.playwright-mcp

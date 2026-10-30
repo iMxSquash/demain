@@ -299,7 +299,7 @@ Docker volume (SQLite file)
 ```
 
 - **Configuration:** environment variables only, listed with placeholder values in `.env.example`. The app validates them at startup and refuses to start if a required one is missing or invalid.
-- **Compose:** one service, one named volume, attached to the external network of the reverse proxy (conceptual example in the [README](../README.md#installation-target-experience-not-yet-available)). The proxy is not in this file.
+- **Compose:** one service, one named volume, attached to the external network of the reverse proxy (`compose.yaml` at the root of the repository, explained in the [README](../README.md#installation)). The proxy is not in this file.
 - **Host firewall:** only ports 22 (SSH), 80 and 443 are open.
 - **Upgrades:** pulling a new image applies pending database migrations at startup. Migrations are versioned and never edited once released. Taking a backup before upgrading is documented as the standard procedure.
 - **First run:** the setup page that creates the single user account is protected by a one-time setup token provided through the environment, and is disabled as soon as an account exists. Anyone reaching a fresh instance before the owner cannot take it over without that token.
