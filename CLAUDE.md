@@ -21,7 +21,7 @@ The owner's general conventions (language, commits, security, accessibility, tes
 ## Rules specific to this repository
 
 - `main` is protected: no direct push. Work on a branch named `type/short-description`, open a pull request, wait for a green CI, squash merge. The owner is the only maintainer and can bypass the review requirement as administrator.
-- Never commit, push or merge without an explicit request from the owner.
+- On a working branch, committing, pushing and opening a pull request are allowed without asking. This overrides the owner's global rule for this repository. Never commit or push on `main`, and never merge, tag or release without an explicit request from the owner.
 - Ask before adding any dependency, including those already anticipated in the architecture document (for example `d3-scale` and `d3-shape`).
 - GitHub Actions are pinned by full commit SHA with the release in a comment. Do not replace a SHA with a tag.
 - Update the documentation in the same change as the behavior it describes: README, `docs/`, `.env.example`, `CHANGELOG.md`.
