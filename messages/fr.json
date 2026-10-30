@@ -23,7 +23,8 @@
     "imports": "Import",
     "rules": "Règles de catégorisation",
     "migration": "Migration de la feuille",
-    "currencies": "Devises"
+    "currencies": "Devises",
+    "backup": "Sauvegarde et export"
   },
   "realChart": {
     "heading": "Soldes de fin de mois",
@@ -363,6 +364,35 @@
     "toCategorize": "Catégoriser les transactions importées",
     "problemAtLine": "Ligne {line} : {message}"
   },
+  "backup": {
+    "metaTitle": "Sauvegarde et export | Demain",
+    "title": "Sauvegarde et export",
+    "intro": "Demain garde tout dans un seul fichier SQLite sur ce serveur. Conservez-en des copies ailleurs et vérifiez que vous savez les restaurer.",
+    "snapshotHeading": "Snapshot chiffré",
+    "snapshotIntro": "Une copie cohérente de toute la base, prise pendant que l'application tourne et chiffrée avec un mot de passe de votre choix. C'est le fichier à garder hors du serveur et le seul qui permet de restaurer. Si vous perdez le mot de passe, personne ne peut ouvrir le snapshot.",
+    "password": "Mot de passe (12 caractères au moins)",
+    "passwordConfirmation": "Répétez le mot de passe",
+    "snapshotSubmit": "Télécharger le snapshot",
+    "snapshotDone": "Snapshot téléchargé. Rangez-le loin de ce serveur.",
+    "jsonHeading": "Export JSON",
+    "jsonIntro": "Une copie lisible de vos données (comptes, transactions, catégories, règles, soldes et taux de change) pour les consulter ou quitter Demain. Le format est documenté et versionné. Vos identifiants de connexion n'y figurent pas. Il ne peut pas être restauré : utilisez un snapshot pour cela.",
+    "jsonWarning": "Attention : sans mot de passe, ce fichier n'est pas chiffré. Quiconque l'obtient peut lire vos finances.",
+    "jsonPassword": "Mot de passe (facultatif, 12 caractères au moins)",
+    "jsonSubmit": "Télécharger l'export",
+    "jsonDone": "Export téléchargé.",
+    "working": "Préparation du fichier",
+    "restoreHeading": "Restaurer un snapshot",
+    "restoreWarning": "Attention : la restauration remplace tout Demain, votre compte et votre mot de passe compris, par le contenu du snapshot. Ce qui est remplacé est conservé sous le nom before-restore.db dans le dossier de données jusqu'à la prochaine restauration. Vous serez déconnecté ensuite.",
+    "snapshotFile": "Fichier snapshot (20 Mo au plus)",
+    "snapshotPassword": "Mot de passe du snapshot",
+    "accountPassword": "Votre mot de passe Demain actuel",
+    "restoreSubmit": "Restaurer",
+    "restoreSubject": "le snapshot",
+    "restoreConfirmTitle": "Tout remplacer par ce snapshot ?",
+    "restoreConfirmMessage": "Tout Demain est remplacé par le contenu du snapshot, votre compte et votre mot de passe compris, et vous êtes déconnecté. Ce qui est remplacé est conservé sous le nom before-restore.db dans le dossier de données.",
+    "restoreConfirm": "Tout remplacer",
+    "failed": "Le fichier n'a pas pu être préparé. Vérifiez votre connexion et réessayez."
+  },
   "migration": {
     "metaTitle": "Migration de la feuille | Demain",
     "title": "Migrer l'historique de la feuille",
@@ -615,7 +645,19 @@
     "balanceAssertionNotSaved": "Le solde n'a pas pu être enregistré",
     "exchangeRateNotSaved": "Le taux de change n'a pas pu être enregistré",
     "ecbFetchDisabled": "La récupération des taux de la BCE est désactivée : activez-la d'abord",
-    "ecbFetchFailed": "Les taux de la BCE n'ont pas pu être récupérés, voir les logs du serveur pour le détail"
+    "ecbFetchFailed": "Les taux de la BCE n'ont pas pu être récupérés, voir les logs du serveur pour le détail",
+    "backupPasswordTooShort": "Le mot de passe de sauvegarde doit comporter au moins {min} caractères",
+    "backupNotABackup": "Ce fichier n'est pas une sauvegarde Demain",
+    "backupUnsupportedFormat": "Ce format de sauvegarde n'est pas pris en charge par cette version de Demain",
+    "backupWrongKind": "Ce fichier n'est pas un snapshot : un export JSON ne peut pas être restauré",
+    "backupWrongPasswordOrCorrupt": "Mot de passe incorrect, ou fichier endommagé",
+    "backupInvalidDatabase": "Le snapshot ne contient pas une base Demain valide",
+    "backupNewerSchema": "Ce snapshot vient d'une version plus récente de Demain : mettez d'abord Demain à jour",
+    "backupInvalidOverflowChain": "Le snapshot contient une chaîne de débordement entre comptes invalide",
+    "backupFileMissing": "Choisissez un fichier de snapshot",
+    "backupFileTooLarge": "Le fichier dépasse {max} Mo",
+    "backupFailed": "L'opération a échoué, voir les journaux du serveur pour le détail",
+    "backupSessionExpired": "Votre session a expiré : reconnectez-vous"
   },
   "auth": {
     "signOut": "Se déconnecter",

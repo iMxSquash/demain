@@ -98,7 +98,7 @@ Demain runs as one Docker container (`linux/amd64` and `linux/arm64`: a PC, a VP
 
 The compose file declares one service and one named volume (`demain-data`, mounted on `/data`, which holds the SQLite database), attached to the network of your reverse proxy. The port is never published on the host and the proxy is not part of this file, so several applications can share one host. The container runs as an unprivileged user, makes no outbound network call by default, and stops at startup, with a message in `docker compose logs demain`, when the environment is invalid.
 
-To upgrade, run `docker compose pull && docker compose up -d`: pending database migrations are applied at startup. Back up the volume first. A forgotten password is reset with `docker compose exec demain node scripts/reset-password.ts`.
+To upgrade, run `docker compose pull && docker compose up -d`: pending database migrations are applied at startup. Back up first, with an encrypted snapshot or the volume procedure ([docs/BACKUPS.md](docs/BACKUPS.md)). A forgotten password is reset with `docker compose exec demain node scripts/reset-password.ts`.
 
 ### Reverse proxy
 
@@ -169,6 +169,7 @@ demain/
 │   ├── charts/               SVG chart components and their pure geometry (d3-scale, d3-shape)
 │   ├── domain/               Pure domain logic, no clock, database or network (money core, account, transaction and overflow rules)
 │   ├── ledger/               Account and transaction use cases on top of the storage layer
+│   ├── export/               Encrypted snapshot and its restoration, JSON export and its schema
 │   └── storage/              Drizzle schema, SQLite access, environment validation
 ├── scripts/                  Commands run on the host (password reset)
 ├── messages/                 One translation file per language (en.json is the reference)
@@ -179,6 +180,8 @@ demain/
     ├── PRODUCT.md            problem, vision, user journeys, scope
     ├── DOMAIN.md             glossary, entity model, invariants, algorithms
     ├── ARCHITECTURE.md       architecture, decision records, deployment, security
+    ├── BACKUPS.md            encrypted snapshot, JSON export, volume backup, file formats
+    ├── export.schema.json    JSON Schema of the JSON export
     └── ROADMAP.md            milestones, definitions of done, open questions
 ```
 
@@ -187,6 +190,7 @@ demain/
 - [Product](docs/PRODUCT.md): why Demain exists and how it is meant to be used.
 - [Domain](docs/DOMAIN.md): the vocabulary and the rules of the model.
 - [Architecture](docs/ARCHITECTURE.md): technical decisions and their rationale.
+- [Backups and export](docs/BACKUPS.md): the encrypted snapshot, the JSON export and its schema, the volume backup and how to restore each.
 - [Roadmap](docs/ROADMAP.md): what will be built, in which order, and what is still open.
 
 ## License

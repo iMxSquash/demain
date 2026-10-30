@@ -23,7 +23,8 @@
     "imports": "Import",
     "rules": "Categorization rules",
     "migration": "Sheet migration",
-    "currencies": "Currencies"
+    "currencies": "Currencies",
+    "backup": "Backup and export"
   },
   "realChart": {
     "heading": "Month-end balances",
@@ -363,6 +364,35 @@
     "toCategorize": "Categorize the imported transactions",
     "problemAtLine": "Line {line}: {message}"
   },
+  "backup": {
+    "metaTitle": "Backup and export | Demain",
+    "title": "Backup and export",
+    "intro": "Demain keeps everything in one SQLite file on this server. Keep copies of it somewhere else, and check that you can restore them.",
+    "snapshotHeading": "Encrypted snapshot",
+    "snapshotIntro": "A consistent copy of the whole database, taken while the app is running and encrypted with a password you choose. It is the file to keep off-site and the only one you can restore from. If you lose the password, nobody can open the snapshot.",
+    "password": "Password (12 characters at least)",
+    "passwordConfirmation": "Repeat the password",
+    "snapshotSubmit": "Download the snapshot",
+    "snapshotDone": "Snapshot downloaded. Store it away from this server.",
+    "jsonHeading": "JSON export",
+    "jsonIntro": "A readable copy of your data (accounts, transactions, categories, rules, balances and exchange rates) to inspect it or to leave Demain. The format is documented and versioned. Your sign-in credentials are not included. It cannot be restored: use a snapshot for that.",
+    "jsonWarning": "Warning: without a password, this file is not encrypted. Anyone who gets it can read your finances.",
+    "jsonPassword": "Password (optional, 12 characters at least)",
+    "jsonSubmit": "Download the export",
+    "jsonDone": "Export downloaded.",
+    "working": "Preparing the file",
+    "restoreHeading": "Restore a snapshot",
+    "restoreWarning": "Warning: restoring replaces everything in Demain, your account and password included, with the content of the snapshot. What is replaced is kept as before-restore.db in the data folder until the next restore. You are signed out afterwards.",
+    "snapshotFile": "Snapshot file (20 MB at most)",
+    "snapshotPassword": "Password of the snapshot",
+    "accountPassword": "Your current Demain password",
+    "restoreSubmit": "Restore",
+    "restoreSubject": "the snapshot",
+    "restoreConfirmTitle": "Replace everything with this snapshot?",
+    "restoreConfirmMessage": "Everything in Demain is replaced by the content of the snapshot, your account and password included, and you are signed out. What is replaced is kept as before-restore.db in the data folder.",
+    "restoreConfirm": "Replace everything",
+    "failed": "The file could not be prepared. Check your connection and try again."
+  },
   "migration": {
     "metaTitle": "Sheet migration | Demain",
     "title": "Migrate the spreadsheet history",
@@ -615,7 +645,19 @@
     "balanceAssertionNotSaved": "The balance could not be saved",
     "exchangeRateNotSaved": "The exchange rate could not be saved",
     "ecbFetchDisabled": "The ECB fetch is disabled: enable it first",
-    "ecbFetchFailed": "The ECB rates could not be fetched, see the server logs for the detail"
+    "ecbFetchFailed": "The ECB rates could not be fetched, see the server logs for the detail",
+    "backupPasswordTooShort": "The backup password must be at least {min} characters",
+    "backupNotABackup": "This file is not a Demain backup",
+    "backupUnsupportedFormat": "This backup format is not supported by this version of Demain",
+    "backupWrongKind": "This file is not a snapshot: a JSON export cannot be restored",
+    "backupWrongPasswordOrCorrupt": "Wrong password, or the file is damaged",
+    "backupInvalidDatabase": "The snapshot does not contain a valid Demain database",
+    "backupNewerSchema": "This snapshot comes from a newer version of Demain: update Demain first",
+    "backupInvalidOverflowChain": "The snapshot contains a broken overflow chain between accounts",
+    "backupFileMissing": "Choose a snapshot file",
+    "backupFileTooLarge": "The file is larger than {max} MB",
+    "backupFailed": "The operation failed, see the server logs for the detail",
+    "backupSessionExpired": "Your session has expired: sign in again"
   },
   "auth": {
     "signOut": "Sign out",

@@ -50,8 +50,13 @@ export async function readSession(): Promise<SessionState | null> {
  * POST requests that a matcher change could leave uncovered.
  */
 export async function requireSession(): Promise<void> {
-  const session = await readSession();
-  if (!session || session.mfaPending) {
+  if (!(await hasCompleteSession())) {
     redirect(LOGIN_PATH);
   }
+}
+
+/** A session that passed every step, second factor included. */
+export async function hasCompleteSession(): Promise<boolean> {
+  const session = await readSession();
+  return session !== null && !session.mfaPending;
 }
