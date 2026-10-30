@@ -10,6 +10,8 @@ import { LocaleSwitcher } from "./locale/locale-switcher";
 
 import "./globals.css";
 
+const CONTENT_ID = "content";
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("home");
   return { title: "Demain", description: t("metaDescription") };
@@ -29,7 +31,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         <NextIntlClientProvider>
           <a
-            href="#content"
+            href={`#${CONTENT_ID}`}
             className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:text-neutral-900"
           >
             {tCommon("skipToContent")}
@@ -50,7 +52,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <LocaleSwitcher />
           </header>
           {/* Focus target of the skip link; each page renders its own <main>. */}
-          <div id="content" tabIndex={-1}>
+          <div id={CONTENT_ID} tabIndex={-1}>
             {children}
           </div>
         </NextIntlClientProvider>
