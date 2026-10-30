@@ -57,6 +57,31 @@ Axe is not part of the CI: it needs a browser on real pages with a session. Befo
 3. Run `await axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] })` and expect no violation. The text of the chart axes is reported as "incomplete" for the contrast rule, because axe cannot read a background under an SVG: check it by hand (the text is `neutral-700` on white).
 4. Check the keyboard by hand: the first Tab reaches the "Skip to content" link, Enter moves to the content, every control is reachable with a visible focus, a confirmation dialog opens on its cancel button and Escape closes it, and the chart is read with the arrow keys.
 
+### End-to-end journeys
+
+There is no automated browser suite: a handful of journeys does not justify a heavy dependency and browser binaries (see the [testing strategy](docs/ARCHITECTURE.md#testing-strategy)). Walk the two journeys below by hand in a real browser, on a throwaway instance, before closing a milestone and after any change to what they cross (authentication, import, categorization, synthesis). Write the result in the pull request.
+
+Start the instance as in step 1 of the accessibility check, on an empty data directory, and delete the directory afterwards. Use synthetic data only: the statement is `tests/fixtures/statement.csv` (four rows in February 2026), never a real bank export. Labels below are the English ones, the interface follows the browser language.
+
+**Journey 1: first-run setup, then login**
+
+1. Open `/`: you land on `/setup`.
+2. Submit a wrong token with a valid password: the setup is refused with a generic message and no account is created.
+3. Submit the token of `DEMAIN_SETUP_TOKEN` with a password of at least 12 characters, typed twice: the account is created and the home page opens, already signed in.
+4. Open `/setup` again: you land on `/login`, the setup page is closed.
+5. Click "Sign out", then open `/accounts`: you land on `/login`.
+6. Submit a wrong password: the message is "Invalid credentials". Submit the right one: the home page opens.
+
+**Journey 2: monthly routine**
+
+Start from an empty instance, signed in.
+
+1. On `/accounts`, add a checking account opened on `2026-01-01` with a balance of `100,00`.
+2. On `/categories`, add the categories "Groceries" and "Salary". On `/rules`, add the rule "label contains `CARTE SHOP`" for "Groceries".
+3. On `/imports`, choose the account and `tests/fixtures/statement.csv`, then "Preview": the columns are guessed, there are 4 new transactions and no duplicate, and the amounts read -12.50, 1 143.88, -12.50, -12.50. Click "Import": 4 transactions are imported.
+4. On `/categories`, only `VIR SALAIRE ACME` waits in the queue, the three other rows were categorized by the rule. Choose "Salary", open "Also create a rule", tick the box and submit: the queue is empty and the new rule appears on `/rules`.
+5. On `/synthesis`, February 2026 shows a net of 1 106.38 and an end-of-month balance of 1 206.38 (100.00 + 1 143.88 - 3 x 12.50), and the following months keep that balance.
+
 ## Code standards
 
 - TypeScript in strict mode, no `any` (use `unknown` and narrow).
