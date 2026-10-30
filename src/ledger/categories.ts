@@ -79,3 +79,17 @@ export function archiveCategory(db: AppDatabase, id: number): void {
   getCategory(db, id);
   db.update(categories).set({ archived: true }).where(eq(categories.id, id)).run();
 }
+
+/**
+ * An archived category is offered again and its rules apply again. It never
+ * conflicts on its name, since names are unique archived categories included.
+ */
+export function reactivateCategory(db: AppDatabase, id: number): Category {
+  getCategory(db, id);
+  return db
+    .update(categories)
+    .set({ archived: false })
+    .where(eq(categories.id, id))
+    .returning()
+    .get();
+}

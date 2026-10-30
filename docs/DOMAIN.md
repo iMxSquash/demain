@@ -100,7 +100,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | archived | Hidden from pickers but kept for history. |
 
 - **Unique names.** Category names are unique regardless of case, archived categories included, so that two homonyms never coexist in the history or in a rule.
-- **Archiving keeps the history.** An archived category stays on the transactions that already carry it and in the views of their period, but it is never newly assigned and does not appear in pickers.
+- **Archiving keeps the history.** An archived category stays on the transactions that already carry it and in the views of their period, but it is never newly assigned and does not appear in pickers. It can be reactivated: it is then offered again in the pickers and the rules that point to it apply again.
 - **To-categorize queue.** An entered transaction without a category waits in the queue. A transfer has no category and is never in the queue.
 - **Categorizing moves no balance.** It is allowed on a transaction of an archived account, unlike editing or deleting it.
 
