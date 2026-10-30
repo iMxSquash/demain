@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Security headers on every response: a `Content-Security-Policy` with a per-request nonce, and static `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy` and `Permissions-Policy`. Tests fail when an outbound call appears outside the opt-in rate fetch, and when a log line interpolates data.
 - A "Skip to content" link, the first stop of the keyboard on every page. The manual axe and keyboard check is documented in CONTRIBUTING and found no violation on the main screens.
 - Error and not found pages in the application shell and in the user's language, replacing the English default pages of Next.js. They show a generic message and a retry button, never the error: the detail stays in the server log.
-- Toast notices for the result of an action, announced to screen readers (errors assertively, successes politely): accounts and categories tell when they are created, edited or archived, and say why an archiving is refused instead of failing silently. See ADR-015. The other screens follow.
+- Toast notices for the result of every action, announced to screen readers (errors assertively, successes politely): accounts, categories, transactions and transfers, rules, currencies and exchange rates, balance checks, imports, sheet migration, backup and restore, second factor, sign in and out. Archiving or deleting says why it is refused instead of failing with an unhandled error, and a failed import or migration shows a generic message. See ADR-015.
 - Repository structure: license (AGPL-3.0), `.github/` templates and CI skeleton, contribution and security policies.
 
 ### Changed

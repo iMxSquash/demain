@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import { readSession } from "./auth/session";
 import { readFlash } from "./feedback/flash";
-import { Toaster, type Notice } from "./feedback/toaster";
+import { ToastProvider, type Notice } from "./feedback/toast-provider";
 import { logoutAction } from "./login/actions";
 import { LocaleSwitcher } from "./locale/locale-switcher";
 import { getTranslator } from "./translator";
@@ -41,32 +41,33 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang={locale}>
       <body>
         <NextIntlClientProvider>
-          <a
-            href={`#${CONTENT_ID}`}
-            className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:text-neutral-900"
-          >
-            {tCommon("skipToContent")}
-          </a>
-          <header className="flex items-center justify-end gap-6 px-8 pt-4">
-            {isSignedIn ? (
-              <>
-                <Link href="/security" className="underline">
-                  {t("security")}
-                </Link>
-                <form action={logoutAction}>
-                  <button type="submit" className="min-h-11 rounded border border-neutral-500 px-3">
-                    {t("signOut")}
-                  </button>
-                </form>
-              </>
-            ) : null}
-            <LocaleSwitcher />
-          </header>
-          {/* Focus target of the skip link; each page renders its own <main>. */}
-          <div id={CONTENT_ID} tabIndex={-1}>
-            {children}
-          </div>
-          <Toaster notice={notice} />
+          <ToastProvider notice={notice}>
+            <a
+              href={`#${CONTENT_ID}`}
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:text-neutral-900"
+            >
+              {tCommon("skipToContent")}
+            </a>
+            <header className="flex items-center justify-end gap-6 px-8 pt-4">
+              {isSignedIn ? (
+                <>
+                  <Link href="/security" className="underline">
+                    {t("security")}
+                  </Link>
+                  <form action={logoutAction}>
+                    <button type="submit" className="min-h-11 rounded border border-neutral-500 px-3">
+                      {t("signOut")}
+                    </button>
+                  </form>
+                </>
+              ) : null}
+              <LocaleSwitcher />
+            </header>
+            {/* Focus target of the skip link; each page renders its own <main>. */}
+            <div id={CONTENT_ID} tabIndex={-1}>
+              {children}
+            </div>
+          </ToastProvider>
         </NextIntlClientProvider>
       </body>
     </html>

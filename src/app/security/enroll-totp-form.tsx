@@ -14,10 +14,9 @@ interface EnrollTotpFormProps {
 
 export function EnrollTotpForm({ secret, children }: EnrollTotpFormProps) {
   const t = useTranslations("auth.securityPage");
-  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(enableTotpAction, null);
 
-  if (state?.backupCodes) {
+  if (state) {
     return (
       <section aria-labelledby="backup-heading" className="max-w-md">
         <p className="mb-4">{t("totpOn")}</p>
@@ -38,12 +37,6 @@ export function EnrollTotpForm({ secret, children }: EnrollTotpFormProps) {
     <>
       {children}
       <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-        {state?.message ? (
-          <p role="alert" className="font-medium text-red-800">
-            {common("error", { message: state.message })}
-          </p>
-        ) : null}
-
         <input type="hidden" name="secret" value={secret} />
         <FormField id="password" label={t("password")}>
           <input

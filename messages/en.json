@@ -313,8 +313,7 @@
     "ecbDisabled": "ECB fetch is disabled.",
     "ecbEnable": "Enable ECB fetch",
     "ecbDisable": "Disable ECB fetch",
-    "ecbFetch": "Fetch the ECB rates now",
-    "ecbFetched": "Rates stored: {count}."
+    "ecbFetch": "Fetch the ECB rates now"
   },
   "imports": {
     "metaTitle": "Import | Demain",
@@ -679,7 +678,30 @@
     "accountNotEmpty": "The account still has a balance: empty it first, then archive it.",
     "accountInUse": "The account is the overflow account of another account: change that account first.",
     "accountNotArchived": "Something went wrong, the account was not archived.",
-    "categoryNotArchived": "Something went wrong, the category was not archived."
+    "categoryNotArchived": "Something went wrong, the category was not archived.",
+    "transactionDeleted": "Transaction deleted.",
+    "transactionNotDeleted": "Something went wrong, the transaction was not deleted.",
+    "ruleCreated": "Rule created.",
+    "ruleDeleted": "Rule deleted.",
+    "ruleGone": "This rule no longer exists.",
+    "ruleNotChanged": "Something went wrong, the rule was not changed.",
+    "exchangeRateSaved": "Exchange rate saved.",
+    "exchangeRateDeleted": "Exchange rate deleted.",
+    "referenceCurrencySaved": "Reference currency saved.",
+    "ecbFetchTurnedOn": "Fetching the rates of the European Central Bank is turned on.",
+    "ecbFetchTurnedOff": "Fetching the rates of the European Central Bank is turned off.",
+    "ecbRatesStored": "Exchange rates stored: {count}.",
+    "balanceAssertionSaved": "Balance check saved.",
+    "balanceAssertionDeleted": "Balance check deleted.",
+    "balanceAssertionNotDeleted": "Something went wrong, the balance check was not deleted.",
+    "importDone": "Transactions imported: {imported}. Duplicates ignored: {duplicates}.",
+    "importFailed": "Something went wrong, nothing was imported.",
+    "migrationDone": "Transactions migrated: {count}.",
+    "migrationFailed": "Something went wrong, nothing was migrated.",
+    "backupRestored": "The backup is restored. Sign in with the credentials it holds.",
+    "totpDisabled": "The second factor is turned off.",
+    "signedOut": "You are signed out.",
+    "setupDone": "Your account is ready."
   },
   "auth": {
     "signOut": "Sign out",

@@ -33,13 +33,21 @@ export interface TransactionFormValues {
   categoryId: string;
 }
 
-export interface TransactionFormState {
-  status: "error" | "notice";
-  field?: TransactionFormField;
-  message: string;
-  /** What the user typed: React resets the form after an action, so it is sent back. */
-  values: TransactionFormValues;
-}
+/**
+ * `values` is what the user typed: React resets the form after an action, so
+ * it is sent back. A recorded entry is told in a toast; `notice` is only for
+ * what must stay next to the form because it carries figures, such as the
+ * ceiling warning.
+ */
+export type TransactionFormState =
+  | {
+      status: "error";
+      field?: TransactionFormField;
+      message: string;
+      values: TransactionFormValues;
+    }
+  | { status: "notice"; message: string; values: TransactionFormValues }
+  | { status: "saved"; values: TransactionFormValues };
 
 export type TransferFormField =
   | "sourceId"
@@ -65,13 +73,20 @@ export interface SurplusChoice {
   suggestedAccountId: string;
 }
 
-export interface TransferFormState {
-  status: "error" | "notice";
-  field?: TransferFormField;
-  message: string;
-  values: TransferFormValues;
-  surplusChoice?: SurplusChoice;
-}
+export type TransferFormState =
+  | {
+      status: "error";
+      field?: TransferFormField;
+      message: string;
+      values: TransferFormValues;
+    }
+  | {
+      status: "notice";
+      message: string;
+      values: TransferFormValues;
+      surplusChoice?: SurplusChoice;
+    }
+  | { status: "saved"; values: TransferFormValues };
 
 export type ParsedTransactionForm =
   | { ok: true; input: TransactionInput }

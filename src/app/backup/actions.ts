@@ -6,12 +6,13 @@ import { redirect } from "next/navigation";
 import { messageRef } from "../../domain/message";
 import { restoreSnapshot } from "../../export/snapshot";
 import { withDatabaseAsync } from "../../storage/with-database";
-import { readText, type AuthFormState } from "../auth/auth-form-data";
+import { readText } from "../auth/auth-form-data";
 import { confirmPassword } from "../auth/confirm-password";
+import { refuse } from "../auth/refuse";
 import { requireSession } from "../auth/session";
-import { getTranslator } from "../translator";
+import { flashSuccess } from "../feedback/flash";
 import {
-  describeBackupFailure,
+  backupFailureRef,
   MAX_SNAPSHOT_FILE_BYTES,
   MAX_SNAPSHOT_FILE_MEGABYTES,
 } from "./backup-feedback";
@@ -24,25 +25,19 @@ const LOGIN_PATH = "/login";
  * The sessions table is the snapshot's too: the user signs in again, with the
  * credentials the snapshot holds.
  */
-export async function restoreSnapshotAction(
-  _previous: AuthFormState | null,
-  formData: FormData,
-): Promise<AuthFormState | null> {
+export async function restoreSnapshotAction(_previous: null, formData: FormData): Promise<null> {
   await requireSession();
-  const translate = await getTranslator();
 
   const file = formData.get("snapshot");
   if (!(file instanceof File) || file.size === 0) {
-    return { message: translate(messageRef("backupFileMissing")) };
+    return refuse(messageRef("backupFileMissing"));
   }
   if (file.size > MAX_SNAPSHOT_FILE_BYTES) {
-    return {
-      message: translate(messageRef("backupFileTooLarge", { max: MAX_SNAPSHOT_FILE_MEGABYTES })),
-    };
+    return refuse(messageRef("backupFileTooLarge", { max: MAX_SNAPSHOT_FILE_MEGABYTES }));
   }
-  const refusal = await confirmPassword(formData, translate);
+  const refusal = await confirmPassword(formData);
   if (refusal) {
-    return { message: refusal };
+    return refuse(refusal);
   }
 
   try {
@@ -51,9 +46,10 @@ export async function restoreSnapshotAction(
       restoreSnapshot(db, snapshot, readText(formData, "snapshotPassword")),
     );
   } catch (error) {
-    return { message: describeBackupFailure(error, translate) };
+    return refuse(backupFailureRef(error));
   }
 
   revalidatePath("/", "layout");
+  await flashSuccess("backupRestored");
   redirect(LOGIN_PATH);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { FLASH_COOKIE, type FlashKind } from "./flash-codec";
 
@@ -12,6 +12,17 @@ export interface Notice {
 }
 
 const SUCCESS_DISMISS_DELAY_MS = 8000;
+
+type Notify = (kind: FlashKind, message: string) => void;
+
+const NotifyContext = createContext<Notify | null>(null);
+
+/** Shows a toast for an outcome that only the browser knows, such as a download. */
+export function useNotify(): Notify {
+  const notify = useContext(NotifyContext);
+  if (notify === null) throw new Error("useNotify must be used inside the ToastProvider");
+  return notify;
+}
 
 function ToastItem({ notice, onDismiss }: { notice: Notice; onDismiss: (id: string) => void }) {
   const t = useTranslations("common");
@@ -56,14 +67,16 @@ function ToastItem({ notice, onDismiss }: { notice: Notice; onDismiss: (id: stri
 }
 
 /**
- * Shows the notice a server action left for this render. The two live regions
+ * Shows the notice a server action left for this render, and the ones that
+ * `useNotify` raises in the browser. The two live regions
  * stay in the page from the start, because a screen reader only announces what
  * is added to a region it already knows. Errors go to the assertive one.
  */
-export function Toaster({ notice }: { notice: Notice | null }) {
+export function ToastProvider({ notice, children }: { notice: Notice | null; children: ReactNode }) {
   const t = useTranslations("common");
   const [toasts, setToasts] = useState<Notice[]>([]);
   const [lastNoticeId, setLastNoticeId] = useState<string | null>(null);
+  const browserNoticeCount = useRef(0);
 
   // Adjusting state while rendering is the documented way to react to a new
   // prop without an extra render pass.
@@ -85,23 +98,31 @@ export function Toaster({ notice }: { notice: Notice | null }) {
     (id: string) => setToasts((current) => current.filter((toast) => toast.id !== id)),
     [],
   );
+  const notify = useCallback<Notify>((kind, message) => {
+    browserNoticeCount.current += 1;
+    const id = `browser-${browserNoticeCount.current}`;
+    setToasts((current) => [...current, { id, kind, message }]);
+  }, []);
   const toastsOfKind = (kind: FlashKind) => toasts.filter((toast) => toast.kind === kind);
 
   return (
-    <section
-      aria-label={t("toastRegion")}
-      className="fixed bottom-4 right-4 z-20 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2"
-    >
-      <div role="status" className="flex flex-col gap-2">
-        {toastsOfKind("success").map((toast) => (
-          <ToastItem key={toast.id} notice={toast} onDismiss={dismiss} />
-        ))}
-      </div>
-      <div role="alert" className="flex flex-col gap-2">
-        {toastsOfKind("error").map((toast) => (
-          <ToastItem key={toast.id} notice={toast} onDismiss={dismiss} />
-        ))}
-      </div>
-    </section>
+    <NotifyContext value={notify}>
+      {children}
+      <section
+        aria-label={t("toastRegion")}
+        className="fixed bottom-4 right-4 z-20 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2"
+      >
+        <div role="status" className="flex flex-col gap-2">
+          {toastsOfKind("success").map((toast) => (
+            <ToastItem key={toast.id} notice={toast} onDismiss={dismiss} />
+          ))}
+        </div>
+        <div role="alert" className="flex flex-col gap-2">
+          {toastsOfKind("error").map((toast) => (
+            <ToastItem key={toast.id} notice={toast} onDismiss={dismiss} />
+          ))}
+        </div>
+      </section>
+    </NotifyContext>
   );
 }

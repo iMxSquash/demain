@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { BalanceAssertionValidationError } from "../../../../domain/balance-assertion";
-import { messageRef, type Translate } from "../../../../domain/message";
+import { messageRef, type MessageRef, type Translate } from "../../../../domain/message";
 import { AccountNotFoundError, getAccount } from "../../../../ledger/accounts";
 import {
   BalanceAssertionNotFoundError,
@@ -13,6 +13,7 @@ import {
 } from "../../../../ledger/balance-assertions";
 import { withDatabase } from "../../../../storage/with-database";
 import { requireSession } from "../../../auth/session";
+import { flashError, flashSuccess, runWithNotice } from "../../../feedback/flash";
 import { getTranslator } from "../../../translator";
 import {
   parseBalanceAssertionForm,
@@ -22,24 +23,29 @@ import {
 
 const balancesPath = (accountId: number) => `/accounts/${accountId}/balances`;
 
-function toFormState(
+/** A failure that no field explains is told in a toast. */
+async function toFormState(
   error: unknown,
   formData: FormData,
   translate: Translate,
-): BalanceAssertionFormState {
+): Promise<BalanceAssertionFormState> {
   const values = readSubmittedValues(formData);
   if (error instanceof BalanceAssertionValidationError) {
     return { field: error.field, message: translate(error.ref), values };
   }
+  const ref = describeFailure(error);
+  await flashError(ref);
+  return { message: translate(ref), values };
+}
+
+function describeFailure(error: unknown): MessageRef {
   if (error instanceof BalanceAssertionOnArchivedAccountError) {
-    return { message: translate(messageRef("balanceAssertionOnArchivedAccount")), values };
+    return messageRef("balanceAssertionOnArchivedAccount");
   }
-  if (error instanceof AccountNotFoundError) {
-    return { message: translate(messageRef("accountGone")), values };
-  }
+  if (error instanceof AccountNotFoundError) return messageRef("accountGone");
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Balance assertion action failed", error);
-  return { message: translate(messageRef("balanceAssertionNotSaved")), values };
+  return messageRef("balanceAssertionNotSaved");
 }
 
 export async function saveBalanceAssertionAction(
@@ -66,11 +72,17 @@ export async function saveBalanceAssertionAction(
     });
     if (failure !== null) return failure;
   } catch (error) {
-    return toFormState(error, formData, translate);
+    return await toFormState(error, formData, translate);
   }
 
   revalidatePath(balancesPath(accountId));
+  await flashSuccess("balanceAssertionSaved");
   return null;
+}
+
+function describeDeleteFailure(error: unknown): MessageRef {
+  console.error("Balance assertion delete failed", error);
+  return messageRef("balanceAssertionNotDeleted");
 }
 
 export async function deleteBalanceAssertionAction(
@@ -78,11 +90,16 @@ export async function deleteBalanceAssertionAction(
   id: number,
 ): Promise<void> {
   await requireSession();
-  try {
-    withDatabase((db) => deleteBalanceAssertion(db, accountId, id));
-  } catch (error) {
-    // Already deleted (second tab, double submit): the goal is reached, the page refreshes.
-    if (!(error instanceof BalanceAssertionNotFoundError)) throw error;
-  }
+  await runWithNotice(
+    () => {
+      try {
+        withDatabase((db) => deleteBalanceAssertion(db, accountId, id));
+      } catch (error) {
+        // Already deleted (second tab, double submit): the goal is reached, the page refreshes.
+        if (!(error instanceof BalanceAssertionNotFoundError)) throw error;
+      }
+    },
+    { success: "balanceAssertionDeleted", describeFailure: describeDeleteFailure },
+  );
   revalidatePath(balancesPath(accountId));
 }

@@ -19,10 +19,6 @@ export interface ReferenceCurrencyFormState {
   value: string;
 }
 
-export type EcbFetchState =
-  | { storedCount: number }
-  | { error: string };
-
 function readText(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";

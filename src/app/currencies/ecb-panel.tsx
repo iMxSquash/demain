@@ -3,12 +3,10 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
-import type { EcbFetchState } from "./currency-form-data";
-
 interface EcbPanelProps {
   isEnabled: boolean;
   setEnabled: (enabled: boolean) => Promise<void>;
-  fetchRates: () => Promise<EcbFetchState>;
+  fetchRates: () => Promise<void>;
 }
 
 const BUTTON_CLASS =
@@ -16,8 +14,11 @@ const BUTTON_CLASS =
 
 export function EcbPanel({ isEnabled, setEnabled, fetchRates }: EcbPanelProps) {
   const t = useTranslations("currencies");
-  const common = useTranslations("common");
-  const [state, fetchAction, isPending] = useActionState(fetchRates, null);
+  // The outcome is a toast: the state only exists to know when the call is pending.
+  const [, fetchAction, isPending] = useActionState(async () => {
+    await fetchRates();
+    return null;
+  }, null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,17 +35,6 @@ export function EcbPanel({ isEnabled, setEnabled, fetchRates }: EcbPanelProps) {
           <button type="submit" disabled={isPending} className={BUTTON_CLASS}>
             {t("ecbFetch")}
           </button>
-          {state && "error" in state ? (
-            <p role="alert" className="font-medium text-red-800">
-              {common("error", { message: state.error })}
-            </p>
-          ) : null}
-          {/* The live region exists before the result so that it is announced. */}
-          <p role="status">
-            {state && "storedCount" in state
-              ? t("ecbFetched", { count: state.storedCount })
-              : null}
-          </p>
         </form>
       ) : null}
     </div>

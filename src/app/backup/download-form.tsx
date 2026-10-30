@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 
+import { useNotify } from "../feedback/toast-provider";
 import { CONTROL_CLASS, FormField } from "../form-field";
 
 interface DownloadFormProps {
@@ -39,27 +40,23 @@ export function DownloadForm({
   isPasswordOptional = false,
 }: DownloadFormProps) {
   const t = useTranslations("backup");
-  const common = useTranslations("common");
+  const notify = useNotify();
   const passwordId = useId();
   const confirmationId = useId();
-  const [error, setError] = useState<string | null>(null);
-  const [isDone, setIsDone] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
   async function download(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    setError(null);
-    setIsDone(false);
     setIsPending(true);
     try {
       const outcome = await requestFile(endpoint, new FormData(form));
       if ("file" in outcome) {
         saveFile(outcome.file, outcome.contentDisposition);
         form.reset();
-        setIsDone(true);
+        notify("success", doneMessage);
       } else {
-        setError(outcome.message ?? t("failed"));
+        notify("error", outcome.message ?? t("failed"));
       }
     } finally {
       setIsPending(false);
@@ -68,11 +65,6 @@ export function DownloadForm({
 
   return (
     <form onSubmit={download} className="flex max-w-md flex-col gap-4" noValidate>
-      {error ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: error })}
-        </p>
-      ) : null}
       <FormField id={passwordId} label={passwordLabel}>
         <input
           id={passwordId}
@@ -102,7 +94,7 @@ export function DownloadForm({
       >
         {submitLabel}
       </button>
-      <p role="status">{isPending ? t("working") : isDone ? doneMessage : null}</p>
+      <p role="status">{isPending ? t("working") : null}</p>
     </form>
   );
 }

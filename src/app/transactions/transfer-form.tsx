@@ -33,11 +33,10 @@ const BUTTON_CLASS =
 
 export function TransferForm({ action, initialValues, accounts }: TransferFormProps) {
   const t = useTranslations("transactions.transferForm");
-  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const values = state?.values ?? initialValues;
-  const choice = state?.surplusChoice;
+  const choice = state?.status === "notice" ? state.surplusChoice : undefined;
 
   const errorOf = (field: TransferFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
@@ -60,11 +59,6 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state?.status === "error" && !state.field ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
       {state?.status === "notice" ? (
         <p role="status" className="font-medium">
           {state.message}

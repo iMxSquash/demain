@@ -66,11 +66,6 @@ export function TransactionForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state?.status === "error" && !state.field ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
       {state?.status === "notice" ? (
         <p role="status" className="font-medium">
           {state.message}

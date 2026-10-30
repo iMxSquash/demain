@@ -15,7 +15,7 @@ import {
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
-import { flashError, flashSuccess } from "../feedback/flash";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import { parseRuleSuggestion } from "../rules/rule-form-data";
 import {
@@ -90,15 +90,11 @@ export async function renameCategoryAction(
 
 export async function archiveCategoryAction(id: number): Promise<void> {
   await requireSession();
-  try {
-    withDatabase((db) => archiveCategory(db, id));
-  } catch (error) {
-    await flashError(describeArchiveFailure(error));
-    revalidatePath(CATEGORIES_PATH);
-    return;
-  }
+  await runWithNotice(() => withDatabase((db) => archiveCategory(db, id)), {
+    success: "categoryArchived",
+    describeFailure: describeArchiveFailure,
+  });
   revalidatePath(CATEGORIES_PATH);
-  await flashSuccess("categoryArchived");
 }
 
 function describeArchiveFailure(error: unknown): MessageRef {

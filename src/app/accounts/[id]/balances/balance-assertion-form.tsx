@@ -23,7 +23,6 @@ export function BalanceAssertionForm({
   initialValues,
 }: BalanceAssertionFormProps) {
   const t = useTranslations("balances");
-  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   // After a failed submit the typed values come back with the error.
@@ -45,12 +44,6 @@ export function BalanceAssertionForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state && !state.field ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
-
       <FormField id="date" label={t("form.date")} error={errorOf("date")}>
         <input {...controlProps("date")} type="date" required />
       </FormField>

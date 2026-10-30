@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { messageRef } from "../../domain/message";
+import { messageRef, type FeedbackKey, type MessageRef } from "../../domain/message";
 import { AccountNotFoundError } from "../../ledger/accounts";
 import { CategoryNotFoundError } from "../../ledger/categories";
 import {
@@ -14,6 +14,7 @@ import {
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
   parseRuleInput,
@@ -54,21 +55,32 @@ export async function createRuleAction(
     }
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Rule action failed", error);
-    return { message: translate(messageRef("nothingSaved")), values };
+    const ref = messageRef("nothingSaved");
+    await flashError(ref);
+    return { message: translate(ref), values };
   }
 
   revalidatePath(RULES_PATH);
+  await flashSuccess("ruleCreated");
   return null;
 }
 
-async function changeRules(change: (db: AppDatabase) => void): Promise<void> {
+function describeChangeFailure(error: unknown): MessageRef {
+  // Already gone since the page was loaded: the refreshed page shows it.
+  if (error instanceof RuleNotFoundError) return messageRef("ruleGone");
+  console.error("Rule change failed", error);
+  return messageRef("ruleNotChanged");
+}
+
+async function changeRules(
+  change: (db: AppDatabase) => void,
+  success?: FeedbackKey,
+): Promise<void> {
   await requireSession();
-  try {
-    withDatabase(change);
-  } catch (error) {
-    // Already gone since the page was loaded: the refreshed page shows it.
-    if (!(error instanceof RuleNotFoundError)) throw error;
-  }
+  await runWithNotice(() => withDatabase(change), {
+    success,
+    describeFailure: describeChangeFailure,
+  });
   revalidatePath(RULES_PATH);
 }
 
@@ -80,5 +92,5 @@ export async function moveRuleAction(
 }
 
 export async function deleteRuleAction(id: number): Promise<void> {
-  await changeRules((db) => deleteRule(db, id));
+  await changeRules((db) => deleteRule(db, id), "ruleDeleted");
 }

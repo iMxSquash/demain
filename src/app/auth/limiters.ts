@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-import { messageRef, type Translate } from "../../domain/message";
+import { messageRef, type MessageRef } from "../../domain/message";
 import { createRateLimiter, type RateLimiter } from "../../auth/rate-limiter";
 
 const MINUTE_MS = 60_000;
@@ -34,7 +34,7 @@ export async function clientAddress(): Promise<string> {
 }
 
 /** The refusal shown while a client is locked out, with the wait rounded up to a minute. */
-export function tooManyAttemptsMessage(translate: Translate, retryAfterMs: number): string {
+export function tooManyAttempts(retryAfterMs: number): MessageRef {
   const minutes = Math.max(1, Math.ceil(retryAfterMs / MINUTE_MS));
-  return translate(messageRef("authTooManyAttempts", { minutes }));
+  return messageRef("authTooManyAttempts", { minutes });
 }

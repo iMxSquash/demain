@@ -23,14 +23,16 @@ const FEEDBACK_KEYS: Record<BackupErrorCode, FeedbackKey> = {
  * bug or an I/O failure: the user gets a generic message and the detail goes
  * to the server log, never a stack trace and never anything from the data.
  */
-export function describeBackupFailure(error: unknown, translate: Translate): string {
+export function backupFailureRef(error: unknown): MessageRef {
   if (error instanceof BackupError) {
-    const ref: MessageRef =
-      error.code === "passwordTooShort"
-        ? messageRef(FEEDBACK_KEYS[error.code], { min: MIN_BACKUP_PASSWORD_LENGTH })
-        : messageRef(FEEDBACK_KEYS[error.code]);
-    return translate(ref);
+    return error.code === "passwordTooShort"
+      ? messageRef(FEEDBACK_KEYS[error.code], { min: MIN_BACKUP_PASSWORD_LENGTH })
+      : messageRef(FEEDBACK_KEYS[error.code]);
   }
   console.error("Backup operation failed:", error instanceof Error ? error.message : "unknown error");
-  return translate(messageRef("backupFailed"));
+  return messageRef("backupFailed");
+}
+
+export function describeBackupFailure(error: unknown, translate: Translate): string {
+  return translate(backupFailureRef(error));
 }

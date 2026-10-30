@@ -2,6 +2,7 @@
 
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { messageRef } from "../../domain/message";
 import { readSheetSummary, scopeSummary } from "../../domain/sheet-summary";
 import { readSheetTab } from "../../domain/sheet-tab";
 import { AccountNotFoundError, listAccounts } from "../../ledger/accounts";
@@ -13,6 +14,7 @@ import {
 } from "../../ledger/sheet-migration";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { flashError, flashSuccess } from "../feedback/flash";
 import { decodeImportFile } from "../imports/import-form-data";
 import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
@@ -71,7 +73,11 @@ export async function migrationAction(
     if (error instanceof AccountNotFoundError) {
       return fail(t("errors.accountGone"));
     }
-    throw error;
+    // Unexpected failures are logged with their detail, the user sees a generic message.
+    console.error("Migration action failed", error);
+    const ref = messageRef("migrationFailed");
+    await flashError(ref);
+    return fail(translate(ref));
   }
 }
 
@@ -123,6 +129,7 @@ async function run(
   try {
     const result = withDatabase((db) => commitSheetMigration(db, request));
     revalidateLedger();
+    await flashSuccess("migrationDone", { count: result.transactionCount });
     return {
       ...shown,
       status: "done",

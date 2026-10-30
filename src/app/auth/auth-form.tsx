@@ -1,10 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { CONTROL_CLASS, FormField } from "../form-field";
-import type { AuthFormState } from "./auth-form-data";
+import type { AuthFormAction } from "./auth-form-data";
 
 export interface AuthFormField {
   name: string;
@@ -14,7 +13,7 @@ export interface AuthFormField {
 }
 
 interface AuthFormProps {
-  action: (previous: AuthFormState | null, formData: FormData) => Promise<AuthFormState | null>;
+  action: AuthFormAction;
   fields: AuthFormField[];
   submitLabel: string;
   /** Values the form must send back unchanged, such as a secret being enrolled. */
@@ -23,20 +22,14 @@ interface AuthFormProps {
 
 /**
  * One form for every credential screen. Errors are deliberately not tied to a
- * field: the server never says which part of a credential was wrong.
+ * field: the server never says which part of a credential was wrong, and tells
+ * the refusal in a toast.
  */
 export function AuthForm({ action, fields, submitLabel, hidden = {} }: AuthFormProps) {
-  const common = useTranslations("common");
-  const [state, formAction, isPending] = useActionState(action, null);
+  const [, formAction, isPending] = useActionState(action, null);
 
   return (
     <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
-
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}

@@ -313,8 +313,7 @@
     "ecbDisabled": "La récupération des taux de la BCE est désactivée.",
     "ecbEnable": "Activer la récupération BCE",
     "ecbDisable": "Désactiver la récupération BCE",
-    "ecbFetch": "Récupérer les taux de la BCE maintenant",
-    "ecbFetched": "Taux enregistrés : {count}."
+    "ecbFetch": "Récupérer les taux de la BCE maintenant"
   },
   "imports": {
     "metaTitle": "Import | Demain",
@@ -679,7 +678,30 @@
     "accountNotEmpty": "Le compte a encore un solde : videz-le d'abord, puis archivez-le.",
     "accountInUse": "Le compte est le compte de débordement d'un autre compte : modifiez d'abord cet autre compte.",
     "accountNotArchived": "Une erreur est survenue, le compte n'a pas été archivé.",
-    "categoryNotArchived": "Une erreur est survenue, la catégorie n'a pas été archivée."
+    "categoryNotArchived": "Une erreur est survenue, la catégorie n'a pas été archivée.",
+    "transactionDeleted": "Transaction supprimée.",
+    "transactionNotDeleted": "Une erreur est survenue, la transaction n'a pas été supprimée.",
+    "ruleCreated": "Règle créée.",
+    "ruleDeleted": "Règle supprimée.",
+    "ruleGone": "Cette règle n'existe plus.",
+    "ruleNotChanged": "Une erreur est survenue, la règle n'a pas été modifiée.",
+    "exchangeRateSaved": "Taux de change enregistré.",
+    "exchangeRateDeleted": "Taux de change supprimé.",
+    "referenceCurrencySaved": "Devise de référence enregistrée.",
+    "ecbFetchTurnedOn": "La récupération des taux de la Banque centrale européenne est activée.",
+    "ecbFetchTurnedOff": "La récupération des taux de la Banque centrale européenne est désactivée.",
+    "ecbRatesStored": "Taux de change enregistrés : {count}.",
+    "balanceAssertionSaved": "Contrôle de solde enregistré.",
+    "balanceAssertionDeleted": "Contrôle de solde supprimé.",
+    "balanceAssertionNotDeleted": "Une erreur est survenue, le contrôle de solde n'a pas été supprimé.",
+    "importDone": "Transactions importées : {imported}. Doublons ignorés : {duplicates}.",
+    "importFailed": "Une erreur est survenue, rien n'a été importé.",
+    "migrationDone": "Transactions migrées : {count}.",
+    "migrationFailed": "Une erreur est survenue, rien n'a été migré.",
+    "backupRestored": "La sauvegarde est restaurée. Connectez-vous avec les identifiants qu'elle contient.",
+    "totpDisabled": "Le second facteur est désactivé.",
+    "signedOut": "Vous êtes déconnecté.",
+    "setupDone": "Votre compte est prêt."
   },
   "auth": {
     "signOut": "Se déconnecter",
