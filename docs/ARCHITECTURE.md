@@ -336,7 +336,7 @@ Demain stores financial data, so the baseline applies from M1, not later.
 | **Logs** | Structured, with levels. No passwords, tokens, amounts, labels or other personal financial data in logs. |
 | **Outbound calls** | None by default. Each optional outbound feature is opt-in and documented with exactly what it sends. Enforced by a test. |
 | **Co-hosting** | The container joins only the proxy network, shares no volume or database with other applications, and never mounts the Docker socket. |
-| **Errors** | Generic messages to the user, details only in server logs. No stack traces in responses. Log lines have a constant message, enforced by a test. |
+| **Errors** | Generic messages to the user, details only in server logs. No stack traces in responses. Log lines have a constant message (enforced by a test) followed by the unexpected failure, and SQLite errors carry no row values. |
 
 ## Accessibility
 
