@@ -10,6 +10,7 @@ import {
   archiveCategory,
   CategoryNotFoundError,
   createCategory,
+  reactivateCategory,
   renameCategory,
 } from "../../ledger/categories";
 import { setTransactionCategory } from "../../ledger/transactions";
@@ -102,6 +103,23 @@ function describeArchiveFailure(error: unknown): MessageRef {
   if (error instanceof CategoryNotFoundError) return messageRef("categoryGone");
   console.error("Category archive failed", error);
   return messageRef("categoryNotArchived");
+}
+
+export async function reactivateCategoryAction(id: number): Promise<void> {
+  await requireSession();
+  await runWithNotice(
+    () => {
+      withDatabase((db) => reactivateCategory(db, id));
+    },
+    { success: "categoryReactivated", describeFailure: describeReactivateFailure },
+  );
+  revalidatePath(CATEGORIES_PATH);
+}
+
+function describeReactivateFailure(error: unknown): MessageRef {
+  if (error instanceof CategoryNotFoundError) return messageRef("categoryGone");
+  console.error("Category reactivation failed", error);
+  return messageRef("categoryNotReactivated");
 }
 
 /** Categorizes one transaction of the queue and says why when it is refused. */

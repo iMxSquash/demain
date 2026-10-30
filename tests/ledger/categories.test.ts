@@ -19,6 +19,7 @@ import {
   archiveCategory,
   createCategory,
   listCategories,
+  reactivateCategory,
   renameCategory,
 } from "../../src/ledger/categories";
 import {
@@ -112,6 +113,65 @@ describe("categories", () => {
       { ...groceries, archived: true },
       rent,
     ]);
+  });
+
+  it("offers a reactivated category again in the default list, in its original place", () => {
+    const groceries = createCategory(db, { name: "Groceries" });
+    const rent = createCategory(db, { name: "Rent" });
+    archiveCategory(db, groceries.id);
+
+    const reactivated = reactivateCategory(db, groceries.id);
+
+    expect(reactivated).toEqual({ ...groceries, archived: false });
+    expect(listCategories(db)).toEqual([groceries, rent]);
+  });
+
+  it("lets a reactivated category be picked again on a transaction", () => {
+    const checking = createAccount(db, {
+      name: "Checking",
+      kind: "checking",
+      currency: "EUR",
+      openingDate: "2026-01-01",
+      openingBalance: 0,
+    });
+    const groceries = createCategory(db, { name: "Groceries" });
+    const waiting = createTransaction(db, {
+      accountId: checking.id,
+      date: "2026-02-10",
+      amount: -1_250,
+      kind: "expense",
+      label: "Shop",
+    });
+    archiveCategory(db, groceries.id);
+    reactivateCategory(db, groceries.id);
+
+    const categorized = setTransactionCategory(db, waiting.id, groceries.id);
+
+    expect(categorized.categoryId).toBe(groceries.id);
+  });
+
+  it("keeps the name of a reactivated category unique without conflict", () => {
+    const groceries = createCategory(db, { name: "Groceries" });
+    archiveCategory(db, groceries.id);
+
+    reactivateCategory(db, groceries.id);
+
+    expect(() => createCategory(db, { name: "groceries" })).toThrow(
+      expect.objectContaining({ field: "name" }),
+    );
+    expect(listCategories(db, { includeArchived: true })).toHaveLength(1);
+  });
+
+  it("treats reactivating an active category as a no-op", () => {
+    const groceries = createCategory(db, { name: "Groceries" });
+
+    expect(reactivateCategory(db, groceries.id)).toEqual(groceries);
+  });
+
+  it("reports an unknown category on reactivation", () => {
+    expect(() => reactivateCategory(db, 999)).toThrow(
+      expect.objectContaining({ name: "CategoryNotFoundError" }),
+    );
   });
 
   describe("categorizing transactions", () => {

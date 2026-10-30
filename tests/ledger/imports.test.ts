@@ -8,7 +8,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CsvMapping } from "../../src/domain/import-csv";
 import type { ImportedRow } from "../../src/domain/import-row";
 import { archiveAccount, createAccount } from "../../src/ledger/accounts";
-import { archiveCategory, createCategory } from "../../src/ledger/categories";
+import {
+  archiveCategory,
+  createCategory,
+  reactivateCategory,
+} from "../../src/ledger/categories";
 import { createRule, moveRule } from "../../src/ledger/categorization-rules";
 import {
   commitImport,
@@ -358,5 +362,21 @@ describe("imports", () => {
     expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual([
       "CARD SHOP",
     ]);
+  });
+
+  it("applies again a rule whose category has been reactivated", () => {
+    const shopping = createCategory(db, { name: "Shopping" });
+    createRule(db, {
+      operator: "contains",
+      value: "shop",
+      categoryId: shopping.id,
+    });
+    archiveCategory(db, shopping.id);
+    reactivateCategory(db, shopping.id);
+
+    importRows([row()]);
+
+    expect(listTransactions(db).map((t) => t.categoryId)).toEqual([shopping.id]);
+    expect(listUncategorizedTransactions(db)).toEqual([]);
   });
 });

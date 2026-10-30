@@ -8,7 +8,11 @@ import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { ConfirmActionButton } from "../confirm-action-button";
-import { archiveCategoryAction, createCategoryAction } from "./actions";
+import {
+  archiveCategoryAction,
+  createCategoryAction,
+  reactivateCategoryAction,
+} from "./actions";
 import { CategoryForm } from "./category-form";
 import { ToCategorizeQueue } from "./to-categorize-queue";
 import { requireSession } from "../auth/session";
@@ -26,11 +30,15 @@ export default async function CategoriesPage() {
     getTranslations("categories"),
     getTranslations("common"),
   ]);
-  const { accounts, categories, queue } = withDatabase((db) => ({
-    accounts: listAccounts(db, { includeArchived: true }),
-    categories: listCategories(db),
-    queue: listUncategorizedTransactions(db),
-  }));
+  const { accounts, categories, archivedCategories, queue } = withDatabase((db) => {
+    const all = listCategories(db, { includeArchived: true });
+    return {
+      accounts: listAccounts(db, { includeArchived: true }),
+      categories: all.filter((category) => !category.archived),
+      archivedCategories: all.filter((category) => category.archived),
+      queue: listUncategorizedTransactions(db),
+    };
+  });
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 p-8">
@@ -85,6 +93,34 @@ export default async function CategoriesPage() {
           </ul>
         )}
       </section>
+
+      {archivedCategories.length > 0 ? (
+        <section
+          aria-labelledby="archived-heading"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="archived-heading" className="text-xl font-semibold">
+            {t("archivedHeading")}
+          </h2>
+          <p>{t("archivedIntro")}</p>
+          <ul className="flex flex-col">
+            {archivedCategories.map((category) => (
+              <li
+                key={category.id}
+                className="flex items-center justify-between border-b border-neutral-300 py-1"
+              >
+                <span className="font-medium">{category.name}</span>
+                <form action={reactivateCategoryAction.bind(null, category.id)}>
+                  <button type="submit" className="min-h-11 px-2 underline">
+                    {t("reactivate")}
+                    <span className="sr-only"> {category.name}</span>
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
         <h2 id="new-heading" className="text-xl font-semibold">
