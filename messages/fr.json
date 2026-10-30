@@ -8,7 +8,11 @@
     "saveChanges": "Enregistrer les modifications",
     "archive": "Archiver",
     "skipToContent": "Aller au contenu",
-    "actions": "Actions"
+    "actions": "Actions",
+    "toastRegion": "Notifications",
+    "toastSuccess": "Succès.",
+    "toastError": "Erreur.",
+    "toastDismiss": "Fermer la notification"
   },
   "errors": {
     "errorTitle": "Une erreur est survenue",
@@ -581,7 +585,7 @@
     "categoryNameRequired": "Le nom de la catégorie est obligatoire",
     "categoryNameTaken": "Une catégorie nommée « {name} » existe déjà",
     "categoryOfTransfer": "Un virement n'a pas de catégorie",
-    "categoryArchived": "Cette catégorie est archivée et ne peut pas être attribuée",
+    "categoryArchived": "Catégorie archivée.",
     "categoryUnknown": "Catégorie inconnue",
     "ruleValueRequired": "Le texte à rechercher est obligatoire",
     "ruleOperatorUnknown": "La condition de correspondance n'est pas valide",
@@ -665,7 +669,17 @@
     "backupFileMissing": "Choisissez un fichier de snapshot",
     "backupFileTooLarge": "Le fichier dépasse {max} Mo",
     "backupFailed": "L'opération a échoué, voir les journaux du serveur pour le détail",
-    "backupSessionExpired": "Votre session a expiré : reconnectez-vous"
+    "backupSessionExpired": "Votre session a expiré : reconnectez-vous",
+    "accountCreated": "Compte créé.",
+    "accountUpdated": "Compte modifié.",
+    "accountArchived": "Compte archivé.",
+    "categoryCreated": "Catégorie créée.",
+    "categoryRenamed": "Catégorie renommée.",
+    "categoryAssigned": "Transaction catégorisée.",
+    "accountNotEmpty": "Le compte a encore un solde : videz-le d'abord, puis archivez-le.",
+    "accountInUse": "Le compte est le compte de débordement d'un autre compte : modifiez d'abord cet autre compte.",
+    "accountNotArchived": "Une erreur est survenue, le compte n'a pas été archivé.",
+    "categoryNotArchived": "Une erreur est survenue, la catégorie n'a pas été archivée."
   },
   "auth": {
     "signOut": "Se déconnecter",

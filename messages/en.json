@@ -8,7 +8,11 @@
     "saveChanges": "Save changes",
     "archive": "Archive",
     "skipToContent": "Skip to content",
-    "actions": "Actions"
+    "actions": "Actions",
+    "toastRegion": "Notifications",
+    "toastSuccess": "Success.",
+    "toastError": "Error.",
+    "toastDismiss": "Dismiss the notification"
   },
   "errors": {
     "errorTitle": "Something went wrong",
@@ -581,7 +585,7 @@
     "categoryNameRequired": "The category name is required",
     "categoryNameTaken": "A category named \"{name}\" already exists",
     "categoryOfTransfer": "A transfer has no category",
-    "categoryArchived": "This category is archived and cannot be assigned",
+    "categoryArchived": "Category archived.",
     "categoryUnknown": "Unknown category",
     "ruleValueRequired": "The text to look for is required",
     "ruleOperatorUnknown": "The matching condition is not valid",
@@ -665,7 +669,17 @@
     "backupFileMissing": "Choose a snapshot file",
     "backupFileTooLarge": "The file is larger than {max} MB",
     "backupFailed": "The operation failed, see the server logs for the detail",
-    "backupSessionExpired": "Your session has expired: sign in again"
+    "backupSessionExpired": "Your session has expired: sign in again",
+    "accountCreated": "Account created.",
+    "accountUpdated": "Account updated.",
+    "accountArchived": "Account archived.",
+    "categoryCreated": "Category created.",
+    "categoryRenamed": "Category renamed.",
+    "categoryAssigned": "Transaction categorized.",
+    "accountNotEmpty": "The account still has a balance: empty it first, then archive it.",
+    "accountInUse": "The account is the overflow account of another account: change that account first.",
+    "accountNotArchived": "Something went wrong, the account was not archived.",
+    "categoryNotArchived": "Something went wrong, the category was not archived."
   },
   "auth": {
     "signOut": "Sign out",

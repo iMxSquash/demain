@@ -265,6 +265,21 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** The `messages/` directory is read at runtime and must ship next to the application, which the Docker packaging has to account for. A test checks that every file has the keys and placeholders of the reference. A new domain error needs its key in the translation files and its reference at the throw site.
 
+
+### ADR-015: Notices as toasts, carried by a short-lived cookie
+
+**Context.** Server actions refuse or accept what the user asked, and the user must be told in both cases, whichever screen or form it came from. Errors that no field explains were rendered by each form on its own, and the actions behind the confirmation dialogs (archive, delete) told nothing: a refusal there was an unhandled exception. A notice also has to survive a redirect, as after an edit.
+
+**Decision.** A server action records a notice with `flashSuccess` or `flashError` (`src/app/feedback/flash.ts`): a cookie holding a message reference of the `feedback` namespace (ADR-014), never text and never data of the user. The root layout reads it, translates it in the language of the render and passes it to the `Toaster`, a client component made of two live regions that are in the page from the start (`role="status"` for successes, `role="alert"` for errors). The toast removes the cookie once shown, and a cookie that is not exactly what the server writes is ignored. Errors stay until dismissed, successes leave after a few seconds unless the pointer or the keyboard is on them, and the kind is carried by a word, not by the color alone. An error that belongs to a field stays inline, linked to the field with `aria-describedby`: a toast is for what no field explains and for successes.
+
+**Alternatives rejected.**
+
+- *A toast library.* A dependency for a hundred lines of markup, and its accessibility behavior would have to be audited anyway.
+- *The notice in the state returned by each action.* Every form has its own state type, so every one would change, and the state does not survive a redirect.
+- *A query parameter after the redirect.* Visible in the URL, replayed on reload and on a shared link.
+
+**Consequences.** A new action tells its outcome with one `flash` call and a key in both translation files. The cookie is readable by scripts on purpose, which is harmless since it only holds a key. Every page already renders on demand (the content security policy nonce, see Security), so reading the cookie in the layout costs nothing more.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.

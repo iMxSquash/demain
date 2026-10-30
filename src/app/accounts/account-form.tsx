@@ -62,12 +62,6 @@ export function AccountForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state && !state.field ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
-
       <FormField {...fieldProps("name", t("form.name"))}>
         <input {...controlProps("name")} type="text" required autoComplete="off" />
       </FormField>

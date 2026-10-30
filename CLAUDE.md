@@ -8,7 +8,7 @@ The owner's general conventions (language, commits, security, accessibility, tes
 
 1. [docs/ROADMAP.md](docs/ROADMAP.md): milestones, scope and definition of done. Find the current milestone there.
 2. [docs/DOMAIN.md](docs/DOMAIN.md): vocabulary, entity model and the invariants that must always hold.
-3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): module boundaries and decision records (ADR-001 to ADR-013). Each ADR lists the alternatives already rejected: read it before proposing a different approach.
+3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): module boundaries and decision records (ADR-001 to ADR-015). Each ADR lists the alternatives already rejected: read it before proposing a different approach.
 4. [docs/PRODUCT.md](docs/PRODUCT.md): why the product exists and the user journeys.
 
 ## Current state

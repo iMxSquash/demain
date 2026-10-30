@@ -22,7 +22,6 @@ export function CategoryForm({
   submitLabel,
 }: CategoryFormProps) {
   const t = useTranslations("categories");
-  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const name = state?.name ?? initialName;
@@ -30,12 +29,6 @@ export function CategoryForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      {state && !state.field ? (
-        <p role="alert" className="font-medium text-red-800">
-          {common("error", { message: state.message })}
-        </p>
-      ) : null}
-
       <FormField id="name" label={t("name")} error={nameError}>
         <input
           id="name"
