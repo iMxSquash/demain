@@ -139,7 +139,7 @@ const DATE_ORDER: Record<
 };
 
 // A two-digit year would be a guess about the century.
-function parseDate(text: string, format: CsvDateFormat): string | null {
+export function parseDate(text: string, format: CsvDateFormat): string | null {
   const parts = DATE_PATTERN.exec(text.trim());
   const [year, month, day] = DATE_ORDER[format].map(
     (position) => parts?.[position],
