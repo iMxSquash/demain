@@ -16,6 +16,7 @@ import {
 import { createRule, moveRule } from "../../src/ledger/categorization-rules";
 import {
   commitImport,
+  findDuplicateRows,
   getLastCsvMapping,
   listImportBatches,
   previewImport,
@@ -378,5 +379,32 @@ describe("imports", () => {
 
     expect(listTransactions(db).map((t) => t.categoryId)).toEqual([shopping.id]);
     expect(listUncategorizedTransactions(db)).toEqual([]);
+  });
+
+  describe("findDuplicateRows", () => {
+    it("flags, row by row, the movements already in the account", () => {
+      importRows([row()]);
+
+      const flags = findDuplicateRows(db, {
+        accountId,
+        rows: [row({ label: "BAKERY", amount: -320 }), row()],
+      });
+
+      expect(flags).toEqual([false, true]);
+    });
+
+    it("flags nothing in an account that has no such movement", () => {
+      expect(findDuplicateRows(db, { accountId, rows: [row(), row()] })).toEqual([
+        false,
+        false,
+      ]);
+    });
+
+    it("writes nothing", () => {
+      findDuplicateRows(db, { accountId, rows: [row()] });
+
+      expect(listTransactions(db)).toEqual([]);
+      expect(listImportBatches(db, accountId)).toEqual([]);
+    });
   });
 });
