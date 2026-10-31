@@ -130,6 +130,56 @@ const RowEditor = memo(function RowEditor({
   );
 });
 
+function RowsTable({
+  fileName,
+  rows,
+  dispatch,
+}: {
+  fileName: string;
+  rows: EditableRow[];
+  dispatch: ActionDispatch<[RowEdit]>;
+}) {
+  const t = useTranslations("imports.staged");
+  const imports = useTranslations("imports");
+  const stateIdPrefix = useId();
+
+  return (
+    <div className="max-h-96 overflow-auto">
+      <table className="w-full border-collapse text-left">
+        <caption className="sr-only">
+          {t("tableCaption", { name: fileName })}
+        </caption>
+        <thead>
+          <tr className="border-b border-neutral-500">
+            <th scope="col" className="py-2 pr-2 text-right">
+              {t("row")}
+            </th>
+            <th scope="col">{imports("columns.date")}</th>
+            <th scope="col">{imports("columns.label")}</th>
+            <th scope="col" className="text-right">
+              {imports("columns.amount")}
+            </th>
+            <th scope="col" className="pl-2">
+              {t("columnState")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <RowEditor
+              key={row.line}
+              row={row}
+              index={index}
+              stateId={`${stateIdPrefix}-${index}`}
+              dispatch={dispatch}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 type Phase = "reviewing" | "importing" | "done" | "cancelled";
 
 interface Outcome {
@@ -145,10 +195,8 @@ function FileCard({
   accountId: number;
 }) {
   const t = useTranslations("imports.staged");
-  const imports = useTranslations("imports");
   const headingId = useId();
   const hintId = useId();
-  const stateIdPrefix = useId();
   const [rows, dispatch] = useReducer(
     (current: EditableRow[], edit: RowEdit) =>
       editRow(current, edit, file.currency),
@@ -210,39 +258,7 @@ function FileCard({
               problemCount,
             })}
           </p>
-          <div className="max-h-96 overflow-auto">
-            <table className="w-full border-collapse text-left">
-              <caption className="sr-only">
-                {t("tableCaption", { name: file.fileName })}
-              </caption>
-              <thead>
-                <tr className="border-b border-neutral-500">
-                  <th scope="col" className="py-2 pr-2 text-right">
-                    {t("row")}
-                  </th>
-                  <th scope="col">{imports("columns.date")}</th>
-                  <th scope="col">{imports("columns.label")}</th>
-                  <th scope="col" className="text-right">
-                    {imports("columns.amount")}
-                  </th>
-                  <th scope="col" className="pl-2">
-                    {t("columnState")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <RowEditor
-                    key={row.line}
-                    row={row}
-                    index={index}
-                    stateId={`${stateIdPrefix}-${index}`}
-                    dispatch={dispatch}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RowsTable fileName={file.fileName} rows={rows} dispatch={dispatch} />
           {problemCount > 0 ? <p id={hintId}>{t("fixFirst")}</p> : null}
           <div className="flex flex-wrap gap-3">
             <button
