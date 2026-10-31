@@ -81,6 +81,7 @@ Start from an empty instance, signed in.
 3. On `/imports`, choose the account and `tests/fixtures/statement.csv`, then "Preview": the columns are guessed, there are 4 new transactions and no duplicate, and the amounts read -12.50, 1 143.88, -12.50, -12.50. Click "Import": 4 transactions are imported.
 4. On `/categories`, only `VIR SALAIRE ACME` waits in the queue, the three other rows were categorized by the rule. Choose "Salary", open "Also create a rule", tick the box and submit: the queue is empty and the new rule appears on `/rules`.
 5. On `/synthesis`, February 2026 shows a net of 1 106.38 and an end-of-month balance of 1 206.38 (100.00 + 1 143.88 - 3 x 12.50), and the following months keep that balance.
+6. Several files at once: on `/imports`, choose the account and select two CSV files together (the fixture and a second synthetic file with one impossible date such as `30/02/2026` and one row without label). "Preview" opens a dialog with one card per file. The row of the fixture already imported reads "Already in this account", the impossible date and the empty label are marked as problems and the card of that file cannot be imported until they are fixed in place. Cancel one card and import another: only the imported file adds transactions, and closing the dialog records nothing more. A CSV whose columns cannot be guessed gets a card that says so.
 
 ## Code standards
 

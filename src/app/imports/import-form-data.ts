@@ -6,7 +6,9 @@ import {
   type CsvDelimiter,
   type CsvMapping,
 } from "../../domain/import-csv";
+import type { DraftProblem } from "../../domain/import-draft";
 import { looksLikeOfx } from "../../domain/import-ofx";
+import type { StagedRow } from "../../domain/import-staging";
 import type { ImportFormat } from "../../ledger/imports";
 
 /** Largest file accepted. `serverActions.bodySizeLimit` in next.config.ts must stay above it. */
@@ -50,6 +52,50 @@ export interface ImportFormState {
   /** Translated, for the ceiling and for an archived account. */
   warnings: string[];
   canImport: boolean;
+}
+
+export interface StagedRowView extends StagedRow {
+  /** The account already holds this movement: it is left out when the file is imported. */
+  isDuplicate: boolean;
+}
+
+/** One file of a multi-file import, read and waiting for the user's decision. */
+export interface StagedFile {
+  fileName: string;
+  status: "ready" | "failed";
+  /** Translated; what went wrong when `status` is "failed". */
+  message: string;
+  format: ImportFormat | null;
+  /** The CSV mapping that read the file: recorded with the batch, offered at the next import. */
+  mapping: CsvMapping | null;
+  currency: string;
+  rows: StagedRowView[];
+}
+
+/** A file that gave nothing to review: its card says why. */
+export function failedStagedFile(
+  fileName: string,
+  message: string,
+): StagedFile {
+  return {
+    fileName,
+    status: "failed",
+    message,
+    format: null,
+    mapping: null,
+    currency: "",
+    rows: [],
+  };
+}
+
+export interface CommitStagedState {
+  status: "done" | "invalid" | "error";
+  /** Translated. */
+  message: string;
+  /** Translated, for the ceiling and for an archived account. */
+  warnings: string[];
+  /** Position in the file's rows, for each row the server still refuses. */
+  problems: { index: number; problem: DraftProblem }[];
 }
 
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */

@@ -2,15 +2,6 @@
 
 import { getLocale, getTranslations } from "next-intl/server";
 
-import {
-  chooseCsvMapping,
-  detectDelimiter,
-  parseCsv,
-  suggestCsvMapping,
-  type CsvMapping,
-  type CsvReading,
-} from "../../domain/import-csv";
-import { parseOfx } from "../../domain/import-ofx";
 import { ImportParseError } from "../../domain/import-row";
 import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
@@ -18,7 +9,6 @@ import { formatCalendarDate } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
 import {
   commitImport,
-  getLastCsvMapping,
   previewImport,
   type ImportFormat,
 } from "../../ledger/imports";
@@ -31,94 +21,17 @@ import {
   decodeImportFile,
   detectImportFormat,
   MAX_IMPORT_FILE_BYTES,
-  mappingToFields,
   readMappingFields,
   type ImportFormState,
-  type MappingFields,
 } from "./import-form-data";
+import { readCsv, readOfx } from "./read-statement";
 
 const IMPORT_INTENT = "import";
-const RAW_ROW_COUNT = 5;
 const SAMPLE_ROW_COUNT = 5;
 const PROBLEM_COUNT = 10;
 const WARNING_COUNT = 20;
 const MAX_FILE_NAME_LENGTH = 255;
 const BYTES_PER_MEGABYTE = 1024 * 1024;
-
-const emptyMappingFields = (
-  delimiter: CsvMapping["delimiter"],
-): MappingFields => ({
-  delimiter,
-  hasHeader: true,
-  dateColumn: "",
-  dateFormat: "dmy",
-  labelColumn: "",
-  amountKind: "single",
-  amountColumn: "",
-  debitColumn: "",
-  creditColumn: "",
-});
-
-/** What was read from a file, in the shape both formats share. */
-interface StatementReading extends CsvReading {
-  /** What the mapping fields start from: null for OFX. */
-  mapping: MappingFields | null;
-  /** First rows of a CSV as they are, to read the column numbers from. */
-  rawRows: string[][];
-  /** The CSV mapping that produced `rows`, null for OFX or while the columns are unknown. */
-  used: CsvMapping | null;
-}
-
-function readOfx(text: string, currency: string): StatementReading {
-  return {
-    rows: parseOfx(text, currency),
-    errors: [],
-    mapping: null,
-    rawRows: [],
-    used: null,
-  };
-}
-
-// The mapping comes from the form once the user has seen it. Before that, the
-// one of the last import on the account is tried first, then a guess on the
-// header row: the first that reads the whole file wins, otherwise the first
-// one is kept so that the user sees what is wrong and can fix it.
-function readCsv(
-  text: string,
-  formData: FormData,
-  accountId: number,
-  currency: string,
-): StatementReading {
-  const submitted = readMappingFields(formData);
-  const delimiter = submitted?.delimiter ?? detectDelimiter(text);
-  const parsed = parseCsv(text, delimiter);
-  const rawRows = parsed.slice(0, RAW_ROW_COUNT);
-
-  const saved = withDatabase((db) => getLastCsvMapping(db, accountId));
-  const candidates = submitted
-    ? [submitted]
-    : [
-        saved?.delimiter === delimiter ? saved : null,
-        suggestCsvMapping(parsed[0] ?? [], delimiter),
-      ].filter((candidate): candidate is CsvMapping => candidate !== null);
-
-  const chosen = chooseCsvMapping(parsed, candidates, currency);
-  if (chosen === null) {
-    return {
-      rows: [],
-      errors: [],
-      mapping: emptyMappingFields(delimiter),
-      rawRows,
-      used: null,
-    };
-  }
-  return {
-    ...chosen.reading,
-    mapping: mappingToFields(chosen.mapping),
-    rawRows,
-    used: chosen.mapping,
-  };
-}
 
 export async function importAction(
   _previous: ImportFormState | null,
@@ -174,7 +87,12 @@ export async function importAction(
     const { rows, errors, mapping, rawRows, used } =
       format === "ofx"
         ? readOfx(text, account.currency)
-        : readCsv(text, formData, accountId, account.currency);
+        : readCsv(
+            text,
+            readMappingFields(formData),
+            accountId,
+            account.currency,
+          );
 
     const problems = errors.slice(0, PROBLEM_COUNT).map(describe);
     if (errors.length > PROBLEM_COUNT) {

@@ -325,7 +325,7 @@
     "accountLabel": "Compte",
     "chooseAccount": "Choisir un compte",
     "noAccount": "Aucun compte actif pour l'instant. Ajoutez un compte avant d'importer.",
-    "fileLabel": "Fichier (CSV ou OFX, 20 Mo maximum)",
+    "fileLabel": "Fichiers (CSV ou OFX, 20 Mo au plus chacun)",
     "previewSubmit": "Prévisualiser",
     "importSubmit": "Importer",
     "mappingHeading": "Colonnes du CSV",
@@ -376,7 +376,36 @@
     "nothingToImport": "Rien à importer : toutes les lignes sont déjà dans ce compte.",
     "fixProblems": "Corrigez les lignes ci-dessous ou le mappage, puis prévisualisez à nouveau. Rien n'est importé tant qu'une ligne est invalide.",
     "toCategorize": "Catégoriser les transactions importées",
-    "problemAtLine": "Ligne {line} : {message}"
+    "problemAtLine": "Ligne {line} : {message}",
+    "staged": {
+      "reading": "Lecture du fichier {current} sur {total} : {name}",
+      "title": "Vérifier les fichiers avant d'importer",
+      "intro": "Rien n'est enregistré tant que vous n'importez pas un fichier. Modifiez n'importe quelle cellule, puis importez ou annulez chaque fichier. Les fichiers que vous n'importez pas sont laissés de côté.",
+      "close": "Fermer",
+      "mappingNeeded": "Les colonnes de ce fichier n'ont pas pu être devinées. Importez-le seul pour les indiquer.",
+      "readFailed": "Ce fichier n'a pas pu être lu.",
+      "summary": "{rows} lignes : {newCount} nouvelles, {duplicateCount} déjà dans ce compte, {problemCount} à corriger.",
+      "tableCaption": "Lignes de {name}",
+      "row": "Ligne",
+      "stateNew": "Nouvelle",
+      "stateDuplicate": "Déjà dans ce compte",
+      "cellLabel": "{column}, ligne {line}",
+      "importFile": "Importer ce fichier",
+      "cancelFile": "Annuler ce fichier",
+      "fixFirst": "Corrigez les lignes signalées comme problèmes pour importer ce fichier.",
+      "cancelled": "Annulé : rien n'a été importé de ce fichier.",
+      "stillInvalid": "{count} lignes sont encore invalides : rien n'a été importé de ce fichier.",
+      "toCategorize": "Catégoriser les transactions importées",
+      "problems": {
+        "dateInvalid": "Saisissez une date valide.",
+        "dateInvalidRaw": "Le fichier indique « {raw} » : saisissez une date valide.",
+        "labelRequired": "Saisissez un libellé.",
+        "amountInvalid": "Saisissez un montant comme -12,50.",
+        "amountZero": "Le montant ne peut pas être nul."
+      },
+      "columnState": "État",
+      "importFailed": "Une erreur est survenue, rien n'a été importé de ce fichier."
+    }
   },
   "backup": {
     "metaTitle": "Sauvegarde et export | Demain",

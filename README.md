@@ -94,7 +94,7 @@ Demain runs as one Docker container (`linux/amd64` and `linux/arm64`: a PC, a VP
 3. In `compose.yaml`, replace `proxy` by the name of your reverse proxy network (`docker network create proxy` if you have none yet).
 4. Run `docker compose up -d`.
 5. Point your reverse proxy at `demain:3000` (see below).
-6. Open the app in a browser, create the single user account with the setup token, then remove the token from `.env`. Import your first bank export (CSV or OFX, 20 MB at most) from the Import screen.
+6. Open the app in a browser, create the single user account with the setup token, then remove the token from `.env`. Import your first bank export (CSV or OFX, 20 MB at most per file, several files at once if you like) from the Import screen.
 
 The compose file declares one service and one named volume (`demain-data`, mounted on `/data`, which holds the SQLite database), attached to the network of your reverse proxy. The port is never published on the host and the proxy is not part of this file, so several applications can share one host. The container runs as an unprivileged user, makes no outbound network call by default, and stops at startup, with a message in `docker compose logs demain`, when the environment is invalid.
 

@@ -325,7 +325,7 @@
     "accountLabel": "Account",
     "chooseAccount": "Choose an account",
     "noAccount": "No active account yet. Add an account before importing.",
-    "fileLabel": "File (CSV or OFX, 20 MB at most)",
+    "fileLabel": "Files (CSV or OFX, 20 MB each at most)",
     "previewSubmit": "Preview",
     "importSubmit": "Import",
     "mappingHeading": "CSV columns",
@@ -376,7 +376,36 @@
     "nothingToImport": "Nothing to import: every row is already in this account.",
     "fixProblems": "Fix the rows below or the mapping, then preview again. Nothing is imported while a row is invalid.",
     "toCategorize": "Categorize the imported transactions",
-    "problemAtLine": "Line {line}: {message}"
+    "problemAtLine": "Line {line}: {message}",
+    "staged": {
+      "reading": "Reading file {current} of {total}: {name}",
+      "title": "Review the files before importing",
+      "intro": "Nothing is recorded until you import a file. Edit any cell, then import or cancel each file. Files you do not import are left out.",
+      "close": "Close",
+      "mappingNeeded": "The columns of this file could not be guessed. Import it alone to set them.",
+      "readFailed": "This file could not be read.",
+      "summary": "{rows} rows: {newCount} new, {duplicateCount} already in this account, {problemCount} to fix.",
+      "tableCaption": "Rows of {name}",
+      "row": "Row",
+      "stateNew": "New",
+      "stateDuplicate": "Already in this account",
+      "cellLabel": "{column}, row {line}",
+      "importFile": "Import this file",
+      "cancelFile": "Cancel this file",
+      "fixFirst": "Fix the rows marked as problems to import this file.",
+      "cancelled": "Cancelled: nothing was imported from this file.",
+      "stillInvalid": "{count} rows are still invalid: nothing was imported from this file.",
+      "toCategorize": "Categorize the imported transactions",
+      "problems": {
+        "dateInvalid": "Enter a valid date.",
+        "dateInvalidRaw": "The file says \"{raw}\": enter a valid date.",
+        "labelRequired": "Enter a label.",
+        "amountInvalid": "Enter an amount such as -12.50.",
+        "amountZero": "The amount cannot be zero."
+      },
+      "columnState": "State",
+      "importFailed": "Something went wrong, nothing was imported from this file."
+    }
   },
   "backup": {
     "metaTitle": "Backup and export | Demain",
