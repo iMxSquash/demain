@@ -230,6 +230,47 @@ describe("guessMovementType from the history", () => {
   });
 });
 
+describe("guessMovementType for savings coming back to the account", () => {
+  it("keeps a savings type cell on an incoming amount, a withdrawal from savings", () => {
+    const guess = guessMovementType(
+      signalsOf({ typeCell: "Epargne", direction: "in" }),
+      NO_HISTORY,
+    );
+
+    expect(guess).toMatchObject({ type: "savings", confidence: "high", conflict: null });
+  });
+
+  it("keeps an epargne category on an incoming amount, with a medium confidence", () => {
+    const guess = guessMovementType(
+      signalsOf({ direction: "in", category: "Epargne" }),
+      NO_HISTORY,
+    );
+
+    expect(guess).toMatchObject({ type: "savings", confidence: "medium", conflict: null });
+  });
+
+  it("keeps the savings type of the history on an incoming amount", () => {
+    const guess = guessMovementType(
+      signalsOf({ direction: "in", label: "Vir depuis livret" }),
+      {
+        vocabulary: DEFAULT_TYPE_VOCABULARY,
+        history: new Map([["vir depuis livret", "savings"]]),
+      },
+    );
+
+    expect(guess).toMatchObject({ type: "savings", confidence: "medium" });
+  });
+
+  it("still flags an income on an outgoing amount", () => {
+    const guess = guessMovementType(
+      signalsOf({ typeCell: "Income", direction: "out" }),
+      NO_HISTORY,
+    );
+
+    expect(guess).toMatchObject({ type: "income", confidence: "low" });
+  });
+});
+
 describe("guessMovementType with a type column that does not help", () => {
   it("falls back on the sign when the cell names no known type, keeps the cell aside and asks to confirm", () => {
     const guess = guessMovementType(
