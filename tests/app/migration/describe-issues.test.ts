@@ -43,6 +43,11 @@ const TAB_ISSUES: SheetTabIssue[] = [
   { kind: "rowUnreadable", line: 3, ref: REF },
   { kind: "typeUnrecognized", line: 3, value: "Refund" },
   { kind: "typeMissing", line: 4 },
+  { kind: "columnsIgnored", columns: [5, 6] },
+  { kind: "rowsIgnored", reason: "beforeHeader", lines: [1, 2] },
+  { kind: "rowsIgnored", reason: "total", lines: [9] },
+  { kind: "numberFormatAmbiguous", mark: "," },
+  { kind: "numberFormatAmbiguous", mark: "." },
 ];
 
 const SUMMARY_COLUMNS = [
@@ -175,6 +180,28 @@ describe("where a problem is", () => {
     expect(
       describeTabIssue("january.csv", { kind: "typeMissing", line: 4 }, say).text,
     ).toBe("january.csv, line 4: Row skipped: its type is empty.");
+  });
+
+  it.each([
+    [",", "1 234,56"],
+    [".", "1,234.56"],
+  ] as const)("shows how the amounts are read when the mark is %j", (mark, example) => {
+    expect(
+      describeTabIssue("a.csv", { kind: "numberFormatAmbiguous", mark }, say).text,
+    ).toContain(example);
+  });
+
+  it("lists the columns and the lines it ignored, numbering the columns from 1", () => {
+    const text = (issue: SheetTabIssue): string =>
+      describeTabIssue("a.csv", issue, say).text;
+
+    expect(text({ kind: "columnsIgnored", columns: [5, 6] })).toContain("6, 7");
+    expect(
+      text({ kind: "rowsIgnored", reason: "beforeHeader", lines: [1, 2] }),
+    ).toContain("1, 2");
+    expect(text({ kind: "rowsIgnored", reason: "total", lines: [9] })).toContain(
+      "9",
+    );
   });
 
   it("names only the file when the problem is about the whole file", () => {

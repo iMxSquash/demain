@@ -550,6 +550,12 @@
         "type": "\"{value}\" is not a known type (lines {lines}).",
         "paymentMode": "\"{value}\" is not a known payment mode (lines {lines})."
       },
+      "columnsIgnored": "Columns {columns} look like another table beside the movements and are ignored.",
+      "rowsIgnored": {
+        "beforeHeader": "Lines {lines} are above the header and are ignored.",
+        "total": "Lines {lines} look like totals and are ignored."
+      },
+      "numberFormatAmbiguous": "The amounts do not all use the same number format. Read as {example}: check it.",
       "rowUnreadable": "Row skipped: {message}",
       "typeUnrecognized": "Row skipped: the type \"{value}\" is not recognized.",
       "typeMissing": "Row skipped: its type is empty.",

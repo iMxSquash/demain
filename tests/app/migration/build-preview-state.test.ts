@@ -30,6 +30,8 @@ const reading = (
     paymentModeColumn: null,
     categoryColumn: null,
     descriptionColumn: null,
+    headerIndex: 0,
+    ignoredLines: [],
     yearApplied: null,
     issues: [],
   },

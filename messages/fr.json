@@ -550,6 +550,12 @@
         "type": "« {value} » n'est pas un type connu (lignes {lines}).",
         "paymentMode": "« {value} » n'est pas un mode de paiement connu (lignes {lines})."
       },
+      "columnsIgnored": "Les colonnes {columns} ressemblent à un autre tableau à côté des mouvements et sont ignorées.",
+      "rowsIgnored": {
+        "beforeHeader": "Les lignes {lines} sont au-dessus de l'en-tête et sont ignorées.",
+        "total": "Les lignes {lines} ressemblent à des totaux et sont ignorées."
+      },
+      "numberFormatAmbiguous": "Les montants n'utilisent pas tous le même format de nombre. Lus comme {example} : vérifiez.",
       "rowUnreadable": "Ligne ignorée : {message}",
       "typeUnrecognized": "Ligne ignorée : le type « {value} » n'est pas reconnu.",
       "typeMissing": "Ligne ignorée : son type est vide.",

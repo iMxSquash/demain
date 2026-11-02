@@ -68,6 +68,9 @@ function located(
 const blocking = (text: string): ReportedIssue => ({ isBlocking: true, text });
 const toReview = (text: string): ReportedIssue => ({ isBlocking: false, text });
 
+// One amount written each way, to show how the amounts of a file were read.
+const NUMBER_FORMAT_EXAMPLES = { ",": "1 234,56", ".": "1,234.56" } as const;
+
 /** The columns of a file are numbered from 1, as in a spreadsheet. */
 const columnNumbers = (columns: readonly number[]): string =>
   listOf(columns.map((column) => column + 1));
@@ -122,6 +125,22 @@ export function describeTabIssue(
           t(`issues.unrecognizedValue.${issue.role}`, {
             value: issue.value,
             lines: listOf(issue.lines),
+          }),
+        ),
+      );
+    case "columnsIgnored":
+      return toReview(
+        file(t("issues.columnsIgnored", { columns: columnNumbers(issue.columns) })),
+      );
+    case "rowsIgnored":
+      return toReview(
+        file(t(`issues.rowsIgnored.${issue.reason}`, { lines: listOf(issue.lines) })),
+      );
+    case "numberFormatAmbiguous":
+      return toReview(
+        file(
+          t("issues.numberFormatAmbiguous", {
+            example: NUMBER_FORMAT_EXAMPLES[issue.mark],
           }),
         ),
       );

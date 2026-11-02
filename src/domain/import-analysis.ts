@@ -5,8 +5,14 @@
  * never dropped: the preview shows each one and the user decides.
  */
 
+import {
+  findHeaderIndex,
+  isTotalRow,
+  movementColumns,
+} from "./import-blocks";
 import { detectColumnRoles, type ColumnIssue } from "./import-columns";
 import {
+  CSV_DATE_FORMATS,
   completeDateYear,
   datesLackYear,
   detectDateFormat,
@@ -19,6 +25,7 @@ import {
   type CsvFileIssue,
   type CsvMapping,
 } from "./import-csv";
+import { detectDecimalMark, type DecimalMark } from "./money";
 
 export type AnalysisIssue =
   | { kind: "mappingColumnNotFound"; role: "date" | "label" | "amount" }
@@ -29,6 +36,12 @@ export type AnalysisIssue =
   | { kind: "dateFormatAmbiguous"; format: CsvDateFormat }
   /** The dates have no year and none was given: the user has to provide it. */
   | { kind: "dateYearMissing" }
+  /** Columns beside the table (a monthly summary, for instance) hold other things: they are left out. */
+  | { kind: "columnsIgnored"; columns: number[] }
+  /** Lines that are no movement: those above the header, or the totals. */
+  | { kind: "rowsIgnored"; reason: "beforeHeader" | "total"; lines: number[] }
+  /** The amounts disagree on the decimal mark: this is the likeliest one, to confirm. */
+  | { kind: "numberFormatAmbiguous"; mark: DecimalMark }
   | ColumnIssue;
 
 export interface CsvAnalysis {
@@ -40,13 +53,14 @@ export interface CsvAnalysis {
   categoryColumn: number | null;
   /** Free text beside the label, named by its header: not an issue when absent. */
   descriptionColumn: number | null;
+  /** 0-based index of the header row; the lines above it are ignored. */
+  headerIndex: number;
+  /** 1-based lines of the file that are no movement: above the header, totals, and lines holding only what is beside the table. */
+  ignoredLines: number[];
   /** The year added to dates written without one; null when they carry their own. */
   yearApplied: number | null;
   issues: AnalysisIssue[];
 }
-
-// The header sits on line 1, so the first movement is on line 2.
-const FIRST_DATA_LINE = 2;
 
 function amountColumns(amount: CsvAmountMapping | null): number[] {
   if (amount === null) return [];
@@ -55,13 +69,96 @@ function amountColumns(amount: CsvAmountMapping | null): number[] {
     : [amount.debitColumn, amount.creditColumn];
 }
 
+const isBlank = (cells: readonly string[]): boolean =>
+  cells.every((cell) => cell.trim() === "");
+
+interface TableLayout {
+  /** The header and the lines under it with what is out of the table emptied, not removed: line numbers stay right. */
+  header: string[];
+  rows: string[][];
+  /** Lines (1-based) above the header. */
+  aboveHeaderLines: number[];
+  /** Lines (1-based) of the file that are no movement, those above the header included. */
+  ignoredLines: number[];
+  totalLines: number[];
+  ignoredColumns: number[];
+}
+
+/**
+ * Tells the table of movements from what surrounds it. `anchors` are the
+ * date, label and amount columns, that the table holds; without them (a column
+ * not found) nothing is left out but the lines above the header and the totals.
+ */
+function layoutTable(
+  table: readonly (readonly string[])[],
+  headerIndex: number,
+  dateColumn: number | null,
+  anchors: readonly number[] | null,
+): TableLayout {
+  const block = anchors === null ? null : movementColumns(table, headerIndex, anchors);
+  const inBlock = (column: number): boolean =>
+    block === null || (column >= block.first && column <= block.last);
+  const clear = (cells: readonly string[]): string[] =>
+    cells.map((cell, column) => (inBlock(column) ? cell : ""));
+  // The format is not known yet: a total is a row that no format reads as a date.
+  const isTotal = (cells: readonly string[]): boolean =>
+    dateColumn !== null &&
+    CSV_DATE_FORMATS.every((format) => isTotalRow(cells, dateColumn, format, inBlock));
+
+  const firstLine = headerIndex + 2;
+  const aboveHeaderLines = Array.from({ length: headerIndex }, (_, index) => index + 1);
+  const ignoredLines = [...aboveHeaderLines];
+  const totalLines: number[] = [];
+  const rows = table.slice(headerIndex + 1).map((cells, index) => {
+    const line = firstLine + index;
+    const isTotalLine = isTotal(cells);
+    const kept = isTotalLine ? [] : clear(cells);
+    if (isBlank(kept)) ignoredLines.push(line);
+    if (isTotalLine) totalLines.push(line);
+    return kept;
+  });
+
+  const fromHeader = table.slice(headerIndex);
+  const columnCount = Math.max(0, ...fromHeader.map((cells) => cells.length));
+  const ignoredColumns = Array.from({ length: columnCount }, (_, column) => column).filter(
+    (column) =>
+      !inBlock(column) &&
+      fromHeader.some((cells) => (cells[column] ?? "").trim() !== ""),
+  );
+  return {
+    header: clear(table[headerIndex] ?? []),
+    rows,
+    aboveHeaderLines,
+    ignoredLines,
+    totalLines,
+    ignoredColumns,
+  };
+}
+
 function analyzeTable(
   table: readonly (readonly string[])[],
   delimiter: CsvDelimiter,
   year: number | undefined,
 ): CsvAnalysis {
-  const [header = [], ...rows] = table;
-  const { dateColumn, labelColumn, amount } = suggestMappingColumns(header);
+  const headerIndex = findHeaderIndex(table);
+  const { dateColumn, labelColumn, amount } = suggestMappingColumns(
+    table[headerIndex] ?? [],
+  );
+  const mappedColumns = [
+    ...(dateColumn === null ? [] : [dateColumn]),
+    ...(labelColumn === null ? [] : [labelColumn]),
+    ...amountColumns(amount),
+  ];
+  const isEssentialFound =
+    dateColumn !== null && labelColumn !== null && amount !== null;
+  const layout = layoutTable(
+    table,
+    headerIndex,
+    dateColumn,
+    isEssentialFound ? mappedColumns : null,
+  );
+  // Lines emptied by the layout hold no movement, whatever they were.
+  const rows = layout.rows.filter((cells) => !isBlank(cells));
 
   const dateCells =
     dateColumn === null ? [] : rows.map((row) => row[dateColumn] ?? "");
@@ -73,17 +170,20 @@ function analyzeTable(
       : dateCells.map((cell) => completeDateYear(cell, yearApplied));
   // Without a year the format cannot be read yet: the missing year is the issue to report.
   const dateFormat = lacksYear && year === undefined ? null : detectDateFormat(dates);
-  const mapping: CsvMapping | null =
-    dateColumn !== null && labelColumn !== null && amount !== null
-      ? {
-          delimiter,
-          hasHeader: true,
-          dateColumn,
-          dateFormat: dateFormat?.format ?? "dmy",
-          labelColumn,
-          amount,
-        }
-      : null;
+  const decimalMark = detectDecimalMark(
+    rows.flatMap((row) => amountColumns(amount).map((column) => row[column] ?? "")),
+  );
+  const mapping: CsvMapping | null = isEssentialFound
+    ? {
+        delimiter,
+        hasHeader: true,
+        dateColumn,
+        dateFormat: dateFormat?.format ?? "dmy",
+        labelColumn,
+        amount,
+        ...(decimalMark === null ? {} : { decimalMark: decimalMark.mark }),
+      }
+    : null;
 
   const mappingIssues: AnalysisIssue[] = (
     [
@@ -106,15 +206,38 @@ function analyzeTable(
           ? [{ kind: "dateFormatAmbiguous", format: dateFormat.format }]
           : [];
 
+  const layoutIssues: AnalysisIssue[] = [
+    ...(headerIndex === 0
+      ? []
+      : [
+          {
+            kind: "rowsIgnored" as const,
+            reason: "beforeHeader" as const,
+            lines: layout.aboveHeaderLines,
+          },
+        ]),
+    ...(layout.ignoredColumns.length === 0
+      ? []
+      : [{ kind: "columnsIgnored" as const, columns: layout.ignoredColumns }]),
+    ...(layout.totalLines.length === 0
+      ? []
+      : [
+          {
+            kind: "rowsIgnored" as const,
+            reason: "total" as const,
+            lines: layout.totalLines,
+          },
+        ]),
+    ...(decimalMark?.isAmbiguous === true
+      ? [{ kind: "numberFormatAmbiguous" as const, mark: decimalMark.mark }]
+      : []),
+  ];
+
   const roles = detectColumnRoles(
-    rows,
-    FIRST_DATA_LINE,
-    [
-      ...(dateColumn === null ? [] : [dateColumn]),
-      ...(labelColumn === null ? [] : [labelColumn]),
-      ...amountColumns(amount),
-    ],
-    header,
+    layout.rows,
+    headerIndex + 2,
+    mappedColumns,
+    layout.header,
   );
 
   return {
@@ -124,8 +247,10 @@ function analyzeTable(
     paymentModeColumn: roles.paymentModeColumn,
     categoryColumn: roles.categoryColumn,
     descriptionColumn: roles.descriptionColumn,
+    headerIndex,
+    ignoredLines: layout.ignoredLines,
     yearApplied,
-    issues: [...mappingIssues, ...dateIssues, ...roles.issues],
+    issues: [...mappingIssues, ...dateIssues, ...layoutIssues, ...roles.issues],
   };
 }
 
@@ -138,6 +263,8 @@ function unusable(delimiter: CsvDelimiter, issue: AnalysisIssue): CsvAnalysis {
     paymentModeColumn: null,
     categoryColumn: null,
     descriptionColumn: null,
+    headerIndex: 0,
+    ignoredLines: [],
     yearApplied: null,
     issues: [issue],
   };
