@@ -475,6 +475,40 @@ There is no expense word: an outgoing amount is an expense unless something says
 
 The vocabulary and the history are inputs of the function, like the rest of the data. The default vocabulary is what is used today; enriching it from the history, letting the user edit it and reading the history of the account are wired in later changes.
 
+## Reading any CSV file
+
+One reader (`readMovementFile`) serves the migration and, later, the import. It analyzes the layout of the file, then reads each row into a date, a label, a signed amount and, when the file has them, a type guess (see above), a category, a payment mode and a description. The migration keeps its own strict policy on top of it (see Migration from the sheet).
+
+### Blocks
+
+A CSV file often holds more than the table of movements. What is not a movement is left out and reported with its place, never dropped silently.
+
+- **Lines above the header.** The header is the first line that names a date, a label and an amount (or a debit and a credit). Lines above it (an account name, a balance at a date) are ignored, and the line numbers stay those of the file.
+- **A block beside the table.** Columns that are empty on every line from the header on split the file into blocks. The table is the block that holds the date, label and amount columns; the columns of the other blocks (a monthly summary with its revenues, expenses and savings, for instance) are ignored, whatever they hold. A column that has a header and no value does not split the table. When the three columns are not in one block, nothing is left out.
+- **Total rows.** A row whose date cannot be read and where a cell of the table starts with a total word (`total`, `sous-total`, `subtotal`, `totaux`, `solde`, `balance`, `sum`) is ignored. A row with a readable date is kept whatever its label says ("TOTAL ENERGIES"), and so is a date written without a year.
+- **Empty lines.** A line that holds nothing in the table (only a block beside it) is skipped without a report.
+
+### Number format
+
+The decimal mark is read per file, from its amount cells, and applies to all of them: the other mark only groups digits, and an amount that breaks it is rejected like any unreadable amount. A cell is a clue when it holds both marks (the last one is decimal), when a mark is repeated (it groups), or when a lone mark is followed by other than three digits. A lone mark followed by exactly three digits (`1,234`, `1.234`) is no clue, since it is a thousand in one convention and a decimal in the other: the mark of the file settles it, so `1.234` is 1 234.00 in a file that writes `-12,50`. The mark most cells point to wins, the comma on a tie; when the cells disagree the file is reported to be checked, with an example (`1 234,56` or `1,234.56`). Without any clue (whole amounts only), each amount is read on its own, as before.
+
+### Columns named by their header
+
+The type, the payment mode, the category and the description are looked for by the name of their header, in French and in English, then by their values.
+
+| Role | Header words | Values |
+| --- | --- | --- |
+| Type | `type` | The column is accepted with a single known cell; the others are reported. |
+| Payment mode | `paiement`, `payment` | Same. `CB`, `PRLV` and `VIR` (and their `SEPA` forms) are read as card, direct debit and transfer. |
+| Category | `categor`, `rubrique` | Wins over the column with the fewest distinct values. |
+| Description | `description`, `note`, `comment`, `memo`, `detail`, `remarque` | Header only, never the label column; not reported when absent. |
+
+The values always have the last word: a `Type` column that holds `CB` and `VIR` is the payment mode column. A header named `Description` gives the label (as in the column mapping of the migration) and a second text column named like a description gives the description.
+
+### Label from the category
+
+A row whose label is empty and whose category is filled takes the category as label, and is reported. A row with neither stays unreadable.
+
 ## Migration from the sheet
 
 The sheet's history is imported once, during M1.
@@ -527,7 +561,8 @@ After import, Demain shows a month-by-month comparison between its computed figu
 
 ### How the files are read and recorded
 
-- **Any CSV.** The separator, the header row, the date format and the columns that hold the type (expense, income, savings), the category and the payment mode are detected from the file, in French and in English. Without a type column, the type follows the direction of the amounts (see Guessing the type of an imported row), and a file where no amount is negative reads as expenses. A date written without a year takes the year given by the user, or the only year in the file name (shown to confirm); without either, no row is read and the year is asked for.
+- **Any CSV.** The separator, the header row, the date format, the number format and the columns that hold the type (expense, income, savings), the category, the payment mode and the description are detected from the file, in French and in English (see Reading any CSV file). Without a type column, the type follows the direction of the amounts (see Guessing the type of an imported row), and a file where no amount is negative reads as expenses. A date written without a year takes the year given by the user, or the only year in the file name (shown to confirm); without either, no row is read and the year is asked for.
+- **What is not a movement.** The blocks beside the table, the total rows and the lines above the header are ignored and reported with their lines. A row with no description takes its category as label and is reported to be read.
 - **Nothing is dropped silently.** A column that is not found, a value that is not recognized, a row that cannot be read, a month missing on one side of the comparison: each is reported with its file and line. What would lose or misread a row of a monthly tab, and everything the ledger refuses, stops the migration. The rest (a guessed date format, an optional column missing, an existing rule, a difference with the Summary) is shown to be read, and the user ticks a box before migrating.
 - **Savings.** A savings row is split along the overflow chain of the savings accounts, in date order, from the balances the migration sets. A part that fits nowhere along the chain stops the migration.
 - **Rules.** One global `equals` rule is created for each distinct (label, category) pair, in order of appearance. A label seen with several categories gets no rule and is reported, and a label that already has a rule is left alone.
