@@ -96,6 +96,8 @@ function yearFromFileName(name: string): number | undefined {
 const cellAt = (cells: readonly string[], column: number | null): string =>
   column === null ? "" : (cells[column] ?? "").trim();
 
+const orNull = (text: string): string | null => (text === "" ? null : text);
+
 /** A line once its date, label and amount are read, before the type is guessed. */
 interface ReadLine {
   line: number;
@@ -178,9 +180,8 @@ export function readMovementFile(
   const rows = lines.map(({ line, cells, imported, labelFromCategory }): MovementRow => {
     const typeCell =
       analysis.typeColumn === null ? null : cellAt(cells, analysis.typeColumn);
-    const category = cellAt(cells, analysis.categoryColumn);
-    const paymentMode = cellAt(cells, analysis.paymentModeColumn);
-    const description = cellAt(cells, analysis.descriptionColumn);
+    const category = orNull(cellAt(cells, analysis.categoryColumn));
+    const paymentMode = orNull(cellAt(cells, analysis.paymentModeColumn));
     return {
       source: options.source,
       line,
@@ -193,14 +194,14 @@ export function readMovementFile(
           typeCell,
           direction: isSigned ? (imported.amount < 0 ? "out" : "in") : null,
           directionSource: mapping.amount.kind === "split" ? "debitCredit" : "sign",
-          category: category === "" ? null : category,
+          category,
           label: imported.label,
         },
         context,
       ),
-      category: category === "" ? null : category,
-      paymentMode: paymentMode === "" ? null : readPaymentMode(paymentMode),
-      description: description === "" ? null : description,
+      category,
+      paymentMode: paymentMode === null ? null : readPaymentMode(paymentMode),
+      description: orNull(cellAt(cells, analysis.descriptionColumn)),
       labelFromCategory,
     };
   });

@@ -25,7 +25,11 @@ import {
   type CsvFileIssue,
   type CsvMapping,
 } from "./import-csv";
-import { detectDecimalMark, type DecimalMark } from "./money";
+import {
+  detectDecimalMark,
+  type DecimalMark,
+  type DecimalMarkDetection,
+} from "./money";
 
 export type AnalysisIssue =
   | { kind: "mappingColumnNotFound"; role: "date" | "label" | "amount" }
@@ -135,6 +139,31 @@ function layoutTable(
   };
 }
 
+/** What the layout left out, one issue per kind of leftover; none when nothing was. */
+function layoutIssues(
+  layout: TableLayout,
+  decimalMark: DecimalMarkDetection | null,
+): AnalysisIssue[] {
+  const issues: AnalysisIssue[] = [];
+  if (layout.aboveHeaderLines.length > 0) {
+    issues.push({
+      kind: "rowsIgnored",
+      reason: "beforeHeader",
+      lines: layout.aboveHeaderLines,
+    });
+  }
+  if (layout.ignoredColumns.length > 0) {
+    issues.push({ kind: "columnsIgnored", columns: layout.ignoredColumns });
+  }
+  if (layout.totalLines.length > 0) {
+    issues.push({ kind: "rowsIgnored", reason: "total", lines: layout.totalLines });
+  }
+  if (decimalMark?.isAmbiguous === true) {
+    issues.push({ kind: "numberFormatAmbiguous", mark: decimalMark.mark });
+  }
+  return issues;
+}
+
 function analyzeTable(
   table: readonly (readonly string[])[],
   delimiter: CsvDelimiter,
@@ -170,8 +199,9 @@ function analyzeTable(
       : dateCells.map((cell) => completeDateYear(cell, yearApplied));
   // Without a year the format cannot be read yet: the missing year is the issue to report.
   const dateFormat = lacksYear && year === undefined ? null : detectDateFormat(dates);
+  const amountCells = amountColumns(amount);
   const decimalMark = detectDecimalMark(
-    rows.flatMap((row) => amountColumns(amount).map((column) => row[column] ?? "")),
+    rows.flatMap((row) => amountCells.map((column) => row[column] ?? "")),
   );
   const mapping: CsvMapping | null = isEssentialFound
     ? {
@@ -206,33 +236,6 @@ function analyzeTable(
           ? [{ kind: "dateFormatAmbiguous", format: dateFormat.format }]
           : [];
 
-  const layoutIssues: AnalysisIssue[] = [
-    ...(headerIndex === 0
-      ? []
-      : [
-          {
-            kind: "rowsIgnored" as const,
-            reason: "beforeHeader" as const,
-            lines: layout.aboveHeaderLines,
-          },
-        ]),
-    ...(layout.ignoredColumns.length === 0
-      ? []
-      : [{ kind: "columnsIgnored" as const, columns: layout.ignoredColumns }]),
-    ...(layout.totalLines.length === 0
-      ? []
-      : [
-          {
-            kind: "rowsIgnored" as const,
-            reason: "total" as const,
-            lines: layout.totalLines,
-          },
-        ]),
-    ...(decimalMark?.isAmbiguous === true
-      ? [{ kind: "numberFormatAmbiguous" as const, mark: decimalMark.mark }]
-      : []),
-  ];
-
   const roles = detectColumnRoles(
     layout.rows,
     headerIndex + 2,
@@ -250,7 +253,12 @@ function analyzeTable(
     headerIndex,
     ignoredLines: layout.ignoredLines,
     yearApplied,
-    issues: [...mappingIssues, ...dateIssues, ...layoutIssues, ...roles.issues],
+    issues: [
+      ...mappingIssues,
+      ...dateIssues,
+      ...layoutIssues(layout, decimalMark),
+      ...roles.issues,
+    ],
   };
 }
 
