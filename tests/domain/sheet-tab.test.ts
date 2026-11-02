@@ -143,6 +143,43 @@ describe("readSheetTab", () => {
     ]);
   });
 
+  it("lets the type cell win over a negative amount, without any issue", () => {
+    const reading = readSheetTab(
+      [
+        "Date;Description;Amount;Type;Payment mode;Category",
+        "13/01/2026;Refund;-12,50;Income;Card;Food",
+        "14/01/2026;Shop;-3,00;Expense;Card;Food",
+      ].join("\n"),
+      OPTIONS,
+    );
+
+    expect(reading.rows.map((row) => [row.type, row.amount])).toEqual([
+      ["income", 1_250],
+      ["expense", 300],
+    ]);
+    expect(reading.issues).toEqual([]);
+  });
+
+  it("takes the type from the debit and credit columns without a type column, and skips no row", () => {
+    const reading = readSheetTab(
+      [
+        "Date;Description;Debit;Credit",
+        "13/01/2026;Shop;12,50;",
+        "14/01/2026;Pay;;100,00",
+      ].join("\n"),
+      OPTIONS,
+    );
+
+    expect(reading.rows.map((row) => [row.type, row.amount])).toEqual([
+      ["expense", 1_250],
+      ["income", 10_000],
+    ]);
+    // The missing type column is reported, but no row is.
+    expect(reading.issues).toContainEqual({ kind: "columnNotFound", role: "type" });
+    expect(reading.issues.map((issue) => issue.kind)).not.toContain("typeMissing");
+    expect(reading.issues.map((issue) => issue.kind)).not.toContain("typeUnrecognized");
+  });
+
   it("reads nothing when the essential columns are not found, and reports each", () => {
     const reading = readSheetTab("a;b;c\n1;2;3", OPTIONS);
 
