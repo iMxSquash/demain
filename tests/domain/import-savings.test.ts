@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  checkSavingsAccount,
   orderFilesByDate,
   planFilesInDateOrder,
   planSavingsTransfers,
+  type SavingsAccountCandidate,
   type SavingsMovement,
 } from "../../src/domain/import-savings";
 import type { OverflowAccount } from "../../src/domain/overflow";
@@ -258,5 +260,43 @@ describe("files in date order", () => {
         },
       ],
     ]);
+  });
+});
+
+describe("checkSavingsAccount", () => {
+  const RECEIVING_ID = 1;
+
+  function candidate(
+    overrides: Partial<SavingsAccountCandidate> = {},
+  ): SavingsAccountCandidate {
+    return { id: A_ID, kind: "savings", archived: false, currency: "EUR", ...overrides };
+  }
+
+  it("accepts an active savings account other than the one that receives the file", () => {
+    expect(checkSavingsAccount(RECEIVING_ID, candidate())).toBeNull();
+  });
+
+  it("refuses an account that does not exist", () => {
+    expect(checkSavingsAccount(RECEIVING_ID, undefined)).toEqual({
+      key: "importSavingsAccountUnknown",
+    });
+  });
+
+  it("refuses an archived account", () => {
+    expect(checkSavingsAccount(RECEIVING_ID, candidate({ archived: true }))).toEqual({
+      key: "importSavingsAccountArchived",
+    });
+  });
+
+  it.each(["checking", "other"] as const)("refuses an account of kind %s", (kind) => {
+    expect(checkSavingsAccount(RECEIVING_ID, candidate({ kind }))).toEqual({
+      key: "importSavingsAccountNotSavings",
+    });
+  });
+
+  it("refuses the account that receives the file", () => {
+    expect(checkSavingsAccount(A_ID, candidate())).toEqual({
+      key: "importSavingsAccountSameAsAccount",
+    });
   });
 });

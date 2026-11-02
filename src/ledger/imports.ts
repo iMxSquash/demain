@@ -22,6 +22,7 @@ import {
   type ImportedRow,
 } from "../domain/import-row";
 import {
+  checkSavingsAccount,
   compareDates,
   planSavingsTransfers,
   type SavingsMovement,
@@ -40,7 +41,13 @@ import {
 } from "../domain/transaction";
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
-import { getAccount, getAccountBalance, listOverflowAccounts } from "./accounts";
+import {
+  getAccount,
+  getAccountBalance,
+  listAccounts,
+  listOverflowAccounts,
+  type Account,
+} from "./accounts";
 import { getCategory } from "./categories";
 import { listApplicableRules } from "./categorization-rules";
 import { insertTransferLegs, type LegImportColumns } from "./transactions";
@@ -302,6 +309,7 @@ function planRow(
   index: number,
   row: FingerprintedRow,
   rules: readonly CategorizationRule[],
+  accountsById: ReadonlyMap<number, Account>,
   outcome: RowOutcome,
 ): void {
   const given = request.rows[index]?.details;
@@ -323,6 +331,14 @@ function planRow(
     const savingsAccountId = details?.savingsAccountId ?? null;
     if (savingsAccountId === null) {
       throw new Error("A savings row without a savings account passed the check");
+    }
+    const refusal = checkSavingsAccount(
+      request.accountId,
+      accountsById.get(savingsAccountId),
+    );
+    if (refusal !== null) {
+      outcome.issues.push({ kind: "rowInvalid", index, ref: refusal });
+      return;
     }
     outcome.movements.push({ index, date: row.date, amount: row.amount, savingsAccountId });
     outcome.flows.push({
@@ -407,6 +423,9 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
   const flagged = fingerprintWithDuplicateFlags(db, request);
   const rules = listApplicableRules(db);
+  const accountsById = new Map(
+    listAccounts(db, { includeArchived: true }).map((stored) => [stored.id, stored]),
+  );
   const outcome: RowOutcome = {
     fresh: [],
     flows: [],
@@ -418,7 +437,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   flagged.forEach(({ row, isDuplicate }, index) => {
     if (isDuplicate) return;
     newCount += 1;
-    planRow(db, request, index, row, rules, outcome);
+    planRow(db, request, index, row, rules, accountsById, outcome);
   });
 
   let transfers: SavingsTransfer[] = [];

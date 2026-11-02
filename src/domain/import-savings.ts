@@ -4,6 +4,8 @@
  * any CSV file, and ADR-013 and ADR-016.
  */
 
+import type { AccountKind } from "./account";
+import { messageRef, type MessageRef } from "./message";
 import {
   routeAlongOverflowChain,
   type OverflowAccount,
@@ -42,6 +44,32 @@ export type SavingsTransfer =
       /** Positive, in minor units. */
       amount: number;
     };
+
+/** What the check of a savings account needs to know about it. */
+export interface SavingsAccountCandidate {
+  id: number;
+  kind: AccountKind;
+  archived: boolean;
+  currency: string;
+}
+
+/**
+ * Why an account cannot be the savings account of a file, or null when it can.
+ * Currencies are left to the ledger, which refuses a transfer across two.
+ * `candidate` is undefined when the id names no stored account.
+ */
+export function checkSavingsAccount(
+  receivingAccountId: number,
+  candidate: SavingsAccountCandidate | undefined,
+): MessageRef | null {
+  if (candidate === undefined) return messageRef("importSavingsAccountUnknown");
+  if (candidate.archived) return messageRef("importSavingsAccountArchived");
+  if (candidate.kind !== "savings") return messageRef("importSavingsAccountNotSavings");
+  if (candidate.id === receivingAccountId) {
+    return messageRef("importSavingsAccountSameAsAccount");
+  }
+  return null;
+}
 
 /** What the user has to look at: nothing is dropped without one of these. */
 export type SavingsPlanIssue =

@@ -285,6 +285,47 @@ describe("importing savings rows", () => {
     ]);
   });
 
+  it.each([
+    ["does not exist", "select 1", 999, "importSavingsAccountUnknown"],
+    ["is archived", "update accounts set archived = 1 where id = 2", A_ID, "importSavingsAccountArchived"],
+    ["is not a savings account", "update accounts set kind = 'other' where id = 2", A_ID, "importSavingsAccountNotSavings"],
+    ["is the account of the file", "update accounts set kind = 'savings' where id = 1", CHECKING_ID, "importSavingsAccountSameAsAccount"],
+  ])(
+    "reports the row, not a crash, when the savings account %s",
+    (_name, statement, savingsAccountId, key) => {
+      db.$client.exec(statement);
+
+      const { issues } = previewImport(
+        db,
+        request([savingsRow({}, { savingsAccountId })]),
+      );
+
+      expect(issues).toEqual([{ kind: "rowInvalid", index: 0, ref: { key } }]);
+    },
+  );
+
+  it("checks the savings account of the request for a row that names none", () => {
+    const { issues } = previewImport(db, {
+      accountId: CHECKING_ID,
+      savingsAccountId: 999,
+      rows: [savingsRow({}, { savingsAccountId: null })],
+    });
+
+    expect(issues).toEqual([
+      { kind: "rowInvalid", index: 0, ref: { key: "importSavingsAccountUnknown" } },
+    ]);
+  });
+
+  it("reports a withdrawal from an archived savings account too", () => {
+    db.$client.exec("update accounts set archived = 1 where id = 2");
+
+    const { issues } = previewImport(db, request([savingsRow({ amount: 5_000 })]));
+
+    expect(issues).toEqual([
+      { kind: "rowInvalid", index: 0, ref: { key: "importSavingsAccountArchived" } },
+    ]);
+  });
+
   it("reports the row when the savings account has another currency", () => {
     db.$client.exec("update accounts set currency = 'USD' where id = 2");
 

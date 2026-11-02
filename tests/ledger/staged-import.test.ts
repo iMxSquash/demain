@@ -285,6 +285,22 @@ describe("commitDrafts with the details of a review", () => {
     });
   });
 
+  it.each([
+    ["archived", "update accounts set archived = 1 where id = 2", "importSavingsAccountArchived"],
+    ["not savings", "update accounts set kind = 'other' where id = 2", "importSavingsAccountNotSavings"],
+  ])(
+    "is blocked, and writes nothing, when the savings account is %s",
+    (_name, statement, key) => {
+      db.$client.exec(statement);
+
+      expect(commit([savings()])).toEqual({
+        status: "blocked",
+        issues: [{ kind: "rowInvalid", index: 0, ref: { key } }],
+      });
+      expect(listTransactions(db)).toEqual([]);
+    },
+  );
+
   it("imports onto an account that already holds transactions", () => {
     createTransaction(db, {
       accountId: CHECKING_ID,
