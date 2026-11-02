@@ -48,6 +48,7 @@ const TAB_ISSUES: SheetTabIssue[] = [
   { kind: "rowsIgnored", reason: "total", lines: [9] },
   { kind: "numberFormatAmbiguous", mark: "," },
   { kind: "numberFormatAmbiguous", mark: "." },
+  { kind: "labelFromCategory", line: 3, category: "Food" },
 ];
 
 const SUMMARY_COLUMNS = [
@@ -180,6 +181,19 @@ describe("where a problem is", () => {
     expect(
       describeTabIssue("january.csv", { kind: "typeMissing", line: 4 }, say).text,
     ).toBe("january.csv, line 4: Row skipped: its type is empty.");
+  });
+
+  it("names the line of a row whose label was taken from its category", () => {
+    const issue = describeTabIssue(
+      "january.csv",
+      { kind: "labelFromCategory", line: 3, category: "Food" },
+      say,
+    );
+
+    expect(issue).toEqual({
+      isBlocking: false,
+      text: 'january.csv, line 3: The label is empty: the category "Food" is used as the label.',
+    });
   });
 
   it.each([

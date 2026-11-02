@@ -157,6 +157,10 @@ export function describeTabIssue(
       );
     case "typeMissing":
       return blocking(row(issue.line, t("issues.typeMissing")));
+    case "labelFromCategory":
+      return toReview(
+        row(issue.line, t("issues.labelFromCategory", { category: issue.category })),
+      );
     default:
       return assertNever(issue);
   }

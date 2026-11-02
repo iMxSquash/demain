@@ -195,6 +195,104 @@ describe("readSheetTab", () => {
     expect(readSheetTab("", OPTIONS).issues).toEqual([{ kind: "emptyFile" }]);
   });
 
+  it("keeps the category out of the type: it is decided by the type column, the sign or nothing", () => {
+    // A salary category would make an income elsewhere; the migration has never read it that way.
+    const reading = readSheetTab(
+      "Date;Description;Amount;Category\n13/01/2026;Virement;1500,00;Salaire\n14/01/2026;Livret;50,00;Epargne",
+      OPTIONS,
+    );
+
+    expect(reading.rows.map((row) => row.type)).toEqual(["expense", "expense"]);
+  });
+
+  describe("a row with no description", () => {
+    const TAB = [
+      "Date;Description;Amount;Type;Payment mode;Category",
+      "13/01/2026;Carrefour;12,50;Expense;Card;Food",
+      "14/01/2026;;30,00;Expense;Card;Food",
+      "15/01/2026;;573,16;Savings;Transfer;Savings",
+      "16/01/2026;;5,00;Expense;Card;",
+    ].join("\n");
+
+    it("takes its category as label, and reports the row to read", () => {
+      const reading = readSheetTab(TAB, OPTIONS);
+
+      expect(reading.rows[1]).toMatchObject({
+        line: 3,
+        label: "Food",
+        category: "Food",
+      });
+      expect(reading.issues).toContainEqual({
+        kind: "labelFromCategory",
+        line: 3,
+        category: "Food",
+      });
+    });
+
+    it("still gives a savings row no category, whatever stands for its label", () => {
+      const reading = readSheetTab(TAB, OPTIONS);
+
+      expect(reading.rows[2]).toMatchObject({
+        line: 4,
+        label: "Savings",
+        type: "savings",
+        category: null,
+      });
+    });
+
+    it("skips the row that has no category either", () => {
+      const reading = readSheetTab(TAB, OPTIONS);
+
+      expect(reading.rows.map((row) => row.line)).toEqual([2, 3, 4]);
+      expect(reading.issues).toContainEqual(
+        expect.objectContaining({ kind: "rowUnreadable", line: 5 }),
+      );
+    });
+
+    it("lists the issues of the rows in the order of the file", () => {
+      const reading = readSheetTab(TAB, OPTIONS);
+
+      expect(
+        reading.issues.flatMap((issue) =>
+          "line" in issue && issue.line !== null ? [issue.line] : [],
+        ),
+      ).toEqual([3, 4, 5]);
+    });
+  });
+
+  describe("a file with lines above its header", () => {
+    const PREAMBLE_TAB = [
+      "Compte;Courant",
+      "Solde au 31/01/2026;1 234,56",
+      "Date;Description;Amount;Type",
+      "13/01/2026;Carrefour;12,50;Expense",
+      "14/01/2026;Gift;5,00;Refund",
+      "Total;;17,50;",
+    ].join("\n");
+
+    it("reads the rows below it, with the lines of the file", () => {
+      const reading = readSheetTab(PREAMBLE_TAB, OPTIONS);
+
+      expect(reading.rows.map((row) => [row.line, row.label])).toEqual([
+        [4, "Carrefour"],
+      ]);
+      // The lines above the header and the total are no unreadable rows.
+      expect(reading.issues.map((issue) => issue.kind)).not.toContain(
+        "rowUnreadable",
+      );
+      expect(reading.issues).toContainEqual({
+        kind: "typeUnrecognized",
+        line: 5,
+        value: "Refund",
+      });
+      expect(reading.issues).toContainEqual({
+        kind: "rowsIgnored",
+        reason: "total",
+        lines: [6],
+      });
+    });
+  });
+
   describe("dates written without a year", () => {
     const YEARLESS_TAB = [
       "Date;Description;Amount;Type",
