@@ -453,4 +453,24 @@ describe("analyzeCsv", () => {
       );
     });
   });
+
+  it("reads a very long file and still finds its columns", () => {
+    // Spreading that many rows into Math.max overflows the call stack.
+    const ROW_COUNT = 200_000;
+    const lines = Array.from(
+      { length: ROW_COUNT },
+      (_, index) => `13/02/2026;Shop ${index};-12,50;Expense;Card;Food`,
+    );
+    const text = [
+      "Date;Description;Amount;Type;Payment mode;Category",
+      ...lines,
+    ].join("\n");
+
+    const analysis = analyzeCsv(text);
+
+    expect(analysis.typeColumn).toBe(3);
+    expect(analysis.paymentModeColumn).toBe(4);
+    expect(analysis.categoryColumn).toBe(5);
+    expect(analysis.issues).toEqual([]);
+  });
 });

@@ -4,6 +4,7 @@
  * never dropped: the user decides.
  */
 
+import { widestRowLength } from "./import-blocks";
 import { findColumn, normalizeHeader } from "./import-csv";
 import type { PaymentMode } from "./transaction";
 
@@ -59,7 +60,7 @@ function detectVocabularyColumn(
   read: (text: string) => unknown,
   named: number | null,
 ): VocabularyColumn | null {
-  const columnCount = Math.max(0, ...rows.map((row) => row.length));
+  const columnCount = widestRowLength(rows);
   const matches: Omit<VocabularyColumn, "alsoMatching">[] = [];
   for (let column = 0; column < columnCount; column += 1) {
     const cells = rows
@@ -145,7 +146,7 @@ export function detectCategoryColumn(
   rows: readonly (readonly string[])[],
   taken: readonly number[],
 ): number | null {
-  const columnCount = Math.max(0, ...rows.map((row) => row.length));
+  const columnCount = widestRowLength(rows);
   let best: { column: number; distinctShare: number } | null = null;
   for (let column = 0; column < columnCount; column += 1) {
     if (taken.includes(column)) continue;
