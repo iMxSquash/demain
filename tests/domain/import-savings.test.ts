@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   checkSavingsAccount,
+  defaultSavingsAccountId,
+  isSelectableSavingsAccount,
   orderFilesByDate,
   planFilesInDateOrder,
   planSavingsTransfers,
+  type SavingsAccountChoice,
   type SavingsAccountCandidate,
   type SavingsMovement,
 } from "../../src/domain/import-savings";
@@ -297,6 +300,106 @@ describe("checkSavingsAccount", () => {
   it("refuses the account that receives the file", () => {
     expect(checkSavingsAccount(A_ID, candidate())).toEqual({
       key: "importSavingsAccountSameAsAccount",
+    });
+  });
+});
+
+describe("savings account choices", () => {
+  const RECEIVING = { id: 1, currency: "EUR" };
+  const C_ID = 4;
+
+  function choice(
+    overrides: Partial<SavingsAccountChoice> & { id: number },
+  ): SavingsAccountChoice {
+    return {
+      kind: "savings",
+      archived: false,
+      currency: "EUR",
+      overflowAccountId: null,
+      ...overrides,
+    };
+  }
+
+  // Checking 1, then A (head) overflowing to B.
+  function sheetAccounts(): SavingsAccountChoice[] {
+    return [
+      choice({ id: RECEIVING.id, kind: "checking" }),
+      choice({ id: A_ID, overflowAccountId: B_ID }),
+      choice({ id: B_ID }),
+    ];
+  }
+
+  describe("isSelectableSavingsAccount", () => {
+    it("accepts an active savings account of the same currency", () => {
+      expect(isSelectableSavingsAccount(RECEIVING, choice({ id: A_ID }))).toBe(true);
+    });
+
+    it.each([
+      ["another currency", { currency: "USD" }],
+      ["an archived account", { archived: true }],
+      ["a checking account", { kind: "checking" as const }],
+      ["the account of the file", { id: RECEIVING.id }],
+    ])("refuses %s", (_name, overrides) => {
+      expect(
+        isSelectableSavingsAccount(RECEIVING, choice({ id: A_ID, ...overrides })),
+      ).toBe(false);
+    });
+  });
+
+  describe("defaultSavingsAccountId", () => {
+    it("is the savings account that no active account overflows to", () => {
+      expect(defaultSavingsAccountId(sheetAccounts(), RECEIVING)).toBe(A_ID);
+    });
+
+    it("is the only savings account when it overflows nowhere", () => {
+      const accounts = [choice({ id: RECEIVING.id, kind: "checking" }), choice({ id: A_ID })];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
+    });
+
+    it("is none when several savings accounts head a chain", () => {
+      const accounts = [...sheetAccounts(), choice({ id: C_ID })];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBeNull();
+    });
+
+    it("is none without a savings account", () => {
+      const accounts = [choice({ id: RECEIVING.id, kind: "checking" })];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBeNull();
+    });
+
+    it("leaves out the accounts of another currency", () => {
+      const accounts = [
+        ...sheetAccounts(),
+        choice({ id: C_ID, currency: "USD" }),
+      ];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
+    });
+
+    it("is none when the head of the chain is the account that receives the file", () => {
+      expect(defaultSavingsAccountId(sheetAccounts(), { id: A_ID, currency: "EUR" })).toBeNull();
+    });
+
+    it("ignores an archived account that still points to a savings account", () => {
+      const accounts = [
+        choice({ id: RECEIVING.id, kind: "checking" }),
+        choice({ id: A_ID }),
+        choice({ id: C_ID, archived: true, overflowAccountId: A_ID }),
+      ];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
+    });
+
+    it("counts any active account that overflows to a savings account, not only savings ones", () => {
+      const accounts = [
+        choice({ id: RECEIVING.id, kind: "checking", overflowAccountId: A_ID }),
+        choice({ id: A_ID }),
+        choice({ id: B_ID }),
+      ];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(B_ID);
     });
   });
 });

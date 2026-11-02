@@ -71,6 +71,58 @@ export function checkSavingsAccount(
   return null;
 }
 
+/** An account as the choice of a savings account sees it. */
+export interface SavingsAccountChoice extends SavingsAccountCandidate {
+  overflowAccountId: number | null;
+}
+
+/** The account that receives the file: the only two facts a savings account is compared with. */
+export interface ReceivingAccount {
+  id: number;
+  currency: string;
+}
+
+/**
+ * Whether the user may pick the account as the savings account of a file: an
+ * active savings account of the currency of the file, other than the account
+ * that receives it.
+ */
+export function isSelectableSavingsAccount(
+  receiving: ReceivingAccount,
+  candidate: SavingsAccountChoice,
+): boolean {
+  return (
+    candidate.currency === receiving.currency &&
+    checkSavingsAccount(receiving.id, candidate) === null
+  );
+}
+
+/**
+ * The savings account offered when the user chose none: the head of the
+ * overflow chain, the selectable account that no active account overflows to.
+ * Offered only when there is exactly one, since a guess between two heads would
+ * put the money in the wrong place. Archived accounts do not count as
+ * referrers (DOMAIN, protection of the chain).
+ */
+export function defaultSavingsAccountId(
+  accounts: readonly SavingsAccountChoice[],
+  receiving: ReceivingAccount,
+): number | null {
+  const targets = new Set(
+    accounts.flatMap((account) =>
+      account.archived || account.overflowAccountId === null
+        ? []
+        : [account.overflowAccountId],
+    ),
+  );
+  const heads = accounts.filter(
+    (account) =>
+      isSelectableSavingsAccount(receiving, account) && !targets.has(account.id),
+  );
+  const [head] = heads;
+  return heads.length === 1 && head !== undefined ? head.id : null;
+}
+
 /** What the user has to look at: nothing is dropped without one of these. */
 export type SavingsPlanIssue =
   | { kind: "savingsAmountInvalid"; index: number }
