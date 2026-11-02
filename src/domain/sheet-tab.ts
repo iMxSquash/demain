@@ -5,11 +5,7 @@
  * the sheet.
  */
 
-import {
-  readMovementType,
-  readPaymentMode,
-  type MovementType,
-} from "./import-columns";
+import { readPaymentMode, type MovementType } from "./import-columns";
 import {
   analyzeCsvFile,
   type AnalysisIssue,
@@ -22,6 +18,13 @@ import {
   type CsvDelimiter,
   type CsvMapping,
 } from "./import-csv";
+import {
+  DEFAULT_TYPE_VOCABULARY,
+  amountsCarrySign,
+  guessMovementType,
+  type TypeSignals,
+} from "./import-guess";
+import type { ImportedRow } from "./import-row";
 import type { MessageRef } from "./message";
 import type { SheetRow } from "./sheet-import";
 
@@ -75,27 +78,39 @@ interface TabContext {
   currency: string;
   analysis: CsvAnalysis;
   mapping: CsvMapping;
+  /** Whether the amounts of the file say which way the money goes: else only the type column can. */
+  isSigned: boolean;
 }
 
 const cellAt = (cells: readonly string[], column: number | null): string =>
   column === null ? "" : (cells[column] ?? "").trim();
 
-// Without a type column the sign of the amount is all there is to go by.
+// With a type column, the strict reading stays: a cell that is empty or unknown skips the row.
 function readType(
   cells: readonly string[],
   line: number,
-  amount: number,
-  typeColumn: number | null,
+  imported: ImportedRow,
+  context: TabContext,
 ): { type: MovementType } | { issue: SheetTabIssue } {
-  if (typeColumn === null) {
-    return { type: amount < 0 ? "expense" : "income" };
-  }
-  const typeCell = cellAt(cells, typeColumn);
+  const { typeColumn } = context.analysis;
+  const typeCell = typeColumn === null ? null : cellAt(cells, typeColumn);
+  const signals: TypeSignals = {
+    typeCell,
+    direction: context.isSigned ? (imported.amount < 0 ? "out" : "in") : null,
+    directionSource: context.mapping.amount.kind === "split" ? "debitCredit" : "sign",
+    // The migration decides the category after the type: it is not a clue here.
+    category: null,
+    label: imported.label,
+  };
+  const guess = guessMovementType(signals, {
+    vocabulary: DEFAULT_TYPE_VOCABULARY,
+    history: new Map(),
+  });
+  if (typeCell === null) return { type: guess.type };
   if (typeCell === "") return { issue: { kind: "typeMissing", line } };
-  const type = readMovementType(typeCell);
-  return type === null
-    ? { issue: { kind: "typeUnrecognized", line, value: typeCell } }
-    : { type };
+  return guess.ignoredTypeCell === null
+    ? { type: guess.type }
+    : { issue: { kind: "typeUnrecognized", line, value: typeCell } };
 }
 
 function readTabRow(
@@ -119,7 +134,7 @@ function readTabRow(
     throw new Error(`Row ${line} gave neither a movement nor an error`);
   }
 
-  const typed = readType(cells, line, imported.amount, context.analysis.typeColumn);
+  const typed = readType(cells, line, imported, context);
   if ("issue" in typed) return typed;
 
   const category = cellAt(cells, context.analysis.categoryColumn);
@@ -155,7 +170,6 @@ export function readSheetTab(
     return { source: options.source, rows: [], analysis, issues: analysis.issues };
   }
 
-  const context = { source: options.source, currency: options.currency, analysis, mapping };
   const completeYear = (cells: readonly string[]): string[] =>
     cells.map((cell, column) =>
       yearApplied !== null && column === mapping.dateColumn
@@ -167,11 +181,25 @@ export function readSheetTab(
       ? [{ kind: "dateYearAssumed", year: yearApplied }]
       : [];
 
+  // The header is line 1. All the rows are read first: whether the file is signed depends on all of them.
+  const dataRows = file.table.slice(1).map(completeYear);
+  const amounts = applyCsvMapping(
+    dataRows,
+    { ...mapping, hasHeader: false },
+    options.currency,
+  ).rows.map((row) => row.amount);
+  const context: TabContext = {
+    source: options.source,
+    currency: options.currency,
+    analysis,
+    mapping,
+    isSigned: amountsCarrySign(mapping.amount.kind, amounts),
+  };
+
   const rows: SheetRow[] = [];
   const rowIssues: SheetTabIssue[] = [];
-  file.table.slice(1).forEach((cells, index) => {
-    // The header is line 1.
-    const read = readTabRow(completeYear(cells), index + 2, context);
+  dataRows.forEach((cells, index) => {
+    const read = readTabRow(cells, index + 2, context);
     if ("row" in read) rows.push(read.row);
     else rowIssues.push(read.issue);
   });

@@ -435,6 +435,46 @@ A simulation is evaluated in four steps, the same for every scenario (and for th
 
 **Validation.** Validating a scenario converts each modification into planned item changes (new planned items, new versions, end dates). Modifications that do not describe a future flow by themselves (type 7 changes an estimate, not a planned item) are listed to the user with how they will be applied, before confirmation.
 
+## Guessing the type of an imported row
+
+A bank export rarely says whether a row is an expense, an income or savings. The type is guessed in layers, from the most to the least reliable, by a pure function (`guessMovementType`) that receives the signals of the row and the context (vocabulary and history) and returns the type, the evidence it rests on and a confidence.
+
+### Layers
+
+1. **An explicit type cell.** A cell read by the same reader as the migration (`Expense`, `Depense`, `Income` and `Revenu`, singular or plural; `Savings`, `Saving` and `Epargne`, but not `Epargnes`) gives the type.
+2. **The direction of the amount.** Separate debit and credit columns, or the sign of a single amount column: negative leaves the account (expense or savings), positive enters it (income).
+3. **The vocabulary of the category.** The first whole word of the category cell that the vocabulary knows (for example `salaire` gives an income, `epargne` gives savings). Words are compared after removing accents and case, never as parts of a longer word.
+4. **The history.** The type given to the same label (compared without case and extra spaces) by earlier imports of the account. The category word comes before the history.
+
+A layer below the first two only counts when it agrees with the direction: an outgoing amount accepts an expense or savings, an incoming one accepts an income. When it disagrees, the direction wins and the disagreement is kept as the conflict, to be shown. When the file has no direction at all (every amount positive in a single column), no conflict can be detected and the clue is used as it is.
+
+### Confidence
+
+There are three levels, and no number: `high`, `medium` and `low`. Only `low` flags the row "to confirm", in text and never by color alone. A `medium` guess shows its reason ("guessed: category is salaire") without the flag.
+
+| Situation | Type | Confidence |
+| --- | --- | --- |
+| Type cell, and the direction agrees or is unknown | The cell | High |
+| Type cell that contradicts the direction | The cell: an explicit type wins over the sign | Low, with the sign as the conflict |
+| No type cell; a category word or the history agrees with the direction | The clue | Medium |
+| No type cell; the direction only | Expense when outgoing, income when incoming | Medium |
+| No type cell; a clue contradicts the direction | By the direction | Low, with the clue as the conflict |
+| No direction; a clue | The clue | Low |
+| Nothing at all | Expense | Low |
+
+When the file has a type column but a cell is empty or names no known type, the cell is ignored (the unknown text is kept aside to be shown), the other layers apply as above and the confidence is forced to `low`.
+
+### Vocabulary
+
+The default vocabulary is fixed, in French and in English, without accents and in lowercase:
+
+- Income: `salaire`, `salaires`, `salary`, `salaries`, `paie`, `paye`, `payroll`, `revenu`, `revenus`, `income`, `allocation`, `allocations`, `caf`, `dividende`, `dividendes`, `dividend`, `dividends`.
+- Savings: `epargne`, `epargnes`, `savings`, `saving`, `livret`, `livrets`, `ldds`, `lep`, `pel`, `cel`.
+
+There is no expense word: an outgoing amount is an expense unless something says otherwise. Ambiguous words (a bonus, a pension, a grant) are left out on purpose.
+
+The vocabulary and the history are inputs of the function, like the rest of the data. The default vocabulary is what is used today; enriching it from the history, letting the user edit it and reading the history of the account are wired in later changes.
+
 ## Migration from the sheet
 
 The sheet's history is imported once, during M1.
@@ -487,7 +527,7 @@ After import, Demain shows a month-by-month comparison between its computed figu
 
 ### How the files are read and recorded
 
-- **Any CSV.** The separator, the header row, the date format and the columns that hold the type (expense, income, savings), the category and the payment mode are detected from the file, in French and in English. A date written without a year takes the year given by the user, or the only year in the file name (shown to confirm); without either, no row is read and the year is asked for.
+- **Any CSV.** The separator, the header row, the date format and the columns that hold the type (expense, income, savings), the category and the payment mode are detected from the file, in French and in English. Without a type column, the type follows the direction of the amounts (see Guessing the type of an imported row), and a file where no amount is negative reads as expenses. A date written without a year takes the year given by the user, or the only year in the file name (shown to confirm); without either, no row is read and the year is asked for.
 - **Nothing is dropped silently.** A column that is not found, a value that is not recognized, a row that cannot be read, a month missing on one side of the comparison: each is reported with its file and line. What would lose or misread a row of a monthly tab, and everything the ledger refuses, stops the migration. The rest (a guessed date format, an optional column missing, an existing rule, a difference with the Summary) is shown to be read, and the user ticks a box before migrating.
 - **Savings.** A savings row is split along the overflow chain of the savings accounts, in date order, from the balances the migration sets. A part that fits nowhere along the chain stops the migration.
 - **Rules.** One global `equals` rule is created for each distinct (label, category) pair, in order of appearance. A label seen with several categories gets no rule and is reported, and a label that already has a rule is left alone.

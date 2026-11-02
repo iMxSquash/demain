@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A "Skip to content" link, the first stop of the keyboard on every page. The manual axe and keyboard check is documented in CONTRIBUTING and found no violation on the main screens.
 - Error and not found pages in the application shell and in the user's language, replacing the English default pages of Next.js. They show a generic message and a retry button, never the error: the detail stays in the server log.
 - Toast notices for the result of every action, announced to screen readers (errors assertively, successes politely): accounts, categories, transactions and transfers, rules, currencies and exchange rates, balance checks, imports, sheet migration, backup and restore, second factor, sign in and out. Archiving or deleting says why it is refused instead of failing with an unhandled error, and a failed import or migration shows a generic message. See ADR-015.
+- Type guessing for imported rows, in the pure domain: an explicit type cell, the debit and credit columns or the sign of the amount, the vocabulary of the category and the history of the label are tried in layers, each guess carries its evidence and a high, medium or low confidence, and only a low confidence is flagged to confirm. The default vocabulary is fixed, in French and in English. Not yet shown in the import screen.
 - Repository structure: license (AGPL-3.0), `.github/` templates and CI skeleton, contribution and security policies.
 
 ### Changed
@@ -46,4 +47,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Field errors of the forms are announced to assistive technologies and focus moves to the first invalid field after a refused submit.
 - Validation errors of the domain carry a translation key (`MessageRef`) besides their English message, and form errors are translated server side.
 - "Today" and the current month of the transactions form and of the monthly synthesis follow the time zone of the server (`TZ`) instead of UTC.
+- The sheet migration reads the type of a row without a type column with the layered guess: a file with no negative amount now gives expenses (it gave incomes), while a signed file still gives expenses for negative amounts and incomes for positive ones.
 - The uniqueness of a category name regardless of case is also guaranteed by a unique index in the database, not only by the application.
