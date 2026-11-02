@@ -24,9 +24,28 @@ describe("analyzeCsv", () => {
       typeColumn: 3,
       paymentModeColumn: 4,
       categoryColumn: 5,
+      descriptionColumn: null,
       yearApplied: null,
       issues: [],
     });
+  });
+
+  it("reads the roles the headers name, in French as well", () => {
+    const analysis = analyzeCsv(
+      [
+        "Date;Libellé;Montant;Type;Mode de paiement;Catégorie;Notes",
+        "13/02/2026;Carrefour;-12,50;Dépense;CB;Courses;semaine 7",
+        "14/02/2026;Salaire;1500,00;Revenu;VIR;Paie;",
+      ].join("\n"),
+    );
+
+    expect(analysis).toMatchObject({
+      typeColumn: 3,
+      paymentModeColumn: 4,
+      categoryColumn: 5,
+      descriptionColumn: 6,
+    });
+    expect(analysis.issues).toEqual([]);
   });
 
   it("reports each essential column that no header names", () => {

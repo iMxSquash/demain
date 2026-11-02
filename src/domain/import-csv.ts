@@ -342,7 +342,7 @@ export function normalizeHeader(header: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function findColumn(
+export function findColumn(
   headers: readonly string[],
   words: readonly string[],
 ): number {

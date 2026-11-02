@@ -38,6 +38,8 @@ export interface CsvAnalysis {
   typeColumn: number | null;
   paymentModeColumn: number | null;
   categoryColumn: number | null;
+  /** Free text beside the label, named by its header: not an issue when absent. */
+  descriptionColumn: number | null;
   /** The year added to dates written without one; null when they carry their own. */
   yearApplied: number | null;
   issues: AnalysisIssue[];
@@ -104,11 +106,16 @@ function analyzeTable(
           ? [{ kind: "dateFormatAmbiguous", format: dateFormat.format }]
           : [];
 
-  const roles = detectColumnRoles(rows, FIRST_DATA_LINE, [
-    ...(dateColumn === null ? [] : [dateColumn]),
-    ...(labelColumn === null ? [] : [labelColumn]),
-    ...amountColumns(amount),
-  ]);
+  const roles = detectColumnRoles(
+    rows,
+    FIRST_DATA_LINE,
+    [
+      ...(dateColumn === null ? [] : [dateColumn]),
+      ...(labelColumn === null ? [] : [labelColumn]),
+      ...amountColumns(amount),
+    ],
+    header,
+  );
 
   return {
     delimiter,
@@ -116,6 +123,7 @@ function analyzeTable(
     typeColumn: roles.typeColumn,
     paymentModeColumn: roles.paymentModeColumn,
     categoryColumn: roles.categoryColumn,
+    descriptionColumn: roles.descriptionColumn,
     yearApplied,
     issues: [...mappingIssues, ...dateIssues, ...roles.issues],
   };
@@ -129,6 +137,7 @@ function unusable(delimiter: CsvDelimiter, issue: AnalysisIssue): CsvAnalysis {
     typeColumn: null,
     paymentModeColumn: null,
     categoryColumn: null,
+    descriptionColumn: null,
     yearApplied: null,
     issues: [issue],
   };

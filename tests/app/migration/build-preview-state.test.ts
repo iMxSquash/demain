@@ -29,6 +29,7 @@ const reading = (
     typeColumn: null,
     paymentModeColumn: null,
     categoryColumn: null,
+    descriptionColumn: null,
     yearApplied: null,
     issues: [],
   },
