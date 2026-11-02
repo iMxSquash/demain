@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkSavingsAccount,
   defaultSavingsAccountId,
+  firstMovementDate,
   isSelectableSavingsAccount,
   orderFilesByDate,
   planFilesInDateOrder,
@@ -401,5 +402,20 @@ describe("savings account choices", () => {
 
       expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(B_ID);
     });
+  });
+});
+
+describe("firstMovementDate", () => {
+  it("is the earliest valid date, whatever the order of the rows", () => {
+    expect(firstMovementDate(["2026-03-10", "2026-02-27", "2026-03-01"])).toBe("2026-02-27");
+  });
+
+  it("skips a date that is empty or not a calendar date", () => {
+    expect(firstMovementDate(["", "2026-02-30", "2026-03-01"])).toBe("2026-03-01");
+  });
+
+  it("is null when no date is valid", () => {
+    expect(firstMovementDate([])).toBeNull();
+    expect(firstMovementDate([""])).toBeNull();
   });
 });

@@ -4,10 +4,14 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { commitStagedFileAction } from "../../../src/app/imports/stage-actions";
+import {
+  commitStagedFileAction,
+  stageFileAction,
+} from "../../../src/app/imports/stage-actions";
 import type { CommitStagedRequest } from "../../../src/app/imports/commit-request";
 import { createAccount, getAccountBalance, updateAccount } from "../../../src/ledger/accounts";
 import { createCategory } from "../../../src/ledger/categories";
+import { commitImport } from "../../../src/ledger/imports";
 import { listTransactions } from "../../../src/ledger/transactions";
 import {
   type AppDatabase,
@@ -216,5 +220,184 @@ describe("commitStagedFileAction", () => {
       expect(state.status).toBe("blocked");
       expect(state.issues).toEqual([{ index: null, message: "overflowChainCycle" }]);
     });
+  });
+});
+
+describe("stageFileAction", () => {
+  let dataDir: string;
+  let db: AppDatabase;
+
+  const TYPED_CSV = [
+    "Date;Label;Amount;Type;Category",
+    "10/03/2026;Livret;-300,00;Savings;",
+    "02/03/2026;Carrefour;-12,50;Expense;GROCERIES",
+    "05/03/2026;Salary ACME;1 500,00;Income;Salary",
+  ].join("\n");
+
+  const OFX = `OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<STMTRS>
+<CURDEF>EUR
+<BANKTRANLIST>
+<STMTTRN>
+<DTPOSTED>20260201
+<TRNAMT>-12.50
+<FITID>A1
+<NAME>CARD SHOP
+</STMTTRN>
+<STMTTRN>
+<DTPOSTED>20260205
+<TRNAMT>1143.88
+<FITID>A2
+<NAME>SALARY
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>`;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    db = openDatabase(dataDir);
+    migrateDatabase(db);
+    holder.db = db;
+    createAccount(db, { ...ACCOUNT, name: "Checking", kind: "checking", openingBalance: 0 });
+  });
+
+  afterEach(() => {
+    db.$client.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  function stage(content: string, fileName = "2026-03.csv", accountId = CHECKING_ID) {
+    const form = new FormData();
+    form.set("accountId", String(accountId));
+    form.set("file", new File([content], fileName));
+    return stageFileAction(form);
+  }
+
+  it("reads the type, the category and the payment mode of every row, whatever the number of files", async () => {
+    const groceries = createCategory(db, { name: "Groceries" });
+    const salary = createCategory(db, { name: "Salary" });
+
+    const file = await stage(TYPED_CSV);
+
+    expect(file.status).toBe("ready");
+    expect(
+      file.rows.map((row) => [
+        row.draft.label,
+        row.draft.amount,
+        row.details.type,
+        row.details.categoryId,
+        row.guess?.type,
+      ]),
+    ).toEqual([
+      ["Livret", "-300.00", "savings", null, "savings"],
+      ["Carrefour", "-12.50", "expense", groceries.id, "expense"],
+      ["Salary ACME", "1500.00", "income", salary.id, "income"],
+    ]);
+  });
+
+  it("gives the first date of the file, whatever the order of its rows", async () => {
+    const file = await stage(TYPED_CSV);
+
+    expect(file.firstDate).toBe("2026-03-02");
+  });
+
+  it("flags the rows the account already holds", async () => {
+    commitImport(db, {
+      accountId: CHECKING_ID,
+      format: "csv",
+      fileName: "earlier.csv",
+      mapping: null,
+      rows: [{ date: "2026-03-02", label: "Carrefour", amount: -1_250, externalId: null }],
+      now: new Date("2026-03-20T10:00:00Z"),
+    });
+
+    const file = await stage(TYPED_CSV);
+
+    expect(file.rows.map((row) => row.isDuplicate)).toEqual([false, true, false]);
+  });
+
+  it("keeps the mapping that read the file, for the batch", async () => {
+    const file = await stage(TYPED_CSV);
+
+    expect(file.mapping).toMatchObject({ delimiter: ";", dateColumn: 0, labelColumn: 1 });
+  });
+
+  it("types the rows of an OFX statement by the sign of their amount", async () => {
+    const file = await stage(OFX, "statement.ofx");
+
+    expect(file).toMatchObject({ status: "ready", format: "ofx", mapping: null, firstDate: "2026-02-01" });
+    expect(file.rows.map((row) => [row.details.type, row.guess])).toEqual([
+      ["expense", null],
+      ["income", null],
+    ]);
+  });
+
+  describe("when the columns cannot be found in the file", () => {
+    const HEADERLESS = "02/03/2026;SHOP;-12,50\n05/03/2026;SALARY;1500,00";
+
+    it("asks for the mapping to be set", async () => {
+      const file = await stage(HEADERLESS);
+
+      expect(file).toMatchObject({
+        status: "failed",
+        message: "staged.mappingNeeded",
+        needsMapping: true,
+      });
+    });
+
+    it("reads it with the mapping of the last import, typing the rows by their sign", async () => {
+      commitImport(db, {
+        accountId: CHECKING_ID,
+        format: "csv",
+        fileName: "earlier.csv",
+        mapping: {
+          delimiter: ";",
+          hasHeader: false,
+          dateColumn: 0,
+          dateFormat: "dmy",
+          labelColumn: 1,
+          amount: { kind: "single", column: 2 },
+        },
+        rows: [{ date: "2026-01-02", label: "OLD", amount: -100, externalId: null }],
+        now: new Date("2026-03-20T10:00:00Z"),
+      });
+
+      const file = await stage(HEADERLESS);
+
+      expect(file.status).toBe("ready");
+      expect(file.firstDate).toBe("2026-03-02");
+      expect(file.rows.map((row) => [row.draft.label, row.details.type, row.guess])).toEqual([
+        ["SHOP", "expense", null],
+        ["SALARY", "income", null],
+      ]);
+    });
+  });
+
+  it("says when the dates have no year, instead of showing an empty file", async () => {
+    const file = await stage("Date;Label;Amount\n02/03;SHOP;-12,50", "statement.csv");
+
+    expect(file).toMatchObject({ status: "failed", message: "staged.yearMissing", needsMapping: false });
+  });
+
+  it("takes the year of the dates from the name of the file", async () => {
+    const file = await stage("Date;Label;Amount\n02/03;SHOP;-12,50", "2026-03.csv");
+
+    expect(file.status).toBe("ready");
+    expect(file.rows[0]?.draft.date).toBe("2026-03-02");
+  });
+
+  it("refuses a file for an account that does not exist", async () => {
+    const file = await stage(TYPED_CSV, "2026-03.csv", 99);
+
+    expect(file).toMatchObject({ status: "failed", message: "accountGone" });
   });
 });

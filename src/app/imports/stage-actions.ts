@@ -2,13 +2,15 @@
 
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { draftOfRow, readImportDraft } from "../../domain/import-draft";
+import { readImportDraft } from "../../domain/import-draft";
 import { ImportParseError } from "../../domain/import-row";
-import { stageCsvRows, type StagedRow } from "../../domain/import-staging";
+import { firstMovementDate } from "../../domain/import-savings";
+import type { StagedRow } from "../../domain/import-staging";
 import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import { formatCalendarDate } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
+import { listCategories } from "../../ledger/categories";
 import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
 import { commitDrafts } from "../../ledger/staged-import";
 import { withDatabase } from "../../storage/with-database";
@@ -30,7 +32,7 @@ import {
   type CommitStagedState,
   type StagedFile,
 } from "./import-form-data";
-import { readCsv, readOfx } from "./read-statement";
+import { stageStatement } from "./stage-statement";
 
 const WARNING_COUNT = 20;
 const BYTES_PER_MEGABYTE = 1024 * 1024;
@@ -49,8 +51,10 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   const file = formData.get("file");
   const fileName =
     file instanceof File ? file.name.slice(0, MAX_FILE_NAME_LENGTH) : "";
-  const failed = (message: string): StagedFile =>
-    failedStagedFile(fileName, message);
+  const failed = (
+    message: string,
+    options?: { needsMapping?: boolean },
+  ): StagedFile => failedStagedFile(fileName, message, options);
 
   const accountId = Number(formData.get("accountId"));
   if (!Number.isInteger(accountId) || accountId < 1) {
@@ -64,36 +68,37 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   }
 
   try {
-    const { currency } = withDatabase((db) => getAccount(db, accountId));
+    const { currency, categories } = withDatabase((db) => ({
+      currency: getAccount(db, accountId).currency,
+      categories: listCategories(db),
+    }));
     const text = decodeImportFile(await file.arrayBuffer());
     const format: ImportFormat = detectImportFormat(text);
 
-    const reading =
-      format === "ofx"
-        ? readOfx(text, currency)
-        : readCsv(text, null, accountId, currency);
-    if (format === "csv" && reading.used === null) {
-      return failed(t("staged.mappingNeeded"));
+    const statement = stageStatement(text, format, {
+      fileName,
+      accountId,
+      currency,
+      categories,
+    });
+    if (statement.status === "mappingNeeded") {
+      return failed(t("staged.mappingNeeded"), { needsMapping: true });
+    }
+    if (statement.status === "yearMissing") {
+      return failed(t("staged.yearMissing"));
     }
 
-    const staged: StagedRow[] =
-      reading.used === null
-        ? reading.rows.map((row, index) => ({
-            line: index + 1,
-            rawDate: null,
-            draft: draftOfRow(row, currency),
-          }))
-        : stageCsvRows(reading.table, reading.used, currency);
-    const isDuplicate = duplicateFlags(accountId, staged, currency);
-
+    const isDuplicate = duplicateFlags(accountId, statement.rows, currency);
     return {
       fileName,
       status: "ready",
       message: "",
-      format,
-      mapping: reading.used,
+      format: statement.format,
+      mapping: statement.mapping,
       currency,
-      rows: staged.map((row, index) => ({
+      firstDate: firstMovementDate(statement.rows.map((row) => row.draft.date)),
+      needsMapping: false,
+      rows: statement.rows.map((row, index) => ({
         ...row,
         isDuplicate: isDuplicate[index] ?? false,
       })),

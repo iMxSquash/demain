@@ -8,7 +8,7 @@ import {
 } from "../../domain/import-csv";
 import type { RowProblem } from "../../domain/import-draft";
 import { looksLikeOfx } from "../../domain/import-ofx";
-import type { StagedRow } from "../../domain/import-staging";
+import type { TypedStagedRow } from "../../domain/import-staging";
 import type { ImportFormat } from "../../ledger/imports";
 import type { ReportedImportIssue } from "./describe-issues";
 
@@ -55,7 +55,7 @@ export interface ImportFormState {
   canImport: boolean;
 }
 
-export interface StagedRowView extends StagedRow {
+export interface StagedRowView extends TypedStagedRow {
   /** The account already holds this movement: it is left out when the file is imported. */
   isDuplicate: boolean;
 }
@@ -70,6 +70,10 @@ export interface StagedFile {
   /** The CSV mapping that read the file: recorded with the batch, offered at the next import. */
   mapping: CsvMapping | null;
   currency: string;
+  /** Earliest date of the rows, which orders the files of an import; null when none can be read. */
+  firstDate: string | null;
+  /** A CSV file whose columns were not found: the form of the column mapping reads it. */
+  needsMapping: boolean;
   rows: StagedRowView[];
 }
 
@@ -77,6 +81,7 @@ export interface StagedFile {
 export function failedStagedFile(
   fileName: string,
   message: string,
+  { needsMapping = false }: { needsMapping?: boolean } = {},
 ): StagedFile {
   return {
     fileName,
@@ -85,6 +90,8 @@ export function failedStagedFile(
     format: null,
     mapping: null,
     currency: "",
+    firstDate: null,
+    needsMapping,
     rows: [],
   };
 }

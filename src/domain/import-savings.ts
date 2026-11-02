@@ -4,7 +4,7 @@
  * any CSV file, and ADR-013 and ADR-016.
  */
 
-import type { AccountKind } from "./account";
+import { isCalendarDate, type AccountKind } from "./account";
 import { messageRef, type MessageRef } from "./message";
 import {
   routeAlongOverflowChain,
@@ -203,6 +203,17 @@ export function planSavingsTransfers(
     }
   }
   return { transfers, issues, accounts: running };
+}
+
+/**
+ * The earliest date of the rows of a file, which is where the file sits in the
+ * order of the import. A date that is not a calendar date is skipped; null when
+ * none is left.
+ */
+export function firstMovementDate(dates: readonly string[]): string | null {
+  const valid = dates.filter(isCalendarDate);
+  if (valid.length === 0) return null;
+  return valid.reduce((first, date) => (compareDates(date, first) < 0 ? date : first));
 }
 
 export interface DatedFile {

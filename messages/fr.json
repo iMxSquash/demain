@@ -384,6 +384,7 @@
       "close": "Fermer",
       "mappingNeeded": "Les colonnes de ce fichier n'ont pas pu être devinées. Importez-le seul pour les indiquer.",
       "readFailed": "Ce fichier n'a pas pu être lu.",
+      "yearMissing": "Les dates de ce fichier n'ont pas d'année et son nom n'en donne pas. Mettez l'année dans le nom du fichier (par exemple 2026-03.csv) et choisissez-le à nouveau.",
       "summary": "{rows} lignes : {newCount} nouvelles, {duplicateCount} déjà dans ce compte, {problemCount} à corriger.",
       "tableCaption": "Lignes de {name}",
       "row": "Ligne",

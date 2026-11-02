@@ -384,6 +384,7 @@
       "close": "Close",
       "mappingNeeded": "The columns of this file could not be guessed. Import it alone to set them.",
       "readFailed": "This file could not be read.",
+      "yearMissing": "The dates of this file have no year, and its name gives none. Put the year in the file name (for example 2026-03.csv) and choose the file again.",
       "summary": "{rows} rows: {newCount} new, {duplicateCount} already in this account, {problemCount} to fix.",
       "tableCaption": "Rows of {name}",
       "row": "Row",

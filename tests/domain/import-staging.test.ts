@@ -4,7 +4,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { CsvMapping } from "../../src/domain/import-csv";
-import { stageCsvRows, stageMovementFile } from "../../src/domain/import-staging";
+import {
+  stageCsvRows,
+  stageMovementFile,
+  typeRowsBySign,
+} from "../../src/domain/import-staging";
 
 const SINGLE: CsvMapping = {
   delimiter: ";",
@@ -233,5 +237,41 @@ describe("stageMovementFile", () => {
 
     expect(rows).toEqual([]);
     expect(reading.issues).toEqual([{ kind: "emptyFile" }]);
+  });
+});
+
+describe("typeRowsBySign", () => {
+  const ROWS = [
+    { line: 2, rawDate: null, draft: { date: "2026-02-01", label: "SHOP", amount: "-12.50", externalId: null } },
+    { line: 3, rawDate: null, draft: { date: "2026-02-05", label: "SALARY", amount: "1143.88", externalId: "FIT1" } },
+    { line: 4, rawDate: "31/02/2026", draft: { date: "", label: "BROKEN", amount: "abc", externalId: null } },
+    { line: 5, rawDate: "31/02/2026", draft: { date: "", label: "REFUND", amount: "20.00", externalId: null } },
+  ];
+
+  it("gives each row the type its amount says, even when its date is unreadable, and no guess", () => {
+    const typed = typeRowsBySign(ROWS, "EUR");
+
+    expect(typed.map((row) => [row.line, row.details.type, row.guess])).toEqual([
+      [2, "expense", null],
+      [3, "income", null],
+      [4, "expense", null],
+      [5, "income", null],
+    ]);
+  });
+
+  it("keeps the rows as they were, and leaves the choices open", () => {
+    const [first] = typeRowsBySign(ROWS, "EUR");
+
+    expect(first).toEqual({
+      ...ROWS[0],
+      guess: null,
+      details: {
+        type: "expense",
+        categoryId: null,
+        paymentMode: null,
+        description: null,
+        savingsAccountId: null,
+      },
+    });
   });
 });
