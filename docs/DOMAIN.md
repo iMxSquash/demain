@@ -441,7 +441,7 @@ A bank export rarely says whether a row is an expense, an income or savings. The
 
 ### Layers
 
-1. **An explicit type cell.** A cell read by the same reader as the migration (`Expense`, `Depense`, `Income`, `Revenu`, `Savings`, `Epargne`, and their plurals) gives the type.
+1. **An explicit type cell.** A cell read by the same reader as the migration (`Expense`, `Depense`, `Income` and `Revenu`, singular or plural; `Savings`, `Saving` and `Epargne`, but not `Epargnes`) gives the type.
 2. **The direction of the amount.** Separate debit and credit columns, or the sign of a single amount column: negative leaves the account (expense or savings), positive enters it (income).
 3. **The vocabulary of the category.** The first whole word of the category cell that the vocabulary knows (for example `salaire` gives an income, `epargne` gives savings). Words are compared after removing accents and case, never as parts of a longer word.
 4. **The history.** The type given to the same label (compared without case and extra spaces) by earlier imports of the account. The category word comes before the history.
