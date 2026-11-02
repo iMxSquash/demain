@@ -57,7 +57,7 @@ export interface SavingsPlan {
 }
 
 // ISO dates sort as text; the sort is stable, so rows of one day keep the file order.
-function compareDates(a: string, b: string): number {
+export function compareDates(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 

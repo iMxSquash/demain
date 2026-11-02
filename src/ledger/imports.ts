@@ -22,6 +22,7 @@ import {
   type ImportedRow,
 } from "../domain/import-row";
 import {
+  compareDates,
   planSavingsTransfers,
   type SavingsMovement,
   type SavingsPlanIssue,
@@ -231,10 +232,7 @@ function findCeilingExcesses(
   if (ceiling === null) return [];
   const warnings: CeilingExcess[] = [];
   let running = balance;
-  // ISO dates sort as text; the sort is stable, so rows of one day keep the file order.
-  const byDate = [...inputs].sort((a, b) =>
-    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
-  );
+  const byDate = [...inputs].sort((a, b) => compareDates(a.date, b.date));
   for (const input of byDate) {
     const warning = ceilingWarningFor(input, { balance: running, ceiling });
     if (warning !== null) {
