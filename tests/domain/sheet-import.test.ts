@@ -136,6 +136,20 @@ describe("splitSavingsRows", () => {
     ]);
   });
 
+  it("never reads a negative row of the sheet as a withdrawal from savings", () => {
+    const result = splitSavingsRows(
+      [row(2, "2026-01-31", -57_316), row(3, "2026-01-31", 0)],
+      LIVRET_JEUNE,
+      accounts(),
+    );
+
+    expect(result.splits).toEqual([]);
+    expect(result.issues).toEqual([
+      { kind: "savingsAmountInvalid", source: SOURCE, line: 2 },
+      { kind: "savingsAmountInvalid", source: SOURCE, line: 3 },
+    ]);
+  });
+
   it("reports a chain that loops, once, instead of placing anything", () => {
     const looping = accounts().map((account) =>
       account.id === LIVRET_A
