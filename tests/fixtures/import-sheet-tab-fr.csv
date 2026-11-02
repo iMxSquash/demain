@@ -1,0 +1,7 @@
+Date;Description;Montant;Type;Mode de paiement;Catégorie;;Résumé;
+13/01/2026;Carrefour;12,50;Dépense;CB;Courses;;Revenus;1 500,00
+14/01/2026;Salaire ACME;1 500,00;Revenu;VIR;Salaire;;Dépenses;737,40
+15/01/2026;Loyer;700,00;Dépense;PRLV;Logement;;Épargne;573,16
+16/01/2026;;24,90;Dépense;CB;Courses;;;
+17/01/2026;Livret;573,16;Épargne;VIR;Épargne;;;
+Total;;2 810,56;;;;;;

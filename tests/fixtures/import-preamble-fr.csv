@@ -1,0 +1,6 @@
+Compte;Synthétique
+Solde au 31/01/2026;1 234,56
+Date de l'opération;Libellé;Détail de l'écriture;Montant de l'opération;Devise
+15/01/2026;CARTE SHOP PARIS;Achat du 14/01;-12,50;EUR
+20/01/2026;VIR SALAIRE ACME;Paie janvier;1 143,88;EUR
+28/01/2026;REGUL FRAIS;Régularisation;1.234;EUR
