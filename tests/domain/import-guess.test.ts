@@ -28,8 +28,19 @@ describe("findTypeWord", () => {
     expect(findTypeWord("Courses", DEFAULT_TYPE_VOCABULARY)).toBeNull();
   });
 
-  it("compares whole words, never parts of a word", () => {
-    expect(findTypeWord("parentes", DEFAULT_TYPE_VOCABULARY)).toBeNull();
+  // Each text holds a vocabulary word as a part of a longer word: pel, caf, cel.
+  it.each(["Pelouse", "Café", "accelerateur"])(
+    "compares whole words, never parts of a word: %s",
+    (text) => {
+      expect(findTypeWord(text, DEFAULT_TYPE_VOCABULARY)).toBeNull();
+    },
+  );
+
+  it("still finds a whole word next to words that only contain a vocabulary word", () => {
+    expect(findTypeWord("Pelouse caf", DEFAULT_TYPE_VOCABULARY)).toEqual({
+      word: "caf",
+      type: "income",
+    });
   });
 
   it("does not let file text reach Object.prototype", () => {
