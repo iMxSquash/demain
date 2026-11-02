@@ -20,6 +20,13 @@ import {
 } from "./import-savings";
 import type { OverflowAccount } from "./overflow";
 
+/** The types a row can have, in the order the review offers them. */
+export const MOVEMENT_TYPES = [
+  "expense",
+  "income",
+  "savings",
+] as const satisfies readonly MovementType[];
+
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
   | { kind: "typeCellConflict"; value: string }

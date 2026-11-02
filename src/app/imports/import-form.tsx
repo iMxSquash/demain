@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
+import type { OverflowAccount } from "../../domain/overflow";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
 import {
@@ -194,10 +195,16 @@ interface Staging {
 
 interface Review {
   accountId: number;
+  /** The files as chosen, kept to read them again when the account changes. */
+  sources: File[];
   files: StagedFile[];
+  /** The balances when the files were read: the page refreshes after each import, the plan must not. */
+  overflowAccounts: OverflowAccount[];
+  /** Counts the readings of the files: what was edited belongs to one of them. */
+  batch: number;
 }
 
-export function ImportForm({ accounts }: ImportView) {
+export function ImportForm({ accounts, categories, overflowAccounts }: ImportView) {
   const t = useTranslations("imports");
   const common = useTranslations("common");
   const [state, setState] = useState<ImportFormState | null>(null);
@@ -229,7 +236,41 @@ export function ImportForm({ accounts }: ImportView) {
       staged.push(await stageOne(file, accountText));
     }
     setStaging(null);
-    setReview({ accountId: Number(accountText), files: staged });
+    return staged;
+  }
+
+  // The duplicates and the currency depend on the account: the files are read again for the new one.
+  async function changeReviewAccount(accountId: number) {
+    if (review === null) return;
+    const { sources } = review;
+    setReview({ ...review, accountId });
+    const files = await stageFiles(sources, String(accountId));
+    // Closed while the files were read: it stays closed.
+    setReview((current) =>
+      current === null
+        ? null
+        : { ...current, files, overflowAccounts, batch: current.batch + 1 },
+    );
+  }
+
+  async function stageThenReview(
+    files: File[],
+    accountText: string,
+    fallback: () => void,
+  ) {
+    const staged = await stageFiles(files, accountText);
+    // A lone CSV whose columns are not found goes back to the mapping form.
+    if (files.length === 1 && staged[0]?.needsMapping === true) {
+      fallback();
+      return;
+    }
+    setReview({
+      accountId: Number(accountText),
+      sources: files,
+      files: staged,
+      overflowAccounts,
+      batch: 1,
+    });
   }
 
   // The action is called by hand rather than through the form's `action`: React
@@ -246,14 +287,18 @@ export function ImportForm({ accounts }: ImportView) {
       .getAll("file")
       .filter((file): file is File => file instanceof File && file.size > 0);
     const accountText = String(formData.get("accountId") ?? "");
-    if (files.length > 1 && accountText !== "") {
+    const importWithMapping = () =>
+      startTransition(async () => {
+        setState(await importAction(state, formData));
+      });
+    // Any readable file opens the review; the mapping form takes over once it has columns to ask for.
+    const isMappingSubmitted = formData.get("mappingPresent") === "1";
+    if (files.length > 0 && accountText !== "" && !isMappingSubmitted) {
       setState(null);
-      void stageFiles(files, accountText);
+      void stageThenReview(files, accountText, importWithMapping);
       return;
     }
-    startTransition(async () => {
-      setState(await importAction(state, formData));
-    });
+    importWithMapping();
   }
 
   // A preview describes one file and one account: any change makes it stale.
@@ -306,7 +351,7 @@ export function ImportForm({ accounts }: ImportView) {
         ) : null}
 
         <div aria-live="polite" className="flex flex-col gap-4">
-          {staging === null ? null : (
+          {staging === null || review !== null ? null : (
             <p role="status" className="font-medium">
               {t("staged.reading", { ...staging })}
             </p>
@@ -408,8 +453,16 @@ export function ImportForm({ accounts }: ImportView) {
       {/* Outside the form: Enter in a cell of the review must not submit it. */}
       {review === null ? null : (
         <StagedImportReview
+          batch={review.batch}
           files={review.files}
           accountId={review.accountId}
+          accounts={accounts}
+          categories={categories}
+          overflowAccounts={review.overflowAccounts}
+          readingText={
+            staging === null ? null : t("staged.reading", { ...staging })
+          }
+          onAccountChange={changeReviewAccount}
           onClose={() => setReview(null)}
         />
       )}
