@@ -85,7 +85,7 @@ export function requireRowLabel(label: string, line: number): string {
   return label;
 }
 
-function normalizeLabel(label: string): string {
+export function normalizeLabel(label: string): string {
   return label.trim().replace(/\s+/g, " ").toLowerCase();
 }
 

@@ -126,6 +126,23 @@ describe("readSheetTab", () => {
     });
   });
 
+  it("reads every row as an expense when there is no type column and no amount is negative", () => {
+    // Nothing says which way the money goes: the file is unsigned, so no row is an income by default.
+    const reading = readSheetTab(
+      [
+        "Date;Description;Amount",
+        "13/01/2026;Shop;12,50",
+        "14/01/2026;Pay;100,00",
+      ].join("\n"),
+      OPTIONS,
+    );
+
+    expect(reading.rows.map((row) => [row.type, row.amount])).toEqual([
+      ["expense", 1_250],
+      ["expense", 10_000],
+    ]);
+  });
+
   it("reads nothing when the essential columns are not found, and reports each", () => {
     const reading = readSheetTab("a;b;c\n1;2;3", OPTIONS);
 
