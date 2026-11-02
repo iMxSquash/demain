@@ -29,7 +29,7 @@ import {
   type SavingsPlanIssue,
   type SavingsTransfer,
 } from "../domain/import-savings";
-import type { MessageRef } from "../domain/message";
+import { messageRef, type MessageRef } from "../domain/message";
 import type { OverflowAccount } from "../domain/overflow";
 import {
   buildTransferLegs,
@@ -48,7 +48,7 @@ import {
   listOverflowAccounts,
   type Account,
 } from "./accounts";
-import { getCategory } from "./categories";
+import { CategoryNotFoundError, getCategory } from "./categories";
 import { listApplicableRules } from "./categorization-rules";
 import { insertTransferLegs, type LegImportColumns } from "./transactions";
 
@@ -361,9 +361,16 @@ function planRow(
     outcome.flows.push(input);
   } catch (error) {
     // Rows without details keep failing loudly: only the review gives a row to fix.
-    if (details === undefined || !(error instanceof TransactionValidationError)) {
-      throw error;
+    if (details === undefined) throw error;
+    if (error instanceof CategoryNotFoundError) {
+      outcome.issues.push({
+        kind: "rowInvalid",
+        index,
+        ref: messageRef("importCategoryUnknown"),
+      });
+      return;
     }
+    if (!(error instanceof TransactionValidationError)) throw error;
     outcome.issues.push({ kind: "rowInvalid", index, ref: error.ref });
   }
 }

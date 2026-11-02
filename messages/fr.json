@@ -673,6 +673,7 @@
     "importSavingsAccountArchived": "Le compte d'épargne est archivé",
     "importSavingsAccountNotSavings": "Le compte choisi n'est pas un compte d'épargne",
     "importSavingsAccountSameAsAccount": "Le compte d'épargne ne peut pas être le compte qui reçoit le fichier",
+    "importCategoryUnknown": "La catégorie n'existe plus",
     "accountGone": "Ce compte n'existe plus.",
     "categoryGone": "Cette catégorie n'existe plus.",
     "transactionGone": "Cette transaction n'existe plus.",

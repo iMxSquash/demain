@@ -506,6 +506,20 @@ describe("importing rows with details", () => {
     ]);
   });
 
+  it("reports a category that does not exist as an invalid row, not a crash", () => {
+    const { issues } = previewImport(db, {
+      accountId: CHECKING_ID,
+      rows: [
+        expenseRow({ details: { ...detailsFromSign(-1_250), categoryId: 999 } }),
+        expenseRow({ label: "OTHER", details: detailsFromSign(-1_250) }),
+      ],
+    });
+
+    expect(issues).toEqual([
+      { kind: "rowInvalid", index: 0, ref: { key: "importCategoryUnknown" } },
+    ]);
+  });
+
   it("reports a category that cannot be assigned as an invalid row", () => {
     const archived = createCategory(db, { name: "Old" });
     db.$client.exec("update categories set archived = 1");

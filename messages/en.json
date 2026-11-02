@@ -673,6 +673,7 @@
     "importSavingsAccountArchived": "The savings account is archived",
     "importSavingsAccountNotSavings": "The chosen account is not a savings account",
     "importSavingsAccountSameAsAccount": "The savings account cannot be the account that receives the file",
+    "importCategoryUnknown": "The category no longer exists",
     "accountGone": "This account no longer exists.",
     "categoryGone": "This category no longer exists.",
     "transactionGone": "This transaction no longer exists.",
