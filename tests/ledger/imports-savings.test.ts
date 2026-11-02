@@ -342,6 +342,44 @@ describe("importing savings rows", () => {
     expect(listTransactions(db)).toHaveLength(5);
   });
 
+  describe("deposit ceiling of the account that receives the file", () => {
+    beforeEach(() => {
+      updateAccount(db, CHECKING_ID, {
+        ...AMOUNT,
+        name: "Checking",
+        kind: "checking",
+        openingBalance: 100_000,
+        depositCeiling: 102_000,
+      });
+    });
+
+    it("warns about a withdrawal from savings that goes above the ceiling", () => {
+      const preview = previewImport(db, request([savingsRow({ amount: 5_000 })]));
+
+      expect(preview.ceilingWarnings).toEqual([
+        { label: "VIR LIVRET", date: "2026-03-10", excess: 3_000 },
+      ]);
+    });
+
+    it("does not warn when a withdrawal fits under the ceiling", () => {
+      const preview = previewImport(db, request([savingsRow({ amount: 2_000 })]));
+
+      expect(preview.ceilingWarnings).toEqual([]);
+    });
+
+    it("frees room with an earlier deposit to savings", () => {
+      const preview = previewImport(
+        db,
+        request([
+          savingsRow({ date: "2026-03-01", amount: -30_000, label: "VIR OUT" }),
+          savingsRow({ date: "2026-03-10", amount: 5_000, label: "VIR BACK" }),
+        ]),
+      );
+
+      expect(preview.ceilingWarnings).toEqual([]);
+    });
+  });
+
   function request(rows: ImportRow[]) {
     return { accountId: CHECKING_ID, rows };
   }

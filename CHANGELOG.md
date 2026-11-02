@@ -53,3 +53,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The sheet migration reads files through the shared CSV reader: a tab with lines above its header, a total row or a summary beside the table is read without the unreadable rows they used to cause (each is reported), a row with no description takes its category as label and is reported to be read instead of being skipped, a header that names the type, the payment mode or the category now selects that column, the number format of the file settles amounts such as `1.234`, and an amount that breaks the format of the file is reported as unreadable instead of being guessed on its own.
 - An incoming savings row is no longer guessed as an income to confirm: savings are accepted in both directions. The sheet migration keeps its single run and its all or nothing (ADR-016).
 - The uniqueness of a category name regardless of case is also guaranteed by a unique index in the database, not only by the application.
+
+### Fixed
+
+- The deposit ceiling check of an import now counts the incoming transfers of the account that receives the file, as DOMAIN says: a withdrawal from savings that brings the balance above the ceiling is reported as a warning, and a deposit to savings earlier in the file frees room.

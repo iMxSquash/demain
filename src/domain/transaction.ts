@@ -253,15 +253,19 @@ export interface CeilingWarning {
 }
 
 /**
- * An income above a ceiling is accepted and not routed, since the money has
- * really arrived there: the user is only warned. Interest is always accepted
- * silently (DOMAIN, deposit ceiling and overflow).
+ * An income or an incoming transfer above a ceiling is accepted and not
+ * routed, since the money has really arrived there: the user is only warned.
+ * Interest is always accepted silently (DOMAIN, deposit ceiling and overflow).
  */
 export function ceilingWarningFor(
-  transaction: TransactionInput,
+  transaction: Pick<TransactionInput, "amount"> & {
+    kind: EnteredTransactionKind | "transfer";
+  },
   account: Pick<OverflowAccount, "balance" | "ceiling">,
 ): CeilingWarning | null {
-  if (transaction.kind !== "income") return null;
+  if (transaction.kind !== "income" && transaction.kind !== "transfer") {
+    return null;
+  }
   const excess = transaction.amount - depositRoom(account);
   return excess > 0 ? { excess } : null;
 }

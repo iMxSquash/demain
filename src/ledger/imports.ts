@@ -223,26 +223,31 @@ function toTransactionInput(
   });
 }
 
+/** What a row of the file does to the balance of the account that receives it. */
+type BalanceFlow = Pick<ValidTransactionInput, "date" | "amount" | "label"> & {
+  kind: ValidTransactionInput["kind"] | "transfer";
+};
+
 // An imported movement already happened: it is never refused, only reported.
 function findCeilingExcesses(
-  inputs: readonly ValidTransactionInput[],
+  flows: readonly BalanceFlow[],
   balance: number,
   ceiling: number | null,
 ): CeilingExcess[] {
   if (ceiling === null) return [];
   const warnings: CeilingExcess[] = [];
   let running = balance;
-  const byDate = [...inputs].sort((a, b) => compareDates(a.date, b.date));
-  for (const input of byDate) {
-    const warning = ceilingWarningFor(input, { balance: running, ceiling });
+  const byDate = [...flows].sort((a, b) => compareDates(a.date, b.date));
+  for (const flow of byDate) {
+    const warning = ceilingWarningFor(flow, { balance: running, ceiling });
     if (warning !== null) {
       warnings.push({
-        label: input.label,
-        date: input.date,
+        label: flow.label,
+        date: flow.date,
         excess: warning.excess,
       });
     }
-    running += input.amount;
+    running += flow.amount;
   }
   return warnings;
 }
@@ -284,6 +289,8 @@ function categoryOf(
 
 interface RowOutcome {
   fresh: FreshRow[];
+  /** Every row that moves the balance, in the order of the file. */
+  flows: BalanceFlow[];
   movements: SavingsMovement[];
   savingsRows: Map<number, FingerprintedRow>;
   issues: ImportIssue[];
@@ -318,16 +325,24 @@ function planRow(
       throw new Error("A savings row without a savings account passed the check");
     }
     outcome.movements.push({ index, date: row.date, amount: row.amount, savingsAccountId });
+    outcome.flows.push({
+      date: row.date,
+      amount: row.amount,
+      label: row.label,
+      kind: "transfer",
+    });
     outcome.savingsRows.set(index, row);
     return;
   }
   try {
     const categoryId = categoryOf(db, request.accountId, row, kind, details, rules);
+    const input = toTransactionInput(request.accountId, row, categoryId, kind, details);
     outcome.fresh.push({
-      input: toTransactionInput(request.accountId, row, categoryId, kind, details),
+      input,
       fingerprint: row.fingerprint,
       contentKey: row.contentKey,
     });
+    outcome.flows.push(input);
   } catch (error) {
     // Rows without details keep failing loudly: only the review gives a row to fix.
     if (details === undefined || !(error instanceof TransactionValidationError)) {
@@ -394,6 +409,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const rules = listApplicableRules(db);
   const outcome: RowOutcome = {
     fresh: [],
+    flows: [],
     movements: [],
     savingsRows: new Map(),
     issues: [],
@@ -424,7 +440,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
       newCount,
       duplicateCount: flagged.length - newCount,
       ceilingWarnings: findCeilingExcesses(
-        outcome.fresh.map((entry) => entry.input),
+        outcome.flows,
         getAccountBalance(db, account.id),
         account.depositCeiling,
       ),
