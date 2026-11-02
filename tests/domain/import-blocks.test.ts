@@ -119,6 +119,18 @@ describe("movementColumns", () => {
     expect(movementColumns(table, 1, ANCHORS)).toEqual({ first: 0, last: 2 });
   });
 
+  it("reads a very long table, up to its widest and last row", () => {
+    // Spreading that many rows into Math.max overflows the call stack.
+    const ROW_COUNT = 200_000;
+    const table = [
+      ["Date", "Description", "Amount"],
+      ...Array.from({ length: ROW_COUNT }, () => ["13/01/2026", "Shop", "12,50"]),
+      ["14/01/2026", "Pay", "100,00", "Last"],
+    ];
+
+    expect(movementColumns(table, 0, ANCHORS)).toEqual({ first: 0, last: 3 });
+  });
+
   it("is null when the anchors sit in different blocks", () => {
     const table = [
       ["Date", "Description", "", "Amount"],

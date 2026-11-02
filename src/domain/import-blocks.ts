@@ -23,6 +23,13 @@ export function findHeaderIndex(
   return Math.max(index, 0);
 }
 
+/** Cells in the widest row. Reduced, not spread into `Math.max`: a long file overflows the call stack. */
+export function widestRowLength(
+  table: readonly (readonly string[])[],
+): number {
+  return table.reduce((width, row) => Math.max(width, row.length), 0);
+}
+
 /**
  * Columns of the run holding every anchor, runs being split by columns empty
  * on every row from the header on. A column with a header and no value is not
@@ -34,8 +41,7 @@ export function movementColumns(
   anchors: readonly number[],
 ): { first: number; last: number } | null {
   const rows = table.slice(headerIndex);
-  const columnCount = Math.max(0, ...rows.map((row) => row.length));
-  const isFilled = Array.from({ length: columnCount }, (_, column) =>
+  const isFilled = Array.from({ length: widestRowLength(rows) }, (_, column) =>
     rows.some((row) => (row[column] ?? "").trim() !== ""),
   );
 

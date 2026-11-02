@@ -9,6 +9,7 @@ import {
   findHeaderIndex,
   isTotalRow,
   movementColumns,
+  widestRowLength,
 } from "./import-blocks";
 import { detectColumnRoles, type ColumnIssue } from "./import-columns";
 import {
@@ -123,7 +124,7 @@ function layoutTable(
   });
 
   const fromHeader = table.slice(headerIndex);
-  const columnCount = Math.max(0, ...fromHeader.map((cells) => cells.length));
+  const columnCount = widestRowLength(fromHeader);
   const ignoredColumns = Array.from({ length: columnCount }, (_, column) => column).filter(
     (column) =>
       !inBlock(column) &&
