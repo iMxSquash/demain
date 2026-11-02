@@ -171,6 +171,21 @@ describe("isTotalRow", () => {
     expect(isTotalRow(["01/13/2026", "Total", "1"], 0, "dmy", inTable)).toBe(true);
   });
 
+  it("recognizes a total word spelled in one or two words", () => {
+    expect(test(["Sub total", "", "12,00"])).toBe(true);
+    expect(test(["Soustotal", "", "12,00"])).toBe(true);
+    expect(test(["Total général", "", "12,00"])).toBe(true);
+    expect(test(["Totals", "", "12,00"])).toBe(true);
+  });
+
+  it.each(["SumUp", "Summit", "Summer camp", "Totalenergies"])(
+    "keeps a row whose first word only starts like a total word: %j",
+    (label) => {
+      expect(test(["", label, "12,50"])).toBe(false);
+      expect(test([label, "", "12,50"])).toBe(false);
+    },
+  );
+
   it("keeps a row with no date and no total word", () => {
     expect(test(["abc", "Shop", "12,50"])).toBe(false);
     expect(test(["", "", ""])).toBe(false);

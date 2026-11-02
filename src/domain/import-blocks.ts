@@ -7,7 +7,6 @@
 
 import {
   datesLackYear,
-  normalizeHeader,
   parseDate,
   suggestMappingColumns,
   type CsvDateFormat,
@@ -49,16 +48,32 @@ export function movementColumns(
   return Math.max(...anchors) <= last ? { first, last } : null;
 }
 
-// Normalized with `normalizeHeader`: "Sous-total" is "soustotal".
-const TOTAL_WORDS = [
+// Lowercase, without accents. "Sous-total" and "Sub total" are written as one word here.
+const TOTAL_WORDS: ReadonlySet<string> = new Set([
   "total",
+  "totals",
   "soustotal",
   "subtotal",
   "totaux",
   "solde",
   "balance",
   "sum",
-];
+]);
+
+/**
+ * Whether a cell opens with a total word. Whole words only: a prefix test would
+ * take "SumUp" or "Summer camp" for a "sum". The first two words are also read
+ * as one, since "Sous-total" and "Sub total" are written either way.
+ */
+function startsWithTotalWord(cell: string): boolean {
+  const [first = "", second = ""] = cell
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word !== "");
+  return TOTAL_WORDS.has(first) || TOTAL_WORDS.has(first + second);
+}
 
 /**
  * A row of totals or balances: its date cannot be read and a cell of the table
@@ -74,8 +89,5 @@ export function isTotalRow(
   const date = cells[dateColumn] ?? "";
   if (parseDate(date, dateFormat) !== null || datesLackYear([date])) return false;
 
-  return cells.some((cell, column) => {
-    const text = normalizeHeader(cell);
-    return inBlock(column) && TOTAL_WORDS.some((word) => text.startsWith(word));
-  });
+  return cells.some((cell, column) => inBlock(column) && startsWithTotalWord(cell));
 }

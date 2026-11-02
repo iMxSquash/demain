@@ -485,7 +485,7 @@ A CSV file often holds more than the table of movements. What is not a movement 
 
 - **Lines above the header.** The header is the first line that names a date, a label and an amount (or a debit and a credit). Lines above it (an account name, a balance at a date) are ignored, and the line numbers stay those of the file.
 - **A block beside the table.** Columns that are empty on every line from the header on split the file into blocks. The table is the block that holds the date, label and amount columns; the columns of the other blocks (a monthly summary with its revenues, expenses and savings, for instance) are ignored, whatever they hold. A column that has a header and no value does not split the table. When the three columns are not in one block, nothing is left out.
-- **Total rows.** A row whose date cannot be read and where a cell of the table starts with a total word (`total`, `sous-total`, `subtotal`, `totaux`, `solde`, `balance`, `sum`) is ignored. A row with a readable date is kept whatever its label says ("TOTAL ENERGIES"), and so is a date written without a year.
+- **Total rows.** A row whose date cannot be read and where a cell of the table starts with a total word (`total`, `totals`, `sous-total`, `subtotal`, `totaux`, `solde`, `balance`, `sum`) is ignored. The word is read whole: `Sum` is a total, `SumUp` and `Summer camp` are not. A row with a readable date is kept whatever its label says ("TOTAL ENERGIES"), and so is a date written without a year.
 - **Empty lines.** A line that holds nothing in the table (only a block beside it) is skipped without a report.
 
 ### Number format
