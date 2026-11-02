@@ -2,6 +2,7 @@ import {
   checkRowDetails,
   readImportDraft,
   type ReviewedDraft,
+  type RowDetails,
   type RowProblem,
 } from "../domain/import-draft";
 import type { AppDatabase } from "../storage/database";
@@ -52,7 +53,13 @@ export function commitDrafts(
       problems.push({ index, problem: reading.problem });
       return;
     }
-    const { details } = draft;
+    const given = draft.details;
+    // Same fallback as planRow: a row that names no savings account takes the
+    // one of the request, so the check sees the account that will be used.
+    const details: RowDetails | undefined =
+      given === undefined
+        ? undefined
+        : { ...given, savingsAccountId: given.savingsAccountId ?? rest.savingsAccountId ?? null };
     const problem =
       details === undefined ? null : checkRowDetails(details, reading.row.amount);
     if (problem !== null) {

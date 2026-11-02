@@ -242,6 +242,20 @@ describe("commitDrafts with the details of a review", () => {
     expect(listTransactions(db)).toEqual([]);
   });
 
+  it("uses the savings account of the request for a row that names none", () => {
+    const result = commitDrafts(db, {
+      accountId: CHECKING_ID,
+      format: "csv",
+      fileName: "2026-03.csv",
+      mapping: null,
+      savingsAccountId: A_ID,
+      drafts: [savings({}, { savingsAccountId: null })],
+      now: NOW,
+    });
+
+    expect(result).toMatchObject({ status: "done", transferCount: 2 });
+  });
+
   it("is blocked, and writes nothing, when part of a deposit fits nowhere", () => {
     updateAccount(db, A_ID, {
       ...ACCOUNT,
