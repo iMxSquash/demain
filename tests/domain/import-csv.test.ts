@@ -202,6 +202,45 @@ describe("applyCsvMapping", () => {
 
     expect(result.rows[0]?.label).toBe("CARD <b>SHOP</b>");
   });
+
+  describe("with the decimal mark of the file", () => {
+    const row = ["01/02/2026", "SHOP", "1,234"];
+    const read = (mapping: Partial<CsvMapping>, cells = row) =>
+      applyCsvMapping(
+        [cells],
+        { ...SEMICOLON_MAPPING, hasHeader: false, ...mapping },
+        "EUR",
+      );
+
+    it("reads a lone comma as a group separator when the mark is the point", () => {
+      expect(read({ decimalMark: "." }).rows[0]?.amount).toBe(123_400);
+    });
+
+    it("reads a lone comma as a decimal one when the mark is the comma", () => {
+      const result = read({ decimalMark: "," }, ["01/02/2026", "SHOP", "1,23"]);
+
+      expect(result.rows[0]?.amount).toBe(123);
+    });
+
+    it("rejects the row whose amount uses the other mark", () => {
+      const result = read({ decimalMark: "." }, ["01/02/2026", "SHOP", "12,50"]);
+
+      expect(result.rows).toEqual([]);
+      expect(result.errors).toHaveLength(1);
+    });
+
+    it("reads the debit and credit columns with it too", () => {
+      const result = read(
+        {
+          decimalMark: ".",
+          amount: { kind: "split", debitColumn: 2, creditColumn: 3 },
+        },
+        ["01/02/2026", "SHOP", "1,234", ""],
+      );
+
+      expect(result.rows[0]?.amount).toBe(-123_400);
+    });
+  });
 });
 
 describe("suggestCsvMapping", () => {

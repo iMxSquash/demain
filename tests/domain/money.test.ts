@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   currencyDecimals,
+  detectDecimalMark,
   divideRound,
   formatAmount,
   formatEditableAmount,
@@ -186,6 +187,104 @@ describe("parseAmount", () => {
 
   it("names the offending input in the error message", () => {
     expect(() => parseAmount("12,505", "EUR")).toThrow(/"12,505"/);
+  });
+});
+
+describe("parseAmount with a decimal mark", () => {
+  it("reads a lone comma as a group separator when the point is the mark", () => {
+    expect(parseAmount("1,234", "EUR", ".")).toBe(123_400);
+    expect(parseAmount("1,234.56", "EUR", ".")).toBe(123_456);
+  });
+
+  it("reads a lone point as a group separator when the comma is the mark", () => {
+    expect(parseAmount("1.234", "EUR", ",")).toBe(123_400);
+    expect(parseAmount("1 234,56", "EUR", ",")).toBe(123_456);
+  });
+
+  it("keeps the sign and the currency symbol", () => {
+    expect(parseAmount("-1.234 €", "EUR", ",")).toBe(-123_400);
+  });
+
+  it("rejects the other mark used as a decimal one", () => {
+    expect(() => parseAmount("12,50", "EUR", ".")).toThrow(MoneyParseError);
+    expect(() => parseAmount("12.50", "EUR", ",")).toThrow(MoneyParseError);
+  });
+
+  it("rejects a group separator that does not split digits by three", () => {
+    expect(() => parseAmount("1,23", "EUR", ".")).toThrow(/misplaced separator/);
+  });
+
+  it("rejects the mark repeated as a group separator", () => {
+    expect(() => parseAmount("1.234.56", "EUR", ".")).toThrow(MoneyParseError);
+  });
+
+  it("keeps the rules of the currency decimals", () => {
+    expect(() => parseAmount("12,505", "EUR", ",")).toThrow(/2 decimal digits/);
+    expect(parseAmount("1,234", "KWD", ",")).toBe(1_234);
+  });
+});
+
+describe("detectDecimalMark", () => {
+  it("finds the comma in French amounts", () => {
+    expect(detectDecimalMark(["12,50", "-3,5", "1 234,56"])).toEqual({
+      mark: ",",
+      isAmbiguous: false,
+    });
+  });
+
+  it("finds the point in English amounts", () => {
+    expect(detectDecimalMark(["12.50", "1,234.56"])).toEqual({
+      mark: ".",
+      isAmbiguous: false,
+    });
+  });
+
+  it("takes the last mark as the decimal one when both are present", () => {
+    expect(detectDecimalMark(["1.234,56"])?.mark).toBe(",");
+    expect(detectDecimalMark(["1,234.56"])?.mark).toBe(".");
+  });
+
+  it("reads a mark repeated in a cell as a group separator", () => {
+    expect(detectDecimalMark(["1.234.567"])?.mark).toBe(",");
+    expect(detectDecimalMark(["1,234,567"])?.mark).toBe(".");
+  });
+
+  it("takes a lone mark followed by three digits for no clue", () => {
+    expect(detectDecimalMark(["1,234", "2.500"])).toBeNull();
+  });
+
+  it("finds a mark in the other cells even when one cell has none", () => {
+    expect(detectDecimalMark(["1,234", "12,50"])?.mark).toBe(",");
+  });
+
+  it("is null without any clue", () => {
+    expect(detectDecimalMark([])).toBeNull();
+    expect(detectDecimalMark(["12", "1 500", "abc", ""])).toBeNull();
+  });
+
+  it("ignores the sign and the currency around the digits", () => {
+    expect(detectDecimalMark(["-12,50 €", "EUR 3.5"])).toEqual({
+      mark: ",",
+      isAmbiguous: true,
+    });
+  });
+
+  it("goes with the majority of a mixed file, and says so", () => {
+    expect(detectDecimalMark(["1,5", "2,5", "3.5"])).toEqual({
+      mark: ",",
+      isAmbiguous: true,
+    });
+    expect(detectDecimalMark(["1.5", "2.5", "3,5"])).toEqual({
+      mark: ".",
+      isAmbiguous: true,
+    });
+  });
+
+  it("prefers the comma on a tie, and says so", () => {
+    expect(detectDecimalMark(["1.5", "2,5"])).toEqual({
+      mark: ",",
+      isAmbiguous: true,
+    });
   });
 });
 
