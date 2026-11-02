@@ -176,8 +176,9 @@ describe("readSheetTab", () => {
     ]);
     // The missing type column is reported, but no row is.
     expect(reading.issues).toContainEqual({ kind: "columnNotFound", role: "type" });
-    expect(reading.issues.map((issue) => issue.kind)).not.toContain("typeMissing");
-    expect(reading.issues.map((issue) => issue.kind)).not.toContain("typeUnrecognized");
+    const kinds = reading.issues.map((issue) => issue.kind);
+    expect(kinds).not.toContain("typeMissing");
+    expect(kinds).not.toContain("typeUnrecognized");
   });
 
   it("reads nothing when the essential columns are not found, and reports each", () => {
