@@ -10,17 +10,13 @@ import { importAction } from "./actions";
 import {
   AMOUNT_KINDS,
   type ImportFormState,
+  type ImportView,
   type MappingFields,
   failedStagedFile,
   type StagedFile,
 } from "./import-form-data";
 import { stageFileAction } from "./stage-actions";
 import { StagedImportReview } from "./staged-import-review";
-
-export interface AccountOption {
-  id: number;
-  name: string;
-}
 
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
 const BUTTON_CLASS =
@@ -201,7 +197,7 @@ interface Review {
   files: StagedFile[];
 }
 
-export function ImportForm({ accounts }: { accounts: AccountOption[] }) {
+export function ImportForm({ accounts }: ImportView) {
   const t = useTranslations("imports");
   const common = useTranslations("common");
   const [state, setState] = useState<ImportFormState | null>(null);

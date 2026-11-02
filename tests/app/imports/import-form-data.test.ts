@@ -5,6 +5,7 @@ import {
   detectImportFormat,
   mappingToFields,
   readMappingFields,
+  toImportView,
 } from "../../../src/app/imports/import-form-data";
 import type { CsvMapping } from "../../../src/domain/import-csv";
 
@@ -92,5 +93,52 @@ describe("readMappingFields", () => {
       hasHeader: false,
       amount: { kind: "single", column: 2 },
     });
+  });
+});
+
+describe("toImportView", () => {
+  const CHECKING = {
+    id: 1,
+    name: "Checking",
+    kind: "checking" as const,
+    currency: "EUR",
+    openingDate: "2026-01-01",
+    openingBalance: 123_456,
+    archived: false,
+    depositCeiling: null,
+    overflowAccountId: null,
+  };
+  const SAVINGS = {
+    ...CHECKING,
+    id: 2,
+    name: "Savings",
+    kind: "savings" as const,
+    depositCeiling: 100_000,
+    overflowAccountId: 3,
+  };
+  const BALANCES = [
+    { id: 1, currency: "EUR", archived: false, balance: 123_456, ceiling: null, overflowAccountId: null },
+    { id: 2, currency: "EUR", archived: false, balance: 90_000, ceiling: 100_000, overflowAccountId: 3 },
+    { id: 3, currency: "EUR", archived: true, balance: 0, ceiling: null, overflowAccountId: null },
+  ];
+
+  it("gives the browser what it needs to choose an account and a category, and no more", () => {
+    const view = toImportView(
+      [CHECKING, SAVINGS],
+      [{ id: 7, name: "Groceries", archived: false }],
+      BALANCES,
+    );
+
+    expect(view.accounts).toEqual([
+      { id: 1, name: "Checking", kind: "checking", currency: "EUR", archived: false, overflowAccountId: null },
+      { id: 2, name: "Savings", kind: "savings", currency: "EUR", archived: false, overflowAccountId: 3 },
+    ]);
+    expect(view.categories).toEqual([{ id: 7, name: "Groceries" }]);
+  });
+
+  it("keeps the balances of every account, archived ones included, to follow the overflow chains", () => {
+    const view = toImportView([CHECKING], [], BALANCES);
+
+    expect(view.overflowAccounts).toEqual(BALANCES);
   });
 });

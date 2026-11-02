@@ -8,7 +8,11 @@ import {
 } from "../../domain/import-csv";
 import type { RowProblem } from "../../domain/import-draft";
 import { looksLikeOfx } from "../../domain/import-ofx";
+import type { SavingsAccountChoice } from "../../domain/import-savings";
 import type { TypedStagedRow } from "../../domain/import-staging";
+import type { OverflowAccount } from "../../domain/overflow";
+import type { Account } from "../../ledger/accounts";
+import type { Category } from "../../ledger/categories";
 import type { ImportFormat } from "../../ledger/imports";
 import type { ReportedImportIssue } from "./describe-issues";
 
@@ -53,6 +57,47 @@ export interface ImportFormState {
   /** Translated, for the ceiling and for an archived account. */
   warnings: string[];
   canImport: boolean;
+}
+
+/** An active account as the import page offers it: enough to choose it and to choose a savings account. */
+export interface ImportAccountOption extends SavingsAccountChoice {
+  name: string;
+}
+
+export interface ImportCategoryOption {
+  id: number;
+  name: string;
+}
+
+/** What the import page hands to the browser. */
+export interface ImportView {
+  /** The active accounts. */
+  accounts: ImportAccountOption[];
+  /** The active categories. */
+  categories: ImportCategoryOption[];
+  /** The balances of every account, archived ones included: the snapshot the savings rows are planned from. */
+  overflowAccounts: OverflowAccount[];
+}
+
+export function toImportView(
+  accounts: readonly Account[],
+  categories: readonly Category[],
+  overflowAccounts: readonly OverflowAccount[],
+): ImportView {
+  return {
+    accounts: accounts.map(
+      ({ id, name, kind, currency, archived, overflowAccountId }) => ({
+        id,
+        name,
+        kind,
+        currency,
+        archived,
+        overflowAccountId,
+      }),
+    ),
+    categories: categories.map(({ id, name }) => ({ id, name })),
+    overflowAccounts: overflowAccounts.map((account) => ({ ...account })),
+  };
 }
 
 export interface StagedRowView extends TypedStagedRow {

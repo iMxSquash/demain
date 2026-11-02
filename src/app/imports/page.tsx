@@ -3,10 +3,12 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { listAccounts } from "../../ledger/accounts";
+import { listAccounts, listOverflowAccounts } from "../../ledger/accounts";
+import { listCategories } from "../../ledger/categories";
 import { withDatabase } from "../../storage/with-database";
-import { ImportForm } from "./import-form";
 import { requireSession } from "../auth/session";
+import { toImportView } from "./import-form-data";
+import { ImportForm } from "./import-form";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("imports");
@@ -21,7 +23,9 @@ export default async function ImportsPage() {
     getTranslations("imports"),
     getTranslations("common"),
   ]);
-  const accounts = withDatabase((db) => listAccounts(db));
+  const view = withDatabase((db) =>
+    toImportView(listAccounts(db), listCategories(db), listOverflowAccounts(db)),
+  );
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
@@ -30,15 +34,10 @@ export default async function ImportsPage() {
       </Link>
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
       <p className="max-w-prose">{t("intro")}</p>
-      {accounts.length === 0 ? (
+      {view.accounts.length === 0 ? (
         <p>{t("noAccount")}</p>
       ) : (
-        <ImportForm
-          accounts={accounts.map((account) => ({
-            id: account.id,
-            name: account.name,
-          }))}
-        />
+        <ImportForm {...view} />
       )}
     </main>
   );
