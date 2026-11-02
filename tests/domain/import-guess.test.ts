@@ -43,6 +43,10 @@ describe("findTypeWord", () => {
     });
   });
 
+  it("leaves out ambiguous words: retraite may be a pension received or a contribution paid", () => {
+    expect(findTypeWord("Retraite", DEFAULT_TYPE_VOCABULARY)).toBeNull();
+  });
+
   it("does not let file text reach Object.prototype", () => {
     expect(findTypeWord("constructor", DEFAULT_TYPE_VOCABULARY)).toBeNull();
   });

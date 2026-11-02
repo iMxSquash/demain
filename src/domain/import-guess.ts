@@ -31,7 +31,6 @@ const INCOME_WORDS = [
   "allocation",
   "allocations",
   "caf",
-  "retraite",
   "dividende",
   "dividendes",
   "dividend",

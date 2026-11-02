@@ -468,7 +468,7 @@ When the file has a type column but a cell is empty or names no known type, the 
 
 The default vocabulary is fixed, in French and in English, without accents and in lowercase:
 
-- Income: `salaire`, `salaires`, `salary`, `salaries`, `paie`, `paye`, `payroll`, `revenu`, `revenus`, `income`, `allocation`, `allocations`, `caf`, `retraite`, `dividende`, `dividendes`, `dividend`, `dividends`.
+- Income: `salaire`, `salaires`, `salary`, `salaries`, `paie`, `paye`, `payroll`, `revenu`, `revenus`, `income`, `allocation`, `allocations`, `caf`, `dividende`, `dividendes`, `dividend`, `dividends`.
 - Savings: `epargne`, `epargnes`, `savings`, `saving`, `livret`, `livrets`, `ldds`, `lep`, `pel`, `cel`.
 
 There is no expense word: an outgoing amount is an expense unless something says otherwise. Ambiguous words (a bonus, a pension, a grant) are left out on purpose.
