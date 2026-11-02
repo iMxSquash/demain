@@ -82,6 +82,7 @@ export interface GuessContext {
 
 export interface TypeGuess {
   type: MovementType;
+  /** Only `low` flags the row for the user to check. */
   confidence: Confidence;
   /** What gave the type, for "guessed: category is salaire". */
   evidence: TypeEvidence;
@@ -89,8 +90,6 @@ export interface TypeGuess {
   conflict: TypeEvidence | null;
   /** A type cell that names no known type, ignored. */
   ignoredTypeCell: string | null;
-  /** The row is flagged for the user to check: the confidence is low. */
-  toConfirm: boolean;
 }
 
 // Lowercase, without accents, cut on anything that is not a letter or a digit.
@@ -199,7 +198,6 @@ export function guessMovementType(
       evidence: { kind: "typeCell", value: typeCell },
       conflict: isAgreeing ? null : directionEvidence,
       ignoredTypeCell: null,
-      toConfirm: !isAgreeing,
     };
   }
 
@@ -210,6 +208,5 @@ export function guessMovementType(
     ...guess,
     confidence,
     ignoredTypeCell: typeCell === null || typeCell === "" ? null : typeCell,
-    toConfirm: confidence === "low",
   };
 }

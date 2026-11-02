@@ -91,7 +91,6 @@ describe("guessMovementType with an explicit type cell", () => {
       evidence: { kind: "typeCell", value: "Expense" },
       conflict: null,
       ignoredTypeCell: null,
-      toConfirm: false,
     });
   });
 
@@ -101,7 +100,7 @@ describe("guessMovementType with an explicit type cell", () => {
       NO_HISTORY,
     );
 
-    expect(guess).toMatchObject({ type: "income", confidence: "high", toConfirm: false });
+    expect(guess).toMatchObject({ type: "income", confidence: "high" });
   });
 
   it("lets the cell win over the sign, flags the row and names the sign as the conflict", () => {
@@ -115,7 +114,6 @@ describe("guessMovementType with an explicit type cell", () => {
       confidence: "low",
       evidence: { kind: "typeCell", value: "Income" },
       conflict: { kind: "sign", direction: "out" },
-      toConfirm: true,
     });
   });
 
@@ -138,7 +136,6 @@ describe("guessMovementType from the direction of the amount", () => {
       confidence: "medium",
       evidence: { kind: "sign", direction: "out" },
       conflict: null,
-      toConfirm: false,
     });
   });
 
@@ -174,7 +171,6 @@ describe("guessMovementType from the category word", () => {
       confidence: "medium",
       evidence: { kind: "categoryWord", category: "Épargne", word: "epargne", type: "savings" },
       conflict: null,
-      toConfirm: false,
     });
   });
 
@@ -186,7 +182,6 @@ describe("guessMovementType from the category word", () => {
       confidence: "low",
       evidence: { kind: "categoryWord", category: "Salaire", word: "salaire", type: "income" },
       conflict: null,
-      toConfirm: true,
     });
   });
 
@@ -201,7 +196,6 @@ describe("guessMovementType from the category word", () => {
       confidence: "low",
       evidence: { kind: "sign", direction: "out" },
       conflict: { kind: "categoryWord", category: "Salaire", word: "salaire", type: "income" },
-      toConfirm: true,
     });
   });
 });
@@ -248,7 +242,6 @@ describe("guessMovementType with a type column that does not help", () => {
       confidence: "low",
       evidence: { kind: "sign", direction: "in" },
       ignoredTypeCell: "Remboursement",
-      toConfirm: true,
     });
   });
 
@@ -262,7 +255,6 @@ describe("guessMovementType with a type column that does not help", () => {
       type: "expense",
       confidence: "low",
       ignoredTypeCell: null,
-      toConfirm: true,
     });
   });
 });
@@ -277,7 +269,6 @@ describe("guessMovementType without any clue", () => {
       evidence: { kind: "none" },
       conflict: null,
       ignoredTypeCell: null,
-      toConfirm: true,
     });
   });
 
