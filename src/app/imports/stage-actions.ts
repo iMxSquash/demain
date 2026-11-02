@@ -1,7 +1,6 @@
 "use server";
 
 import { getLocale, getTranslations } from "next-intl/server";
-import { z } from "zod";
 
 import { draftOfRow, readImportDraft } from "../../domain/import-draft";
 import { ImportParseError } from "../../domain/import-row";
@@ -10,17 +9,19 @@ import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import { formatCalendarDate } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
-import {
-  csvMappingSchema,
-  findDuplicateRows,
-  type ImportFormat,
-} from "../../ledger/imports";
+import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
 import { commitDrafts } from "../../ledger/staged-import";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { flashError, flashSuccess } from "../feedback/flash";
 import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
+import {
+  commitRequestSchema,
+  MAX_FILE_NAME_LENGTH,
+  type CommitStagedRequest,
+} from "./commit-request";
+import { describeImportIssue } from "./describe-issues";
 import {
   decodeImportFile,
   detectImportFormat,
@@ -31,30 +32,8 @@ import {
 } from "./import-form-data";
 import { readCsv, readOfx } from "./read-statement";
 
-const MAX_FILE_NAME_LENGTH = 255;
-const MAX_CELL_LENGTH = 1_000;
-const MAX_ROWS = 50_000;
 const WARNING_COUNT = 20;
 const BYTES_PER_MEGABYTE = 1024 * 1024;
-
-const commitRequestSchema = z.object({
-  accountId: z.number().int().min(1),
-  fileName: z.string().max(MAX_FILE_NAME_LENGTH),
-  format: z.enum(["csv", "ofx"]),
-  mapping: csvMappingSchema.nullable(),
-  drafts: z
-    .array(
-      z.object({
-        date: z.string().max(MAX_CELL_LENGTH),
-        label: z.string().max(MAX_CELL_LENGTH),
-        amount: z.string().max(MAX_CELL_LENGTH),
-        externalId: z.string().max(MAX_CELL_LENGTH).nullable(),
-      }),
-    )
-    .max(MAX_ROWS),
-});
-
-export type CommitStagedRequest = z.input<typeof commitRequestSchema>;
 
 /**
  * Reads one file of a multi-file import and records nothing. The browser calls
@@ -163,8 +142,9 @@ export async function commitStagedFileAction(
   request: CommitStagedRequest,
 ): Promise<CommitStagedState> {
   await requireSession();
-  const [t, translate, locale] = await Promise.all([
+  const [t, issuesT, translate, locale] = await Promise.all([
     getTranslations("imports"),
+    getTranslations("imports.staged.issues"),
     getTranslator(),
     getLocale(),
   ]);
@@ -173,15 +153,21 @@ export async function commitStagedFileAction(
     message,
     warnings: [],
     problems: [],
+    issues: [],
   });
 
   const parsed = commitRequestSchema.safeParse(request);
   if (!parsed.success) return fail(translate(messageRef("importFailed")));
+  const { savingsAccountId, ...file } = parsed.data;
 
   try {
     const { currency, outcome } = withDatabase((db) => ({
-      currency: getAccount(db, parsed.data.accountId).currency,
-      outcome: commitDrafts(db, { ...parsed.data, now: new Date() }),
+      currency: getAccount(db, file.accountId).currency,
+      outcome: commitDrafts(db, {
+        ...file,
+        savingsAccountId: savingsAccountId ?? undefined,
+        now: new Date(),
+      }),
     }));
     if (outcome.status === "invalid") {
       return {
@@ -189,13 +175,25 @@ export async function commitStagedFileAction(
         message: t("staged.stillInvalid", { count: outcome.problems.length }),
         warnings: [],
         problems: outcome.problems,
+        issues: [],
       };
     }
 
-    // The dialog does not send the details of a review yet, so a file cannot be
-    // blocked from here: it is reported as a failure rather than shown as done.
     if (outcome.status === "blocked") {
-      return fail(translate(messageRef("importFailed")));
+      const say = {
+        t: issuesT,
+        translate,
+        locale,
+        currency,
+        rows: file.drafts,
+      };
+      return {
+        status: "blocked",
+        message: t("staged.blocked"),
+        warnings: [],
+        problems: [],
+        issues: outcome.issues.map((issue) => describeImportIssue(issue, say)),
+      };
     }
 
     revalidateLedger();
@@ -224,6 +222,7 @@ export async function commitStagedFileAction(
             }),
       warnings,
       problems: [],
+      issues: [],
     };
   } catch (error) {
     if (error instanceof AccountNotFoundError) {

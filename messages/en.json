@@ -396,12 +396,25 @@
       "cancelled": "Cancelled: nothing was imported from this file.",
       "stillInvalid": "{count} rows are still invalid: nothing was imported from this file.",
       "toCategorize": "Categorize the imported transactions",
+      "blocked": "This file cannot be imported as it is: nothing was imported from it. See the points below.",
+      "issues": {
+        "withRow": "{label} ({date}): {text}",
+        "savingsAmountInvalid": "The amount of this savings row cannot be placed.",
+        "savingsUnplaced": "Part of this savings row ({amount}) fits in no account of the overflow chain. Choose another savings account, or raise a ceiling.",
+        "overflowChainCycle": "The overflow chain of the savings accounts loops. Fix it in the accounts, then import again.",
+        "rowProblem": {
+          "typeSignMismatch": "The type does not match the sign of the amount.",
+          "savingsAccountRequired": "Choose the savings account."
+        }
+      },
       "problems": {
         "dateInvalid": "Enter a valid date.",
         "dateInvalidRaw": "The file says \"{raw}\": enter a valid date.",
         "labelRequired": "Enter a label.",
         "amountInvalid": "Enter an amount such as -12.50.",
-        "amountZero": "The amount cannot be zero."
+        "amountZero": "The amount cannot be zero.",
+        "typeSignMismatch": "The type does not match the sign of the amount.",
+        "savingsAccountRequired": "Choose the savings account."
       },
       "columnState": "State",
       "importFailed": "Something went wrong, nothing was imported from this file."

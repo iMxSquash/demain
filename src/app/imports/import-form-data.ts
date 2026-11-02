@@ -10,6 +10,7 @@ import type { RowProblem } from "../../domain/import-draft";
 import { looksLikeOfx } from "../../domain/import-ofx";
 import type { StagedRow } from "../../domain/import-staging";
 import type { ImportFormat } from "../../ledger/imports";
+import type { ReportedImportIssue } from "./describe-issues";
 
 /** Largest file accepted. `serverActions.bodySizeLimit` in next.config.ts must stay above it. */
 export const MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024;
@@ -89,13 +90,16 @@ export function failedStagedFile(
 }
 
 export interface CommitStagedState {
-  status: "done" | "invalid" | "error";
+  /** "blocked": the ledger refuses the file as a whole, `issues` says why. */
+  status: "done" | "invalid" | "blocked" | "error";
   /** Translated. */
   message: string;
   /** Translated, for the ceiling and for an archived account. */
   warnings: string[];
   /** Position in the file's rows, for each row the server still refuses. */
   problems: { index: number; problem: RowProblem }[];
+  /** Translated, what blocks the file; each one points at its row when it has one. */
+  issues: ReportedImportIssue[];
 }
 
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */

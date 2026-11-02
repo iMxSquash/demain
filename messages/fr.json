@@ -396,12 +396,25 @@
       "cancelled": "Annulé : rien n'a été importé de ce fichier.",
       "stillInvalid": "{count} lignes sont encore invalides : rien n'a été importé de ce fichier.",
       "toCategorize": "Catégoriser les transactions importées",
+      "blocked": "Ce fichier ne peut pas être importé tel quel : rien n'en a été importé. Voir les points ci-dessous.",
+      "issues": {
+        "withRow": "{label} ({date}) : {text}",
+        "savingsAmountInvalid": "Le montant de cette ligne d'épargne ne peut pas être placé.",
+        "savingsUnplaced": "Une partie de cette ligne d'épargne ({amount}) ne tient dans aucun compte de la chaîne de débordement. Choisissez un autre compte d'épargne, ou relevez un plafond.",
+        "overflowChainCycle": "La chaîne de débordement des comptes d'épargne boucle. Corrigez-la dans les comptes, puis importez à nouveau.",
+        "rowProblem": {
+          "typeSignMismatch": "Le type ne correspond pas au signe du montant.",
+          "savingsAccountRequired": "Choisissez le compte d'épargne."
+        }
+      },
       "problems": {
         "dateInvalid": "Saisissez une date valide.",
         "dateInvalidRaw": "Le fichier indique « {raw} » : saisissez une date valide.",
         "labelRequired": "Saisissez un libellé.",
         "amountInvalid": "Saisissez un montant comme -12,50.",
-        "amountZero": "Le montant ne peut pas être nul."
+        "amountZero": "Le montant ne peut pas être nul.",
+        "typeSignMismatch": "Le type ne correspond pas au signe du montant.",
+        "savingsAccountRequired": "Choisissez le compte d'épargne."
       },
       "columnState": "État",
       "importFailed": "Une erreur est survenue, rien n'a été importé de ce fichier."
