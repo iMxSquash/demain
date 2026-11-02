@@ -418,7 +418,52 @@
         "savingsAccountRequired": "Choose the savings account."
       },
       "columnState": "State",
-      "importFailed": "Something went wrong, nothing was imported from this file."
+      "importFailed": "Something went wrong, nothing was imported from this file.",
+      "receivingAccount": "Account that receives the files",
+      "receivingAccountHint": "Changing it reads the files again: duplicates and currency depend on the account, and the edits made here are lost.",
+      "savingsAccount": "Savings account",
+      "savingsAccountHint": "Used by every savings row that names no other account.",
+      "noSavingsAccount": "No savings account",
+      "columnType": "Type",
+      "columnCategory": "Category",
+      "columnPaymentMode": "Payment mode",
+      "columnSavingsAccount": "Savings account",
+      "types": {
+        "expense": "Expense",
+        "income": "Income",
+        "savings": "Savings"
+      },
+      "typeNouns": {
+        "expense": "an expense",
+        "income": "an income",
+        "savings": "savings"
+      },
+      "noCategory": "No category",
+      "noPaymentMode": "None",
+      "notApplicable": "Not applicable",
+      "sameAsFile": "Same as the file ({name})",
+      "chooseSavingsAccount": "Choose an account",
+      "toConfirm": "To confirm: {reasons}",
+      "toConfirmCount": "{count} rows to confirm: their type was guessed with little evidence.",
+      "confirm": {
+        "typeCellConflict": "the type column says \"{value}\", which contradicts the sign of the amount",
+        "typeCellUnknown": "the type column says \"{value}\", which is not a known type",
+        "categoryWord": "guessed, the category is {category}",
+        "categoryOverruled": "the category is {category}, but the sign of the amount says otherwise and wins",
+        "history": "guessed, an earlier import recorded this label as {type}",
+        "historyOverruled": "an earlier import recorded this label as {type}, but the sign of the amount says otherwise and wins",
+        "sign": "guessed from the sign of the amount: {type}",
+        "debitCredit": "guessed from the debit and credit columns: {type}",
+        "nothing": "nothing in the file gives the type, taken for an expense"
+      },
+      "splitLabel": "Split: {parts}",
+      "split": {
+        "to": "{amount} to {account}",
+        "from": "{amount} from {account}",
+        "unplaced": "{amount} fits nowhere"
+      },
+      "unplacedNote": "Part of a savings row fits nowhere along the overflow chain: this file will be refused as it is.",
+      "importAfter": "Import or cancel {name} first: the files are recorded in date order."
     }
   },
   "backup": {
