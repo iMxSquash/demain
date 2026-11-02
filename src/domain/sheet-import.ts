@@ -5,11 +5,8 @@
 
 import type { MovementType } from "./import-columns";
 import type { PaymentMode } from "./transaction";
-import {
-  routeAlongOverflowChain,
-  type OverflowAccount,
-  type Placement,
-} from "./overflow";
+import { planSavingsTransfers, type SavingsMovement } from "./import-savings";
+import type { OverflowAccount, Placement } from "./overflow";
 
 /** A savings line of the sheet: money leaving the checking account for savings. */
 export interface SavingsRow {
@@ -54,67 +51,49 @@ export interface SavingsSplitting {
  * Splits each savings row along the overflow chain that starts at
  * `destinationId`, row after row: a row fills the first account up to its
  * ceiling and the rest goes down the chain, as the owner did by hand.
- * A row that cannot be placed, wholly or in part, is reported.
+ * A row that cannot be placed, wholly or in part, is reported. The sheet only
+ * knows deposits: a row that is not a positive amount is invalid, never a
+ * withdrawal.
  */
 export function splitSavingsRows(
   rows: readonly SavingsRow[],
   destinationId: number,
   accounts: readonly OverflowAccount[],
 ): SavingsSplitting {
-  // Balances move as rows are placed; the caller's accounts stay untouched.
-  const running = accounts.map((account) => ({ ...account }));
-  const splits: SavingsSplit[] = [];
-  const issues: SavingsIssue[] = [];
-
-  // ISO dates sort as text; the sort is stable, so rows of one day keep the file order.
-  const chronological = [...rows].sort((a, b) =>
-    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+  // A zero amount is how the planner is told that a row is invalid.
+  const movements = rows.map(
+    (row, index): SavingsMovement => ({
+      index,
+      date: row.date,
+      amount: Number.isSafeInteger(row.amount) && row.amount > 0 ? -row.amount : 0,
+      savingsAccountId: destinationId,
+    }),
   );
+  const plan = planSavingsTransfers(movements, accounts);
 
-  // Every invalid row is reported, even when a loop later stops the placement.
-  const valid = chronological.filter((savingsRow) => {
-    const isValid =
-      Number.isSafeInteger(savingsRow.amount) && savingsRow.amount > 0;
-    if (!isValid) {
-      issues.push({
-        kind: "savingsAmountInvalid",
-        source: savingsRow.source,
-        line: savingsRow.line,
-      });
-    }
-    return isValid;
-  });
-
-  for (const savingsRow of valid) {
-    const routing = routeAlongOverflowChain(
-      savingsRow.amount,
-      destinationId,
-      running,
-    );
-    // The chain does not depend on the balances: one loop spoils every row.
-    if (routing.status !== "ok") {
-      return {
-        splits: [],
-        issues: [...issues, { kind: "overflowChainCycle" }],
-      };
-    }
-    for (const placement of routing.placements) {
-      const account = running.find((a) => a.id === placement.accountId);
-      if (account !== undefined) account.balance += placement.amount;
-    }
-    splits.push({
-      row: savingsRow,
-      placements: routing.placements,
-      unplaced: routing.unplaced,
-    });
-    if (routing.unplaced > 0) {
-      issues.push({
-        kind: "savingsUnplaced",
-        source: savingsRow.source,
-        line: savingsRow.line,
-        amount: routing.unplaced,
-      });
-    }
-  }
-  return { splits, issues };
+  const rowAt = (index: number): SavingsRow => {
+    const row = rows[index];
+    if (row === undefined) throw new Error(`Unknown savings row ${index}`);
+    return row;
+  };
+  return {
+    splits: plan.transfers.flatMap((transfer) =>
+      transfer.kind === "deposit"
+        ? [
+            {
+              row: rowAt(transfer.index),
+              placements: transfer.placements,
+              unplaced: transfer.unplaced,
+            },
+          ]
+        : [],
+    ),
+    issues: plan.issues.map((issue): SavingsIssue => {
+      if (issue.kind === "overflowChainCycle") return issue;
+      const { source, line } = rowAt(issue.index);
+      return issue.kind === "savingsUnplaced"
+        ? { kind: "savingsUnplaced", source, line, amount: issue.amount }
+        : { kind: "savingsAmountInvalid", source, line };
+    }),
+  };
 }

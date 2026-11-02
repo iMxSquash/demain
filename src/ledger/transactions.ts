@@ -108,18 +108,33 @@ function buildLegsFor(
   });
 }
 
+/** What an import records on a leg: the batch, and the keys that detect the movement twice. */
+export interface LegImportColumns {
+  importBatchId?: number;
+  importFingerprint?: string;
+  importContentKey?: string;
+}
+
 export function insertTransferLegs(
   writer: Writer,
   [outgoingLeg, incomingLeg]: [TransferLeg, TransferLeg],
+  [outgoingColumns, incomingColumns]: [LegImportColumns, LegImportColumns] = [
+    {},
+    {},
+  ],
 ): [outgoing: Transaction, incoming: Transaction] {
   const outgoing = writer
     .insert(transactions)
-    .values(outgoingLeg)
+    .values({ ...outgoingLeg, ...outgoingColumns })
     .returning()
     .get();
   const incoming = writer
     .insert(transactions)
-    .values({ ...incomingLeg, transferCounterpartId: outgoing.id })
+    .values({
+      ...incomingLeg,
+      ...incomingColumns,
+      transferCounterpartId: outgoing.id,
+    })
     .returning()
     .get();
   const linked = writer

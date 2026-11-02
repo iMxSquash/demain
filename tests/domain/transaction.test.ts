@@ -296,6 +296,18 @@ describe("ceilingWarningFor", () => {
     expect(warning).toEqual({ excess: 3_000 });
   });
 
+  it("warns about the excess of an incoming transfer that goes above the ceiling", () => {
+    const warning = ceilingWarningFor({ kind: "transfer", amount: 5_000 }, livretJeune);
+
+    expect(warning).toEqual({ excess: 3_000 });
+  });
+
+  it("does not warn about an outgoing transfer", () => {
+    const warning = ceilingWarningFor({ kind: "transfer", amount: -5_000 }, livretJeune);
+
+    expect(warning).toBeNull();
+  });
+
   it("accepts interest above the ceiling without a warning", () => {
     const warning = ceilingWarningFor(
       input({ accountId: LIVRET_JEUNE_ID, kind: "interest", amount: 5_000 }),

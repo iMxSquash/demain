@@ -192,6 +192,12 @@ export async function commitStagedFileAction(
       };
     }
 
+    // The dialog does not send the details of a review yet, so a file cannot be
+    // blocked from here: it is reported as a failure rather than shown as done.
+    if (outcome.status === "blocked") {
+      return fail(translate(messageRef("importFailed")));
+    }
+
     revalidateLedger();
     await flashSuccess("importDone", {
       imported: outcome.newCount,

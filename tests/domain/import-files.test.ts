@@ -175,3 +175,22 @@ describe("an export with a type column and signed amounts", () => {
     expect(reading.rows[2]?.amount).toBe(-4_500);
   });
 });
+
+describe("an export with savings in both directions", () => {
+  const reading = readMovementFile(readFixture("import-savings-signed-fr.csv"), {
+    currency: "EUR",
+    source: "import-savings-signed-fr.csv",
+  });
+
+  it("reads the money coming back from savings as savings, not as an income to confirm", () => {
+    expect(
+      reading.rows.map((row) => [row.date, row.amount, row.type.type, row.type.confidence]),
+    ).toEqual([
+      ["2026-03-10", -30_000, "savings", "medium"],
+      ["2026-03-15", -4_520, "expense", "medium"],
+      ["2026-03-20", 5_000, "savings", "medium"],
+      ["2026-03-25", 150_000, "income", "medium"],
+    ]);
+    expect(reading.rows[2]?.type.conflict).toBeNull();
+  });
+});

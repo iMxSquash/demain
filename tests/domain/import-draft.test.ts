@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { draftOfRow, readImportDraft } from "../../src/domain/import-draft";
+import {
+  checkRowDetails,
+  detailsFromSign,
+  draftOfRow,
+  readImportDraft,
+  type RowDetails,
+} from "../../src/domain/import-draft";
 
 describe("readImportDraft", () => {
   it("reads a typed row into a movement, amount without floating point", () => {
@@ -87,5 +93,61 @@ describe("draftOfRow", () => {
       ok: true,
       row: { amount: -1_250 },
     });
+  });
+});
+
+const SAVINGS_ACCOUNT_ID = 2;
+
+function details(overrides: Partial<RowDetails> = {}): RowDetails {
+  return {
+    type: "expense",
+    categoryId: null,
+    paymentMode: null,
+    description: null,
+    savingsAccountId: null,
+    ...overrides,
+  };
+}
+
+describe("checkRowDetails", () => {
+  it("accepts an expense on an outgoing amount and an income on an incoming one", () => {
+    expect(checkRowDetails(details({ type: "expense" }), -1_250)).toBeNull();
+    expect(checkRowDetails(details({ type: "income" }), 1_250)).toBeNull();
+  });
+
+  it("refuses an expense on an incoming amount", () => {
+    expect(checkRowDetails(details({ type: "expense" }), 1_250)).toBe(
+      "typeSignMismatch",
+    );
+  });
+
+  it("refuses an income on an outgoing amount", () => {
+    expect(checkRowDetails(details({ type: "income" }), -1_250)).toBe(
+      "typeSignMismatch",
+    );
+  });
+
+  it("accepts savings in both directions: a deposit and a withdrawal", () => {
+    const savings = details({ type: "savings", savingsAccountId: SAVINGS_ACCOUNT_ID });
+
+    expect(checkRowDetails(savings, -30_000)).toBeNull();
+    expect(checkRowDetails(savings, 5_000)).toBeNull();
+  });
+
+  it("asks for the savings account of a savings row", () => {
+    expect(checkRowDetails(details({ type: "savings" }), -30_000)).toBe(
+      "savingsAccountRequired",
+    );
+  });
+
+  it("does not need a savings account for the other types", () => {
+    expect(checkRowDetails(details({ type: "income" }), 1_250)).toBeNull();
+  });
+});
+
+describe("detailsFromSign", () => {
+  it("reads an outgoing amount as an expense and an incoming one as an income, with nothing else", () => {
+    expect(detailsFromSign(-1_250)).toEqual(details({ type: "expense" }));
+    expect(detailsFromSign(1_250)).toEqual(details({ type: "income" }));
   });
 });

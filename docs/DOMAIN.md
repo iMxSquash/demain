@@ -89,7 +89,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | transfer_counterpart_id | For a transfer leg, the other leg. Null otherwise. |
 | planned_item_id, occurrence_date | Set when the transaction settles an occurrence of a planned item (nominal date of that occurrence). Null otherwise. |
 | import_batch_id | The import that created it, if any. |
-| import_fingerprint | Value used to detect duplicates across imports, unique per account. It is the OFX identifier (`FITID`) when present, otherwise the content key: built from date, amount and normalized label (case and spacing ignored) plus the rank of the row among identical rows of the file, so that two genuine identical movements both survive and are both recognized the next time. Without a bank identifier, a movement identical to an earlier one that first appears in an export starting between them (same day, same amount, same label) cannot be told from the earlier one and is ignored as a duplicate: the preview shows the number of duplicates so that it can be checked. |
+| import_fingerprint | Value used to detect duplicates across imports, unique per account, carried by the leg of the account that receives the file (the first leg when the row is split into several transfers). It is the OFX identifier (`FITID`) when present, otherwise the content key: built from date, amount and normalized label (case and spacing ignored) plus the rank of the row among identical rows of the file, so that two genuine identical movements both survive and are both recognized the next time. Without a bank identifier, a movement identical to an earlier one that first appears in an export starting between them (same day, same amount, same label) cannot be told from the earlier one and is ignored as a duplicate: the preview shows the number of duplicates so that it can be checked. |
 | import_content_key | The content key of every imported transaction, kept even when the bank gave an identifier. It lets the same movement exported again in the other format (CSV after OFX, OFX after CSV) be recognized. Bank identifiers stay authoritative between themselves: two OFX movements with the same content but other identifiers are both kept. |
 
 ### Category and categorization rule
@@ -259,6 +259,7 @@ A ceiling limits the balance an account may reach through deposits. An account m
 - A transfer into an account that is full, or that would become full, is **split along the chain**: the part that fits goes to the destination account, the surplus goes to its overflow account whose own room is checked the same way, and so on. What fits nowhere **stays in the source account**: it is not transferred, and it is reported as unplaced.
 - For a transfer **entered by hand**, the app shows the split before recording and offers: cancel; **deposit only the room** (the surplus is simply not transferred, as if the user had only typed that amount); or deposit the room and send the surplus to **an account chosen by the user** (the overflow account is pre-selected when there is one, and the same room check applies to the chosen account).
 - For a **planned occurrence** and for a **simulated** transfer (including a savings goal), the split follows the overflow chain **automatically**: the occurrence does not exist yet, so nothing is asked. The result is shown in the calendar and in the simulation, with any unplaced surplus flagged.
+- The **savings rows of an imported file** are split the same way, one after the other in date order, from the running balances of the accounts. What fits nowhere blocks the whole file, until a later change lets the user decide what to do with the surplus.
 - An **income** that would exceed a ceiling is not routed, since the money has really arrived there. It is accepted with a warning.
 - A transaction **imported from the bank is never changed**, since the movement already happened. It is accepted and flagged with a visible warning ("exceeds the declared ceiling: check it, or mark it as interest").
 
@@ -446,7 +447,7 @@ A bank export rarely says whether a row is an expense, an income or savings. The
 3. **The vocabulary of the category.** The first whole word of the category cell that the vocabulary knows (for example `salaire` gives an income, `epargne` gives savings). Words are compared after removing accents and case, never as parts of a longer word.
 4. **The history.** The type given to the same label (compared without case and extra spaces) by earlier imports of the account. The category word comes before the history.
 
-A layer below the first two only counts when it agrees with the direction: an outgoing amount accepts an expense or savings, an incoming one accepts an income. When it disagrees, the direction wins and the disagreement is kept as the conflict, to be shown. When the file has no direction at all (every amount positive in a single column), no conflict can be detected and the clue is used as it is.
+A layer below the first two only counts when it agrees with the direction: an outgoing amount accepts an expense or savings, an incoming one accepts an income or savings (an incoming savings row is a withdrawal from the savings account, no longer a conflict). When it disagrees, the direction wins and the disagreement is kept as the conflict, to be shown. When the file has no direction at all (every amount positive in a single column), no conflict can be detected and the clue is used as it is.
 
 ### Confidence
 
@@ -511,6 +512,15 @@ The values always have the last word: a `Type` column that holds `CB` and `VIR` 
 
 A row whose label is empty and whose category is filled takes the category as label, and is reported. A row with neither stays unreadable.
 
+## Importing files
+
+An import records the movements of a bank file on an account that may already hold transactions. It is not the sheet migration (see below, and ADR-016).
+
+- **Savings go both ways.** A negative amount typed as savings is a deposit: the money leaves the account of the file and is split along the overflow chain of the savings account, one linked pair of transfers per part. A positive amount typed as savings is a withdrawal: a transfer from the savings account to the account of the file.
+- **Date order.** The rows of a file, and the files of one import, are taken in date order so that the ceilings are read from the balances as they were.
+- **One file, one batch, all or nothing.** Each file is recorded in one transaction under its own batch, and deduplicated against the account that receives it. A part that fits nowhere, a loop in the chain or a row the ledger refuses records nothing of the file.
+- **Not the first run.** An account that already has transactions is accepted.
+
 ## Migration from the sheet
 
 The sheet's history is imported once, during M1.
@@ -569,4 +579,4 @@ After import, Demain shows a month-by-month comparison between its computed figu
 - **Savings.** A savings row is split along the overflow chain of the savings accounts, in date order, from the balances the migration sets. A part that fits nowhere along the chain stops the migration.
 - **Rules.** One global `equals` rule is created for each distinct (label, category) pair, in order of appearance. A label seen with several categories gets no rule and is reported, and a label that already has a rule is left alone.
 - **Verification scope.** The Summary months compared are those from the first to the last month of the imported rows. The others (months still to come, left empty in the sheet) are named as ignored. The months before the first row hold only the opening balances and are not compared.
-- **One time, all or nothing.** The migration is refused when one of the accounts already has transactions, and everything is recorded in one transaction: the opening balances, the categories, the transactions, the split transfers, the balance assertions and the rules.
+- **One time, all or nothing.** This rule belongs to the initial migration only; the import of files (see Importing files) has none of it (ADR-016). The migration is refused when one of the accounts already has transactions, and everything is recorded in one transaction: the opening balances, the categories, the transactions, the split transfers, the balance assertions and the rules.

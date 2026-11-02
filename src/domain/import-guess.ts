@@ -122,10 +122,13 @@ export function amountsCarrySign(
   return amountKind === "split" || amounts.some((amount) => amount < 0);
 }
 
-/** An outgoing amount is an expense or savings, an incoming one is an income. */
+/**
+ * An outgoing amount is an expense or savings, an incoming one is an income or
+ * savings: money coming back from a savings account is a withdrawal.
+ */
 function isCompatible(type: MovementType, direction: Direction | null): boolean {
-  if (direction === null) return true;
-  return direction === "out" ? type !== "income" : type === "income";
+  if (direction === null || type === "savings") return true;
+  return direction === "out" ? type === "expense" : type === "income";
 }
 
 interface Hint {

@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import type { CsvMapping } from "../../src/domain/import-csv";
-import { stageCsvRows } from "../../src/domain/import-staging";
+import { stageCsvRows, stageMovementFile } from "../../src/domain/import-staging";
 
 const SINGLE: CsvMapping = {
   delimiter: ";",
@@ -131,5 +134,104 @@ describe("stageCsvRows", () => {
     const staged = stageCsvRows(table, { ...SINGLE, hasHeader: false }, "EUR");
 
     expect(staged.map((row) => row.line)).toEqual([1]);
+  });
+});
+
+const CATEGORIES = [
+  { id: 7, name: "Courses", archived: false },
+  { id: 8, name: "Logement", archived: false },
+  { id: 9, name: "Salaire", archived: false },
+  { id: 10, name: "Épargne", archived: false },
+];
+
+describe("stageMovementFile", () => {
+  const sheetTab = readFileSync(
+    path.join(process.cwd(), "tests", "fixtures", "import-sheet-tab-fr.csv"),
+    "utf8",
+  );
+  const options = { currency: "EUR", source: "import-sheet-tab-fr.csv" };
+
+  it("signs the amounts of an unsigned file by type: expenses and savings leave, incomes enter", () => {
+    const { rows } = stageMovementFile(sheetTab, options, CATEGORIES);
+
+    expect(
+      rows.map((row) => [row.line, row.draft.amount, row.details.type, row.guess?.type]),
+    ).toEqual([
+      [2, "-12.50", "expense", "expense"],
+      [3, "1500.00", "income", "income"],
+      [4, "-700.00", "expense", "expense"],
+      [5, "-24.90", "expense", "expense"],
+      [6, "-573.16", "savings", "savings"],
+    ]);
+  });
+
+  it("finds the category by its name whatever the case, and leaves savings with none", () => {
+    const { rows } = stageMovementFile(
+      sheetTab.replace(";Courses", ";COURSES"),
+      options,
+      CATEGORIES,
+    );
+
+    expect(rows.map((row) => row.details.categoryId)).toEqual([7, 9, 8, 7, null]);
+  });
+
+  it("carries the payment mode, the label and the date, and no savings account yet", () => {
+    const [first] = stageMovementFile(sheetTab, options, CATEGORIES).rows;
+
+    expect(first).toMatchObject({
+      rawDate: null,
+      draft: { date: "2026-01-13", label: "Carrefour", externalId: null },
+      details: { paymentMode: "card", description: null, savingsAccountId: null },
+    });
+  });
+
+  it("does not look for an archived category, which cannot be assigned", () => {
+    const { rows } = stageMovementFile(sheetTab, options, [
+      { id: 7, name: "Courses", archived: true },
+    ]);
+
+    expect(rows[0]?.details.categoryId).toBeNull();
+  });
+
+  it("keeps the signs of a signed file, so that money coming back from savings stays an incoming amount", () => {
+    const text = readFileSync(
+      path.join(process.cwd(), "tests", "fixtures", "import-savings-signed-fr.csv"),
+      "utf8",
+    );
+
+    const { rows } = stageMovementFile(
+      text,
+      { currency: "EUR", source: "import-savings-signed-fr.csv" },
+      CATEGORIES,
+    );
+
+    expect(rows.map((row) => [row.draft.amount, row.details.type])).toEqual([
+      ["-300.00", "savings"],
+      ["-45.20", "expense"],
+      ["50.00", "savings"],
+      ["1500.00", "income"],
+    ]);
+  });
+
+  it("keeps a row it cannot read among the others, with what the file says and no guess", () => {
+    const text = "Date;Description;Montant\n12/02/2026;CARD SHOP;-12,50\n30/02/2026;SHOP;-5,00\n";
+
+    const { rows } = stageMovementFile(text, { currency: "EUR", source: "feb.csv" }, CATEGORIES);
+
+    expect(rows.map((row) => row.line)).toEqual([2, 3]);
+    expect(rows[1]).toMatchObject({
+      line: 3,
+      guess: null,
+      rawDate: "30/02/2026",
+      draft: { date: "", label: "SHOP", amount: "-5,00", externalId: null },
+    });
+    expect(rows[0]?.guess).not.toBeNull();
+  });
+
+  it("gives no row for a file it cannot analyze, and keeps what the reader said", () => {
+    const { rows, reading } = stageMovementFile("", options, CATEGORIES);
+
+    expect(rows).toEqual([]);
+    expect(reading.issues).toEqual([{ kind: "emptyFile" }]);
   });
 });

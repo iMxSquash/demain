@@ -6,7 +6,7 @@ import {
   type CsvDelimiter,
   type CsvMapping,
 } from "../../domain/import-csv";
-import type { DraftProblem } from "../../domain/import-draft";
+import type { RowProblem } from "../../domain/import-draft";
 import { looksLikeOfx } from "../../domain/import-ofx";
 import type { StagedRow } from "../../domain/import-staging";
 import type { ImportFormat } from "../../ledger/imports";
@@ -95,7 +95,7 @@ export interface CommitStagedState {
   /** Translated, for the ceiling and for an archived account. */
   warnings: string[];
   /** Position in the file's rows, for each row the server still refuses. */
-  problems: { index: number; problem: DraftProblem }[];
+  problems: { index: number; problem: RowProblem }[];
 }
 
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */

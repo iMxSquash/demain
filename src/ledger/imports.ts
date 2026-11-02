@@ -6,21 +6,44 @@ import {
   CSV_DELIMITERS,
   type CsvMapping,
 } from "../domain/import-csv";
-import { findMatchingRule } from "../domain/categorization-rule";
+import { assertCategoryAssignable } from "../domain/category";
+import {
+  findMatchingRule,
+  type CategorizationRule,
+} from "../domain/categorization-rule";
+import {
+  checkRowDetails,
+  type DetailsProblem,
+  type RowDetails,
+} from "../domain/import-draft";
 import {
   fingerprintRows,
   type FingerprintedRow,
   type ImportedRow,
 } from "../domain/import-row";
 import {
+  compareDates,
+  planSavingsTransfers,
+  type SavingsMovement,
+  type SavingsPlanIssue,
+  type SavingsTransfer,
+} from "../domain/import-savings";
+import type { MessageRef } from "../domain/message";
+import type { OverflowAccount } from "../domain/overflow";
+import {
+  buildTransferLegs,
   ceilingWarningFor,
+  TransactionValidationError,
   validateTransactionInput,
+  type TransferLeg,
   type ValidTransactionInput,
 } from "../domain/transaction";
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
-import { getAccount, getAccountBalance } from "./accounts";
+import { getAccount, getAccountBalance, listOverflowAccounts } from "./accounts";
+import { getCategory } from "./categories";
 import { listApplicableRules } from "./categorization-rules";
+import { insertTransferLegs, type LegImportColumns } from "./transactions";
 
 export type ImportBatch = typeof importBatches.$inferSelect;
 
@@ -56,16 +79,41 @@ export interface CeilingExcess {
   excess: number;
 }
 
+/** A row of a file; with its details, the type and category the user chose. */
+export type ImportRow = ImportedRow & { details?: RowDetails };
+
+/** What stops a file: it is recorded whole or not at all. `index` is the position in the rows. */
+export type ImportIssue =
+  | SavingsPlanIssue
+  /** The details contradict the amount, or a savings row names no savings account. */
+  | { kind: "rowProblem"; index: number; problem: DetailsProblem }
+  /** The ledger refuses the row. */
+  | { kind: "rowInvalid"; index: number; ref: MessageRef };
+
+export class ImportBlockedError extends Error {
+  constructor(readonly issues: readonly ImportIssue[]) {
+    super(`The import is blocked by ${issues.length} issue(s)`);
+    this.name = "ImportBlockedError";
+  }
+}
+
 export interface ImportPreview {
   newCount: number;
   duplicateCount: number;
   ceilingWarnings: CeilingExcess[];
   accountArchived: boolean;
+  /** The savings rows that are new, planned along the overflow chain. */
+  transfers: SavingsTransfer[];
+  /** Linked pairs of transactions the import records. */
+  transferCount: number;
+  issues: ImportIssue[];
 }
 
 export interface ImportRequest {
   accountId: number;
-  rows: readonly ImportedRow[];
+  rows: readonly ImportRow[];
+  /** The savings account of the savings rows that name none. */
+  savingsAccountId?: number;
 }
 
 export interface CommitImportRequest extends ImportRequest {
@@ -81,13 +129,27 @@ export interface ImportResult extends ImportPreview {
   batchId: number | null;
 }
 
-interface ImportPlan extends ImportPreview {
+interface ImportKeys {
+  fingerprint: string;
+  contentKey: string;
+}
+
+interface FreshRow extends ImportKeys {
+  input: ValidTransactionInput;
+}
+
+/** A savings row becomes pairs of legs; the keys sit on a leg of the first pair, on the account of the file. */
+interface FreshTransfer {
+  legs: [TransferLeg, TransferLeg];
+  keys: ImportKeys | null;
+  keyedLeg: 0 | 1;
+}
+
+interface ImportPlan {
+  preview: ImportPreview;
   /** The rows to record, validated once, with their fingerprint. */
-  fresh: {
-    input: ValidTransactionInput;
-    fingerprint: string;
-    contentKey: string;
-  }[];
+  fresh: FreshRow[];
+  pairs: FreshTransfer[];
 }
 
 interface KnownKeys {
@@ -146,40 +208,46 @@ function toTransactionInput(
   accountId: number,
   row: ImportedRow,
   categoryId: number | null,
+  kind: "expense" | "income",
+  details?: RowDetails,
 ): ValidTransactionInput {
   return validateTransactionInput({
     accountId,
     date: row.date,
     amount: row.amount,
-    kind: row.amount > 0 ? "income" : "expense",
+    kind,
     label: row.label,
     categoryId,
+    description: details?.description,
+    paymentMode: details?.paymentMode,
   });
 }
 
+/** What a row of the file does to the balance of the account that receives it. */
+type BalanceFlow = Pick<ValidTransactionInput, "date" | "amount" | "label"> & {
+  kind: ValidTransactionInput["kind"] | "transfer";
+};
+
 // An imported movement already happened: it is never refused, only reported.
 function findCeilingExcesses(
-  inputs: readonly ValidTransactionInput[],
+  flows: readonly BalanceFlow[],
   balance: number,
   ceiling: number | null,
 ): CeilingExcess[] {
   if (ceiling === null) return [];
   const warnings: CeilingExcess[] = [];
   let running = balance;
-  // ISO dates sort as text; the sort is stable, so rows of one day keep the file order.
-  const byDate = [...inputs].sort((a, b) =>
-    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
-  );
-  for (const input of byDate) {
-    const warning = ceilingWarningFor(input, { balance: running, ceiling });
+  const byDate = [...flows].sort((a, b) => compareDates(a.date, b.date));
+  for (const flow of byDate) {
+    const warning = ceilingWarningFor(flow, { balance: running, ceiling });
     if (warning !== null) {
       warnings.push({
-        label: input.label,
-        date: input.date,
+        label: flow.label,
+        date: flow.date,
         excess: warning.excess,
       });
     }
-    running += input.amount;
+    running += flow.amount;
   }
   return warnings;
 }
@@ -203,33 +271,184 @@ export function findDuplicateRows(
   );
 }
 
+// The category the user chose, which must be assignable, else the first rule that matches.
+function categoryOf(
+  db: AppDatabase,
+  accountId: number,
+  row: ImportedRow,
+  kind: "expense" | "income",
+  details: RowDetails | undefined,
+  rules: readonly CategorizationRule[],
+): number | null {
+  if (details?.categoryId != null) {
+    assertCategoryAssignable(kind, getCategory(db, details.categoryId));
+    return details.categoryId;
+  }
+  return findMatchingRule(rules, { label: row.label, accountId })?.categoryId ?? null;
+}
+
+interface RowOutcome {
+  fresh: FreshRow[];
+  /** Every row that moves the balance, in the order of the file. */
+  flows: BalanceFlow[];
+  movements: SavingsMovement[];
+  savingsRows: Map<number, FingerprintedRow>;
+  issues: ImportIssue[];
+}
+
+function planRow(
+  db: AppDatabase,
+  request: ImportRequest,
+  index: number,
+  row: FingerprintedRow,
+  rules: readonly CategorizationRule[],
+  outcome: RowOutcome,
+): void {
+  const given = request.rows[index]?.details;
+  const details: RowDetails | undefined =
+    given === undefined
+      ? undefined
+      : {
+          ...given,
+          savingsAccountId: given.savingsAccountId ?? request.savingsAccountId ?? null,
+        };
+  const problem = details === undefined ? null : checkRowDetails(details, row.amount);
+  if (problem !== null) {
+    outcome.issues.push({ kind: "rowProblem", index, problem });
+    return;
+  }
+
+  const kind = details?.type ?? (row.amount > 0 ? "income" : "expense");
+  if (kind === "savings") {
+    const savingsAccountId = details?.savingsAccountId ?? null;
+    if (savingsAccountId === null) {
+      throw new Error("A savings row without a savings account passed the check");
+    }
+    outcome.movements.push({ index, date: row.date, amount: row.amount, savingsAccountId });
+    outcome.flows.push({
+      date: row.date,
+      amount: row.amount,
+      label: row.label,
+      kind: "transfer",
+    });
+    outcome.savingsRows.set(index, row);
+    return;
+  }
+  try {
+    const categoryId = categoryOf(db, request.accountId, row, kind, details, rules);
+    const input = toTransactionInput(request.accountId, row, categoryId, kind, details);
+    outcome.fresh.push({
+      input,
+      fingerprint: row.fingerprint,
+      contentKey: row.contentKey,
+    });
+    outcome.flows.push(input);
+  } catch (error) {
+    // Rows without details keep failing loudly: only the review gives a row to fix.
+    if (details === undefined || !(error instanceof TransactionValidationError)) {
+      throw error;
+    }
+    outcome.issues.push({ kind: "rowInvalid", index, ref: error.ref });
+  }
+}
+
+// One row can split into several pairs that fail alike: it is reported once.
+function buildSavingsPairs(
+  accountId: number,
+  transfers: readonly SavingsTransfer[],
+  accounts: readonly OverflowAccount[],
+  savingsRows: ReadonlyMap<number, FingerprintedRow>,
+): { pairs: FreshTransfer[]; issues: ImportIssue[] } {
+  const endpointOf = (id: number) => {
+    const found = accounts.find((account) => account.id === id);
+    if (found === undefined) throw new Error(`Unknown account ${id}`);
+    return found;
+  };
+  const pairs: FreshTransfer[] = [];
+  const issues: ImportIssue[] = [];
+
+  for (const transfer of transfers) {
+    const row = savingsRows.get(transfer.index);
+    if (row === undefined) throw new Error(`Unknown savings row ${transfer.index}`);
+    const parts =
+      transfer.kind === "deposit"
+        ? transfer.placements.map((placement) => ({
+            source: accountId,
+            destination: placement.accountId,
+            amount: placement.amount,
+          }))
+        : [{ source: transfer.accountId, destination: accountId, amount: transfer.amount }];
+    try {
+      const rowPairs = parts.map((part): FreshTransfer => ({
+        legs: buildTransferLegs({
+          source: endpointOf(part.source),
+          destination: endpointOf(part.destination),
+          amount: part.amount,
+          date: row.date,
+          label: row.label,
+        }),
+        keys: null,
+        keyedLeg: transfer.kind === "deposit" ? 0 : 1,
+      }));
+      const [first] = rowPairs;
+      if (first !== undefined) {
+        first.keys = { fingerprint: row.fingerprint, contentKey: row.contentKey };
+      }
+      pairs.push(...rowPairs);
+    } catch (error) {
+      if (!(error instanceof TransactionValidationError)) throw error;
+      issues.push({ kind: "rowInvalid", index: transfer.index, ref: error.ref });
+    }
+  }
+  return { pairs, issues };
+}
+
 function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
   const flagged = fingerprintWithDuplicateFlags(db, request);
   const rules = listApplicableRules(db);
-  const fresh = flagged
-    .filter(({ isDuplicate }) => !isDuplicate)
-    .map(({ row }) => ({
-      input: toTransactionInput(
-        account.id,
-        row,
-        findMatchingRule(rules, { label: row.label, accountId: account.id })
-          ?.categoryId ?? null,
-      ),
-      fingerprint: row.fingerprint,
-      contentKey: row.contentKey,
-    }));
+  const outcome: RowOutcome = {
+    fresh: [],
+    flows: [],
+    movements: [],
+    savingsRows: new Map(),
+    issues: [],
+  };
+  let newCount = 0;
+  flagged.forEach(({ row, isDuplicate }, index) => {
+    if (isDuplicate) return;
+    newCount += 1;
+    planRow(db, request, index, row, rules, outcome);
+  });
+
+  let transfers: SavingsTransfer[] = [];
+  let pairs: FreshTransfer[] = [];
+  const issues = [...outcome.issues];
+  if (outcome.movements.length > 0) {
+    const accounts = listOverflowAccounts(db);
+    const plan = planSavingsTransfers(outcome.movements, accounts);
+    const built = buildSavingsPairs(account.id, plan.transfers, accounts, outcome.savingsRows);
+    transfers = plan.transfers;
+    pairs = built.pairs;
+    issues.push(...plan.issues, ...built.issues);
+  }
 
   return {
-    fresh,
-    newCount: fresh.length,
-    duplicateCount: flagged.length - fresh.length,
-    ceilingWarnings: findCeilingExcesses(
-      fresh.map((entry) => entry.input),
-      getAccountBalance(db, account.id),
-      account.depositCeiling,
-    ),
-    accountArchived: account.archived,
+    fresh: outcome.fresh,
+    pairs,
+    preview: {
+      newCount,
+      duplicateCount: flagged.length - newCount,
+      ceilingWarnings: findCeilingExcesses(
+        outcome.flows,
+        getAccountBalance(db, account.id),
+        account.depositCeiling,
+      ),
+      accountArchived: account.archived,
+      transfers,
+      transferCount: pairs.length,
+      issues,
+    },
   };
 }
 
@@ -238,27 +457,43 @@ export function previewImport(
   db: AppDatabase,
   request: ImportRequest,
 ): ImportPreview {
-  const plan = planImport(db, request);
-  return {
-    newCount: plan.newCount,
-    duplicateCount: plan.duplicateCount,
-    ceilingWarnings: plan.ceilingWarnings,
-    accountArchived: plan.accountArchived,
-  };
+  return planImport(db, request).preview;
+}
+
+function legColumns(
+  pair: FreshTransfer,
+  batchId: number,
+): [LegImportColumns, LegImportColumns] {
+  const columns: [LegImportColumns, LegImportColumns] = [
+    { importBatchId: batchId },
+    { importBatchId: batchId },
+  ];
+  if (pair.keys !== null) {
+    columns[pair.keyedLeg] = {
+      importBatchId: batchId,
+      importFingerprint: pair.keys.fingerprint,
+      importContentKey: pair.keys.contentKey,
+    };
+  }
+  return columns;
 }
 
 /**
  * Records the rows that are not already known as transactions, under one
- * batch, all or nothing. A row matching a categorization rule is categorized,
- * the others wait in the to-categorize queue. An archived account and a ceiling
- * exceeded do not refuse the import (DOMAIN, imports are the exception).
+ * batch, all or nothing: a savings row is recorded as linked pairs of
+ * transfers, and any issue (a part that fits nowhere, a loop in the chain, a
+ * row the ledger refuses) blocks the whole file. A row matching a
+ * categorization rule is categorized, the others wait in the to-categorize
+ * queue. An archived account and a ceiling exceeded do not refuse the import
+ * (DOMAIN, imports are the exception).
  */
 export function commitImport(
   db: AppDatabase,
   request: CommitImportRequest,
 ): ImportResult {
-  const { fresh, ...preview } = planImport(db, request);
-  if (fresh.length === 0) return { ...preview, batchId: null };
+  const { fresh, pairs, preview } = planImport(db, request);
+  if (preview.issues.length > 0) throw new ImportBlockedError(preview.issues);
+  if (preview.newCount === 0) return { ...preview, batchId: null };
 
   // The unique fingerprint index backs the plan: an identical import running
   // at the same time fails here and rolls back instead of duplicating.
@@ -289,6 +524,9 @@ export function commitImport(
             })),
         )
         .run();
+    }
+    for (const pair of pairs) {
+      insertTransferLegs(tx, pair.legs, legColumns(pair, batch.id));
     }
     return { ...preview, batchId: batch.id };
   });
