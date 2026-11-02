@@ -4,7 +4,8 @@
  * never dropped: the user decides.
  */
 
-import { normalizeHeader } from "./import-csv";
+import { widestRowLength } from "./import-blocks";
+import { findColumn, normalizeHeader } from "./import-csv";
 import type { PaymentMode } from "./transaction";
 
 export type MovementType = "expense" | "income" | "savings";
@@ -50,13 +51,16 @@ export interface VocabularyColumn {
  * The other cells are reported, since they are in the same column but unknown.
  * `rows` are the data rows (no header) and `firstLine` is the line of the
  * first one in the file. Null when no column has a majority of known cells.
+ * The `named` column, the one whose header names the role, comes first and is
+ * accepted with a single known cell: the values still have the last word.
  */
 function detectVocabularyColumn(
   rows: readonly (readonly string[])[],
   firstLine: number,
   read: (text: string) => unknown,
+  named: number | null,
 ): VocabularyColumn | null {
-  const columnCount = Math.max(0, ...rows.map((row) => row.length));
+  const columnCount = widestRowLength(rows);
   const matches: Omit<VocabularyColumn, "alsoMatching">[] = [];
   for (let column = 0; column < columnCount; column += 1) {
     const cells = rows
@@ -66,7 +70,8 @@ function detectVocabularyColumn(
       }))
       .filter((cell) => cell.text !== "");
     const unknown = cells.filter((cell) => read(cell.text) === null);
-    if (cells.length - unknown.length <= unknown.length) continue;
+    const known = cells.length - unknown.length;
+    if (known === 0 || (column !== named && known <= unknown.length)) continue;
 
     // Spellings that differ only by case or accents are one value to map.
     const byValue = new Map<string, UnrecognizedValue>();
@@ -79,6 +84,10 @@ function detectVocabularyColumn(
     matches.push({ column, unrecognized: [...byValue.values()] });
   }
 
+  // Stable sort: the other columns keep their order.
+  matches.sort(
+    (a, b) => Number(b.column === named) - Number(a.column === named),
+  );
   const [first, ...others] = matches;
   if (first === undefined) return null;
   return { ...first, alsoMatching: others.map((match) => match.column) };
@@ -88,8 +97,9 @@ function detectVocabularyColumn(
 export function detectTypeColumn(
   rows: readonly (readonly string[])[],
   firstLine: number,
+  named: number | null = null,
 ): VocabularyColumn | null {
-  return detectVocabularyColumn(rows, firstLine, readMovementType);
+  return detectVocabularyColumn(rows, firstLine, readMovementType, named);
 }
 
 // Same rules as the movement types: normalized spellings, in a Map.
@@ -100,6 +110,16 @@ const PAYMENT_MODE_NAMES: ReadonlyMap<string, PaymentMode> = new Map([
   ["virement", "transfer"],
   ["directdebit", "direct_debit"],
   ["prelevement", "direct_debit"],
+  // Abbreviations of French bank exports.
+  ["cb", "card"],
+  ["cartebancaire", "card"],
+  ["cartebleue", "card"],
+  ["prlv", "direct_debit"],
+  ["prlvsepa", "direct_debit"],
+  ["prelevementsepa", "direct_debit"],
+  ["vir", "transfer"],
+  ["virsepa", "transfer"],
+  ["virementsepa", "transfer"],
 ]);
 
 /** The payment mode a cell names, in English or French; null for any other text. */
@@ -111,8 +131,9 @@ export function readPaymentMode(text: string): PaymentMode | null {
 export function detectPaymentModeColumn(
   rows: readonly (readonly string[])[],
   firstLine: number,
+  named: number | null = null,
 ): VocabularyColumn | null {
-  return detectVocabularyColumn(rows, firstLine, readPaymentMode);
+  return detectVocabularyColumn(rows, firstLine, readPaymentMode, named);
 }
 
 /**
@@ -125,7 +146,7 @@ export function detectCategoryColumn(
   rows: readonly (readonly string[])[],
   taken: readonly number[],
 ): number | null {
-  const columnCount = Math.max(0, ...rows.map((row) => row.length));
+  const columnCount = widestRowLength(rows);
   let best: { column: number; distinctShare: number } | null = null;
   for (let column = 0; column < columnCount; column += 1) {
     if (taken.includes(column)) continue;
@@ -161,6 +182,8 @@ export interface ColumnRoles {
   typeColumn: number | null;
   paymentModeColumn: number | null;
   categoryColumn: number | null;
+  /** Named by its header only: a column of free text cannot be told from its values. Not reported when absent. */
+  descriptionColumn: number | null;
   /** Every column not found and every value not read; empty only when nothing is left to the user. */
   issues: ColumnIssue[];
 }
@@ -189,27 +212,77 @@ function issuesOf(
   ];
 }
 
+// Normalized header words that name a role (see `normalizeHeader`).
+const TYPE_HEADER_WORDS = ["type"];
+const PAYMENT_MODE_HEADER_WORDS = ["paiement", "payment"];
+const CATEGORY_HEADER_WORDS = ["categor", "rubrique"];
+const DESCRIPTION_HEADER_WORDS = [
+  "description",
+  "note",
+  "comment",
+  "memo",
+  "detail",
+  "remarque",
+];
+
+/** The first column whose header names the role, among those not `unavailable`. */
+function columnNamed(
+  headers: readonly string[],
+  words: readonly string[],
+  unavailable: readonly number[],
+): number | null {
+  const available = headers.map((header, column) =>
+    unavailable.includes(column) ? "" : header,
+  );
+  const column = findColumn(available, words);
+  return column === -1 ? null : column;
+}
+
 /**
- * Finds the optional columns (type, payment mode, category) of a file whose
- * date, label and amount columns are already mapped. Nothing is dropped: a
- * column not found and a value not read both end up in `issues`.
+ * Finds the optional columns (type, payment mode, category, description) of a
+ * file whose date, label and amount columns are already mapped. A header that
+ * names a role comes first; the values decide in the end, and decide alone
+ * when no header helps. Nothing is dropped: a column not found and a value not
+ * read both end up in `issues`. `header` is the header row, empty when none.
  */
 export function detectColumnRoles(
   rows: readonly (readonly string[])[],
   firstLine: number,
   mappedColumns: readonly number[],
+  header: readonly string[],
 ): ColumnRoles {
-  const type = detectTypeColumn(rows, firstLine);
-  const paymentMode = detectPaymentModeColumn(rows, firstLine);
+  const headers = header.map(normalizeHeader);
+  const type = detectTypeColumn(
+    rows,
+    firstLine,
+    columnNamed(headers, TYPE_HEADER_WORDS, mappedColumns),
+  );
+  const paymentMode = detectPaymentModeColumn(
+    rows,
+    firstLine,
+    columnNamed(headers, PAYMENT_MODE_HEADER_WORDS, mappedColumns),
+  );
   const taken = [...mappedColumns];
   if (type !== null) taken.push(type.column);
   if (paymentMode !== null) taken.push(paymentMode.column);
-  const categoryColumn = detectCategoryColumn(rows, taken);
+  const namedCategory = columnNamed(headers, CATEGORY_HEADER_WORDS, taken);
+  const descriptionColumn = columnNamed(headers, DESCRIPTION_HEADER_WORDS, [
+    ...taken,
+    ...(namedCategory === null ? [] : [namedCategory]),
+  ]);
+  // A column named as the description is not a category, even when it repeats like one.
+  const categoryColumn =
+    namedCategory ??
+    detectCategoryColumn(rows, [
+      ...taken,
+      ...(descriptionColumn === null ? [] : [descriptionColumn]),
+    ]);
 
   return {
     typeColumn: type?.column ?? null,
     paymentModeColumn: paymentMode?.column ?? null,
     categoryColumn,
+    descriptionColumn,
     issues: [
       ...issuesOf("type", type),
       ...issuesOf("paymentMode", paymentMode),

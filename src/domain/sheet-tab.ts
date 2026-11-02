@@ -5,49 +5,27 @@
  * the sheet.
  */
 
-import { readPaymentMode, type MovementType } from "./import-columns";
+import type { CsvAnalysis } from "./import-analysis";
 import {
-  analyzeCsvFile,
-  type AnalysisIssue,
-  type CsvAnalysis,
-} from "./import-analysis";
-import {
-  applyCsvMapping,
-  completeDateYear,
-  parseCsvFile,
-  type CsvDelimiter,
-  type CsvMapping,
-} from "./import-csv";
-import {
-  DEFAULT_TYPE_VOCABULARY,
-  amountsCarrySign,
-  guessMovementType,
-  type TypeSignals,
-} from "./import-guess";
-import type { ImportedRow } from "./import-row";
-import type { MessageRef } from "./message";
+  readMovementFile,
+  type MovementFileIssue,
+  type MovementFileOptions,
+} from "./import-movements";
 import type { SheetRow } from "./sheet-import";
 
 export type SheetTabIssue =
-  | AnalysisIssue
-  /** The row is skipped: its date, label or amount could not be read. */
-  | { kind: "rowUnreadable"; line: number; ref: MessageRef }
+  | MovementFileIssue
   /** The row is skipped: the type cell names no known type. */
   | { kind: "typeUnrecognized"; line: number; value: string }
   /** The row is skipped: the file has a type column and this cell is empty. */
   | { kind: "typeMissing"; line: number }
-  /** The dates had no year: the one in the file name was used, for the user to confirm. */
-  | { kind: "dateYearAssumed"; year: number };
+  /** The description was empty: the category stands for the label, for the user to check. */
+  | { kind: "labelFromCategory"; line: number; category: string };
 
-export interface SheetTabOptions {
-  currency: string;
-  /** Name of the file: its rows carry it, so that they can be told apart from other files'. */
-  source: string;
-  /** The one the user chose after a `delimiterNotFound`. */
-  delimiter?: CsvDelimiter;
-  /** Year of the dates written without one; else the one in the file name, if any. */
-  year?: number;
-}
+export type SheetTabOptions = Pick<
+  MovementFileOptions,
+  "currency" | "source" | "delimiter" | "year"
+>;
 
 export interface SheetTabReading {
   /** The file read: every issue below belongs to it. */
@@ -55,158 +33,59 @@ export interface SheetTabReading {
   rows: SheetRow[];
   /** What was understood of the file, for the preview. */
   analysis: CsvAnalysis;
-  /** The issues of the analysis first, then those of the rows. */
+  /** The issues of the file first, then those of the rows in the order of the file. */
   issues: SheetTabIssue[];
 }
 
-// Exactly one four-digit year in the name ("january-2026.csv"): two years are no answer.
-const YEAR_IN_NAME = /(?<!\d)((?:19|20)\d{2})(?!\d)/g;
+type RowIssue = Extract<SheetTabIssue, { line: number }>;
 
-function yearFromFileName(name: string): number | undefined {
-  const years = new Set(
-    [...name.matchAll(YEAR_IN_NAME)].map((match) => Number(match[1])),
-  );
-  const [year] = years;
-  return years.size === 1 ? year : undefined;
-}
-
-/** What one row of the file gives: a typed row, or the reason why it is skipped. */
-type TabRow = { row: SheetRow } | { issue: SheetTabIssue };
-
-interface TabContext {
-  source: string;
-  currency: string;
-  analysis: CsvAnalysis;
-  mapping: CsvMapping;
-  /** Whether the amounts of the file say which way the money goes: else only the type column can. */
-  isSigned: boolean;
-}
-
-const cellAt = (cells: readonly string[], column: number | null): string =>
-  column === null ? "" : (cells[column] ?? "").trim();
-
-// With a type column, the strict reading stays: a cell that is empty or unknown skips the row.
-function readType(
-  cells: readonly string[],
-  line: number,
-  imported: ImportedRow,
-  context: TabContext,
-): { type: MovementType } | { issue: SheetTabIssue } {
-  const { typeColumn } = context.analysis;
-  const typeCell = typeColumn === null ? null : cellAt(cells, typeColumn);
-  const signals: TypeSignals = {
-    typeCell,
-    direction: context.isSigned ? (imported.amount < 0 ? "out" : "in") : null,
-    directionSource: context.mapping.amount.kind === "split" ? "debitCredit" : "sign",
-    // The migration decides the category after the type: it is not a clue here.
-    category: null,
-    label: imported.label,
-  };
-  const guess = guessMovementType(signals, {
-    vocabulary: DEFAULT_TYPE_VOCABULARY,
-    history: new Map(),
-  });
-  if (typeCell === null) return { type: guess.type };
-  if (typeCell === "") return { issue: { kind: "typeMissing", line } };
-  return guess.ignoredTypeCell === null
-    ? { type: guess.type }
-    : { issue: { kind: "typeUnrecognized", line, value: typeCell } };
-}
-
-function readTabRow(
-  cells: readonly string[],
-  line: number,
-  context: TabContext,
-): TabRow {
-  // One row at a time, so that a bad row is told apart from the others.
-  const reading = applyCsvMapping(
-    [cells],
-    { ...context.mapping, hasHeader: false },
-    context.currency,
-  );
-  const [error] = reading.errors;
-  if (error !== undefined) {
-    return { issue: { kind: "rowUnreadable", line, ref: error.ref } };
-  }
-  const [imported] = reading.rows;
-  // One row in gives exactly one row or one error out: anything else is a bug.
-  if (imported === undefined) {
-    throw new Error(`Row ${line} gave neither a movement nor an error`);
-  }
-
-  const typed = readType(cells, line, imported, context);
-  if ("issue" in typed) return typed;
-
-  const category = cellAt(cells, context.analysis.categoryColumn);
-  const paymentMode = cellAt(cells, context.analysis.paymentModeColumn);
-  return {
-    row: {
-      source: context.source,
-      line,
-      date: imported.date,
-      label: imported.label,
-      amount: Math.abs(imported.amount),
-      type: typed.type,
-      // A savings line is a transfer between accounts: it has no category.
-      category: typed.type === "savings" || category === "" ? null : category,
-      paymentMode: paymentMode === "" ? null : readPaymentMode(paymentMode),
-    },
-  };
-}
-
+/**
+ * Reads a monthly tab with the strict policy of the migration: with a type
+ * column, a cell that is empty or unknown skips the row; the amount is the
+ * absolute value, the sign being the type's; a savings row has no category.
+ */
 export function readSheetTab(
   text: string,
   options: SheetTabOptions,
 ): SheetTabReading {
-  const year = options.year ?? yearFromFileName(options.source);
-  const file = parseCsvFile(text, options.delimiter);
-  const analysis = analyzeCsvFile(file, year);
-  const { mapping, yearApplied } = analysis;
-  // Without a year every date is unreadable: the one issue to report is the missing year.
-  const isYearMissing = analysis.issues.some(
-    (issue) => issue.kind === "dateYearMissing",
+  // The migration decides the category after the type: it is not a clue here.
+  const reading = readMovementFile(text, { ...options, vocabulary: new Map() });
+  const fileIssues = reading.issues.filter((issue) => issue.kind !== "rowUnreadable");
+  const rowIssues: RowIssue[] = reading.issues.flatMap((issue) =>
+    issue.kind === "rowUnreadable" ? [issue] : [],
   );
-  if (mapping === null || "issue" in file || isYearMissing) {
-    return { source: options.source, rows: [], analysis, issues: analysis.issues };
-  }
-
-  const completeYear = (cells: readonly string[]): string[] =>
-    cells.map((cell, column) =>
-      yearApplied !== null && column === mapping.dateColumn
-        ? completeDateYear(cell, yearApplied)
-        : cell,
-    );
-  const yearIssues: SheetTabIssue[] =
-    yearApplied !== null && options.year === undefined
-      ? [{ kind: "dateYearAssumed", year: yearApplied }]
-      : [];
-
-  // The header is line 1. All the rows are read first: whether the file is signed depends on all of them.
-  const dataRows = file.table.slice(1).map(completeYear);
-  const amounts = applyCsvMapping(
-    dataRows,
-    { ...mapping, hasHeader: false },
-    options.currency,
-  ).rows.map((row) => row.amount);
-  const context: TabContext = {
-    source: options.source,
-    currency: options.currency,
-    analysis,
-    mapping,
-    isSigned: amountsCarrySign(mapping.amount.kind, amounts),
-  };
 
   const rows: SheetRow[] = [];
-  const rowIssues: SheetTabIssue[] = [];
-  dataRows.forEach((cells, index) => {
-    const read = readTabRow(cells, index + 2, context);
-    if ("row" in read) rows.push(read.row);
-    else rowIssues.push(read.issue);
-  });
+  for (const movement of reading.rows) {
+    const { line, typeCell, type } = movement;
+    if (typeCell === "") {
+      rowIssues.push({ kind: "typeMissing", line });
+      continue;
+    }
+    if (type.ignoredTypeCell !== null) {
+      rowIssues.push({ kind: "typeUnrecognized", line, value: type.ignoredTypeCell });
+      continue;
+    }
+    if (movement.labelFromCategory) {
+      rowIssues.push({ kind: "labelFromCategory", line, category: movement.label });
+    }
+    rows.push({
+      source: movement.source,
+      line,
+      date: movement.date,
+      label: movement.label,
+      amount: Math.abs(movement.amount),
+      type: type.type,
+      // A savings line is a transfer between accounts: it has no category.
+      category: type.type === "savings" ? null : movement.category,
+      paymentMode: movement.paymentMode,
+    });
+  }
+
   return {
-    source: options.source,
+    source: reading.source,
     rows,
-    analysis,
-    issues: [...analysis.issues, ...yearIssues, ...rowIssues],
+    analysis: reading.analysis,
+    issues: [...fileIssues, ...rowIssues.sort((a, b) => a.line - b.line)],
   };
 }

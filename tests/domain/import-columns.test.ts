@@ -126,6 +126,20 @@ describe("readPaymentMode", () => {
     expect(readPaymentMode("Prélèvement")).toBe("direct_debit");
   });
 
+  it.each([
+    ["CB", "card"],
+    ["Carte bancaire", "card"],
+    ["Carte bleue", "card"],
+    ["PRLV", "direct_debit"],
+    ["PRLV SEPA", "direct_debit"],
+    ["Prélèvement SEPA", "direct_debit"],
+    ["VIR", "transfer"],
+    ["Vir SEPA", "transfer"],
+    ["Virement SEPA", "transfer"],
+  ])("reads the bank abbreviation %j", (text, mode) => {
+    expect(readPaymentMode(text)).toBe(mode);
+  });
+
   it("returns null for anything else", () => {
     expect(readPaymentMode("Cash")).toBeNull();
     expect(readPaymentMode("")).toBeNull();
@@ -191,6 +205,8 @@ describe("detectColumnRoles", () => {
   // Date, label and amount come from the mapping; the other columns are found here.
   const MAPPED_COLUMNS = [0, 1, 2];
   const FIRST_LINE = 2;
+  // Without header names, the values alone decide.
+  const NO_HEADER: string[] = [];
 
   it("finds every optional column and reports nothing when all is understood", () => {
     const rows = [
@@ -199,10 +215,11 @@ describe("detectColumnRoles", () => {
       ["03/02/2026", "Auchan", "-30,00", "Expense", "Card", "Food"],
     ];
 
-    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS)).toEqual({
+    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER)).toEqual({
       typeColumn: 3,
       paymentModeColumn: 4,
       categoryColumn: 5,
+      descriptionColumn: null,
       issues: [],
     });
   });
@@ -213,10 +230,11 @@ describe("detectColumnRoles", () => {
       ["02/02/2026", "Auchan", "-30,00"],
     ];
 
-    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS)).toEqual({
+    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER)).toEqual({
       typeColumn: null,
       paymentModeColumn: null,
       categoryColumn: null,
+      descriptionColumn: null,
       issues: [
         { kind: "columnNotFound", role: "type" },
         { kind: "columnNotFound", role: "paymentMode" },
@@ -232,7 +250,7 @@ describe("detectColumnRoles", () => {
       ["03/02/2026", "Auchan", "-30,00", "Expense", "Card", "Food"],
     ];
 
-    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS).issues).toEqual([
+    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER).issues).toEqual([
       { kind: "unrecognizedValue", role: "type", value: "Refund", lines: [3] },
       {
         kind: "unrecognizedValue",
@@ -250,12 +268,192 @@ describe("detectColumnRoles", () => {
     ];
 
     expect(
-      detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS).issues,
+      detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER).issues,
     ).toContainEqual({
       kind: "ambiguousColumn",
       role: "type",
       column: 3,
       alsoMatching: [4],
+    });
+  });
+  describe("with the names of the headers", () => {
+    it("takes the column a category header names over the fewest distinct values", () => {
+      // Column 3 repeats the most, but only the header says which one is the category.
+      const header = ["Date", "Description", "Amount", "Reference", "Rubrique"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "R1", "Food"],
+        ["02/02/2026", "Landlord", "-700,00", "R1", "Rent"],
+        ["03/02/2026", "Cinema", "-9,00", "R1", "Fun"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.categoryColumn).toBe(4);
+      expect(roles.issues).not.toContainEqual({
+        kind: "columnNotFound",
+        role: "category",
+      });
+    });
+
+    it("does not take a column that is already mapped for the category", () => {
+      const header = ["Date", "Category label", "Amount", "Reference"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "R1"],
+        ["02/02/2026", "Landlord", "-700,00", "R1"],
+      ];
+
+      expect(
+        detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header).categoryColumn,
+      ).toBe(3);
+    });
+
+    it("lets the values win: a Type header over payment modes is the payment mode", () => {
+      const header = ["Date", "Description", "Amount", "Type"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "CB"],
+        ["02/02/2026", "Landlord", "-700,00", "PRLV"],
+        ["03/02/2026", "Salary", "1500,00", "VIR"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.paymentModeColumn).toBe(3);
+      expect(roles.typeColumn).toBeNull();
+      expect(roles.issues).toContainEqual({ kind: "columnNotFound", role: "type" });
+    });
+
+    it("accepts a payment mode header with one known value, and reports the others", () => {
+      const header = ["Date", "Description", "Amount", "Mode de paiement"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "Cash"],
+        ["02/02/2026", "Landlord", "-700,00", "Cheque"],
+        ["03/02/2026", "Auchan", "-30,00", "CB"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.paymentModeColumn).toBe(3);
+      expect(roles.issues).toEqual(
+        expect.arrayContaining([
+          { kind: "unrecognizedValue", role: "paymentMode", value: "Cash", lines: [2] },
+          { kind: "unrecognizedValue", role: "paymentMode", value: "Cheque", lines: [3] },
+        ]),
+      );
+    });
+
+    it("accepts a type header with one known value, and reports the others", () => {
+      const header = ["Date", "Description", "Amount", "Type"];
+      const rows = [
+        ["01/02/2026", "Gift", "-5,00", "Refund"],
+        ["02/02/2026", "Landlord", "-700,00", "Expense"],
+        ["03/02/2026", "Present", "-9,00", "Gift"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.typeColumn).toBe(3);
+      expect(roles.issues).toEqual(
+        expect.arrayContaining([
+          { kind: "unrecognizedValue", role: "type", value: "Refund", lines: [2] },
+          { kind: "unrecognizedValue", role: "type", value: "Gift", lines: [4] },
+        ]),
+      );
+    });
+
+    it("keeps the column the header names when another one also holds types", () => {
+      const header = ["Date", "Description", "Amount", "Kind", "Type"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "Expense", "Expense"],
+        ["02/02/2026", "Salary", "1500,00", "Income", "Income"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.typeColumn).toBe(4);
+      expect(roles.issues).toContainEqual({
+        kind: "ambiguousColumn",
+        role: "type",
+        column: 4,
+        alsoMatching: [3],
+      });
+    });
+
+    it("does not take a type header whose values name no type", () => {
+      const header = ["Date", "Description", "Amount", "Type"];
+      const rows = [
+        ["01/02/2026", "Gift", "-5,00", "Refund"],
+        ["02/02/2026", "Present", "-9,00", "Gift"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.typeColumn).toBeNull();
+      expect(roles.issues).toContainEqual({ kind: "columnNotFound", role: "type" });
+    });
+
+    it.each(["Notes", "Détail de l'écriture", "Comment", "Remarque", "Memo"])(
+      "takes the %j column for the description",
+      (name) => {
+        const header = ["Date", "Libellé", "Amount", name];
+        const rows = [["01/02/2026", "Carrefour", "-12,50", "weekly shop"]];
+
+        expect(
+          detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header)
+            .descriptionColumn,
+        ).toBe(3);
+      },
+    );
+
+    it("keeps the column a description header names out of the category guess", () => {
+      // The notes repeat like categories would, but the header says what they are.
+      const header = ["Date", "Libelle", "Montant", "Note"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "perso"],
+        ["02/02/2026", "Landlord", "-700,00", "perso"],
+        ["03/02/2026", "Cinema", "-9,00", "pro"],
+        ["04/02/2026", "Auchan", "-30,00", "pro"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.descriptionColumn).toBe(3);
+      expect(roles.categoryColumn).toBeNull();
+      expect(roles.issues).toContainEqual({ kind: "columnNotFound", role: "category" });
+    });
+
+    it("lets a category header win and still finds the description beside it", () => {
+      const header = ["Date", "Libelle", "Montant", "Note", "Categorie"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "perso", "Food"],
+        ["02/02/2026", "Landlord", "-700,00", "perso", "Rent"],
+        ["03/02/2026", "Cinema", "-9,00", "pro", "Fun"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.categoryColumn).toBe(4);
+      expect(roles.descriptionColumn).toBe(3);
+    });
+
+    it("gives a header that names both roles to the category", () => {
+      const header = ["Date", "Libelle", "Montant", "Category description"];
+      const rows = [["01/02/2026", "Carrefour", "-12,50", "Food"]];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.categoryColumn).toBe(3);
+      expect(roles.descriptionColumn).toBeNull();
+    });
+
+    it("never takes the label column for the description, and says nothing when there is none", () => {
+      const header = ["Date", "Description", "Amount"];
+      const rows = [["01/02/2026", "Carrefour", "-12,50"]];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.descriptionColumn).toBeNull();
+      // Only the type, the payment mode and the category are reported as not found.
+      expect(roles.issues).toHaveLength(3);
     });
   });
 });

@@ -4,7 +4,7 @@
  */
 
 import { messageRef, type FeedbackKey, type MessageRef } from "./message";
-import { MoneyParseError, parseAmount } from "./money";
+import { MoneyParseError, parseAmount, type DecimalMark } from "./money";
 
 /** One movement as the bank reports it, before it becomes a transaction. */
 export interface ImportedRow {
@@ -52,10 +52,11 @@ export function parseRowAmount(
   text: string,
   currency: string,
   line: number,
+  decimalMark?: DecimalMark,
 ): number {
   let amount: number;
   try {
-    amount = parseAmount(text, currency);
+    amount = parseAmount(text, currency, decimalMark);
   } catch (error) {
     if (error instanceof MoneyParseError) {
       throw new ImportParseError(error.message, error.ref, line);

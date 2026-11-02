@@ -5,6 +5,7 @@
 
 import { isCalendarDate } from "./account";
 import type { MessageRef } from "./message";
+import type { DecimalMark } from "./money";
 import {
   importParseError,
   ImportParseError,
@@ -34,6 +35,8 @@ export interface CsvMapping {
   dateFormat: CsvDateFormat;
   labelColumn: number;
   amount: CsvAmountMapping;
+  /** The mark every amount of the file uses; without it, each amount is read on its own. */
+  decimalMark?: DecimalMark;
 }
 
 const BYTE_ORDER_MARK = "﻿";
@@ -228,9 +231,12 @@ function readAmount(
   mapping: CsvAmountMapping,
   currency: string,
   line: number,
+  decimalMark: DecimalMark | undefined,
 ): number {
+  const parse = (text: string): number =>
+    parseRowAmount(text, currency, line, decimalMark);
   if (mapping.kind === "single") {
-    return parseRowAmount(readCell(row, mapping.column, line), currency, line);
+    return parse(readCell(row, mapping.column, line));
   }
 
   const debit = readCell(row, mapping.debitColumn, line);
@@ -252,9 +258,7 @@ function readAmount(
     );
   }
   // The column decides the direction: a minus sign there is only a habit of some banks.
-  return debit !== ""
-    ? -Math.abs(parseRowAmount(debit, currency, line))
-    : Math.abs(parseRowAmount(credit, currency, line));
+  return debit !== "" ? -Math.abs(parse(debit)) : Math.abs(parse(credit));
 }
 
 function readRow(
@@ -269,7 +273,13 @@ function readRow(
     mapping.dateFormat,
     line,
   );
-  const amount = readAmount(row, mapping.amount, currency, line);
+  const amount = readAmount(
+    row,
+    mapping.amount,
+    currency,
+    line,
+    mapping.decimalMark,
+  );
   return { date, amount, label, externalId: null };
 }
 
@@ -332,7 +342,7 @@ export function normalizeHeader(header: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function findColumn(
+export function findColumn(
   headers: readonly string[],
   words: readonly string[],
 ): number {

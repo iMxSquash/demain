@@ -84,8 +84,17 @@ function invalidAmount(
 const AMOUNT_PATTERN =
   /^(?<signBefore>[+\-−])?\s*(?<leadToken>\p{Sc}|[A-Za-z]{3})?\s*(?<signAfter>[+\-−])?\s*(?<body>\d[\d\s.,]*?)\s*(?<trailToken>\p{Sc}|[A-Za-z]{3})?$/u;
 
+/** The character that separates the units from the decimals, as a file writes it. */
+export type DecimalMark = "," | ".";
+
 // Plain digits, or groups of three joined by one consistent separator.
 const GROUPED_INTEGER = /^(?:\d+|\d{1,3}([.,])\d{3}(?:\1\d{3})*)$/;
+
+// With the decimal mark known, the other mark is the only group separator allowed.
+const GROUPED_INTEGER_BY_MARK: Record<DecimalMark, RegExp> = {
+  ",": /^(?:\d+|\d{1,3}(?:\.\d{3})+)$/,
+  ".": /^(?:\d+|\d{1,3}(?:,\d{3})+)$/,
+};
 
 function splitSignAndBody(
   text: string,
@@ -139,21 +148,30 @@ function splitSignAndBody(
 }
 
 /**
- * Splits at the decimal separator, if any. The last separator is the decimal
- * one when it is the only separator of its kind or when the other kind is also
- * present ("1.143,88"); otherwise every separator is a group separator.
+ * Splits at the decimal separator, if any. Without a known mark, the last
+ * separator is the decimal one when it is the only separator of its kind or
+ * when the other kind is also present ("1.143,88"); otherwise every separator
+ * is a group separator. With a known mark, only its last occurrence is decimal.
  */
-function splitDecimal(body: string): {
+function splitDecimal(
+  body: string,
+  decimalMark: DecimalMark | undefined,
+): {
   integerPart: string;
   fractionPart: string;
   hasDecimalSeparator: boolean;
 } {
-  const lastIndex = Math.max(body.lastIndexOf("."), body.lastIndexOf(","));
+  const lastIndex =
+    decimalMark === undefined
+      ? Math.max(body.lastIndexOf("."), body.lastIndexOf(","))
+      : body.lastIndexOf(decimalMark);
   const separator = body[lastIndex];
   const otherKind = separator === "." ? "," : ".";
   const isDecimal =
     separator !== undefined &&
-    (body.indexOf(separator) === lastIndex || body.includes(otherKind));
+    (decimalMark !== undefined ||
+      body.indexOf(separator) === lastIndex ||
+      body.includes(otherKind));
 
   if (!isDecimal) {
     return { integerPart: body, fractionPart: "", hasDecimalSeparator: false };
@@ -168,13 +186,26 @@ function splitDecimal(body: string): {
 /**
  * Parses a text amount ("1 143,88 €", "1,143.88", "-12.5") to integer minor
  * units by string handling only: no floating-point number is involved.
+ * `decimalMark` is the one the whole file uses: it settles "1,234" (1234 with
+ * the point, 1.234 with the comma) and rejects the other mark as a decimal one.
  */
-export function parseAmount(text: string, currency: string): number {
+export function parseAmount(
+  text: string,
+  currency: string,
+  decimalMark?: DecimalMark,
+): number {
   const decimals = currencyDecimals(currency);
   const { isNegative, body } = splitSignAndBody(text, currency);
-  const { integerPart, fractionPart, hasDecimalSeparator } = splitDecimal(body);
+  const { integerPart, fractionPart, hasDecimalSeparator } = splitDecimal(
+    body,
+    decimalMark,
+  );
+  const groupedInteger =
+    decimalMark === undefined
+      ? GROUPED_INTEGER
+      : GROUPED_INTEGER_BY_MARK[decimalMark];
 
-  if (!GROUPED_INTEGER.test(integerPart)) {
+  if (!groupedInteger.test(integerPart)) {
     throw invalidAmount(
       text,
       "misplaced separator",
@@ -209,6 +240,48 @@ export function parseAmount(text: string, currency: string): number {
 
   // BigInt has no negative zero, so "-0,00" comes out as a plain 0.
   return Number(isNegative ? -value : value);
+}
+
+// What tells the mark of one amount: a cell with both marks, a mark repeated,
+// or a lone mark followed by other than three digits. "1,234" is no clue, as
+// it is 1.234 in one convention and 1234 in the other.
+function markClue(body: string): DecimalMark | null {
+  const lastIndex = Math.max(body.lastIndexOf("."), body.lastIndexOf(","));
+  const last = body[lastIndex];
+  if (last !== "." && last !== ",") return null;
+
+  const other = last === "." ? "," : ".";
+  if (body.includes(other)) return last;
+  if (body.indexOf(last) !== lastIndex) return other;
+  return body.length - lastIndex - 1 === 3 ? null : last;
+}
+
+export interface DecimalMarkDetection {
+  mark: DecimalMark;
+  /** The cells disagree (or tie): this is the likeliest mark, to confirm. */
+  isAmbiguous: boolean;
+}
+
+/**
+ * The decimal mark a file uses, from its amount cells: the mark most cells
+ * point to, the comma on a tie. Null when no cell tells (only whole amounts,
+ * or "1,234" cells). Cells that are not amounts are ignored.
+ */
+export function detectDecimalMark(
+  texts: readonly string[],
+): DecimalMarkDetection | null {
+  const votes = { ",": 0, ".": 0 };
+  for (const text of texts) {
+    const body = AMOUNT_PATTERN.exec(text.trim())?.groups?.["body"];
+    const clue = body === undefined ? null : markClue(body.replace(/\s/g, ""));
+    if (clue !== null) votes[clue] += 1;
+  }
+
+  if (votes[","] === 0 && votes["."] === 0) return null;
+  return {
+    mark: votes["."] > votes[","] ? "." : ",",
+    isAmbiguous: votes[","] > 0 && votes["."] > 0,
+  };
 }
 
 /**
