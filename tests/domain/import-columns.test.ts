@@ -404,6 +404,47 @@ describe("detectColumnRoles", () => {
       },
     );
 
+    it("keeps the column a description header names out of the category guess", () => {
+      // The notes repeat like categories would, but the header says what they are.
+      const header = ["Date", "Libelle", "Montant", "Note"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "perso"],
+        ["02/02/2026", "Landlord", "-700,00", "perso"],
+        ["03/02/2026", "Cinema", "-9,00", "pro"],
+        ["04/02/2026", "Auchan", "-30,00", "pro"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.descriptionColumn).toBe(3);
+      expect(roles.categoryColumn).toBeNull();
+      expect(roles.issues).toContainEqual({ kind: "columnNotFound", role: "category" });
+    });
+
+    it("lets a category header win and still finds the description beside it", () => {
+      const header = ["Date", "Libelle", "Montant", "Note", "Categorie"];
+      const rows = [
+        ["01/02/2026", "Carrefour", "-12,50", "perso", "Food"],
+        ["02/02/2026", "Landlord", "-700,00", "perso", "Rent"],
+        ["03/02/2026", "Cinema", "-9,00", "pro", "Fun"],
+      ];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.categoryColumn).toBe(4);
+      expect(roles.descriptionColumn).toBe(3);
+    });
+
+    it("gives a header that names both roles to the category", () => {
+      const header = ["Date", "Libelle", "Montant", "Category description"];
+      const rows = [["01/02/2026", "Carrefour", "-12,50", "Food"]];
+
+      const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header);
+
+      expect(roles.categoryColumn).toBe(3);
+      expect(roles.descriptionColumn).toBeNull();
+    });
+
     it("never takes the label column for the description, and says nothing when there is none", () => {
       const header = ["Date", "Description", "Amount"];
       const rows = [["01/02/2026", "Carrefour", "-12,50"]];

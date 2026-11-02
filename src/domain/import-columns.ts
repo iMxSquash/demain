@@ -264,13 +264,18 @@ export function detectColumnRoles(
   const taken = [...mappedColumns];
   if (type !== null) taken.push(type.column);
   if (paymentMode !== null) taken.push(paymentMode.column);
-  const categoryColumn =
-    columnNamed(headers, CATEGORY_HEADER_WORDS, taken) ??
-    detectCategoryColumn(rows, taken);
+  const namedCategory = columnNamed(headers, CATEGORY_HEADER_WORDS, taken);
   const descriptionColumn = columnNamed(headers, DESCRIPTION_HEADER_WORDS, [
     ...taken,
-    ...(categoryColumn === null ? [] : [categoryColumn]),
+    ...(namedCategory === null ? [] : [namedCategory]),
   ]);
+  // A column named as the description is not a category, even when it repeats like one.
+  const categoryColumn =
+    namedCategory ??
+    detectCategoryColumn(rows, [
+      ...taken,
+      ...(descriptionColumn === null ? [] : [descriptionColumn]),
+    ]);
 
   return {
     typeColumn: type?.column ?? null,

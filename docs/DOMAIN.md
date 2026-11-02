@@ -503,6 +503,8 @@ The type, the payment mode, the category and the description are looked for by t
 | Category | `categor`, `rubrique` | Wins over the column with the fewest distinct values. |
 | Description | `description`, `note`, `comment`, `memo`, `detail`, `remarque` | Header only, never the label column; not reported when absent. |
 
+The columns are settled in this order: type, payment mode, then the category named by a header, then the description, then the category guessed from the values. A column named as the description is therefore never taken for the category, even when its values repeat like categories do (a `Note` column holding `perso` and `pro`).
+
 The values always have the last word: a `Type` column that holds `CB` and `VIR` is the payment mode column. A header named `Description` gives the label (as in the column mapping of the migration) and a second text column named like a description gives the description.
 
 ### Label from the category
