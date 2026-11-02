@@ -11,7 +11,11 @@ import {
   AMOUNT_KINDS,
   type ImportFormState,
   type MappingFields,
+  failedStagedFile,
+  type StagedFile,
 } from "./import-form-data";
+import { stageFileAction } from "./stage-actions";
+import { StagedImportReview } from "./staged-import-review";
 
 export interface AccountOption {
   id: number;
@@ -186,11 +190,51 @@ function RawRows({ rows }: { rows: string[][] }) {
   );
 }
 
+interface Staging {
+  current: number;
+  total: number;
+  name: string;
+}
+
+interface Review {
+  accountId: number;
+  files: StagedFile[];
+}
+
 export function ImportForm({ accounts }: { accounts: AccountOption[] }) {
   const t = useTranslations("imports");
   const common = useTranslations("common");
   const [state, setState] = useState<ImportFormState | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [staging, setStaging] = useState<Staging | null>(null);
+  const [review, setReview] = useState<Review | null>(null);
+
+  async function stageOne(
+    file: File,
+    accountText: string,
+  ): Promise<StagedFile> {
+    const formData = new FormData();
+    formData.set("accountId", accountText);
+    formData.set("file", file);
+    try {
+      return await stageFileAction(formData);
+    } catch (error) {
+      // A file that fails must not stop the next ones: it gets a card that says so.
+      console.error("Import staging failed", error);
+      return failedStagedFile(file.name, t("staged.readFailed"));
+    }
+  }
+
+  // One file after the other, as if each had been sent alone: nothing is recorded here.
+  async function stageFiles(files: File[], accountText: string) {
+    const staged: StagedFile[] = [];
+    for (const [index, file] of files.entries()) {
+      setStaging({ current: index + 1, total: files.length, name: file.name });
+      staged.push(await stageOne(file, accountText));
+    }
+    setStaging(null);
+    setReview({ accountId: Number(accountText), files: staged });
+  }
 
   // The action is called by hand rather than through the form's `action`: React
   // would reset the form afterwards and the chosen file would be lost, while the
@@ -202,6 +246,15 @@ export function ImportForm({ accounts }: { accounts: AccountOption[] }) {
       event.currentTarget,
       submitter instanceof HTMLElement ? submitter : null,
     );
+    const files = formData
+      .getAll("file")
+      .filter((file): file is File => file instanceof File && file.size > 0);
+    const accountText = String(formData.get("accountId") ?? "");
+    if (files.length > 1 && accountText !== "") {
+      setState(null);
+      void stageFiles(files, accountText);
+      return;
+    }
     startTransition(async () => {
       setState(await importAction(state, formData));
     });
@@ -212,140 +265,158 @@ export function ImportForm({ accounts }: { accounts: AccountOption[] }) {
   const isDone = state?.status === "done";
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex max-w-3xl flex-col gap-6"
-      noValidate
-    >
-      <FormField id="accountId" label={t("accountLabel")}>
-        <select
-          id="accountId"
-          name="accountId"
-          defaultValue={state?.accountId ?? ""}
-          onChange={discardPreview}
-          className={CONTROL_CLASS}
-        >
-          <option value="">{t("chooseAccount")}</option>
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
-            </option>
-          ))}
-        </select>
-      </FormField>
-      <FormField id="file" label={t("fileLabel")}>
-        <input
-          id="file"
-          name="file"
-          type="file"
-          accept=".csv,.ofx,.qfx,.txt,text/csv,application/x-ofx"
-          onChange={discardPreview}
-          className={CONTROL_CLASS}
-        />
-      </FormField>
-
-      {state?.format === "csv" && state.mapping !== null ? (
-        <>
-          {state.rawRows.length > 0 ? <RawRows rows={state.rawRows} /> : null}
-          <MappingFieldset
-            key={JSON.stringify(state.mapping)}
-            fields={state.mapping}
-          />
-        </>
-      ) : null}
-
-      <div aria-live="polite" className="flex flex-col gap-4">
-        {state === null ? null : (
-          <p
-            role={state.status === "error" ? "alert" : "status"}
-            className={
-              state.status === "error"
-                ? "font-medium text-red-800"
-                : "font-medium"
-            }
+    <>
+      <form
+        onSubmit={handleSubmit}
+        className="flex max-w-3xl flex-col gap-6"
+        noValidate
+      >
+        <FormField id="accountId" label={t("accountLabel")}>
+          <select
+            id="accountId"
+            name="accountId"
+            defaultValue={state?.accountId ?? ""}
+            onChange={discardPreview}
+            className={CONTROL_CLASS}
           >
-            {state.status === "error"
-              ? common("error", { message: state.message })
-              : state.message}
-          </p>
-        )}
-        {state === null ? null : (
+            <option value="">{t("chooseAccount")}</option>
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField id="file" label={t("fileLabel")}>
+          <input
+            id="file"
+            name="file"
+            type="file"
+            multiple
+            accept=".csv,.ofx,.qfx,.txt,text/csv,application/x-ofx"
+            onChange={discardPreview}
+            className={CONTROL_CLASS}
+          />
+        </FormField>
+
+        {state?.format === "csv" && state.mapping !== null ? (
           <>
-            <MessageList
-              id="problems-heading"
-              heading={t("problemsHeading")}
-              items={state.problems}
-            />
-            <MessageList
-              id="warnings-heading"
-              heading={t("warningsHeading")}
-              items={state.warnings}
+            {state.rawRows.length > 0 ? <RawRows rows={state.rawRows} /> : null}
+            <MappingFieldset
+              key={JSON.stringify(state.mapping)}
+              fields={state.mapping}
             />
           </>
-        )}
-        {state !== null && state.sampleRows.length > 0 ? (
-          <table className="border-collapse text-left">
-            <caption className="pb-2 text-left font-semibold">
-              {t("sampleHeading")}
-            </caption>
-            <thead>
-              <tr className="border-b border-neutral-500">
-                <th scope="col" className="py-2 pr-4">
-                  {t("columns.date")}
-                </th>
-                <th scope="col" className="py-2 pr-4">
-                  {t("columns.label")}
-                </th>
-                <th scope="col" className="py-2 text-right">
-                  {t("columns.amount")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.sampleRows.map((row, index) => (
-                <tr key={index} className="border-b border-neutral-300">
-                  <td className="py-2 pr-4 tabular-nums">{row.date}</td>
-                  <th scope="row" className="py-2 pr-4 font-medium">
-                    {row.label}
-                  </th>
-                  <td className="py-2 text-right tabular-nums">{row.amount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         ) : null}
-      </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          name="intent"
-          value="preview"
-          disabled={isPending || isDone}
-          className={BUTTON_CLASS}
-        >
-          {t("previewSubmit")}
-        </button>
-        {state?.canImport === true && !isDone ? (
+        <div aria-live="polite" className="flex flex-col gap-4">
+          {staging === null ? null : (
+            <p role="status" className="font-medium">
+              {t("staged.reading", { ...staging })}
+            </p>
+          )}
+          {state === null ? null : (
+            <p
+              role={state.status === "error" ? "alert" : "status"}
+              className={
+                state.status === "error"
+                  ? "font-medium text-red-800"
+                  : "font-medium"
+              }
+            >
+              {state.status === "error"
+                ? common("error", { message: state.message })
+                : state.message}
+            </p>
+          )}
+          {state === null ? null : (
+            <>
+              <MessageList
+                id="problems-heading"
+                heading={t("problemsHeading")}
+                items={state.problems}
+              />
+              <MessageList
+                id="warnings-heading"
+                heading={t("warningsHeading")}
+                items={state.warnings}
+              />
+            </>
+          )}
+          {state !== null && state.sampleRows.length > 0 ? (
+            <table className="border-collapse text-left">
+              <caption className="pb-2 text-left font-semibold">
+                {t("sampleHeading")}
+              </caption>
+              <thead>
+                <tr className="border-b border-neutral-500">
+                  <th scope="col" className="py-2 pr-4">
+                    {t("columns.date")}
+                  </th>
+                  <th scope="col" className="py-2 pr-4">
+                    {t("columns.label")}
+                  </th>
+                  <th scope="col" className="py-2 text-right">
+                    {t("columns.amount")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.sampleRows.map((row, index) => (
+                  <tr key={index} className="border-b border-neutral-300">
+                    <td className="py-2 pr-4 tabular-nums">{row.date}</td>
+                    <th scope="row" className="py-2 pr-4 font-medium">
+                      {row.label}
+                    </th>
+                    <td className="py-2 text-right tabular-nums">
+                      {row.amount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
           <button
             type="submit"
             name="intent"
-            value="import"
-            disabled={isPending}
+            value="preview"
+            disabled={isPending || isDone || staging !== null}
             className={BUTTON_CLASS}
           >
-            {t("importSubmit")}
+            {t("previewSubmit")}
           </button>
-        ) : null}
-        {isDone ? (
-          <Link
-            href="/categories"
-            className="inline-flex min-h-11 items-center underline"
-          >
-            {t("toCategorize")}
-          </Link>
-        ) : null}
-      </div>
-    </form>
+          {state?.canImport === true && !isDone ? (
+            <button
+              type="submit"
+              name="intent"
+              value="import"
+              disabled={isPending}
+              className={BUTTON_CLASS}
+            >
+              {t("importSubmit")}
+            </button>
+          ) : null}
+          {isDone ? (
+            <Link
+              href="/categories"
+              className="inline-flex min-h-11 items-center underline"
+            >
+              {t("toCategorize")}
+            </Link>
+          ) : null}
+        </div>
+      </form>
+      {/* Outside the form: Enter in a cell of the review must not submit it. */}
+      {review === null ? null : (
+        <StagedImportReview
+          files={review.files}
+          accountId={review.accountId}
+          onClose={() => setReview(null)}
+        />
+      )}
+    </>
   );
 }

@@ -33,7 +33,7 @@ const INSERT_CHUNK_SIZE = 100;
 
 const column = z.number().int().min(0);
 
-const csvMappingSchema: z.ZodType<CsvMapping> = z.object({
+export const csvMappingSchema: z.ZodType<CsvMapping> = z.object({
   delimiter: z.enum(CSV_DELIMITERS),
   hasHeader: z.boolean(),
   dateColumn: column,
@@ -184,14 +184,32 @@ function findCeilingExcesses(
   return warnings;
 }
 
+function fingerprintWithDuplicateFlags(
+  db: AppDatabase,
+  request: ImportRequest,
+): { row: FingerprintedRow; isDuplicate: boolean }[] {
+  const fingerprinted = fingerprintRows(request.rows);
+  const known = findKnownKeys(db, request.accountId, fingerprinted);
+  return fingerprinted.map((row) => ({ row, isDuplicate: isKnown(row, known) }));
+}
+
+/** For each row, in order, whether the account already holds that movement. Writes nothing. */
+export function findDuplicateRows(
+  db: AppDatabase,
+  request: ImportRequest,
+): boolean[] {
+  return fingerprintWithDuplicateFlags(db, request).map(
+    ({ isDuplicate }) => isDuplicate,
+  );
+}
+
 function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
-  const fingerprinted = fingerprintRows(request.rows);
-  const known = findKnownKeys(db, account.id, fingerprinted);
+  const flagged = fingerprintWithDuplicateFlags(db, request);
   const rules = listApplicableRules(db);
-  const fresh = fingerprinted
-    .filter((row) => !isKnown(row, known))
-    .map((row) => ({
+  const fresh = flagged
+    .filter(({ isDuplicate }) => !isDuplicate)
+    .map(({ row }) => ({
       input: toTransactionInput(
         account.id,
         row,
@@ -205,7 +223,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   return {
     fresh,
     newCount: fresh.length,
-    duplicateCount: fingerprinted.length - fresh.length,
+    duplicateCount: flagged.length - fresh.length,
     ceilingWarnings: findCeilingExcesses(
       fresh.map((entry) => entry.input),
       getAccountBalance(db, account.id),
