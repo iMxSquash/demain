@@ -4,14 +4,18 @@ import { useTranslations } from "next-intl";
 import { memo, useId, type ActionDispatch, type ChangeEvent } from "react";
 
 import type { RowProblem } from "../../domain/import-draft";
-import { confirmReasons, MOVEMENT_TYPES } from "../../domain/import-review";
+import { MOVEMENT_TYPES } from "../../domain/import-columns";
+import type { RowDetails } from "../../domain/import-draft";
+import { confirmReasons } from "../../domain/import-review";
 import { PAYMENT_MODES } from "../../domain/transaction";
 import type { ImportCategoryOption } from "./import-form-data";
+import { CONTROL_CLASS } from "../form-field";
 import { describeConfirmReasons } from "./review-text";
-import type {
-  EditableField,
-  ReviewAction,
-  ReviewRow,
+import {
+  parseOptionalId,
+  type EditableField,
+  type ReviewAction,
+  type ReviewRow,
 } from "./review-state";
 
 type InvalidField = EditableField | "type" | "savingsAccountId";
@@ -28,10 +32,8 @@ const FIELD_OF_PROBLEM: Record<RowProblem, InvalidField> = {
 // The border is always there, transparent, so that the cell looks like text until it is pointed at or focused.
 const CELL_CLASS =
   "min-h-11 w-full rounded border border-transparent bg-transparent px-2 hover:border-neutral-400 focus-visible:border-neutral-900 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
-const SELECT_CLASS =
-  "min-h-11 w-full rounded border border-neutral-500 bg-white px-2 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
 
-export interface SavingsAccountOption {
+interface SavingsAccountOption {
   id: number;
   name: string;
 }
@@ -99,6 +101,8 @@ export const RowEditor = memo(function RowEditor({
       }),
   });
 
+  const setDetails = (patch: Partial<RowDetails>) =>
+    dispatch({ type: "setDetails", file: fileIndex, row: rowIndex, details: patch });
   const isSavings = details.type === "savings";
   const sameAsFile =
     lookups.defaultSavingsName === null
@@ -128,18 +132,12 @@ export const RowEditor = memo(function RowEditor({
         <select
           {...control("type", t("columnType"))}
           value={details.type}
-          className={SELECT_CLASS}
+          className={CONTROL_CLASS}
           onChange={(event) => {
             const type = MOVEMENT_TYPES.find(
               (candidate) => candidate === event.currentTarget.value,
             );
-            if (type === undefined) return;
-            dispatch({
-              type: "setDetails",
-              file: fileIndex,
-              row: rowIndex,
-              details: { type },
-            });
+            if (type !== undefined) setDetails({ type });
           }}
         >
           {MOVEMENT_TYPES.map((type) => (
@@ -159,19 +157,9 @@ export const RowEditor = memo(function RowEditor({
               line: row.line,
             })}
             value={details.categoryId ?? ""}
-            className={SELECT_CLASS}
+            className={CONTROL_CLASS}
             onChange={(event) =>
-              dispatch({
-                type: "setDetails",
-                file: fileIndex,
-                row: rowIndex,
-                details: {
-                  categoryId:
-                    event.currentTarget.value === ""
-                      ? null
-                      : Number(event.currentTarget.value),
-                },
-              })
+              setDetails({ categoryId: parseOptionalId(event.currentTarget.value) })
             }
           >
             <option value="">{t("noCategory")}</option>
@@ -190,18 +178,12 @@ export const RowEditor = memo(function RowEditor({
             line: row.line,
           })}
           value={details.paymentMode ?? ""}
-          className={SELECT_CLASS}
+          className={CONTROL_CLASS}
           onChange={(event) =>
-            dispatch({
-              type: "setDetails",
-              file: fileIndex,
-              row: rowIndex,
-              details: {
-                paymentMode:
-                  PAYMENT_MODES.find(
-                    (mode) => mode === event.currentTarget.value,
-                  ) ?? null,
-              },
+            setDetails({
+              paymentMode:
+                PAYMENT_MODES.find((mode) => mode === event.currentTarget.value) ??
+                null,
             })
           }
         >
@@ -218,18 +200,10 @@ export const RowEditor = memo(function RowEditor({
           <select
             {...control("savingsAccountId", t("columnSavingsAccount"))}
             value={details.savingsAccountId ?? ""}
-            className={SELECT_CLASS}
+            className={CONTROL_CLASS}
             onChange={(event) =>
-              dispatch({
-                type: "setDetails",
-                file: fileIndex,
-                row: rowIndex,
-                details: {
-                  savingsAccountId:
-                    event.currentTarget.value === ""
-                      ? null
-                      : Number(event.currentTarget.value),
-                },
+              setDetails({
+                savingsAccountId: parseOptionalId(event.currentTarget.value),
               })
             }
           >

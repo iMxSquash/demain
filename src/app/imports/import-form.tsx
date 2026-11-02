@@ -6,7 +6,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
 import type { OverflowAccount } from "../../domain/overflow";
-import { CONTROL_CLASS, FormField } from "../form-field";
+import { BUTTON_CLASS, CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
 import {
   AMOUNT_KINDS,
@@ -20,8 +20,6 @@ import { stageFileAction } from "./stage-actions";
 import { StagedImportReview } from "./staged-import-review";
 
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
-const BUTTON_CLASS =
-  "min-h-11 rounded border border-neutral-900 px-4 font-medium disabled:opacity-60";
 
 type ColumnField =
   | "dateColumn"

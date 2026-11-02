@@ -8,6 +8,11 @@ import { orderFilesByDate } from "../../domain/import-savings";
 import type { ReportedImportIssue } from "./describe-issues";
 import type { StagedFile, StagedRowView } from "./import-form-data";
 
+/** The id a select holds; the empty option means no choice. */
+export function parseOptionalId(value: string): number | null {
+  return value === "" ? null : Number(value);
+}
+
 export type EditableField = "date" | "label" | "amount";
 
 /** A row with what is wrong with it, kept up to date as it is edited: the others are not read again. */

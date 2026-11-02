@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { MovementType } from "../../domain/import-columns";
+import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { RowDetails } from "../../domain/import-draft";
 import { PAYMENT_MODES } from "../../domain/transaction";
 import { csvMappingSchema } from "../../ledger/imports";
@@ -8,12 +8,6 @@ import { csvMappingSchema } from "../../ledger/imports";
 export const MAX_FILE_NAME_LENGTH = 255;
 export const MAX_CELL_LENGTH = 1_000;
 export const MAX_ROWS = 50_000;
-
-const MOVEMENT_TYPES = [
-  "expense",
-  "income",
-  "savings",
-] as const satisfies readonly MovementType[];
 
 const id = z.number().int().min(1);
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useId, useMemo } from "react";
 
 import type { FilePlan } from "../../domain/import-review";
+import { BUTTON_CLASS } from "../form-field";
 import { describeSplit } from "./review-text";
 import { commitStagedFileAction } from "./stage-actions";
 import {
@@ -13,9 +14,6 @@ import {
   type RowLookups,
 } from "./staged-row-editor";
 import type { ReviewFile } from "./review-state";
-
-export const BUTTON_CLASS =
-  "min-h-11 rounded border border-neutral-900 px-4 font-medium disabled:opacity-60";
 
 function RowsTable({
   file,

@@ -8,6 +8,7 @@ import type { MovementType } from "./import-columns";
 import {
   checkRowDetails,
   readImportDraft,
+  withDefaultSavingsAccount,
   type ImportDraft,
   type RowDetails,
   type RowProblem,
@@ -19,13 +20,6 @@ import {
   type SavingsTransfer,
 } from "./import-savings";
 import type { OverflowAccount } from "./overflow";
-
-/** The types a row can have, in the order the review offers them. */
-export const MOVEMENT_TYPES = [
-  "expense",
-  "income",
-  "savings",
-] as const satisfies readonly MovementType[];
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
@@ -131,7 +125,7 @@ export function reviewRowProblem(
   const reading = readImportDraft(draft, currency);
   if (!reading.ok) return reading.problem;
   return checkRowDetails(
-    { ...details, savingsAccountId: details.savingsAccountId ?? defaultSavingsAccountId },
+    withDefaultSavingsAccount(details, defaultSavingsAccountId),
     reading.row.amount,
   );
 }
@@ -150,7 +144,7 @@ export interface ReviewedFile {
   rows: readonly ReviewedRow[];
 }
 
-export interface ReviewContext {
+interface ReviewContext {
   currency: string;
   /** The savings account of the savings rows that name none. */
   defaultSavingsAccountId: number | null;
@@ -165,6 +159,10 @@ export interface FilePlan {
   isChainLooping: boolean;
 }
 
+export function emptyFilePlan(): FilePlan {
+  return { splits: new Map(), isChainLooping: false };
+}
+
 function savingsMovementsOf(
   rows: readonly ReviewedRow[],
   { currency, defaultSavingsAccountId, accounts }: ReviewContext,
@@ -172,7 +170,10 @@ function savingsMovementsOf(
   const known = new Set(accounts.map(({ id }) => id));
   return rows.flatMap((row, index) => {
     if (row.isDuplicate || row.details.type !== "savings") return [];
-    const savingsAccountId = row.details.savingsAccountId ?? defaultSavingsAccountId;
+    const { savingsAccountId } = withDefaultSavingsAccount(
+      row.details,
+      defaultSavingsAccountId,
+    );
     if (savingsAccountId === null || !known.has(savingsAccountId)) return [];
     const reading = readImportDraft(row.draft, currency);
     if (!reading.ok) return [];
@@ -192,7 +193,7 @@ export function planReview(
   files: readonly ReviewedFile[],
   context: ReviewContext,
 ): FilePlan[] {
-  const plans = files.map((): FilePlan => ({ splits: new Map(), isChainLooping: false }));
+  const plans = files.map(emptyFilePlan);
   const planned = files.map(({ firstDate, phase, rows }, position) => ({
     position,
     firstDate,

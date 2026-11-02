@@ -1,6 +1,7 @@
 import {
   checkRowDetails,
   readImportDraft,
+  withDefaultSavingsAccount,
   type ReviewedDraft,
   type RowDetails,
   type RowProblem,
@@ -59,7 +60,7 @@ export function commitDrafts(
     const details: RowDetails | undefined =
       given === undefined
         ? undefined
-        : { ...given, savingsAccountId: given.savingsAccountId ?? rest.savingsAccountId ?? null };
+        : withDefaultSavingsAccount(given, rest.savingsAccountId);
     const problem =
       details === undefined ? null : checkRowDetails(details, reading.row.amount);
     if (problem !== null) {

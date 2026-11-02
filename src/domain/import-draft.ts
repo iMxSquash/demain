@@ -90,6 +90,17 @@ export function detailsFromSign(amount: number): RowDetails {
   };
 }
 
+/** A row that names no savings account takes the default one, which may itself be absent. */
+export function withDefaultSavingsAccount(
+  details: RowDetails,
+  defaultSavingsAccountId: number | null | undefined,
+): RowDetails {
+  return {
+    ...details,
+    savingsAccountId: details.savingsAccountId ?? defaultSavingsAccountId ?? null,
+  };
+}
+
 /**
  * Whether the details fit the amount: an expense leaves the account and an
  * income enters it, whereas savings go both ways (a deposit, a withdrawal).

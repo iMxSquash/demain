@@ -5,6 +5,7 @@ import {
   detailsFromSign,
   draftOfRow,
   readImportDraft,
+  withDefaultSavingsAccount,
   type RowDetails,
 } from "../../src/domain/import-draft";
 
@@ -149,5 +150,23 @@ describe("detailsFromSign", () => {
   it("reads an outgoing amount as an expense and an incoming one as an income, with nothing else", () => {
     expect(detailsFromSign(-1_250)).toEqual(details({ type: "expense" }));
     expect(detailsFromSign(1_250)).toEqual(details({ type: "income" }));
+  });
+});
+
+describe("withDefaultSavingsAccount", () => {
+  it("gives a row that names no savings account the default one", () => {
+    expect(withDefaultSavingsAccount(details({ type: "savings" }), 7).savingsAccountId).toBe(7);
+  });
+
+  it("keeps the savings account a row names", () => {
+    expect(
+      withDefaultSavingsAccount(details({ type: "savings", savingsAccountId: 3 }), 7)
+        .savingsAccountId,
+    ).toBe(3);
+  });
+
+  it("leaves a row with no account when there is no default either", () => {
+    expect(withDefaultSavingsAccount(details({ type: "savings" }), null).savingsAccountId).toBeNull();
+    expect(withDefaultSavingsAccount(details({ type: "savings" }), undefined).savingsAccountId).toBeNull();
   });
 });

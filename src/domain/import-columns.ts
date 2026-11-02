@@ -8,7 +8,10 @@ import { widestRowLength } from "./import-blocks";
 import { findColumn, normalizeHeader } from "./import-csv";
 import type { PaymentMode } from "./transaction";
 
-export type MovementType = "expense" | "income" | "savings";
+/** The types a row can have, in the order the review offers them. */
+export const MOVEMENT_TYPES = ["expense", "income", "savings"] as const;
+
+export type MovementType = (typeof MOVEMENT_TYPES)[number];
 
 // Normalized spellings (see `normalizeHeader`) of the types a spreadsheet may name.
 // A Map, not an object: cell text comes from the file and must not reach Object.prototype.

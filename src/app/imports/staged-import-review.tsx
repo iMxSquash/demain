@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo, useReducer, useRef } from "react";
 
 import {
+  emptyFilePlan,
   nextFileToSettle,
   planReview,
 } from "../../domain/import-review";
@@ -17,12 +18,10 @@ import type {
   ImportCategoryOption,
   StagedFile,
 } from "./import-form-data";
-import { initReview, reviewReducer } from "./review-state";
-import { BUTTON_CLASS, FileCard } from "./staged-file-card";
+import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { initReview, parseOptionalId, reviewReducer } from "./review-state";
+import { FileCard } from "./staged-file-card";
 import type { RowLookups } from "./staged-row-editor";
-
-const SELECT_CLASS =
-  "min-h-11 w-full rounded border border-neutral-500 bg-white px-3 text-neutral-900";
 
 interface ReviewBodyProps {
   files: StagedFile[];
@@ -103,7 +102,7 @@ function ReviewBody({
             disabled={isBusy}
             aria-describedby={accountHintId}
             onChange={(event) => onAccountChange(Number(event.currentTarget.value))}
-            className={SELECT_CLASS}
+            className={CONTROL_CLASS}
           >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
@@ -125,13 +124,10 @@ function ReviewBody({
             onChange={(event) =>
               dispatch({
                 type: "setDefaultSavings",
-                savingsAccountId:
-                  event.currentTarget.value === ""
-                    ? null
-                    : Number(event.currentTarget.value),
+                savingsAccountId: parseOptionalId(event.currentTarget.value),
               })
             }
-            className={SELECT_CLASS}
+            className={CONTROL_CLASS}
           >
             <option value="">{t("noSavingsAccount")}</option>
             {savingsAccounts.map((account) => (
@@ -153,7 +149,7 @@ function ReviewBody({
             key={`${index}-${file.fileName}`}
             file={file}
             fileIndex={index}
-            plan={plans[index] ?? { splits: new Map(), isChainLooping: false }}
+            plan={plans[index] ?? emptyFilePlan()}
             waitFor={waitIndex === null ? null : (state.files[waitIndex]?.fileName ?? null)}
             accountId={accountId}
             defaultSavingsAccountId={savingsAccountId}

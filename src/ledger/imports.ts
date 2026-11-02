@@ -14,6 +14,7 @@ import {
 import {
   checkRowDetails,
   type DetailsProblem,
+  withDefaultSavingsAccount,
   type RowDetails,
 } from "../domain/import-draft";
 import {
@@ -316,10 +317,7 @@ function planRow(
   const details: RowDetails | undefined =
     given === undefined
       ? undefined
-      : {
-          ...given,
-          savingsAccountId: given.savingsAccountId ?? request.savingsAccountId ?? null,
-        };
+      : withDefaultSavingsAccount(given, request.savingsAccountId);
   const problem = details === undefined ? null : checkRowDetails(details, row.amount);
   if (problem !== null) {
     outcome.issues.push({ kind: "rowProblem", index, problem });
