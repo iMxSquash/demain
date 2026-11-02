@@ -249,7 +249,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *A warning only, resolved by hand each time.* It is what the sheet required, and it is the manual work Demain exists to remove.
 - *A single level of overflow.* Does not cover an account that overflows to a second capped account.
 
-**Consequences.** The account screen must validate a graph, not just a field. The routing logic is a pure function shared by manual entry, planned items, simulations and the sheet migration, and it needs thorough tests for cycles and partial fits.
+**Consequences.** The account screen must validate a graph, not just a field. The routing logic is a pure function shared by manual entry, planned items, simulations and the sheet migration, and it needs thorough tests for cycles and partial fits. The import of files uses the same pure routing, fed with running balances (ADR-016).
 
 ### ADR-014: Language from a cookie, translation files discovered on disk, domain messages as keys
 
@@ -279,6 +279,20 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *A query parameter after the redirect.* Visible in the URL, replayed on reload and on a shared link.
 
 **Consequences.** A new action tells its outcome with one `flash` call and a key in both translation files. The cookie is readable by scripts on purpose, which is harmless since it only holds a key. Setting a cookie in a server action refreshes the page, so an action whose screen must not refresh (the TOTP enrollment, which shows the backup codes once) tells nothing in a toast. Every page already renders on demand (the content security policy nonce, see Security), so reading the cookie in the layout costs nothing more.
+
+### ADR-016: Imports are recorded file by file; the sheet migration stays one time, all or nothing
+
+**Context.** The sheet migration refuses an account that already has transactions and records everything in one transaction: opening balances, history, split transfers, assertions and rules. The import of bank files serves another need: files arrive month after month, several at once, on accounts that are already fed, and some rows are savings that must be split along an overflow chain.
+
+**Decision.** An import records one batch per file, in one transaction. The rows are deduplicated against the account that receives them, and a non-empty account is not refused. When several files are sent, they are processed in date order. A savings row is split along the overflow chain from the current balances, a deposit leaving the account and a withdrawal entering it, each part being a linked pair of transfers; the duplicate keys sit on the leg of the receiving account (the first one when the row is split). What fits nowhere, a loop in the chain or a row the ledger refuses blocks the file, and nothing of it is written. The initial migration is unchanged: first run only, all or nothing.
+
+**Alternatives rejected.**
+
+- *All files in a single transaction.* One wrong file would block every other one, and the files are independent once they are deduplicated.
+- *Refusing a non-empty account in the import.* It would make the monthly import impossible, which is its main use.
+- *Migrating file by file.* The opening balances and the assertions are set on the whole history, and a resumed run would record the history twice.
+
+**Consequences.** The order of the imports matters for the ceilings: the same file imported earlier or later may be split differently. The screen that replaces `/migration` must keep the first-run rule. A file blocked for a part that fits nowhere stays blocked until a later change lets the user decide what to do with the surplus.
 
 ## Tooling
 
