@@ -91,6 +91,13 @@ export type ReviewAction =
   | { type: "setDetailsMany"; file: number; rows: readonly number[]; details: Partial<RowDetails> }
   /** The file was read again, with other columns: the corrections follow their line. */
   | { type: "replaceFile"; file: number; staged: StagedFile }
+  /** Every file was read again, for another account: the corrections follow their line too. */
+  | {
+      type: "replaceAll";
+      /** In the order the files were chosen. */
+      staged: readonly StagedFile[];
+      defaultSavingsAccountId: number | null;
+    }
   /** Reading the file again failed: it keeps its rows and says why. */
   | { type: "rereadFailed"; file: number; message: string }
   | { type: "setDefaultSavings"; savingsAccountId: number | null }
@@ -174,17 +181,29 @@ function readAgain(
   return { ...base, rows, lastReread: { kept, dropped: corrections.size - kept } };
 }
 
-export function initReview(
+// The files are listed by date; a file the user already corrected is read again, the others are new.
+function reviewFiles(
   files: readonly StagedFile[],
   defaultSavingsAccountId: number | null,
+  earlier: ReadonlyMap<number, ReviewFile>,
 ): ReviewState {
   const chosen = files.map((file, index) => ({ ...file, sourceIndex: index }));
   return {
     defaultSavingsAccountId,
-    files: orderFilesByDate(chosen).map(({ sourceIndex, ...file }) =>
-      reviewFile(file, sourceIndex, defaultSavingsAccountId),
-    ),
+    files: orderFilesByDate(chosen).map(({ sourceIndex, ...file }) => {
+      const previous = earlier.get(sourceIndex);
+      return previous === undefined
+        ? reviewFile(file, sourceIndex, defaultSavingsAccountId)
+        : readAgain(file, previous, defaultSavingsAccountId);
+    }),
   };
+}
+
+export function initReview(
+  files: readonly StagedFile[],
+  defaultSavingsAccountId: number | null,
+): ReviewState {
+  return reviewFiles(files, defaultSavingsAccountId, new Map());
 }
 
 /** What the bulk form holds: an empty string keeps the field as it is. */
@@ -381,6 +400,13 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
         file.phase === "reviewing"
           ? readAgain(action.staged, file, defaultSavingsAccountId)
           : file,
+      );
+
+    case "replaceAll":
+      return reviewFiles(
+        action.staged,
+        action.defaultSavingsAccountId,
+        new Map(state.files.map((file) => [file.sourceIndex, file])),
       );
 
     case "rereadFailed":

@@ -34,6 +34,8 @@ import type { RowLookups } from "./staged-row-editor";
 
 interface ReviewBodyProps {
   files: StagedFile[];
+  /** Changes with every reading of all the files: the review then follows the new rows. */
+  batch: number;
   accountId: number;
   accounts: ImportAccountOption[];
   categories: ImportCategoryOption[];
@@ -48,6 +50,7 @@ interface ReviewBodyProps {
 
 function ReviewBody({
   files,
+  batch,
   accountId,
   accounts,
   categories,
@@ -70,6 +73,16 @@ function ReviewBody({
     files,
     (staged) => initReview(staged, defaultSavingsAccountId(accounts, receiving)),
   );
+  // All the files were read again (another account): what the user corrected follows its line.
+  const [seenBatch, setSeenBatch] = useState(batch);
+  if (seenBatch !== batch) {
+    setSeenBatch(batch);
+    dispatch({
+      type: "replaceAll",
+      staged: files,
+      defaultSavingsAccountId: defaultSavingsAccountId(accounts, receiving),
+    });
+  }
 
   const savingsAccounts = useMemo(
     () =>
@@ -185,7 +198,7 @@ function ReviewBody({
         const waitIndex = nextFileToSettle(phases, index);
         return (
           <FileCard
-            key={`${index}-${file.fileName}`}
+            key={`${batch}-${index}-${file.fileName}`}
             file={file}
             fileIndex={index}
             plan={plans[index] ?? emptyFilePlan()}
@@ -206,8 +219,6 @@ function ReviewBody({
 
 interface StagedImportReviewProps
   extends Omit<ReviewBodyProps, "isReading" | "accountSelectRef"> {
-  /** Changes with every reading of the files: what the user edited belongs to one reading. */
-  batch: number;
   /** Translated progress while the files are read again; null otherwise. */
   readingText: string | null;
   onClose: () => void;
@@ -272,8 +283,8 @@ export function StagedImportReview({
           {readingText === null ? null : <p className="font-medium">{readingText}</p>}
         </div>
         <ReviewBody
-          key={batch}
           {...body}
+          batch={batch}
           isReading={isReading}
           accountSelectRef={accountSelectRef}
           onAccountChange={(accountId) => {

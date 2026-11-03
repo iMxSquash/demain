@@ -440,7 +440,7 @@
       "columnState": "State",
       "importFailed": "Something went wrong, nothing was imported from this file.",
       "receivingAccount": "Account that receives the files",
-      "receivingAccountHint": "Changing it reads the files again: duplicates and currency depend on the account, and the edits made here are lost.",
+      "receivingAccountHint": "Changing it reads the files again: duplicates and currency depend on the account, and the edits made here are kept when their line is still read.",
       "savingsAccount": "Savings account",
       "savingsAccountHint": "Used by every savings row that names no other account.",
       "noSavingsAccount": "No savings account",

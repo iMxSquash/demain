@@ -440,7 +440,7 @@
       "columnState": "État",
       "importFailed": "Une erreur est survenue, rien n'a été importé de ce fichier.",
       "receivingAccount": "Compte qui reçoit les fichiers",
-      "receivingAccountHint": "Le changer relance la lecture des fichiers : les doublons et la devise dépendent du compte, et les modifications faites ici sont perdues.",
+      "receivingAccountHint": "Le changer relance la lecture des fichiers : les doublons et la devise dépendent du compte, et les modifications faites ici sont conservées quand leur ligne est toujours lue.",
       "savingsAccount": "Compte d'épargne",
       "savingsAccountHint": "Utilisé par chaque ligne d'épargne qui n'en nomme pas d'autre.",
       "noSavingsAccount": "Aucun compte d'épargne",

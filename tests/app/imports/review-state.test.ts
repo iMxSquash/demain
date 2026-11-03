@@ -857,3 +857,111 @@ describe("canImportFile", () => {
     expect(canImportFile(first(importing), GO)).toBe(false);
   });
 });
+
+describe("reviewReducer when every file is read again for another account", () => {
+  const FIRST = stagedRow({ line: 2 });
+  const SECOND = stagedRow({
+    line: 5,
+    draft: { date: "2026-03-09", label: "BAKERY", amount: "-4,00", externalId: null },
+  });
+
+  function corrected(): ReviewState {
+    let state = start([stagedFile("march.csv", [FIRST, SECOND])], 7);
+    state = reviewReducer(state, {
+      type: "setDetails",
+      file: 0,
+      row: 1,
+      details: { type: "savings", savingsAccountId: 9 },
+    });
+    return reviewReducer(state, {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "label",
+      value: "edited",
+    });
+  }
+
+  it("keeps the corrections of each row, tied to its line in the file", () => {
+    const next = reviewReducer(corrected(), {
+      type: "replaceAll",
+      staged: [stagedFile("march.csv", [SECOND, FIRST])],
+      defaultSavingsAccountId: 7,
+    });
+
+    const byLine = new Map(next.files[0]?.rows.map((row) => [row.line, row]));
+    expect(byLine.get(2)?.draft.label).toBe("edited");
+    expect(byLine.get(5)?.details.type).toBe("savings");
+    expect(byLine.get(5)?.details.savingsAccountId).toBe(9);
+    expect(next.files[0]?.lastReread).toEqual({ kept: 2, dropped: 0 });
+  });
+
+  it("drops and counts the corrections whose line is no longer read", () => {
+    const next = reviewReducer(corrected(), {
+      type: "replaceAll",
+      staged: [stagedFile("march.csv", [FIRST])],
+      defaultSavingsAccountId: 7,
+    });
+
+    expect(next.files[0]?.rows[0]?.draft.label).toBe("edited");
+    expect(next.files[0]?.lastReread).toEqual({ kept: 1, dropped: 1 });
+  });
+
+  it("follows each file by its place among the files chosen, whatever the date order", () => {
+    let state = start([
+      stagedFile("april.csv", [FIRST], { firstDate: "2026-04-01" }),
+      stagedFile("march.csv", [FIRST], { firstDate: "2026-03-01" }),
+    ]);
+    state = reviewReducer(state, {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "label",
+      value: "march edit",
+    });
+
+    const next = reviewReducer(state, {
+      type: "replaceAll",
+      staged: [
+        stagedFile("april.csv", [FIRST], { firstDate: "2026-04-01" }),
+        stagedFile("march.csv", [FIRST], { firstDate: "2026-03-01" }),
+      ],
+      defaultSavingsAccountId: null,
+    });
+
+    expect(next.files.map((file) => [file.fileName, file.rows[0]?.draft.label])).toEqual([
+      ["march.csv", "march edit"],
+      ["april.csv", "CARD SHOP"],
+    ]);
+  });
+
+  it("takes the savings account of the new account and reads the rows against it", () => {
+    const state = start([stagedFile("march.csv", [SAVINGS_ROW])], null);
+
+    const next = reviewReducer(state, {
+      type: "replaceAll",
+      staged: [stagedFile("march.csv", [SAVINGS_ROW])],
+      defaultSavingsAccountId: 7,
+    });
+
+    expect(next.defaultSavingsAccountId).toBe(7);
+    expect(next.files[0]?.rows[0]?.problem).toBeNull();
+  });
+
+  it("puts the files back under review and clears the error of an earlier reading", () => {
+    const failed = reviewReducer(corrected(), {
+      type: "rereadFailed",
+      file: 0,
+      message: "Could not read the file",
+    });
+
+    const next = reviewReducer(failed, {
+      type: "replaceAll",
+      staged: [stagedFile("march.csv", [FIRST, SECOND])],
+      defaultSavingsAccountId: 7,
+    });
+
+    expect(next.files[0]?.phase).toBe("reviewing");
+    expect(next.files[0]?.rereadError).toBeNull();
+  });
+});
