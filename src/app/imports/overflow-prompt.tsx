@@ -19,6 +19,7 @@ interface DemandCardProps {
 
 function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: DemandCardProps) {
   const t = useTranslations("imports.staged.overflow");
+  const tImports = useTranslations("imports");
   const common = useTranslations("common");
   const locale = useLocale();
   const headingId = useId();
@@ -96,7 +97,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           }}
           className={CONTROL_CLASS}
         >
-          <option value="">{t("noChoice")}</option>
+          <option value="">{tImports("chooseAccount")}</option>
           {options.map(({ id, label }) => (
             <option key={id} value={id}>
               {label}

@@ -507,7 +507,7 @@ describe("planReview shortfalls", () => {
 
   it("reports the amount that does not fit in an account with a ceiling and no overflow account", () => {
     expect(plan([deposit("-150,00")], [capped])?.shortfalls).toEqual([
-      { index: 0, accountId: SAVINGS_ID, amount: 5_000 },
+      { accountId: SAVINGS_ID, amount: 5_000 },
     ]);
   });
 
@@ -516,7 +516,7 @@ describe("planReview shortfalls", () => {
     const last = account({ id: OTHER_ID, balance: 20_000, ceiling: 20_000 });
 
     expect(plan([deposit("-30,00")], [first, last])?.shortfalls).toEqual([
-      { index: 0, accountId: OTHER_ID, amount: 3_000 },
+      { accountId: OTHER_ID, amount: 3_000 },
     ]);
   });
 
@@ -540,7 +540,7 @@ describe("planReview shortfalls", () => {
     const tail = account({ id: TAIL_ID, balance: 0, ceiling: 20_000 });
 
     expect(plan([deposit("-250,00")], [first, middle, tail], FIRST_ID)?.shortfalls).toEqual([
-      { index: 0, accountId: TAIL_ID, amount: 5_000 },
+      { accountId: TAIL_ID, amount: 5_000 },
     ]);
   });
 

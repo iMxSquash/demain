@@ -6,11 +6,7 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { RowDetails } from "../../domain/import-draft";
-import {
-  choicesForShortfalls,
-  type OverflowShortfall,
-  type PendingOverflow,
-} from "../../domain/import-overflow";
+import type { PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
 import { BUTTON_CLASS } from "../form-field";
 import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
@@ -147,10 +143,8 @@ interface FileCardProps {
   defaultSavingsAccountId: number | null;
   /** Names of the accounts, to write where a savings row goes. */
   accountNames: ReadonlyMap<number, string>;
-  /** The overflow accounts chosen in the review: saved with the file, or not at all. */
+  /** The overflow accounts this file needs: saved with the file, or not at all. */
   overflowChoices: readonly PendingOverflow[];
-  /** What this file falls short of on the stored balances: the choices it needs are sent with it. */
-  overflowNeeds: readonly OverflowShortfall[];
   lookups: RowLookups;
   isReading: boolean;
   /** Reads the file again with other columns; resolves to whether the new rows are in. */
@@ -167,7 +161,6 @@ export function FileCard({
   defaultSavingsAccountId,
   accountNames,
   overflowChoices,
-  overflowNeeds,
   lookups,
   isReading,
   onChangeColumns,
@@ -285,7 +278,7 @@ export function FileCard({
         mapping: file.mapping,
         savingsAccountId: defaultSavingsAccountId,
         drafts: rows.map((row) => ({ ...row.draft, details: row.details })),
-        overflowChoices: choicesForShortfalls(overflowChoices, overflowNeeds),
+        overflowChoices: [...overflowChoices],
       });
       dispatch({
         type: "setPhase",

@@ -239,18 +239,20 @@ export function planReview(
       phase === "cancelled" || phase === "failed" ? [] : savingsMovementsOf(rows, context),
   }));
 
+  const accountsById = new Map(context.accounts.map((account) => [account.id, account]));
   for (const { file, plan } of planFilesInDateOrder(planned, context.accounts)) {
     const target = plans[file.position];
     if (target === undefined) continue;
     target.isChainLooping = plan.issues.some((issue) => issue.kind === "overflowChainCycle");
+    const movementsByIndex = new Map(file.movements.map((movement) => [movement.index, movement]));
     for (const transfer of plan.transfers) {
       target.splits.set(transfer.index, splitSegments(transfer));
       if (transfer.kind !== "deposit" || transfer.unplaced === 0) continue;
-      const start = file.movements.find(({ index }) => index === transfer.index);
+      const start = movementsByIndex.get(transfer.index);
       const tail =
-        start === undefined ? null : overflowChainTail(start.savingsAccountId, context.accounts);
+        start === undefined ? null : overflowChainTail(start.savingsAccountId, accountsById);
       if (tail !== null) {
-        target.shortfalls.push({ index: transfer.index, accountId: tail, amount: transfer.unplaced });
+        target.shortfalls.push({ accountId: tail, amount: transfer.unplaced });
       }
     }
   }

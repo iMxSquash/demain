@@ -8,8 +8,6 @@ import type { OverflowAccount } from "./overflow";
 
 /** The part of one savings row that fits nowhere, and the account at the end of its chain. */
 export interface OverflowShortfall {
-  /** Position of the row in its file. */
-  index: number;
   /** The account with a ceiling and no overflow account that could not take it. */
   accountId: number;
   /** Positive, in minor units. */

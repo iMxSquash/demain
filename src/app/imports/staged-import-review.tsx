@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import {
+  choicesForShortfalls,
   overflowDemands,
   pendingAccountNames,
   type OverflowTarget,
@@ -139,14 +140,17 @@ function ReviewBody({
   );
   const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
   // Read on the stored balances: a choice already made would hide the need it answers.
+  // Without a choice the stored balances are the shown ones, so the plan is reused.
   const storedPlans = useMemo(
     () =>
-      planReview(state.files, {
-        currency,
-        defaultSavingsAccountId: savingsAccountId,
-        accounts: storedOverflowAccounts,
-      }),
-    [state.files, currency, savingsAccountId, storedOverflowAccounts],
+      overflowChoices.length === 0
+        ? plans
+        : planReview(state.files, {
+            currency,
+            defaultSavingsAccountId: savingsAccountId,
+            accounts: storedOverflowAccounts,
+          }),
+    [plans, overflowChoices.length, state.files, currency, savingsAccountId, storedOverflowAccounts],
   );
   const phases = state.files.map((file) => file.phase);
   // Index of the file being read again with other columns.
@@ -245,8 +249,7 @@ function ReviewBody({
             accountId={accountId}
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
-            overflowChoices={overflowChoices}
-            overflowNeeds={storedPlans[index]?.shortfalls ?? []}
+            overflowChoices={choicesForShortfalls(overflowChoices, storedPlans[index]?.shortfalls ?? [])}
             lookups={lookups}
             isReading={isBusy}
             onChangeColumns={(choices) => restageFile(index, choices)}

@@ -27,8 +27,8 @@ describe("overflowDemands", () => {
   it("adds up what does not fit in one account, across rows and files", () => {
     expect(
       overflowDemands([
-        [{ index: 0, accountId: 2, amount: 5_000 }, { index: 3, accountId: 2, amount: 1_000 }],
-        [{ index: 1, accountId: 2, amount: 500 }],
+        [{ accountId: 2, amount: 5_000 }, { accountId: 2, amount: 1_000 }],
+        [{ accountId: 2, amount: 500 }],
       ]),
     ).toEqual([{ accountId: 2, amount: 6_500, rows: 3 }]);
   });
@@ -36,8 +36,8 @@ describe("overflowDemands", () => {
   it("asks once per account, in the order the accounts first fall short", () => {
     expect(
       overflowDemands([
-        [{ index: 0, accountId: 4, amount: 100 }],
-        [{ index: 0, accountId: 2, amount: 200 }, { index: 1, accountId: 4, amount: 300 }],
+        [{ accountId: 4, amount: 100 }],
+        [{ accountId: 2, amount: 200 }, { accountId: 4, amount: 300 }],
       ]),
     ).toEqual([
       { accountId: 4, amount: 400, rows: 2 },
@@ -59,7 +59,7 @@ describe("choicesForShortfalls", () => {
   it("keeps only the choices of the accounts where the file falls short", () => {
     const choices = [existing(2), existing(4)];
 
-    expect(choicesForShortfalls(choices, [{ index: 0, accountId: 4, amount: 100 }])).toEqual([
+    expect(choicesForShortfalls(choices, [{ accountId: 4, amount: 100 }])).toEqual([
       existing(4),
     ]);
   });

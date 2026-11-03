@@ -495,7 +495,6 @@
         "heading": "Compte de débordement de {account}",
         "shortfall": "{amount} ne rentre pas dans {account}, qui a un plafond et pas de compte de débordement. Lignes d'épargne concernées : {rows}. Choisissez le compte qui reçoit le surplus.",
         "selectLabel": "Compte de débordement de {account}",
-        "noChoice": "Choisir un compte",
         "permanent": "Le compte choisi devient définitivement le compte de débordement de {account}, à l'import d'un fichier. Fermer cette fenêtre n'enregistre rien.",
         "chooseRequired": "Choisissez d'abord un compte.",
         "choose": "Utiliser comme compte de débordement",

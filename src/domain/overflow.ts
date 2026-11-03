@@ -149,9 +149,8 @@ export function assertOverflowTargetAllowed(
  */
 export function overflowChainTail(
   startId: number,
-  accounts: readonly Pick<OverflowAccount, "id" | "overflowAccountId">[],
+  byId: ReadonlyMap<number, Pick<OverflowAccount, "id" | "overflowAccountId">>,
 ): number | null {
-  const byId = new Map(accounts.map((account) => [account.id, account]));
   const visited = new Set<number>();
   let current = byId.get(startId);
   let tail: number | null = null;

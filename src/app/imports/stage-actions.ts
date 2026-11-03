@@ -157,11 +157,12 @@ export async function commitStagedFileAction(
   request: CommitStagedRequest,
 ): Promise<CommitStagedState> {
   await requireSession();
-  const [t, issuesT, translate, locale] = await Promise.all([
+  const [t, issuesT, translate, locale, timeZone] = await Promise.all([
     getTranslations("imports"),
     getTranslations("imports.staged.issues"),
     getTranslator(),
     getLocale(),
+    getTimeZone(),
   ]);
   const fail = (message: string): CommitStagedState => ({
     status: "error",
@@ -177,7 +178,7 @@ export async function commitStagedFileAction(
 
   try {
     const now = new Date();
-    const openingDate = todayIn(await getTimeZone(), now);
+    const openingDate = todayIn(timeZone, now);
     const { currency, outcome } = withDatabase((db) => ({
       currency: getAccount(db, file.accountId).currency,
       outcome: commitDrafts(db, {

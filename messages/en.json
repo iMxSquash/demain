@@ -495,7 +495,6 @@
         "heading": "Overflow account for {account}",
         "shortfall": "{amount} does not fit in {account}, which has a ceiling and no overflow account. Savings rows concerned: {rows}. Choose the account that receives the surplus.",
         "selectLabel": "Overflow account of {account}",
-        "noChoice": "Choose an account",
         "permanent": "The account you choose becomes the overflow account of {account} for good, when a file is imported. Closing this window saves nothing.",
         "chooseRequired": "Choose an account first.",
         "choose": "Use as overflow account",
