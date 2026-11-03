@@ -496,14 +496,15 @@
         "shortfall": "{amount} ne rentre pas dans {account}, qui a un plafond et pas de compte de débordement. Lignes d'épargne concernées : {rows}. Choisissez le compte qui reçoit le surplus.",
         "selectLabel": "Compte de débordement de {account}",
         "noChoice": "Choisir un compte",
-        "permanent": "Le compte choisi reste définitivement le compte de débordement de {account}, pour cet import et les suivants.",
+        "permanent": "Le compte choisi devient définitivement le compte de débordement de {account}, à l'import d'un fichier. Fermer cette fenêtre n'enregistre rien.",
         "chooseRequired": "Choisissez d'abord un compte.",
         "choose": "Utiliser comme compte de débordement",
         "createLegend": "Ou créer un compte",
         "nameLabel": "Nom du nouveau compte",
-        "createHint": "Un compte d'épargne en {currency}, sans plafond. Il est ajouté aux choix ci-dessus, puis vous le confirmez.",
-        "create": "Créer le compte",
-        "chosen": "{overflow} est maintenant le compte de débordement de {account}."
+        "createHint": "Un compte d'épargne en {currency}, sans plafond. Il est créé à l'import d'un fichier, pas avant.",
+        "nameRequired": "Saisissez d'abord un nom.",
+        "create": "Créer et utiliser comme compte de débordement",
+        "chosen": "{overflow} sera le compte de débordement de {account} à l'import d'un fichier."
       },
       "unplacedNote": "Une partie d'une ligne d'épargne ne tient nulle part dans la chaîne de débordement : ce fichier sera refusé tel quel.",
       "importAfter": "Importez ou annulez d'abord {name} : les fichiers sont enregistrés dans l'ordre des dates."

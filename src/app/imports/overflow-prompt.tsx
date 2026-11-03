@@ -3,29 +3,18 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useRef, useState, type FormEvent } from "react";
 
-import type { OverflowDemand } from "../../domain/import-overflow";
+import type { OverflowDemand, OverflowTarget } from "../../domain/import-overflow";
 import { formatAmount } from "../../domain/money";
-import type { OverflowAccount } from "../../domain/overflow";
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
 import type { ImportAccountOption } from "./import-form-data";
-import { chooseOverflowAccountAction, createOverflowAccountAction } from "./overflow-actions";
-
-interface MadeAccount {
-  name: string;
-  account: OverflowAccount;
-}
 
 interface DemandCardProps {
   demand: OverflowDemand;
   accounts: readonly ImportAccountOption[];
   receivingAccountId: number;
   isBusy: boolean;
-  /** Called once the choice is saved; `created` is the account made in the card, if it was chosen. */
-  onChosen: (
-    overflowAccountId: number,
-    overflowName: string,
-    created: OverflowAccount | undefined,
-  ) => void;
+  /** Called with the choice and the name to announce it by; nothing is saved at this point. */
+  onChosen: (target: OverflowTarget, targetName: string) => void;
 }
 
 function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: DemandCardProps) {
@@ -40,85 +29,44 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
   const nameHintId = useId();
   const createErrorId = useId();
   const selectRef = useRef<HTMLSelectElement>(null);
-  const [made, setMade] = useState<readonly MadeAccount[]>([]);
+  const nameRef = useRef<HTMLInputElement>(null);
   const [chosen, setChosen] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
-  const [isWorking, setIsWorking] = useState(false);
 
   const account = accounts.find(({ id }) => id === demand.accountId);
   const currency = account?.currency ?? "";
   const accountName = account?.name ?? "";
   // The account that receives the file cannot take the surplus back: the transfer would go to itself.
-  const options = [
-    ...accounts
-      .filter(
-        (candidate) =>
-          candidate.id !== demand.accountId &&
-          candidate.id !== receivingAccountId &&
-          candidate.currency === currency,
-      )
-      .map(({ id, name: label }) => ({ id, label })),
-    ...made
-      .filter(({ account: created }) => !accounts.some(({ id }) => id === created.id))
-      .map(({ name: label, account: created }) => ({ id: created.id, label })),
-  ];
-  const locked = isBusy || isWorking;
+  const options = accounts
+    .filter(
+      (candidate) =>
+        candidate.id !== demand.accountId &&
+        candidate.id !== receivingAccountId &&
+        candidate.currency === currency,
+    )
+    .map(({ id, name: label }) => ({ id, label }));
 
-  async function choose() {
-    if (chosen === "") {
+  function choose() {
+    const selected = options.find(({ id }) => String(id) === chosen);
+    if (selected === undefined) {
       setError(t("chooseRequired"));
       selectRef.current?.focus();
       return;
     }
-    const overflowAccountId = Number(chosen);
-    setIsWorking(true);
-    try {
-      const result = await chooseOverflowAccountAction({
-        receivingAccountId,
-        accountId: demand.accountId,
-        overflowAccountId,
-      });
-      if (result.status === "error") {
-        setError(result.message);
-        selectRef.current?.focus();
-        return;
-      }
-      setError(null);
-      onChosen(
-        overflowAccountId,
-        options.find(({ id }) => id === overflowAccountId)?.label ?? "",
-        made.find(({ account: created }) => created.id === overflowAccountId)?.account,
-      );
-    } finally {
-      setIsWorking(false);
-    }
+    onChosen({ kind: "existing", id: selected.id }, selected.label);
   }
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsWorking(true);
-    try {
-      const result = await createOverflowAccountAction({
-        likeAccountId: demand.accountId,
-        name,
-      });
-      if (result.status === "error") {
-        setCreateError(result.message);
-        return;
-      }
-      if (result.status !== "created") return;
-      setCreateError(null);
-      setName("");
-      setMade((previous) => [...previous, { name: result.name, account: result.account }]);
-      setChosen(String(result.account.id));
-      setError(null);
-      // The button that was pressed is disabled while the call runs: the focus goes to the choice.
-      requestAnimationFrame(() => selectRef.current?.focus());
-    } finally {
-      setIsWorking(false);
+    const trimmed = name.trim();
+    if (trimmed === "") {
+      setCreateError(t("nameRequired"));
+      nameRef.current?.focus();
+      return;
     }
+    onChosen({ kind: "new", name: trimmed }, trimmed);
   }
 
   return (
@@ -139,7 +87,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           id={selectId}
           ref={selectRef}
           value={chosen}
-          disabled={locked}
+          disabled={isBusy}
           aria-invalid={error === null ? undefined : true}
           aria-describedby={error === null ? hintId : `${hintId} ${errorId}`}
           onChange={(event) => {
@@ -164,7 +112,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           </p>
         )}
       </div>
-      <button type="button" disabled={locked} onClick={choose} className={`${BUTTON_CLASS} self-start`}>
+      <button type="button" disabled={isBusy} onClick={choose} className={`${BUTTON_CLASS} self-start`}>
         {t("choose")}
       </button>
       <form onSubmit={create} className="flex flex-col gap-2">
@@ -173,8 +121,9 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           <label htmlFor={nameId}>{t("nameLabel")}</label>
           <input
             id={nameId}
+            ref={nameRef}
             value={name}
-            disabled={locked}
+            disabled={isBusy}
             aria-invalid={createError === null ? undefined : true}
             aria-describedby={createError === null ? nameHintId : `${nameHintId} ${createErrorId}`}
             onChange={(event) => {
@@ -191,7 +140,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
               {common("error", { message: createError })}
             </p>
           )}
-          <button type="submit" disabled={locked} className={`${BUTTON_CLASS} self-start`}>
+          <button type="submit" disabled={isBusy} className={`${BUTTON_CLASS} self-start`}>
             {t("create")}
           </button>
         </fieldset>
@@ -205,16 +154,13 @@ interface OverflowPromptProps {
   accounts: readonly ImportAccountOption[];
   receivingAccountId: number;
   isBusy: boolean;
-  onChosen: (
-    accountId: number,
-    overflowAccountId: number,
-    created: OverflowAccount | undefined,
-  ) => void;
+  onChosen: (accountId: number, target: OverflowTarget) => void;
 }
 
 /**
  * Asks, for each savings account with a ceiling and no overflow account that a
- * row exceeds, which account takes the surplus. The choice is saved for good.
+ * row exceeds, which account takes the surplus. The choice is only remembered:
+ * it is saved, for good, together with the first file that is imported.
  */
 export function OverflowPrompt({
   demands,
@@ -230,7 +176,7 @@ export function OverflowPrompt({
 
   return (
     <>
-      {/* Always in the page: the card that held the focus is gone once its choice is saved, so the focus comes here. */}
+      {/* Always in the page: the card that held the focus is gone once its choice is made, so the focus comes here. */}
       <div ref={noticeRef} role="status" tabIndex={-1}>
         {notice === null ? null : <p className="font-medium">{notice}</p>}
       </div>
@@ -241,11 +187,9 @@ export function OverflowPrompt({
           accounts={accounts}
           receivingAccountId={receivingAccountId}
           isBusy={isBusy}
-          onChosen={(overflowAccountId, overflowName, created) => {
-            setNotice(
-              t("chosen", { account: nameOf(demand.accountId), overflow: overflowName }),
-            );
-            onChosen(demand.accountId, overflowAccountId, created);
+          onChosen={(target, targetName) => {
+            setNotice(t("chosen", { account: nameOf(demand.accountId), overflow: targetName }));
+            onChosen(demand.accountId, target);
             noticeRef.current?.focus();
           }}
         />

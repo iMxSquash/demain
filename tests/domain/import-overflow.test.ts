@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   overflowDemands,
+  pendingAccountNames,
+  placeholderAccountId,
   withOverflowAccount,
+  type PendingOverflow,
 } from "../../src/domain/import-overflow";
 import type { OverflowAccount } from "../../src/domain/overflow";
 
@@ -56,5 +59,25 @@ describe("withOverflowAccount", () => {
     const created = account({ id: 9 });
 
     expect(withOverflowAccount([account({ id: 2 })], 2, 9, created).map(({ id }) => id)).toEqual([2, 9]);
+  });
+});
+
+describe("placeholderAccountId", () => {
+  it("gives the choices of a review distinct ids that no stored account can have", () => {
+    const ids = [0, 1, 2].map(placeholderAccountId);
+
+    expect(new Set(ids).size).toBe(3);
+    expect(ids.every((id) => id < 0)).toBe(true);
+  });
+});
+
+describe("pendingAccountNames", () => {
+  it("names the accounts the review will create by the placeholder of their choice", () => {
+    const choices: PendingOverflow[] = [
+      { accountId: 2, target: { kind: "existing", id: 3 } },
+      { accountId: 4, target: { kind: "new", name: "Spare" } },
+    ];
+
+    expect(pendingAccountNames(choices)).toEqual(new Map([[placeholderAccountId(1), "Spare"]]));
   });
 });

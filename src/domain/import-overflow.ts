@@ -24,6 +24,36 @@ export interface OverflowDemand {
   rows: number;
 }
 
+/** The account that will take the surplus: one that exists, or one to create with the import. */
+export type OverflowTarget =
+  | { kind: "existing"; id: number }
+  | { kind: "new"; name: string };
+
+/** A choice made in the review. It is only saved together with the file it lets through. */
+export interface PendingOverflow {
+  /** The account with a ceiling and no overflow account. */
+  accountId: number;
+  target: OverflowTarget;
+}
+
+/**
+ * Stands for the account a choice will create, in the plan and in the texts of
+ * the review: negative, so it is never the id of a stored account. The choices
+ * of a review are only added to, so the place of a choice gives its id.
+ */
+export function placeholderAccountId(choiceIndex: number): number {
+  return -(choiceIndex + 1);
+}
+
+/** The names of the accounts the choices will create, by placeholder id. */
+export function pendingAccountNames(choices: readonly PendingOverflow[]): Map<number, string> {
+  const names = new Map<number, string>();
+  choices.forEach(({ target }, index) => {
+    if (target.kind === "new") names.set(placeholderAccountId(index), target.name);
+  });
+  return names;
+}
+
 /** Groups the shortfalls of the files by account, in the order accounts first fall short. */
 export function overflowDemands(
   shortfallsByFile: readonly (readonly OverflowShortfall[])[],

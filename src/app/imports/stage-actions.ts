@@ -1,6 +1,6 @@
 "use server";
 
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 
 import { amountTextForType, readImportDraft } from "../../domain/import-draft";
 import { ImportParseError } from "../../domain/import-row";
@@ -8,7 +8,8 @@ import { firstMovementDate } from "../../domain/import-savings";
 import type { TypedStagedRow } from "../../domain/import-staging";
 import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
-import { formatCalendarDate } from "../../i18n/dates";
+import { formatCalendarDate, todayIn } from "../../i18n/dates";
+import { AccountValidationError } from "../../domain/account";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
@@ -172,15 +173,18 @@ export async function commitStagedFileAction(
 
   const parsed = commitRequestSchema.safeParse(request);
   if (!parsed.success) return fail(translate(messageRef("importFailed")));
-  const { savingsAccountId, ...file } = parsed.data;
+  const { savingsAccountId, overflowChoices, ...file } = parsed.data;
 
   try {
+    const now = new Date();
+    const openingDate = todayIn(await getTimeZone(), now);
     const { currency, outcome } = withDatabase((db) => ({
       currency: getAccount(db, file.accountId).currency,
       outcome: commitDrafts(db, {
         ...file,
         savingsAccountId: savingsAccountId ?? undefined,
-        now: new Date(),
+        now,
+        overflow: { choices: overflowChoices ?? [], openingDate },
       }),
     }));
     if (outcome.status === "invalid") {
@@ -242,6 +246,8 @@ export async function commitStagedFileAction(
     if (error instanceof AccountNotFoundError) {
       return fail(translate({ key: "accountGone" }));
     }
+    // An overflow account the ledger refuses: the file was not recorded.
+    if (error instanceof AccountValidationError) return fail(translate(error.ref));
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Staged import failed", error);
     const ref = messageRef("importFailed");

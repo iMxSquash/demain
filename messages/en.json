@@ -496,14 +496,15 @@
         "shortfall": "{amount} does not fit in {account}, which has a ceiling and no overflow account. Savings rows concerned: {rows}. Choose the account that receives the surplus.",
         "selectLabel": "Overflow account of {account}",
         "noChoice": "Choose an account",
-        "permanent": "The account you choose stays the overflow account of {account} for good, for this import and the next ones.",
+        "permanent": "The account you choose becomes the overflow account of {account} for good, when a file is imported. Closing this window saves nothing.",
         "chooseRequired": "Choose an account first.",
         "choose": "Use as overflow account",
         "createLegend": "Or create an account",
         "nameLabel": "Name of the new account",
-        "createHint": "A savings account in {currency}, with no ceiling. It is added to the choices above, then you confirm it.",
-        "create": "Create account",
-        "chosen": "{overflow} is now the overflow account of {account}."
+        "createHint": "A savings account in {currency}, with no ceiling. It is created when a file is imported, not before.",
+        "nameRequired": "Type a name first.",
+        "create": "Create and use as overflow account",
+        "chosen": "{overflow} will be the overflow account of {account} when a file is imported."
       },
       "unplacedNote": "Part of a savings row fits nowhere along the overflow chain: this file will be refused as it is.",
       "importAfter": "Import or cancel {name} first: the files are recorded in date order."
