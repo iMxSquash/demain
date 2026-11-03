@@ -291,10 +291,14 @@ function updateRows(
   return updateFile(state, fileIndex, (file) => {
     const targets = new Set(rowIndexes.filter((index) => file.rows[index] !== undefined));
     if (targets.size === 0 || file.phase !== "reviewing") return file;
+    const rows = file.rows.map((row, i) => (targets.has(i) ? update(row, file) : row));
+    // The note on the last reading describes rows that are no longer the ones shown.
+    const isChanged = rows.some((row, i) => row !== file.rows[i]);
     return {
       ...file,
-      rows: file.rows.map((row, i) => (targets.has(i) ? update(row, file) : row)),
+      rows,
       outcome: null,
+      lastReread: isChanged ? null : file.lastReread,
     };
   });
 }
@@ -381,9 +385,10 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
       );
 
     case "settleAmount":
-      return updateRow(state, action.file, action.row, (row, file) =>
-        withConfirmation(withShownAmount(row, file.currency), file.currency),
-      );
+      return updateRow(state, action.file, action.row, (row, file) => {
+        const settled = withConfirmation(withShownAmount(row, file.currency), file.currency);
+        return settled.draft.amount === row.draft.amount ? row : settled;
+      });
 
     case "setDetails":
       return updateRow(state, action.file, action.row, (row, file) =>

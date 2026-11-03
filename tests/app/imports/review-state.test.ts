@@ -965,3 +965,57 @@ describe("reviewReducer when every file is read again for another account", () =
     expect(next.files[0]?.rereadError).toBeNull();
   });
 });
+
+describe("reviewReducer once the file was read again and the user changes it", () => {
+  function reread(): ReviewState {
+    return reviewReducer(start([stagedFile("march.csv", [stagedRow(), SAVINGS_ROW])], 7), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [stagedRow(), SAVINGS_ROW]),
+    });
+  }
+
+  it("announces the reading until a row is changed", () => {
+    expect(reread().files[0]?.lastReread).toEqual({ kept: 0, dropped: 0 });
+  });
+
+  it("drops the announcement when a text is edited", () => {
+    const next = reviewReducer(reread(), {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "label",
+      value: "edited",
+    });
+
+    expect(next.files[0]?.lastReread).toBeNull();
+  });
+
+  it("drops the announcement when the details of a row are changed", () => {
+    const next = reviewReducer(reread(), {
+      type: "setDetails",
+      file: 0,
+      row: 0,
+      details: { categoryId: 12 },
+    });
+
+    expect(next.files[0]?.lastReread).toBeNull();
+  });
+
+  it("drops the announcement when several rows are changed at once", () => {
+    const next = reviewReducer(reread(), {
+      type: "setDetailsMany",
+      file: 0,
+      rows: [0, 1],
+      details: { categoryId: 12 },
+    });
+
+    expect(next.files[0]?.lastReread).toBeNull();
+  });
+
+  it("keeps the announcement when a cell is left without a change", () => {
+    const next = reviewReducer(reread(), { type: "settleAmount", file: 0, row: 0 });
+
+    expect(next.files[0]?.lastReread).toEqual({ kept: 0, dropped: 0 });
+  });
+});
