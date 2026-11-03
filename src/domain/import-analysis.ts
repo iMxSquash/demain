@@ -11,7 +11,11 @@ import {
   movementColumns,
   widestRowLength,
 } from "./import-blocks";
-import { detectColumnRoles, type ColumnIssue } from "./import-columns";
+import {
+  detectColumnRoles,
+  type ColumnChoices,
+  type ColumnIssue,
+} from "./import-columns";
 import {
   CSV_DATE_FORMATS,
   completeDateYear,
@@ -49,6 +53,13 @@ export type AnalysisIssue =
   | { kind: "numberFormatAmbiguous"; mark: DecimalMark }
   | ColumnIssue;
 
+export interface RoleColumn {
+  /** 0-based. */
+  column: number;
+  /** The header cell, empty when the column has none. */
+  header: string;
+}
+
 export interface CsvAnalysis {
   delimiter: CsvDelimiter;
   /** Null when the date, label or amount column is not found: see `issues`. */
@@ -58,6 +69,8 @@ export interface CsvAnalysis {
   categoryColumn: number | null;
   /** Free text beside the label, named by its header: not an issue when absent. */
   descriptionColumn: number | null;
+  /** The columns of the table that hold none of the date, label and amount: what an optional role can be given to. */
+  roleColumns: RoleColumn[];
   /** 0-based index of the header row; the lines above it are ignored. */
   headerIndex: number;
   /** 1-based lines of the file that are no movement: above the header, totals, and lines holding only what is beside the table. */
@@ -87,6 +100,8 @@ interface TableLayout {
   ignoredLines: number[];
   totalLines: number[];
   ignoredColumns: number[];
+  /** Columns of the table, in or out of the block, with their header cell. */
+  tableColumns: RoleColumn[];
 }
 
 /**
@@ -130,8 +145,15 @@ function layoutTable(
       !inBlock(column) &&
       fromHeader.some((cells) => (cells[column] ?? "").trim() !== ""),
   );
+  const tableColumns = Array.from({ length: columnCount }, (_, column) => column)
+    .filter(inBlock)
+    .map((column) => ({
+      column,
+      header: (table[headerIndex]?.[column] ?? "").trim(),
+    }));
   return {
     header: clear(table[headerIndex] ?? []),
+    tableColumns,
     rows,
     aboveHeaderLines,
     ignoredLines,
@@ -169,6 +191,7 @@ function analyzeTable(
   table: readonly (readonly string[])[],
   delimiter: CsvDelimiter,
   year: number | undefined,
+  choices: ColumnChoices,
 ): CsvAnalysis {
   const headerIndex = findHeaderIndex(table);
   const { dateColumn, labelColumn, amount } = suggestMappingColumns(
@@ -242,6 +265,7 @@ function analyzeTable(
     headerIndex + 2,
     mappedColumns,
     layout.header,
+    choices,
   );
 
   return {
@@ -251,6 +275,9 @@ function analyzeTable(
     paymentModeColumn: roles.paymentModeColumn,
     categoryColumn: roles.categoryColumn,
     descriptionColumn: roles.descriptionColumn,
+    roleColumns: isEssentialFound
+      ? layout.tableColumns.filter(({ column }) => !mappedColumns.includes(column))
+      : [],
     headerIndex,
     ignoredLines: layout.ignoredLines,
     yearApplied,
@@ -272,6 +299,7 @@ function unusable(delimiter: CsvDelimiter, issue: AnalysisIssue): CsvAnalysis {
     paymentModeColumn: null,
     categoryColumn: null,
     descriptionColumn: null,
+    roleColumns: [],
     headerIndex: 0,
     ignoredLines: [],
     yearApplied: null,
@@ -280,10 +308,14 @@ function unusable(delimiter: CsvDelimiter, issue: AnalysisIssue): CsvAnalysis {
 }
 
 /** Analyzes a file that is already split into cells, so that a caller reading it too parses it once. */
-export function analyzeCsvFile(file: CsvFile, year?: number): CsvAnalysis {
+export function analyzeCsvFile(
+  file: CsvFile,
+  year?: number,
+  choices: ColumnChoices = {},
+): CsvAnalysis {
   return "issue" in file
     ? unusable(file.delimiter, file.issue)
-    : analyzeTable(file.table, file.delimiter, year);
+    : analyzeTable(file.table, file.delimiter, year, choices);
 }
 
 /**

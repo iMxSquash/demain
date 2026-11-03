@@ -28,6 +28,11 @@ describe("analyzeCsv", () => {
       paymentModeColumn: 4,
       categoryColumn: 5,
       descriptionColumn: null,
+      roleColumns: [
+        { column: 3, header: "Type" },
+        { column: 4, header: "Payment mode" },
+        { column: 5, header: "Category" },
+      ],
       yearApplied: null,
       issues: [],
     });

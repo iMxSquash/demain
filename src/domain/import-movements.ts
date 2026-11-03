@@ -7,7 +7,7 @@
  * the sheet.
  */
 
-import { readPaymentMode } from "./import-columns";
+import { readPaymentMode, type ColumnChoices } from "./import-columns";
 import {
   analyzeCsvFile,
   type AnalysisIssue,
@@ -40,6 +40,8 @@ export interface MovementFileOptions {
   delimiter?: CsvDelimiter;
   /** Year of the dates written without one; else the one in the file name, if any. */
   year?: number;
+  /** The columns the user assigned to the roles, over the detected ones. */
+  columns?: ColumnChoices;
   /** Words of a category that give the type; the default one when absent. */
   vocabulary?: TypeVocabulary;
   /** Types of the labels already imported; empty when absent. */
@@ -147,7 +149,7 @@ export function readMovementFile(
 ): MovementFileReading {
   const year = options.year ?? yearFromFileName(options.source);
   const file = parseCsvFile(text, options.delimiter);
-  const analysis = analyzeCsvFile(file, year);
+  const analysis = analyzeCsvFile(file, year, options.columns);
   const { mapping, yearApplied } = analysis;
   // Without a year every date is unreadable: the one issue to report is the missing year.
   const isYearMissing = analysis.issues.some(
