@@ -627,6 +627,136 @@ describe("bulkPatch", () => {
   });
 });
 
+describe("reviewReducer when a file is read again after corrections", () => {
+  const FIRST = stagedRow({ line: 2 });
+  const SECOND = stagedRow({
+    line: 5,
+    draft: { date: "2026-03-09", label: "BAKERY", amount: "-4,00", externalId: null },
+  });
+
+  function corrected(): ReviewState {
+    let state = start([stagedFile("march.csv", [FIRST, SECOND])], 7);
+    state = reviewReducer(state, {
+      type: "setDetails",
+      file: 0,
+      row: 1,
+      details: { type: "savings", savingsAccountId: 9 },
+    });
+    state = reviewReducer(state, {
+      type: "setDetails",
+      file: 0,
+      row: 0,
+      details: { categoryId: 12 },
+    });
+    return reviewReducer(state, {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "label",
+      value: "edited",
+    });
+  }
+
+  it("keeps the type, the category, the savings account and the text a user changed", () => {
+    const next = reviewReducer(corrected(), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [FIRST, SECOND]),
+    });
+
+    const [first, second] = next.files[0]?.rows ?? [];
+    expect(first?.draft.label).toBe("edited");
+    expect(first?.details.categoryId).toBe(12);
+    expect(second?.details.type).toBe("savings");
+    expect(second?.details.savingsAccountId).toBe(9);
+    expect(next.files[0]?.lastReread).toEqual({ kept: 2, dropped: 0 });
+  });
+
+  it("finds a corrected row by its line in the file, not by its position", () => {
+    const next = reviewReducer(corrected(), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [stagedRow({ line: 1 }), SECOND, FIRST]),
+    });
+
+    const byLine = new Map(next.files[0]?.rows.map((row) => [row.line, row]));
+    expect(byLine.get(2)?.details.categoryId).toBe(12);
+    expect(byLine.get(5)?.details.type).toBe("savings");
+    expect(byLine.get(1)?.details.categoryId).toBe(4);
+    expect(byLine.get(1)?.draft.label).toBe("CARD SHOP");
+  });
+
+  it("lets the correction of a user win over what the new reading says", () => {
+    const next = reviewReducer(corrected(), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [
+        stagedRow({ line: 2, details: { ...EXPENSE, type: "income", categoryId: null } }),
+        SECOND,
+      ]),
+    });
+
+    expect(next.files[0]?.rows[0]?.details.type).toBe("income");
+    expect(next.files[0]?.rows[0]?.details.categoryId).toBe(12);
+  });
+
+  it("drops the correction of a line the new reading does not have and counts it", () => {
+    const next = reviewReducer(corrected(), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [FIRST]),
+    });
+
+    expect(next.files[0]?.rows.map((row) => row.line)).toEqual([2]);
+    expect(next.files[0]?.rows[0]?.details.categoryId).toBe(12);
+    expect(next.files[0]?.lastReread).toEqual({ kept: 1, dropped: 1 });
+  });
+
+  it("reports nothing dropped when no row was corrected", () => {
+    const next = reviewReducer(start([stagedFile("march.csv", [FIRST, SECOND])]), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [stagedRow({ line: 9 })]),
+    });
+
+    expect(next.files[0]?.lastReread).toEqual({ kept: 0, dropped: 0 });
+  });
+
+  it("keeps carrying a correction through two readings", () => {
+    const once = reviewReducer(corrected(), {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [FIRST, SECOND]),
+    });
+    const twice = reviewReducer(once, {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [FIRST, SECOND]),
+    });
+
+    expect(twice.files[0]?.rows[0]?.draft.label).toBe("edited");
+    expect(twice.files[0]?.rows[1]?.details.savingsAccountId).toBe(9);
+  });
+
+  it("counts a correction made to several rows at once", () => {
+    const many = reviewReducer(start([stagedFile("march.csv", [FIRST, SECOND])]), {
+      type: "setDetailsMany",
+      file: 0,
+      rows: [0, 1],
+      details: { categoryId: 12 },
+    });
+
+    const next = reviewReducer(many, {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [SECOND]),
+    });
+
+    expect(next.files[0]?.rows[0]?.details.categoryId).toBe(12);
+    expect(next.files[0]?.lastReread).toEqual({ kept: 1, dropped: 1 });
+  });
+});
+
 describe("reviewReducer when a file cannot be read again", () => {
   it("keeps the rows and the corrections of the file and records the error", () => {
     const edited = reviewReducer(start(), {

@@ -1,6 +1,7 @@
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import {
   amountTextForType,
+  type ImportDraft,
   type RowDetails,
   type RowProblem,
 } from "../../domain/import-draft";
@@ -23,6 +24,12 @@ export function parseOptionalId(value: string): number | null {
 
 export type EditableField = "date" | "label" | "amount";
 
+/** What the user changed on a row, kept to be applied again when the file is read again. */
+export interface RowCorrection {
+  draft: Partial<Pick<ImportDraft, EditableField>>;
+  details: Partial<RowDetails>;
+}
+
 /** A row with what is wrong with it, kept up to date as it is edited: the others are not read again. */
 export interface ReviewRow extends StagedRowView {
   /**
@@ -36,6 +43,8 @@ export interface ReviewRow extends StagedRowView {
   /** Everything the user is asked to confirm, in text: the guess and a sign taken from the type. */
   confirmReasons: ConfirmReason[];
   needsConfirmation: boolean;
+  /** Null until the user changes the row. */
+  correction: RowCorrection | null;
 }
 
 /** What the last attempt to import a file said. */
@@ -58,6 +67,14 @@ export interface ReviewFile extends Omit<StagedFile, "rows"> {
    * until a reading succeeds.
    */
   rereadError: string | null;
+  /** What the last successful reading did with the user's corrections; null before any. */
+  lastReread: RereadSummary | null;
+}
+
+/** Corrections carried over to the new rows, and those whose line the new reading no longer has. */
+export interface RereadSummary {
+  kept: number;
+  dropped: number;
 }
 
 export interface ReviewState {
@@ -72,7 +89,7 @@ export type ReviewAction =
   | { type: "settleAmount"; file: number; row: number }
   | { type: "setDetails"; file: number; row: number; details: Partial<RowDetails> }
   | { type: "setDetailsMany"; file: number; rows: readonly number[]; details: Partial<RowDetails> }
-  /** The file was read again, with other columns: its rows start over. */
+  /** The file was read again, with other columns: the corrections follow their line. */
   | { type: "replaceFile"; file: number; staged: StagedFile }
   /** Reading the file again failed: it keeps its rows and says why. */
   | { type: "rereadFailed"; file: number; message: string }
@@ -112,6 +129,7 @@ function reviewRow(
         sourceAmount: row.draft.amount,
         problem: reviewRowProblem(row.draft, row.details, currency, defaultSavingsAccountId),
         guessReasons: confirmReasons(row.guess),
+        correction: null,
       },
       currency,
     ),
@@ -131,7 +149,29 @@ function reviewFile(
     phase: file.status === "failed" ? "failed" : "reviewing",
     outcome: null,
     rereadError: null,
+    lastReread: null,
   };
+}
+
+// The new reading is corrected again with what the user changed on each line
+// the file still has; the corrections of the other lines are counted and dropped.
+function readAgain(
+  staged: StagedFile,
+  previous: ReviewFile,
+  defaultSavingsAccountId: number | null,
+): ReviewFile {
+  const corrections = new Map(
+    previous.rows.flatMap((row) => (row.correction === null ? [] : [[row.line, row.correction]])),
+  );
+  let kept = 0;
+  const base = reviewFile(staged, previous.sourceIndex, defaultSavingsAccountId);
+  const rows = base.rows.map((row) => {
+    const correction = corrections.get(row.line);
+    if (correction === undefined) return row;
+    kept += 1;
+    return applyCorrection(row, correction, base.currency, defaultSavingsAccountId);
+  });
+  return { ...base, rows, lastReread: { kept, dropped: corrections.size - kept } };
 }
 
 export function initReview(
@@ -251,19 +291,59 @@ function updateRow(
 
 function applyDetails(
   row: ReviewRow,
-  file: ReviewFile,
+  currency: string,
   patch: Partial<RowDetails>,
   defaultSavingsAccountId: number | null,
 ): ReviewRow {
   const details = mergeDetails(row.details, patch);
-  const shown = withShownAmount({ ...row, details }, file.currency);
+  const shown = withShownAmount({ ...row, details }, currency);
   return withConfirmation(
     {
       ...shown,
-      problem: reviewRowProblem(shown.draft, details, file.currency, defaultSavingsAccountId),
+      problem: reviewRowProblem(shown.draft, details, currency, defaultSavingsAccountId),
       guessReasons: patch.type === undefined ? row.guessReasons : [],
+      correction: {
+        draft: row.correction?.draft ?? {},
+        details: { ...row.correction?.details, ...patch },
+      },
     },
-    file.currency,
+    currency,
+  );
+}
+
+function applyDraftEdit(
+  row: ReviewRow,
+  currency: string,
+  edit: Partial<Pick<ImportDraft, EditableField>>,
+  defaultSavingsAccountId: number | null,
+): ReviewRow {
+  const draft = { ...row.draft, ...edit };
+  return withConfirmation(
+    {
+      ...row,
+      draft,
+      sourceAmount: edit.amount ?? row.sourceAmount,
+      problem: reviewRowProblem(draft, row.details, currency, defaultSavingsAccountId),
+      correction: {
+        draft: { ...row.correction?.draft, ...edit },
+        details: row.correction?.details ?? {},
+      },
+    },
+    currency,
+  );
+}
+
+function applyCorrection(
+  row: ReviewRow,
+  correction: RowCorrection,
+  currency: string,
+  defaultSavingsAccountId: number | null,
+): ReviewRow {
+  return applyDetails(
+    applyDraftEdit(row, currency, correction.draft, defaultSavingsAccountId),
+    currency,
+    correction.details,
+    defaultSavingsAccountId,
   );
 }
 
@@ -272,18 +352,14 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
 
   switch (action.type) {
     case "edit":
-      return updateRow(state, action.file, action.row, (row, file) => {
-        const draft = { ...row.draft, [action.field]: action.value };
-        return withConfirmation(
-          {
-            ...row,
-            draft,
-            sourceAmount: action.field === "amount" ? action.value : row.sourceAmount,
-            problem: reviewRowProblem(draft, row.details, file.currency, defaultSavingsAccountId),
-          },
+      return updateRow(state, action.file, action.row, (row, file) =>
+        applyDraftEdit(
+          row,
           file.currency,
-        );
-      });
+          { [action.field]: action.value },
+          defaultSavingsAccountId,
+        ),
+      );
 
     case "settleAmount":
       return updateRow(state, action.file, action.row, (row, file) =>
@@ -292,18 +368,18 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
 
     case "setDetails":
       return updateRow(state, action.file, action.row, (row, file) =>
-        applyDetails(row, file, action.details, defaultSavingsAccountId),
+        applyDetails(row, file.currency, action.details, defaultSavingsAccountId),
       );
 
     case "setDetailsMany":
       return updateRows(state, action.file, action.rows, (row, file) =>
-        applyDetails(row, file, action.details, defaultSavingsAccountId),
+        applyDetails(row, file.currency, action.details, defaultSavingsAccountId),
       );
 
     case "replaceFile":
       return updateFile(state, action.file, (file) =>
         file.phase === "reviewing"
-          ? reviewFile(action.staged, file.sourceIndex, defaultSavingsAccountId)
+          ? readAgain(action.staged, file, defaultSavingsAccountId)
           : file,
       );
 

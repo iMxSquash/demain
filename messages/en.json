@@ -417,7 +417,8 @@
         "savingsAccountRequired": "Choose the savings account."
       },
       "columnsHeading": "Columns of this file",
-      "columnsHint": "Choose which column holds each piece of information. Changing one reads the file again: the edits made to its rows are lost. A column is offered to one role at a time: to move it, set the role that holds it to \"No column\" first.",
+      "columnsHint": "Choose which column holds each piece of information. Changing one reads the file again: the changes you made to its rows (text, type, category, savings account) are kept, line by line, and a change whose line the new reading no longer has is dropped and counted. A column is offered to one role at a time: to move it, set the role that holds it to \"No column\" first.",
+      "rereadDone": "File read again. Changes kept: {kept}. Changes dropped because their line is no longer read: {dropped}.",
       "columnRoleType": "Type column",
       "columnRolePaymentMode": "Payment mode column",
       "columnRoleCategory": "Category column",

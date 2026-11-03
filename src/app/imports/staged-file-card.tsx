@@ -349,6 +349,9 @@ export function FileCard({
             <p>{t("selectedCount", { count: selectedShown.length })}</p>
             <p>{t("showing", { shown: visible.length, total: rows.length })}</p>
             {bulkMessage === null ? null : <p className="font-medium">{bulkMessage}</p>}
+            {file.lastReread === null ? null : (
+              <p>{t("rereadDone", { ...file.lastReread })}</p>
+            )}
           </div>
           {plan.isChainLooping ? <p>{t("issues.overflowChainCycle")}</p> : null}
           {hasUnplaced ? <p>{t("unplacedNote")}</p> : null}
