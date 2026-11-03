@@ -89,12 +89,9 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
                 onChange={(event) => {
                   focusRole.current = role;
                   onChange({
-                    typeColumn: current("typeColumn"),
-                    paymentModeColumn: current("paymentModeColumn"),
-                    categoryColumn: current("categoryColumn"),
-                    descriptionColumn: current("descriptionColumn"),
+                    ...Object.fromEntries(COLUMN_ROLES.map((other) => [other.role, current(other.role)])),
                     [role]: event.currentTarget.value,
-                  });
+                  } as ColumnChoiceFields);
                 }}
               >
                 <option value={NO_COLUMN_CHOICE}>{t("noColumn")}</option>

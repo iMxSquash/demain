@@ -172,6 +172,7 @@ export function FileCard({
     (row) => row.problem === null && row.isDuplicate,
   ).length;
   const confirmCount = countRowsToConfirm(rows);
+  const isLocked = isReading || phase === "importing";
 
   const [onlyToConfirm, setOnlyToConfirm] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
@@ -315,7 +316,7 @@ export function FileCard({
           {file.columns === null ? null : (
             <ColumnRoles
               columns={file.columns}
-              isBusy={isReading || phase === "importing"}
+              isBusy={isLocked}
               onChange={changeColumns}
             />
           )}
@@ -336,7 +337,7 @@ export function FileCard({
           <BulkEdit
             lookups={lookups}
             selectedCount={selectedShown.length}
-            isBusy={isReading || phase === "importing"}
+            isBusy={isLocked}
             onApply={applyToSelection}
           />
           <div role="status" className="flex flex-col gap-1">
