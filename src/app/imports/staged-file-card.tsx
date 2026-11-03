@@ -168,7 +168,7 @@ export function FileCard({
   const hintId = useId();
   const waitId = useId();
   const rereadErrorId = useId();
-  const { phase, outcome, rows } = file;
+  const { phase, outcome, rows, columns } = file;
 
   const problemCount = rows.filter((row) => row.problem !== null).length;
   const duplicateCount = rows.filter(
@@ -335,9 +335,9 @@ export function FileCard({
           {confirmCount > 0 ? (
             <p>{t("toConfirmCount", { count: confirmCount })}</p>
           ) : null}
-          {file.columns === null ? null : (
+          {columns === null ? null : (
             <ColumnRoles
-              columns={file.columns}
+              columns={columns}
               isBusy={isLocked}
               onChange={changeColumns}
             />
@@ -347,13 +347,13 @@ export function FileCard({
               <p id={rereadErrorId} role="alert" className="font-medium text-red-800">
                 {t("rereadFailed", { name: file.fileName, message: file.rereadError })}
               </p>
-              {file.columns === null ? null : (
+              {columns === null ? null : (
                 <button
                   ref={rereadButtonRef}
                   type="button"
                   disabled={isLocked}
                   aria-describedby={rereadErrorId}
-                  onClick={() => file.columns !== null && rereadFileAgain(file.columns)}
+                  onClick={() => rereadFileAgain(columns)}
                   className={BUTTON_CLASS}
                 >
                   {t("rereadFile")}
