@@ -189,7 +189,6 @@ describe("commitStagedFileAction", () => {
 
       expect(state.status).toBe("blocked");
       expect(state.issues).toHaveLength(1);
-      expect(state.issues[0]?.index).toBe(1);
       expect(state.issues[0]?.message).toContain("savingsUnplaced");
       expect(state.issues[0]?.message).toContain("VIR LIVRET");
       expect(listTransactions(db)).toEqual([]);
@@ -218,7 +217,7 @@ describe("commitStagedFileAction", () => {
       const state = await commit([savingsDraft(A_ID)]);
 
       expect(state.status).toBe("blocked");
-      expect(state.issues).toEqual([{ index: null, message: "overflowChainCycle" }]);
+      expect(state.issues).toEqual([{ message: "overflowChainCycle" }]);
     });
   });
 });

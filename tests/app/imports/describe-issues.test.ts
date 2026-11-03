@@ -31,7 +31,6 @@ describe("where an issue is", () => {
     expect(
       describeImportIssue({ kind: "rowInvalid", index: 1, ref: messageRef("importCategoryUnknown") }, say),
     ).toEqual({
-      index: 1,
       message: "CARD SHOP (Mar 2, 2026): <importCategoryUnknown>",
     });
   });
@@ -46,7 +45,9 @@ describe("where an issue is", () => {
     expect(message).toContain("€200.00");
   });
 
-  it("points at no row for a loop in the chain, which belongs to the accounts", () => {
-    expect(describeImportIssue({ kind: "overflowChainCycle" }, say).index).toBeNull();
+  it("names no row for a loop in the chain, which belongs to the accounts", () => {
+    const { message } = describeImportIssue({ kind: "overflowChainCycle" }, say);
+
+    expect(message).not.toContain("VIR LIVRET");
   });
 });

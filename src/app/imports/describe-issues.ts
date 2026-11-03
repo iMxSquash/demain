@@ -25,8 +25,6 @@ export interface ImportSay {
 }
 
 export interface ReportedImportIssue {
-  /** Position of the row in the file; null for an issue that concerns no row. */
-  index: number | null;
   /** Translated. */
   message: string;
 }
@@ -37,9 +35,8 @@ function assertNever(value: never): never {
 
 function ofRow(say: ImportSay, index: number, text: string): ReportedImportIssue {
   const row = say.rows[index];
-  if (row === undefined) return { index, message: text };
+  if (row === undefined) return { message: text };
   return {
-    index,
     message: say.t("withRow", {
       label: row.label,
       date: formatCalendarDate(row.date, say.locale),
@@ -67,7 +64,7 @@ export function describeImportIssue(
         }),
       );
     case "overflowChainCycle":
-      return { index: null, message: t("overflowChainCycle") };
+      return { message: t("overflowChainCycle") };
     case "rowProblem":
       return ofRow(say, issue.index, t(`rowProblem.${issue.problem}`));
     case "rowInvalid":
