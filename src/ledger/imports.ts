@@ -265,7 +265,16 @@ function fingerprintWithDuplicateFlags(
   db: AppDatabase,
   request: ImportRequest,
 ): { row: FingerprintedRow; isDuplicate: boolean }[] {
-  const fingerprinted = fingerprintRows(request.rows);
+  // The fingerprints are computed on the amount as it is recorded (an explicit
+  // type decides the sign), so that the review, which shows that amount, and the
+  // file read again give the same movement the same fingerprint.
+  const fingerprinted = fingerprintRows(
+    request.rows.map((row) =>
+      row.details === undefined
+        ? row
+        : { ...row, amount: signedAmountForType(row.details.type, row.amount) },
+    ),
+  );
   const known = findKnownKeys(db, request.accountId, fingerprinted);
   return fingerprinted.map((row) => ({ row, isDuplicate: isKnown(row, known) }));
 }
@@ -325,12 +334,8 @@ function planRow(
     return;
   }
 
-  // An explicit type wins over the sign. The fingerprints stay those of the
-  // file, so that the same file is still recognized when it is imported again.
-  const row: FingerprintedRow =
-    details === undefined
-      ? fileRow
-      : { ...fileRow, amount: signedAmountForType(details.type, fileRow.amount) };
+  // The amount already follows the explicit type, see fingerprintWithDuplicateFlags.
+  const row = fileRow;
   const kind = details?.type ?? (row.amount > 0 ? "income" : "expense");
   if (kind === "savings") {
     const savingsAccountId = details?.savingsAccountId ?? null;

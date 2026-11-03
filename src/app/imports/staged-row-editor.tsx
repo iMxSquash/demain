@@ -123,6 +123,7 @@ export const RowEditor = memo(function RowEditor({
           type="text"
           inputMode="decimal"
           {...textCell("amount", imports("columns.amount"))}
+          onBlur={() => dispatch({ type: "settleAmount", file: fileIndex, row: rowIndex })}
           className={`${CELL_CLASS} text-right tabular-nums`}
         />
       </td>

@@ -196,7 +196,55 @@ describe("reviewReducer", () => {
     expect(row?.problem).toBeNull();
     expect(row?.needsConfirmation).toBe(true);
     expect(row?.confirmReasons).toEqual([{ kind: "typeAgainstSign", type: "income" }]);
-    expect(row?.draft.amount).toBe("-12,50");
+    expect(row?.draft.amount).toBe("12.50");
+  });
+
+  it("shows the amount that will be recorded for a staged expense on an incoming amount", () => {
+    const state = start([
+      stagedFile("march.csv", [
+        stagedRow({ draft: { ...stagedRow().draft, amount: "+50,00" } }),
+      ]),
+    ]);
+
+    const row = state.files[0]?.rows[0];
+    expect(row?.draft.amount).toBe("-50.00");
+    expect(row?.needsConfirmation).toBe(true);
+    expect(row?.confirmReasons).toEqual([{ kind: "typeAgainstSign", type: "expense" }]);
+  });
+
+  it("gives back the amount of the file when the type is changed back", () => {
+    const state = start([
+      stagedFile("march.csv", [
+        stagedRow({ draft: { ...stagedRow().draft, amount: "+50,00" } }),
+      ]),
+    ]);
+    const toIncome = reviewReducer(state, {
+      type: "setDetails",
+      file: 0,
+      row: 0,
+      details: { type: "income" },
+    });
+
+    const row = toIncome.files[0]?.rows[0];
+    expect(row?.draft.amount).toBe("+50,00");
+    expect(row?.needsConfirmation).toBe(false);
+  });
+
+  it("signs a typed amount once the cell is left, and keeps the row to confirm", () => {
+    const typed = reviewReducer(start(), {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "amount",
+      value: "+30,00",
+    });
+    expect(typed.files[0]?.rows[0]?.draft.amount).toBe("+30,00");
+
+    const settled = reviewReducer(typed, { type: "settleAmount", file: 0, row: 0 });
+
+    const row = settled.files[0]?.rows[0];
+    expect(row?.draft.amount).toBe("-30.00");
+    expect(row?.needsConfirmation).toBe(true);
   });
 
   it("stops marking the row once the amount agrees with the chosen type", () => {

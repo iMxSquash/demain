@@ -2,10 +2,10 @@
 
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { readImportDraft } from "../../domain/import-draft";
+import { amountTextForType, readImportDraft } from "../../domain/import-draft";
 import { ImportParseError } from "../../domain/import-row";
 import { firstMovementDate } from "../../domain/import-savings";
-import type { StagedRow } from "../../domain/import-staging";
+import type { TypedStagedRow } from "../../domain/import-staging";
 import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import { formatCalendarDate } from "../../i18n/dates";
@@ -124,10 +124,16 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
 // A row the file gives unreadably cannot be compared yet: it is not flagged.
 function duplicateFlags(
   accountId: number,
-  staged: readonly StagedRow[],
+  staged: readonly TypedStagedRow[],
   currency: string,
 ): boolean[] {
-  const readings = staged.map(({ draft }) => readImportDraft(draft, currency));
+  // Compared on the amount the review shows and the import records.
+  const readings = staged.map(({ draft, details }) =>
+    readImportDraft(
+      { ...draft, amount: amountTextForType(draft.amount, details.type, currency) },
+      currency,
+    ),
+  );
   const rows = readings.flatMap((reading) => (reading.ok ? [reading.row] : []));
   const flags = withDatabase((db) =>
     findDuplicateRows(db, { accountId, rows }),

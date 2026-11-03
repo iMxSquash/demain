@@ -1,4 +1,8 @@
-import type { RowDetails, RowProblem } from "../../domain/import-draft";
+import {
+  amountTextForType,
+  type RowDetails,
+  type RowProblem,
+} from "../../domain/import-draft";
 import {
   confirmReasons,
   reviewRowProblem,
@@ -20,6 +24,11 @@ export type EditableField = "date" | "label" | "amount";
 
 /** A row with what is wrong with it, kept up to date as it is edited: the others are not read again. */
 export interface ReviewRow extends StagedRowView {
+  /**
+   * The amount as the file or the user gave it. The cell shows `draft.amount`,
+   * which follows the type; this one decides whether the type goes against the sign.
+   */
+  sourceAmount: string;
   problem: RowProblem | null;
   /** Why the guessed type is doubtful; emptied once the user chooses a type. */
   guessReasons: ConfirmReason[];
@@ -51,6 +60,7 @@ export interface ReviewState {
 
 export type ReviewAction =
   | { type: "edit"; file: number; row: number; field: EditableField; value: string }
+  | { type: "settleAmount"; file: number; row: number }
   | { type: "setDetails"; file: number; row: number; details: Partial<RowDetails> }
   | { type: "setDefaultSavings"; savingsAccountId: number | null }
   | { type: "setPhase"; file: number; phase: FilePhase; outcome?: Outcome };
@@ -59,11 +69,21 @@ function withConfirmation(
   row: Omit<ReviewRow, "confirmReasons" | "needsConfirmation">,
   currency: string,
 ): ReviewRow {
+  const source = { ...row.draft, amount: row.sourceAmount };
   const reasons = rowConfirmReasons(
     row.guessReasons,
-    typeAgainstSignReason(row.draft, row.details, currency),
+    typeAgainstSignReason(source, row.details, currency),
   );
   return { ...row, confirmReasons: reasons, needsConfirmation: reasons.length > 0 };
+}
+
+// The cell shows the amount that will be recorded: the sign follows the type.
+function withShownAmount(
+  row: Omit<ReviewRow, "confirmReasons" | "needsConfirmation">,
+  currency: string,
+): Omit<ReviewRow, "confirmReasons" | "needsConfirmation"> {
+  const amount = amountTextForType(row.sourceAmount, row.details.type, currency);
+  return { ...row, draft: { ...row.draft, amount } };
 }
 
 function reviewRow(
@@ -72,11 +92,15 @@ function reviewRow(
   defaultSavingsAccountId: number | null,
 ): ReviewRow {
   return withConfirmation(
-    {
-      ...row,
-      problem: reviewRowProblem(row.draft, row.details, currency, defaultSavingsAccountId),
-      guessReasons: confirmReasons(row.guess),
-    },
+    withShownAmount(
+      {
+        ...row,
+        sourceAmount: row.draft.amount,
+        problem: reviewRowProblem(row.draft, row.details, currency, defaultSavingsAccountId),
+        guessReasons: confirmReasons(row.guess),
+      },
+      currency,
+    ),
     currency,
   );
 }
@@ -146,20 +170,26 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
           {
             ...row,
             draft,
+            sourceAmount: action.field === "amount" ? action.value : row.sourceAmount,
             problem: reviewRowProblem(draft, row.details, file.currency, defaultSavingsAccountId),
           },
           file.currency,
         );
       });
 
+    case "settleAmount":
+      return updateRow(state, action.file, action.row, (row, file) =>
+        withConfirmation(withShownAmount(row, file.currency), file.currency),
+      );
+
     case "setDetails":
       return updateRow(state, action.file, action.row, (row, file) => {
         const details = mergeDetails(row.details, action.details);
+        const shown = withShownAmount({ ...row, details }, file.currency);
         return withConfirmation(
           {
-            ...row,
-            details,
-            problem: reviewRowProblem(row.draft, details, file.currency, defaultSavingsAccountId),
+            ...shown,
+            problem: reviewRowProblem(shown.draft, details, file.currency, defaultSavingsAccountId),
             guessReasons: action.details.type === undefined ? row.guessReasons : [],
           },
           file.currency,

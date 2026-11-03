@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  amountTextForType,
   checkRowDetails,
   detailsFromSign,
   draftOfRow,
@@ -162,6 +163,31 @@ describe("isTypeAgainstSign", () => {
     expect(isTypeAgainstSign("income", 5_000)).toBe(false);
     expect(isTypeAgainstSign("savings", 5_000)).toBe(false);
     expect(isTypeAgainstSign("savings", -5_000)).toBe(false);
+  });
+});
+
+describe("amountTextForType", () => {
+  it("shows an expense on an incoming amount as outgoing", () => {
+    expect(amountTextForType("+50,00", "expense", "EUR")).toBe("-50.00");
+  });
+
+  it("shows an income on an outgoing amount as incoming", () => {
+    expect(amountTextForType("-50,00", "income", "EUR")).toBe("50.00");
+  });
+
+  it("leaves the text as typed when the type and the sign agree", () => {
+    expect(amountTextForType("-1 250,5 €", "expense", "EUR")).toBe("-1 250,5 €");
+  });
+
+  it("leaves savings and unreadable or null amounts as typed", () => {
+    expect(amountTextForType("+50,00", "savings", "EUR")).toBe("+50,00");
+    expect(amountTextForType("abc", "expense", "EUR")).toBe("abc");
+    expect(amountTextForType("0", "expense", "EUR")).toBe("0");
+  });
+
+  it("is idempotent", () => {
+    const once = amountTextForType("+50,00", "expense", "EUR");
+    expect(amountTextForType(once, "expense", "EUR")).toBe(once);
   });
 });
 

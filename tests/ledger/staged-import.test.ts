@@ -112,6 +112,30 @@ describe("commitDrafts", () => {
     expect(listImportBatches(db, accountId)).toEqual([]);
   });
 
+  describe("an explicit type against the sign of the amount", () => {
+    const expense: RowDetails = { ...detailsFromSign(-1), type: "expense" };
+    const against = (amount: string) =>
+      draft({ label: "RENT", amount, details: expense });
+
+    it("records the sign of the type and recognizes the same file the second time", () => {
+      const first = commit([against("+50,00")]);
+      const second = commit([against("+50,00")], "again.csv");
+
+      expect(first).toMatchObject({ status: "done", newCount: 1 });
+      expect(second).toMatchObject({ status: "done", newCount: 0, duplicateCount: 1 });
+      expect(listTransactions(db).map((t) => t.amount)).toEqual([-5_000]);
+    });
+
+    it("recognizes the amount the review already signed as the same movement", () => {
+      commit([against("+50,00")]);
+
+      const second = commit([against("-50,00")], "again.csv");
+
+      expect(second).toMatchObject({ status: "done", newCount: 0, duplicateCount: 1 });
+      expect(listTransactions(db)).toHaveLength(1);
+    });
+  });
+
   it("ignores the rows already in the account, as an import does", () => {
     commit([draft()]);
 

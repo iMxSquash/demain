@@ -53,15 +53,8 @@ export function readImportDraft(
   const label = draft.label.trim();
   if (label === "") return { ok: false, problem: "labelRequired" };
 
-  let amount: number;
-  try {
-    amount = parseAmount(draft.amount, currency);
-  } catch (error) {
-    if (error instanceof MoneyParseError) {
-      return { ok: false, problem: "amountInvalid" };
-    }
-    throw error;
-  }
+  const amount = tryParseAmount(draft.amount, currency);
+  if (amount === null) return { ok: false, problem: "amountInvalid" };
   if (amount === 0) return { ok: false, problem: "amountZero" };
 
   return {
@@ -124,4 +117,28 @@ export function signedAmountForType(type: MovementType, amount: number): number 
 /** Whether the sign of the amount is not the one the type reads: the row is then to confirm. */
 export function isTypeAgainstSign(type: MovementType, amount: number): boolean {
   return signedAmountForType(type, amount) !== amount;
+}
+
+/**
+ * The text of an amount cell as the type reads it, so that the cell shows what
+ * will be recorded. Text that already agrees with the type, savings and text
+ * that cannot be read as a non-null amount are returned as typed.
+ */
+export function amountTextForType(
+  text: string,
+  type: MovementType,
+  currency: string,
+): string {
+  const amount = tryParseAmount(text, currency);
+  if (amount === null || !isTypeAgainstSign(type, amount)) return text;
+  return formatEditableAmount(signedAmountForType(type, amount), currency);
+}
+
+function tryParseAmount(text: string, currency: string): number | null {
+  try {
+    return parseAmount(text, currency);
+  } catch (error) {
+    if (error instanceof MoneyParseError) return null;
+    throw error;
+  }
 }
