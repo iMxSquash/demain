@@ -5,9 +5,11 @@ import type { TypeGuess } from "../../src/domain/import-guess";
 import {
   confirmReasons,
   nextFileToSettle,
+  rowConfirmReasons,
   planReview,
   reviewRowProblem,
   splitSegments,
+  typeAgainstSignReason,
   type FilePhase,
   type ReviewedFile,
   type ReviewedRow,
@@ -254,10 +256,10 @@ describe("reviewRowProblem", () => {
     ).toBe("dateInvalid");
   });
 
-  it("reports an expense whose amount is positive", () => {
+  it("does not report an expense whose amount is positive: the type decides", () => {
     expect(
       problem(reviewedRow({ details: EXPENSE, draft: { date: "2026-03-10", label: "X", amount: "12,00", externalId: null } })),
-    ).toBe("typeSignMismatch");
+    ).toBeNull();
   });
 
   it("accepts an expense whose amount is negative", () => {
@@ -413,5 +415,65 @@ describe("planReview", () => {
 
     expect(plan?.isChainLooping).toBe(true);
     expect(plan?.splits.size).toBe(0);
+  });
+});
+
+describe("typeAgainstSignReason", () => {
+  const draftOf = (amount: string) => ({
+    date: "2026-03-10",
+    label: "X",
+    amount,
+    externalId: null,
+  });
+  const reason = (type: RowDetails["type"], amount: string) =>
+    typeAgainstSignReason(draftOf(amount), { ...EXPENSE, type }, "EUR");
+
+  it("names the type that takes the sign when an expense has a positive amount", () => {
+    expect(reason("expense", "50,00")).toEqual({ kind: "typeAgainstSign", type: "expense" });
+  });
+
+  it("names the type that takes the sign when an income has a negative amount", () => {
+    expect(reason("income", "-50,00")).toEqual({ kind: "typeAgainstSign", type: "income" });
+  });
+
+  it("has no reason when the type and the sign agree", () => {
+    expect(reason("expense", "-50,00")).toBeNull();
+    expect(reason("income", "50,00")).toBeNull();
+  });
+
+  it("has no reason for savings, which go both ways", () => {
+    expect(reason("savings", "50,00")).toBeNull();
+    expect(reason("savings", "-50,00")).toBeNull();
+  });
+
+  it("has no reason while the amount cannot be read", () => {
+    expect(reason("expense", "abc")).toBeNull();
+    expect(reason("expense", "0")).toBeNull();
+  });
+});
+
+describe("rowConfirmReasons", () => {
+  const conflict = { kind: "typeCellConflict", value: "Dépense", against: "sign" } as const;
+  const sign = { kind: "typeAgainstSign", type: "expense" } as const;
+
+  it("keeps the reasons of the guess when the type agrees with the sign", () => {
+    expect(rowConfirmReasons([{ kind: "nothing" }], null)).toEqual([{ kind: "nothing" }]);
+  });
+
+  it("adds the reason of the sign taken from the type", () => {
+    expect(rowConfirmReasons([{ kind: "nothing" }], sign)).toEqual([
+      { kind: "nothing" },
+      sign,
+    ]);
+  });
+
+  it("says the contradiction of a type cell once, with the reason of the sign", () => {
+    expect(rowConfirmReasons([conflict], sign)).toEqual([sign]);
+  });
+
+  it("keeps a contradiction with the debit and credit columns", () => {
+    const debitCredit = { ...conflict, against: "debitCredit" } as const;
+
+    expect(rowConfirmReasons([debitCredit], sign)).toEqual([debitCredit, sign]);
   });
 });

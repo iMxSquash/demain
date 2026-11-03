@@ -61,8 +61,7 @@ export function commitDrafts(
       given === undefined
         ? undefined
         : withDefaultSavingsAccount(given, rest.savingsAccountId);
-    const problem =
-      details === undefined ? null : checkRowDetails(details, reading.row.amount);
+    const problem = details === undefined ? null : checkRowDetails(details);
     if (problem !== null) {
       problems.push({ index, problem });
       return;

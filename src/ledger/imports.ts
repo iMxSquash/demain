@@ -13,6 +13,7 @@ import {
 } from "../domain/categorization-rule";
 import {
   checkRowDetails,
+  signedAmountForType,
   type DetailsProblem,
   withDefaultSavingsAccount,
   type RowDetails,
@@ -308,7 +309,7 @@ function planRow(
   db: AppDatabase,
   request: ImportRequest,
   index: number,
-  row: FingerprintedRow,
+  fileRow: FingerprintedRow,
   rules: readonly CategorizationRule[],
   accountsById: ReadonlyMap<number, Account>,
   outcome: RowOutcome,
@@ -318,12 +319,18 @@ function planRow(
     given === undefined
       ? undefined
       : withDefaultSavingsAccount(given, request.savingsAccountId);
-  const problem = details === undefined ? null : checkRowDetails(details, row.amount);
+  const problem = details === undefined ? null : checkRowDetails(details);
   if (problem !== null) {
     outcome.issues.push({ kind: "rowProblem", index, problem });
     return;
   }
 
+  // An explicit type wins over the sign. The fingerprints stay those of the
+  // file, so that the same file is still recognized when it is imported again.
+  const row: FingerprintedRow =
+    details === undefined
+      ? fileRow
+      : { ...fileRow, amount: signedAmountForType(details.type, fileRow.amount) };
   const kind = details?.type ?? (row.amount > 0 ? "income" : "expense");
   if (kind === "savings") {
     const savingsAccountId = details?.savingsAccountId ?? null;

@@ -34,6 +34,8 @@ const REASONS: ConfirmReason[] = [
   { kind: "sign", type: "expense" },
   { kind: "debitCredit", type: "income" },
   { kind: "nothing" },
+  { kind: "typeAgainstSign", type: "expense" },
+  { kind: "typeAgainstSign", type: "income" },
 ];
 
 describe.each(["en", "fr"] as const)("describing the rows to confirm in %s", (locale) => {

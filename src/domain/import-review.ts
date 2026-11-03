@@ -7,6 +7,7 @@
 import type { MovementType } from "./import-columns";
 import {
   checkRowDetails,
+  isTypeAgainstSign,
   readImportDraft,
   withDefaultSavingsAccount,
   type ImportDraft,
@@ -31,7 +32,9 @@ export type ConfirmReason =
   | { kind: "sign"; type: MovementType }
   | { kind: "debitCredit"; type: MovementType }
   | { kind: "nothing" }
-  | { kind: "typeCellUnknown"; value: string };
+  | { kind: "typeCellUnknown"; value: string }
+  /** An explicit type contradicts the sign of the amount: the sign is taken from the type. */
+  | { kind: "typeAgainstSign"; type: Exclude<MovementType, "savings"> };
 
 function reasonOfEvidence(
   guess: TypeGuess,
@@ -75,6 +78,37 @@ export function confirmReasons(guess: TypeGuess | null): ConfirmReason[] {
     reasons.push({ kind: "typeCellUnknown", value: guess.ignoredTypeCell });
   }
   return reasons;
+}
+
+/**
+ * The reason to confirm a row whose type contradicts the sign of its amount, or
+ * null. The type wins and the recorded sign follows it, so the row is not
+ * blocked: the user is only told. Null while the amount cannot be read.
+ */
+export function typeAgainstSignReason(
+  draft: ImportDraft,
+  details: RowDetails,
+  currency: string,
+): ConfirmReason | null {
+  const reading = readImportDraft(draft, currency);
+  if (!reading.ok || details.type === "savings") return null;
+  if (!isTypeAgainstSign(details.type, reading.row.amount)) return null;
+  return { kind: "typeAgainstSign", type: details.type };
+}
+
+/**
+ * The reasons of the guess followed by the sign taken from the type. A type
+ * cell that contradicts the sign is then said once, by the more precise reason.
+ */
+export function rowConfirmReasons(
+  guessReasons: readonly ConfirmReason[],
+  signReason: ConfirmReason | null,
+): ConfirmReason[] {
+  if (signReason === null) return [...guessReasons];
+  const kept = guessReasons.filter(
+    (reason) => !(reason.kind === "typeCellConflict" && reason.against === "sign"),
+  );
+  return [...kept, signReason];
 }
 
 /** A part of what a savings row does, seen from the account that receives the file. */
@@ -128,10 +162,7 @@ export function reviewRowProblem(
 ): RowProblem | null {
   const reading = readImportDraft(draft, currency);
   if (!reading.ok) return reading.problem;
-  return checkRowDetails(
-    withDefaultSavingsAccount(details, defaultSavingsAccountId),
-    reading.row.amount,
-  );
+  return checkRowDetails(withDefaultSavingsAccount(details, defaultSavingsAccountId));
 }
 
 export interface ReviewedRow {

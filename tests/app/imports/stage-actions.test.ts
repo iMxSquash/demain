@@ -164,12 +164,12 @@ describe("commitStagedFileAction", () => {
   it("names the rows still invalid, and records nothing", async () => {
     const state = await commit([
       draft({ details: EXPENSE_DETAILS }),
-      draft({ amount: "12,50", details: EXPENSE_DETAILS }),
+      draft({ date: "", details: EXPENSE_DETAILS }),
     ]);
 
     expect(state).toMatchObject({
       status: "invalid",
-      problems: [{ index: 1, problem: "typeSignMismatch" }],
+      problems: [{ index: 1, problem: "dateInvalid" }],
     });
     expect(listTransactions(db)).toEqual([]);
   });

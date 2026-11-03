@@ -2,6 +2,9 @@ import type { RowDetails, RowProblem } from "../../domain/import-draft";
 import {
   confirmReasons,
   reviewRowProblem,
+  rowConfirmReasons,
+  typeAgainstSignReason,
+  type ConfirmReason,
   type FilePhase,
 } from "../../domain/import-review";
 import { orderFilesByDate } from "../../domain/import-savings";
@@ -18,7 +21,10 @@ export type EditableField = "date" | "label" | "amount";
 /** A row with what is wrong with it, kept up to date as it is edited: the others are not read again. */
 export interface ReviewRow extends StagedRowView {
   problem: RowProblem | null;
-  /** The type was guessed with little evidence and the user has not chosen one since. */
+  /** Why the guessed type is doubtful; emptied once the user chooses a type. */
+  guessReasons: ConfirmReason[];
+  /** Everything the user is asked to confirm, in text: the guess and a sign taken from the type. */
+  confirmReasons: ConfirmReason[];
   needsConfirmation: boolean;
 }
 
@@ -49,16 +55,30 @@ export type ReviewAction =
   | { type: "setDefaultSavings"; savingsAccountId: number | null }
   | { type: "setPhase"; file: number; phase: FilePhase; outcome?: Outcome };
 
+function withConfirmation(
+  row: Omit<ReviewRow, "confirmReasons" | "needsConfirmation">,
+  currency: string,
+): ReviewRow {
+  const reasons = rowConfirmReasons(
+    row.guessReasons,
+    typeAgainstSignReason(row.draft, row.details, currency),
+  );
+  return { ...row, confirmReasons: reasons, needsConfirmation: reasons.length > 0 };
+}
+
 function reviewRow(
   row: StagedRowView,
   currency: string,
   defaultSavingsAccountId: number | null,
 ): ReviewRow {
-  return {
-    ...row,
-    problem: reviewRowProblem(row.draft, row.details, currency, defaultSavingsAccountId),
-    needsConfirmation: confirmReasons(row.guess).length > 0,
-  };
+  return withConfirmation(
+    {
+      ...row,
+      problem: reviewRowProblem(row.draft, row.details, currency, defaultSavingsAccountId),
+      guessReasons: confirmReasons(row.guess),
+    },
+    currency,
+  );
 }
 
 export function initReview(
@@ -122,22 +142,28 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
     case "edit":
       return updateRow(state, action.file, action.row, (row, file) => {
         const draft = { ...row.draft, [action.field]: action.value };
-        return {
-          ...row,
-          draft,
-          problem: reviewRowProblem(draft, row.details, file.currency, defaultSavingsAccountId),
-        };
+        return withConfirmation(
+          {
+            ...row,
+            draft,
+            problem: reviewRowProblem(draft, row.details, file.currency, defaultSavingsAccountId),
+          },
+          file.currency,
+        );
       });
 
     case "setDetails":
       return updateRow(state, action.file, action.row, (row, file) => {
         const details = mergeDetails(row.details, action.details);
-        return {
-          ...row,
-          details,
-          problem: reviewRowProblem(row.draft, details, file.currency, defaultSavingsAccountId),
-          needsConfirmation: action.details.type === undefined && row.needsConfirmation,
-        };
+        return withConfirmation(
+          {
+            ...row,
+            details,
+            problem: reviewRowProblem(row.draft, details, file.currency, defaultSavingsAccountId),
+            guessReasons: action.details.type === undefined ? row.guessReasons : [],
+          },
+          file.currency,
+        );
       });
 
     case "setDefaultSavings":

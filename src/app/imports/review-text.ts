@@ -25,6 +25,8 @@ function describeConfirmReason(reason: ConfirmReason, t: StagedT): string {
     case "sign":
     case "debitCredit":
       return t(`confirm.${reason.kind}`, { type: t(`typeNouns.${reason.type}`) });
+    case "typeAgainstSign":
+      return t(`confirm.typeAgainstSign.${reason.type}`);
     case "nothing":
       return t("confirm.nothing");
   }

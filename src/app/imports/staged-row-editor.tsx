@@ -6,7 +6,6 @@ import { memo, useId, type ActionDispatch, type ChangeEvent } from "react";
 import type { RowProblem } from "../../domain/import-draft";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { RowDetails } from "../../domain/import-draft";
-import { confirmReasons } from "../../domain/import-review";
 import { PAYMENT_MODES } from "../../domain/transaction";
 import type { ImportCategoryOption } from "./import-form-data";
 import { CONTROL_CLASS } from "../form-field";
@@ -25,7 +24,6 @@ const FIELD_OF_PROBLEM: Record<RowProblem, InvalidField> = {
   labelRequired: "label",
   amountInvalid: "amount",
   amountZero: "amount",
-  typeSignMismatch: "type",
   savingsAccountRequired: "savingsAccountId",
 };
 
@@ -229,7 +227,7 @@ export const RowEditor = memo(function RowEditor({
         {row.needsConfirmation ? (
           <p>
             {t("toConfirm", {
-              reasons: describeConfirmReasons(confirmReasons(row.guess), t),
+              reasons: describeConfirmReasons(row.confirmReasons, t),
             })}
           </p>
         ) : null}

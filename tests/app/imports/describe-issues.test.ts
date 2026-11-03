@@ -9,7 +9,6 @@ const ISSUES: ImportIssue[] = [
   { kind: "savingsAmountInvalid", index: 0 },
   { kind: "savingsUnplaced", index: 0, amount: 20_000 },
   { kind: "overflowChainCycle" },
-  { kind: "rowProblem", index: 1, problem: "typeSignMismatch" },
   { kind: "rowProblem", index: 0, problem: "savingsAccountRequired" },
   { kind: "rowInvalid", index: 1, ref: messageRef("importSavingsAccountArchived") },
 ];

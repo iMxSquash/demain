@@ -223,11 +223,10 @@ describe("commitDrafts with the details of a review", () => {
     expect(listTransactions(db).map((t) => t.kind)).toEqual(["expense"]);
   });
 
-  it("names the rows whose type contradicts the sign or that have no savings account, and records nothing", () => {
+  it("names the rows that have no savings account or cannot be read, and records nothing", () => {
     const result = commit([
       savings(),
       savings({}, { savingsAccountId: null }),
-      draft({ date: "2026-03-02", amount: "12,50", details: detailsFromSign(-1) }),
       draft({ date: "" }),
     ]);
 
@@ -235,11 +234,19 @@ describe("commitDrafts with the details of a review", () => {
       status: "invalid",
       problems: [
         { index: 1, problem: "savingsAccountRequired" },
-        { index: 2, problem: "typeSignMismatch" },
-        { index: 3, problem: "dateInvalid" },
+        { index: 2, problem: "dateInvalid" },
       ],
     });
     expect(listTransactions(db)).toEqual([]);
+  });
+
+  it("records an expense typed on a positive amount as an outgoing one, without blocking", () => {
+    const result = commit([
+      draft({ date: "2026-03-02", amount: "50,00", details: detailsFromSign(-1) }),
+    ]);
+
+    expect(result).toMatchObject({ status: "done", newCount: 1 });
+    expect(listTransactions(db).map((t) => [t.kind, t.amount])).toEqual([["expense", -5_000]]);
   });
 
   it("uses the savings account of the request for a row that names none", () => {

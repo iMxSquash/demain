@@ -404,7 +404,6 @@
         "savingsUnplaced": "Part of this savings row ({amount}) fits in no account of the overflow chain. Choose another savings account, or raise a ceiling.",
         "overflowChainCycle": "The overflow chain of the savings accounts loops. Fix it in the accounts, then import again.",
         "rowProblem": {
-          "typeSignMismatch": "The type does not match the sign of the amount.",
           "savingsAccountRequired": "Choose the savings account."
         }
       },
@@ -414,7 +413,6 @@
         "labelRequired": "Enter a label.",
         "amountInvalid": "Enter an amount such as -12.50.",
         "amountZero": "The amount cannot be zero.",
-        "typeSignMismatch": "The type does not match the sign of the amount.",
         "savingsAccountRequired": "Choose the savings account."
       },
       "columnState": "State",
@@ -458,6 +456,10 @@
         "historyOverruled": "an earlier import recorded this label as {type}, but the sign of the amount says otherwise and wins",
         "sign": "guessed from the sign of the amount: {type}",
         "debitCredit": "guessed from the debit and credit columns: {type}",
+        "typeAgainstSign": {
+          "expense": "Type Expense with a positive amount: the sign is taken from the type",
+          "income": "Type Income with a negative amount: the sign is taken from the type"
+        },
         "nothing": "nothing in the file gives the type, taken for an expense"
       },
       "splitLabel": "Split: {parts}",

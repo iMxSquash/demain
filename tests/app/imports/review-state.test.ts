@@ -184,7 +184,7 @@ describe("reviewReducer", () => {
     expect(next.files[0]?.rows[0]?.problem).toBe("savingsAccountRequired");
   });
 
-  it("flags a type that contradicts the sign instead of turning the amount around", () => {
+  it("marks a type that contradicts the sign as to confirm, in text, without a problem", () => {
     const next = reviewReducer(start(), {
       type: "setDetails",
       file: 0,
@@ -192,8 +192,30 @@ describe("reviewReducer", () => {
       details: { type: "income" },
     });
 
-    expect(next.files[0]?.rows[0]?.problem).toBe("typeSignMismatch");
-    expect(next.files[0]?.rows[0]?.draft.amount).toBe("-12,50");
+    const row = next.files[0]?.rows[0];
+    expect(row?.problem).toBeNull();
+    expect(row?.needsConfirmation).toBe(true);
+    expect(row?.confirmReasons).toEqual([{ kind: "typeAgainstSign", type: "income" }]);
+    expect(row?.draft.amount).toBe("-12,50");
+  });
+
+  it("stops marking the row once the amount agrees with the chosen type", () => {
+    const contradicting = reviewReducer(start(), {
+      type: "setDetails",
+      file: 0,
+      row: 0,
+      details: { type: "income" },
+    });
+
+    const next = reviewReducer(contradicting, {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "amount",
+      value: "12,50",
+    });
+
+    expect(next.files[0]?.rows[0]?.needsConfirmation).toBe(false);
   });
 
   it("stops asking to confirm a row once its type is chosen, not when its category is", () => {

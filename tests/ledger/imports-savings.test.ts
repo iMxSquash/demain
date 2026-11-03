@@ -486,13 +486,21 @@ describe("importing rows with details", () => {
     expect(listTransactions(db)[0]?.categoryId).toBeNull();
   });
 
-  it("blocks the file on a type that contradicts the sign of the amount", () => {
-    const rows = [expenseRow({ amount: 1_250 })];
+  it("records an expense typed on an incoming amount as an outgoing one, without blocking", () => {
+    const rows = [expenseRow({ amount: 5_000 })];
 
-    expect(() => importRows(rows)).toThrow(ImportBlockedError);
-    expect(previewImport(db, { accountId: CHECKING_ID, rows }).issues).toEqual([
-      { kind: "rowProblem", index: 0, problem: "typeSignMismatch" },
+    expect(previewImport(db, { accountId: CHECKING_ID, rows }).issues).toEqual([]);
+    importRows(rows);
+
+    expect(listTransactions(db).map((t) => [t.kind, t.amount])).toEqual([["expense", -5_000]]);
+  });
+
+  it("records an income typed on an outgoing amount as an incoming one", () => {
+    importRows([
+      expenseRow({ amount: -5_000, details: { ...detailsFromSign(1), type: "income" } }),
     ]);
+
+    expect(listTransactions(db).map((t) => [t.kind, t.amount])).toEqual([["income", 5_000]]);
   });
 
   it("blocks the file on a savings row that names no savings account", () => {
