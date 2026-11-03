@@ -1,26 +1,29 @@
 "use server";
 
 import { getLocale, getTranslations } from "next-intl/server";
-import { z } from "zod";
 
-import { draftOfRow, readImportDraft } from "../../domain/import-draft";
+import { amountTextForType, readImportDraft } from "../../domain/import-draft";
 import { ImportParseError } from "../../domain/import-row";
-import { stageCsvRows, type StagedRow } from "../../domain/import-staging";
+import { firstMovementDate } from "../../domain/import-savings";
+import type { TypedStagedRow } from "../../domain/import-staging";
 import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import { formatCalendarDate } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
-import {
-  csvMappingSchema,
-  findDuplicateRows,
-  type ImportFormat,
-} from "../../ledger/imports";
+import { listCategories } from "../../ledger/categories";
+import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
 import { commitDrafts } from "../../ledger/staged-import";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { flashError, flashSuccess } from "../feedback/flash";
 import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
+import {
+  commitRequestSchema,
+  MAX_FILE_NAME_LENGTH,
+  type CommitStagedRequest,
+} from "./commit-request";
+import { describeImportIssue } from "./describe-issues";
 import {
   decodeImportFile,
   detectImportFormat,
@@ -29,32 +32,10 @@ import {
   type CommitStagedState,
   type StagedFile,
 } from "./import-form-data";
-import { readCsv, readOfx } from "./read-statement";
+import { stageStatement } from "./stage-statement";
 
-const MAX_FILE_NAME_LENGTH = 255;
-const MAX_CELL_LENGTH = 1_000;
-const MAX_ROWS = 50_000;
 const WARNING_COUNT = 20;
 const BYTES_PER_MEGABYTE = 1024 * 1024;
-
-const commitRequestSchema = z.object({
-  accountId: z.number().int().min(1),
-  fileName: z.string().max(MAX_FILE_NAME_LENGTH),
-  format: z.enum(["csv", "ofx"]),
-  mapping: csvMappingSchema.nullable(),
-  drafts: z
-    .array(
-      z.object({
-        date: z.string().max(MAX_CELL_LENGTH),
-        label: z.string().max(MAX_CELL_LENGTH),
-        amount: z.string().max(MAX_CELL_LENGTH),
-        externalId: z.string().max(MAX_CELL_LENGTH).nullable(),
-      }),
-    )
-    .max(MAX_ROWS),
-});
-
-export type CommitStagedRequest = z.input<typeof commitRequestSchema>;
 
 /**
  * Reads one file of a multi-file import and records nothing. The browser calls
@@ -70,8 +51,10 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   const file = formData.get("file");
   const fileName =
     file instanceof File ? file.name.slice(0, MAX_FILE_NAME_LENGTH) : "";
-  const failed = (message: string): StagedFile =>
-    failedStagedFile(fileName, message);
+  const failed = (
+    message: string,
+    options?: { needsMapping?: boolean },
+  ): StagedFile => failedStagedFile(fileName, message, options);
 
   const accountId = Number(formData.get("accountId"));
   if (!Number.isInteger(accountId) || accountId < 1) {
@@ -85,36 +68,37 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   }
 
   try {
-    const { currency } = withDatabase((db) => getAccount(db, accountId));
+    const { currency, categories } = withDatabase((db) => ({
+      currency: getAccount(db, accountId).currency,
+      categories: listCategories(db),
+    }));
     const text = decodeImportFile(await file.arrayBuffer());
     const format: ImportFormat = detectImportFormat(text);
 
-    const reading =
-      format === "ofx"
-        ? readOfx(text, currency)
-        : readCsv(text, null, accountId, currency);
-    if (format === "csv" && reading.used === null) {
-      return failed(t("staged.mappingNeeded"));
+    const statement = stageStatement(text, format, {
+      fileName,
+      accountId,
+      currency,
+      categories,
+    });
+    if (statement.status === "mappingNeeded") {
+      return failed(t("staged.mappingNeeded"), { needsMapping: true });
+    }
+    if (statement.status === "yearMissing") {
+      return failed(t("staged.yearMissing"));
     }
 
-    const staged: StagedRow[] =
-      reading.used === null
-        ? reading.rows.map((row, index) => ({
-            line: index + 1,
-            rawDate: null,
-            draft: draftOfRow(row, currency),
-          }))
-        : stageCsvRows(reading.table, reading.used, currency);
-    const isDuplicate = duplicateFlags(accountId, staged, currency);
-
+    const isDuplicate = duplicateFlags(accountId, statement.rows, currency);
     return {
       fileName,
       status: "ready",
       message: "",
-      format,
-      mapping: reading.used,
+      format: statement.format,
+      mapping: statement.mapping,
       currency,
-      rows: staged.map((row, index) => ({
+      firstDate: firstMovementDate(statement.rows.map((row) => row.draft.date)),
+      needsMapping: false,
+      rows: statement.rows.map((row, index) => ({
         ...row,
         isDuplicate: isDuplicate[index] ?? false,
       })),
@@ -140,10 +124,16 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
 // A row the file gives unreadably cannot be compared yet: it is not flagged.
 function duplicateFlags(
   accountId: number,
-  staged: readonly StagedRow[],
+  staged: readonly TypedStagedRow[],
   currency: string,
 ): boolean[] {
-  const readings = staged.map(({ draft }) => readImportDraft(draft, currency));
+  // Compared on the amount the review shows and the import records.
+  const readings = staged.map(({ draft, details }) =>
+    readImportDraft(
+      { ...draft, amount: amountTextForType(draft.amount, details.type, currency) },
+      currency,
+    ),
+  );
   const rows = readings.flatMap((reading) => (reading.ok ? [reading.row] : []));
   const flags = withDatabase((db) =>
     findDuplicateRows(db, { accountId, rows }),
@@ -163,8 +153,9 @@ export async function commitStagedFileAction(
   request: CommitStagedRequest,
 ): Promise<CommitStagedState> {
   await requireSession();
-  const [t, translate, locale] = await Promise.all([
+  const [t, issuesT, translate, locale] = await Promise.all([
     getTranslations("imports"),
+    getTranslations("imports.staged.issues"),
     getTranslator(),
     getLocale(),
   ]);
@@ -173,15 +164,21 @@ export async function commitStagedFileAction(
     message,
     warnings: [],
     problems: [],
+    issues: [],
   });
 
   const parsed = commitRequestSchema.safeParse(request);
   if (!parsed.success) return fail(translate(messageRef("importFailed")));
+  const { savingsAccountId, ...file } = parsed.data;
 
   try {
     const { currency, outcome } = withDatabase((db) => ({
-      currency: getAccount(db, parsed.data.accountId).currency,
-      outcome: commitDrafts(db, { ...parsed.data, now: new Date() }),
+      currency: getAccount(db, file.accountId).currency,
+      outcome: commitDrafts(db, {
+        ...file,
+        savingsAccountId: savingsAccountId ?? undefined,
+        now: new Date(),
+      }),
     }));
     if (outcome.status === "invalid") {
       return {
@@ -189,13 +186,25 @@ export async function commitStagedFileAction(
         message: t("staged.stillInvalid", { count: outcome.problems.length }),
         warnings: [],
         problems: outcome.problems,
+        issues: [],
       };
     }
 
-    // The dialog does not send the details of a review yet, so a file cannot be
-    // blocked from here: it is reported as a failure rather than shown as done.
     if (outcome.status === "blocked") {
-      return fail(translate(messageRef("importFailed")));
+      const say = {
+        t: issuesT,
+        translate,
+        locale,
+        currency,
+        rows: file.drafts,
+      };
+      return {
+        status: "blocked",
+        message: t("staged.blocked"),
+        warnings: [],
+        problems: [],
+        issues: outcome.issues.map((issue) => describeImportIssue(issue, say)),
+      };
     }
 
     revalidateLedger();
@@ -224,6 +233,7 @@ export async function commitStagedFileAction(
             }),
       warnings,
       problems: [],
+      issues: [],
     };
   } catch (error) {
     if (error instanceof AccountNotFoundError) {

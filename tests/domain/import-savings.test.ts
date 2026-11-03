@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  checkSavingsAccount,
+  defaultSavingsAccountId,
+  firstMovementDate,
+  isSelectableSavingsAccount,
   orderFilesByDate,
   planFilesInDateOrder,
   planSavingsTransfers,
+  type SavingsAccountChoice,
+  type SavingsAccountCandidate,
   type SavingsMovement,
 } from "../../src/domain/import-savings";
 import type { OverflowAccount } from "../../src/domain/overflow";
@@ -258,5 +264,158 @@ describe("files in date order", () => {
         },
       ],
     ]);
+  });
+});
+
+describe("checkSavingsAccount", () => {
+  const RECEIVING_ID = 1;
+
+  function candidate(
+    overrides: Partial<SavingsAccountCandidate> = {},
+  ): SavingsAccountCandidate {
+    return { id: A_ID, kind: "savings", archived: false, currency: "EUR", ...overrides };
+  }
+
+  it("accepts an active savings account other than the one that receives the file", () => {
+    expect(checkSavingsAccount(RECEIVING_ID, candidate())).toBeNull();
+  });
+
+  it("refuses an account that does not exist", () => {
+    expect(checkSavingsAccount(RECEIVING_ID, undefined)).toEqual({
+      key: "importSavingsAccountUnknown",
+    });
+  });
+
+  it("refuses an archived account", () => {
+    expect(checkSavingsAccount(RECEIVING_ID, candidate({ archived: true }))).toEqual({
+      key: "importSavingsAccountArchived",
+    });
+  });
+
+  it.each(["checking", "other"] as const)("refuses an account of kind %s", (kind) => {
+    expect(checkSavingsAccount(RECEIVING_ID, candidate({ kind }))).toEqual({
+      key: "importSavingsAccountNotSavings",
+    });
+  });
+
+  it("refuses the account that receives the file", () => {
+    expect(checkSavingsAccount(A_ID, candidate())).toEqual({
+      key: "importSavingsAccountSameAsAccount",
+    });
+  });
+});
+
+describe("savings account choices", () => {
+  const RECEIVING = { id: 1, currency: "EUR" };
+  const C_ID = 4;
+
+  function choice(
+    overrides: Partial<SavingsAccountChoice> & { id: number },
+  ): SavingsAccountChoice {
+    return {
+      kind: "savings",
+      archived: false,
+      currency: "EUR",
+      overflowAccountId: null,
+      ...overrides,
+    };
+  }
+
+  // Checking 1, then A (head) overflowing to B.
+  function sheetAccounts(): SavingsAccountChoice[] {
+    return [
+      choice({ id: RECEIVING.id, kind: "checking" }),
+      choice({ id: A_ID, overflowAccountId: B_ID }),
+      choice({ id: B_ID }),
+    ];
+  }
+
+  describe("isSelectableSavingsAccount", () => {
+    it("accepts an active savings account of the same currency", () => {
+      expect(isSelectableSavingsAccount(RECEIVING, choice({ id: A_ID }))).toBe(true);
+    });
+
+    it.each([
+      ["another currency", { currency: "USD" }],
+      ["an archived account", { archived: true }],
+      ["a checking account", { kind: "checking" as const }],
+      ["the account of the file", { id: RECEIVING.id }],
+    ])("refuses %s", (_name, overrides) => {
+      expect(
+        isSelectableSavingsAccount(RECEIVING, choice({ id: A_ID, ...overrides })),
+      ).toBe(false);
+    });
+  });
+
+  describe("defaultSavingsAccountId", () => {
+    it("is the savings account that no active account overflows to", () => {
+      expect(defaultSavingsAccountId(sheetAccounts(), RECEIVING)).toBe(A_ID);
+    });
+
+    it("is the only savings account when it overflows nowhere", () => {
+      const accounts = [choice({ id: RECEIVING.id, kind: "checking" }), choice({ id: A_ID })];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
+    });
+
+    it("is none when several savings accounts head a chain", () => {
+      const accounts = [...sheetAccounts(), choice({ id: C_ID })];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBeNull();
+    });
+
+    it("is none without a savings account", () => {
+      const accounts = [choice({ id: RECEIVING.id, kind: "checking" })];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBeNull();
+    });
+
+    it("leaves out the accounts of another currency", () => {
+      const accounts = [
+        ...sheetAccounts(),
+        choice({ id: C_ID, currency: "USD" }),
+      ];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
+    });
+
+    it("is none when the head of the chain is the account that receives the file", () => {
+      expect(defaultSavingsAccountId(sheetAccounts(), { id: A_ID, currency: "EUR" })).toBeNull();
+    });
+
+    it("ignores an archived account that still points to a savings account", () => {
+      const accounts = [
+        choice({ id: RECEIVING.id, kind: "checking" }),
+        choice({ id: A_ID }),
+        choice({ id: C_ID, archived: true, overflowAccountId: A_ID }),
+      ];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
+    });
+
+    it("counts any active account that overflows to a savings account, not only savings ones", () => {
+      const accounts = [
+        choice({ id: RECEIVING.id, kind: "checking", overflowAccountId: A_ID }),
+        choice({ id: A_ID }),
+        choice({ id: B_ID }),
+      ];
+
+      expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(B_ID);
+    });
+  });
+});
+
+describe("firstMovementDate", () => {
+  it("is the earliest valid date, whatever the order of the rows", () => {
+    expect(firstMovementDate(["2026-03-10", "2026-02-27", "2026-03-01"])).toBe("2026-02-27");
+  });
+
+  it("skips a date that is empty or not a calendar date", () => {
+    expect(firstMovementDate(["", "2026-02-30", "2026-03-01"])).toBe("2026-03-01");
+  });
+
+  it("is null when no date is valid", () => {
+    expect(firstMovementDate([])).toBeNull();
+    expect(firstMovementDate([""])).toBeNull();
   });
 });

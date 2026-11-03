@@ -13,7 +13,9 @@ import {
 } from "../domain/categorization-rule";
 import {
   checkRowDetails,
+  signedAmountForType,
   type DetailsProblem,
+  withDefaultSavingsAccount,
   type RowDetails,
 } from "../domain/import-draft";
 import {
@@ -22,13 +24,14 @@ import {
   type ImportedRow,
 } from "../domain/import-row";
 import {
+  checkSavingsAccount,
   compareDates,
   planSavingsTransfers,
   type SavingsMovement,
   type SavingsPlanIssue,
   type SavingsTransfer,
 } from "../domain/import-savings";
-import type { MessageRef } from "../domain/message";
+import { messageRef, type MessageRef } from "../domain/message";
 import type { OverflowAccount } from "../domain/overflow";
 import {
   buildTransferLegs,
@@ -40,8 +43,14 @@ import {
 } from "../domain/transaction";
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
-import { getAccount, getAccountBalance, listOverflowAccounts } from "./accounts";
-import { getCategory } from "./categories";
+import {
+  getAccount,
+  getAccountBalance,
+  listAccounts,
+  listOverflowAccounts,
+  type Account,
+} from "./accounts";
+import { CategoryNotFoundError, getCategory } from "./categories";
 import { listApplicableRules } from "./categorization-rules";
 import { insertTransferLegs, type LegImportColumns } from "./transactions";
 
@@ -256,7 +265,16 @@ function fingerprintWithDuplicateFlags(
   db: AppDatabase,
   request: ImportRequest,
 ): { row: FingerprintedRow; isDuplicate: boolean }[] {
-  const fingerprinted = fingerprintRows(request.rows);
+  // The fingerprints are computed on the amount as it is recorded (an explicit
+  // type decides the sign), so that the review, which shows that amount, and the
+  // file read again give the same movement the same fingerprint.
+  const fingerprinted = fingerprintRows(
+    request.rows.map((row) =>
+      row.details === undefined
+        ? row
+        : { ...row, amount: signedAmountForType(row.details.type, row.amount) },
+    ),
+  );
   const known = findKnownKeys(db, request.accountId, fingerprinted);
   return fingerprinted.map((row) => ({ row, isDuplicate: isKnown(row, known) }));
 }
@@ -300,29 +318,37 @@ function planRow(
   db: AppDatabase,
   request: ImportRequest,
   index: number,
-  row: FingerprintedRow,
+  fileRow: FingerprintedRow,
   rules: readonly CategorizationRule[],
+  accountsById: ReadonlyMap<number, Account>,
   outcome: RowOutcome,
 ): void {
   const given = request.rows[index]?.details;
   const details: RowDetails | undefined =
     given === undefined
       ? undefined
-      : {
-          ...given,
-          savingsAccountId: given.savingsAccountId ?? request.savingsAccountId ?? null,
-        };
-  const problem = details === undefined ? null : checkRowDetails(details, row.amount);
+      : withDefaultSavingsAccount(given, request.savingsAccountId);
+  const problem = details === undefined ? null : checkRowDetails(details);
   if (problem !== null) {
     outcome.issues.push({ kind: "rowProblem", index, problem });
     return;
   }
 
+  // The amount already follows the explicit type, see fingerprintWithDuplicateFlags.
+  const row = fileRow;
   const kind = details?.type ?? (row.amount > 0 ? "income" : "expense");
   if (kind === "savings") {
     const savingsAccountId = details?.savingsAccountId ?? null;
     if (savingsAccountId === null) {
       throw new Error("A savings row without a savings account passed the check");
+    }
+    const refusal = checkSavingsAccount(
+      request.accountId,
+      accountsById.get(savingsAccountId),
+    );
+    if (refusal !== null) {
+      outcome.issues.push({ kind: "rowInvalid", index, ref: refusal });
+      return;
     }
     outcome.movements.push({ index, date: row.date, amount: row.amount, savingsAccountId });
     outcome.flows.push({
@@ -345,9 +371,16 @@ function planRow(
     outcome.flows.push(input);
   } catch (error) {
     // Rows without details keep failing loudly: only the review gives a row to fix.
-    if (details === undefined || !(error instanceof TransactionValidationError)) {
-      throw error;
+    if (details === undefined) throw error;
+    if (error instanceof CategoryNotFoundError) {
+      outcome.issues.push({
+        kind: "rowInvalid",
+        index,
+        ref: messageRef("importCategoryUnknown"),
+      });
+      return;
     }
+    if (!(error instanceof TransactionValidationError)) throw error;
     outcome.issues.push({ kind: "rowInvalid", index, ref: error.ref });
   }
 }
@@ -407,6 +440,9 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
   const flagged = fingerprintWithDuplicateFlags(db, request);
   const rules = listApplicableRules(db);
+  const accountsById = new Map(
+    listAccounts(db, { includeArchived: true }).map((stored) => [stored.id, stored]),
+  );
   const outcome: RowOutcome = {
     fresh: [],
     flows: [],
@@ -418,7 +454,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   flagged.forEach(({ row, isDuplicate }, index) => {
     if (isDuplicate) return;
     newCount += 1;
-    planRow(db, request, index, row, rules, outcome);
+    planRow(db, request, index, row, rules, accountsById, outcome);
   });
 
   let transfers: SavingsTransfer[] = [];

@@ -37,7 +37,7 @@ export type ReviewedDraft = ImportDraft & { details?: RowDetails };
 export type DraftProblem =
   "dateInvalid" | "labelRequired" | "amountInvalid" | "amountZero";
 
-export type DetailsProblem = "typeSignMismatch" | "savingsAccountRequired";
+export type DetailsProblem = "savingsAccountRequired";
 
 /** Everything that can still be wrong with a reviewed row. */
 export type RowProblem = DraftProblem | DetailsProblem;
@@ -53,15 +53,8 @@ export function readImportDraft(
   const label = draft.label.trim();
   if (label === "") return { ok: false, problem: "labelRequired" };
 
-  let amount: number;
-  try {
-    amount = parseAmount(draft.amount, currency);
-  } catch (error) {
-    if (error instanceof MoneyParseError) {
-      return { ok: false, problem: "amountInvalid" };
-    }
-    throw error;
-  }
+  const amount = tryParseAmount(draft.amount, currency);
+  if (amount === null) return { ok: false, problem: "amountInvalid" };
   if (amount === 0) return { ok: false, problem: "amountZero" };
 
   return {
@@ -90,16 +83,62 @@ export function detailsFromSign(amount: number): RowDetails {
   };
 }
 
-/**
- * Whether the details fit the amount: an expense leaves the account and an
- * income enters it, whereas savings go both ways (a deposit, a withdrawal).
- */
-export function checkRowDetails(
+/** A row that names no savings account takes the default one, which may itself be absent. */
+export function withDefaultSavingsAccount(
   details: RowDetails,
-  amount: number,
-): DetailsProblem | null {
-  if (details.type === "savings") {
-    return details.savingsAccountId === null ? "savingsAccountRequired" : null;
+  defaultSavingsAccountId: number | null | undefined,
+): RowDetails {
+  return {
+    ...details,
+    savingsAccountId: details.savingsAccountId ?? defaultSavingsAccountId ?? null,
+  };
+}
+
+/** What is wrong with the details of a row that does not depend on its amount. */
+export function checkRowDetails(details: RowDetails): DetailsProblem | null {
+  if (details.type === "savings" && details.savingsAccountId === null) {
+    return "savingsAccountRequired";
   }
-  return (details.type === "expense") === amount < 0 ? null : "typeSignMismatch";
+  return null;
+}
+
+/**
+ * The amount as the type reads it: an expense leaves the account and an income
+ * enters it, whatever sign the file gave. Savings go both ways (a deposit, a
+ * withdrawal), so their amount is left as it is. An explicit type wins over the
+ * sign, see DOMAIN, section Guessing the type of an imported row.
+ */
+export function signedAmountForType(type: MovementType, amount: number): number {
+  if (type === "savings" || amount === 0) return amount;
+  const magnitude = Math.abs(amount);
+  return type === "expense" ? -magnitude : magnitude;
+}
+
+/** Whether the sign of the amount is not the one the type reads: the row is then to confirm. */
+export function isTypeAgainstSign(type: MovementType, amount: number): boolean {
+  return signedAmountForType(type, amount) !== amount;
+}
+
+/**
+ * The text of an amount cell as the type reads it, so that the cell shows what
+ * will be recorded. Text that already agrees with the type, savings and text
+ * that cannot be read as a non-null amount are returned as typed.
+ */
+export function amountTextForType(
+  text: string,
+  type: MovementType,
+  currency: string,
+): string {
+  const amount = tryParseAmount(text, currency);
+  if (amount === null || !isTypeAgainstSign(type, amount)) return text;
+  return formatEditableAmount(signedAmountForType(type, amount), currency);
+}
+
+function tryParseAmount(text: string, currency: string): number | null {
+  try {
+    return parseAmount(text, currency);
+  } catch (error) {
+    if (error instanceof MoneyParseError) return null;
+    throw error;
+  }
 }

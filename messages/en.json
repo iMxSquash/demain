@@ -384,6 +384,7 @@
       "close": "Close",
       "mappingNeeded": "The columns of this file could not be guessed. Import it alone to set them.",
       "readFailed": "This file could not be read.",
+      "yearMissing": "The dates of this file have no year, and its name gives none. Put the year in the file name (for example 2026-03.csv) and choose the file again.",
       "summary": "{rows} rows: {newCount} new, {duplicateCount} already in this account, {problemCount} to fix.",
       "tableCaption": "Rows of {name}",
       "row": "Row",
@@ -396,15 +397,79 @@
       "cancelled": "Cancelled: nothing was imported from this file.",
       "stillInvalid": "{count} rows are still invalid: nothing was imported from this file.",
       "toCategorize": "Categorize the imported transactions",
+      "blocked": "This file cannot be imported as it is: nothing was imported from it. See the points below.",
+      "issues": {
+        "withRow": "{label} ({date}): {text}",
+        "savingsAmountInvalid": "The amount of this savings row cannot be placed.",
+        "savingsUnplaced": "Part of this savings row ({amount}) fits in no account of the overflow chain. Choose another savings account, or raise a ceiling.",
+        "overflowChainCycle": "The overflow chain of the savings accounts loops. Fix it in the accounts, then import again.",
+        "rowProblem": {
+          "savingsAccountRequired": "Choose the savings account."
+        }
+      },
       "problems": {
         "dateInvalid": "Enter a valid date.",
         "dateInvalidRaw": "The file says \"{raw}\": enter a valid date.",
         "labelRequired": "Enter a label.",
         "amountInvalid": "Enter an amount such as -12.50.",
-        "amountZero": "The amount cannot be zero."
+        "amountZero": "The amount cannot be zero.",
+        "savingsAccountRequired": "Choose the savings account."
       },
       "columnState": "State",
-      "importFailed": "Something went wrong, nothing was imported from this file."
+      "importFailed": "Something went wrong, nothing was imported from this file.",
+      "receivingAccount": "Account that receives the files",
+      "receivingAccountHint": "Changing it reads the files again: duplicates and currency depend on the account, and the edits made here are lost.",
+      "savingsAccount": "Savings account",
+      "savingsAccountHint": "Used by every savings row that names no other account.",
+      "noSavingsAccount": "No savings account",
+      "columnType": "Type",
+      "columnCategory": "Category",
+      "columnPaymentMode": "Payment mode",
+      "columnSavingsAccount": "Savings account",
+      "types": {
+        "expense": "Expense",
+        "income": "Income",
+        "savings": "Savings"
+      },
+      "typeNouns": {
+        "expense": "an expense",
+        "income": "an income",
+        "savings": "savings"
+      },
+      "noCategory": "No category",
+      "noPaymentMode": "None",
+      "notApplicable": "Not applicable",
+      "sameAsFile": "Same as the file ({name})",
+      "unknownAccount": "Unknown account",
+      "chooseSavingsAccount": "Choose an account",
+      "toConfirm": "To confirm: {reasons}",
+      "toConfirmCount": "{count} rows to confirm: their type was guessed with little evidence.",
+      "confirm": {
+        "typeCellConflict": {
+          "sign": "the type column says \"{value}\", which contradicts the sign of the amount",
+          "debitCredit": "the type column says \"{value}\", which contradicts the debit and credit columns"
+        },
+        "typeCellUnknown": "the type column says \"{value}\", which is not a known type",
+        "categoryWord": "guessed, the category is {category}",
+        "categoryOverruled": "the category is {category}, but the sign of the amount says otherwise and wins",
+        "history": "guessed, an earlier import recorded this label as {type}",
+        "historyOverruled": "an earlier import recorded this label as {type}, but the sign of the amount says otherwise and wins",
+        "sign": "guessed from the sign of the amount: {type}",
+        "debitCredit": "guessed from the debit and credit columns: {type}",
+        "typeAgainstSign": {
+          "expense": "Type Expense with a positive amount: the sign is taken from the type",
+          "income": "Type Income with a negative amount: the sign is taken from the type"
+        },
+        "nothing": "nothing in the file gives the type, taken for an expense"
+      },
+      "splitLabel": "Split: {parts}",
+      "split": {
+        "to": "{amount} to {account}",
+        "from": "{amount} from {account}",
+        "unplaced": "{amount} fits nowhere"
+      },
+      "unplacedNote": "Part of a savings row fits nowhere along the overflow chain: this file will be refused as it is.",
+      "importAfter": "Import or cancel {name} first: the files are recorded in date order."
     }
   },
   "backup": {
@@ -669,6 +734,11 @@
     "importOfxCurrencyMismatch": "The statement is in {found}, but the account is in {expected}",
     "importOfxDateInvalid": "Invalid posting date \"{date}\"",
     "importOfxAmountMissing": "The amount is missing",
+    "importSavingsAccountUnknown": "The savings account no longer exists",
+    "importSavingsAccountArchived": "The savings account is archived",
+    "importSavingsAccountNotSavings": "The chosen account is not a savings account",
+    "importSavingsAccountSameAsAccount": "The savings account cannot be the account that receives the file",
+    "importCategoryUnknown": "The category no longer exists",
     "accountGone": "This account no longer exists.",
     "categoryGone": "This category no longer exists.",
     "transactionGone": "This transaction no longer exists.",

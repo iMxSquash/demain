@@ -384,6 +384,7 @@
       "close": "Fermer",
       "mappingNeeded": "Les colonnes de ce fichier n'ont pas pu être devinées. Importez-le seul pour les indiquer.",
       "readFailed": "Ce fichier n'a pas pu être lu.",
+      "yearMissing": "Les dates de ce fichier n'ont pas d'année et son nom n'en donne pas. Mettez l'année dans le nom du fichier (par exemple 2026-03.csv) et choisissez-le à nouveau.",
       "summary": "{rows} lignes : {newCount} nouvelles, {duplicateCount} déjà dans ce compte, {problemCount} à corriger.",
       "tableCaption": "Lignes de {name}",
       "row": "Ligne",
@@ -396,15 +397,79 @@
       "cancelled": "Annulé : rien n'a été importé de ce fichier.",
       "stillInvalid": "{count} lignes sont encore invalides : rien n'a été importé de ce fichier.",
       "toCategorize": "Catégoriser les transactions importées",
+      "blocked": "Ce fichier ne peut pas être importé tel quel : rien n'en a été importé. Voir les points ci-dessous.",
+      "issues": {
+        "withRow": "{label} ({date}) : {text}",
+        "savingsAmountInvalid": "Le montant de cette ligne d'épargne ne peut pas être placé.",
+        "savingsUnplaced": "Une partie de cette ligne d'épargne ({amount}) ne tient dans aucun compte de la chaîne de débordement. Choisissez un autre compte d'épargne, ou relevez un plafond.",
+        "overflowChainCycle": "La chaîne de débordement des comptes d'épargne boucle. Corrigez-la dans les comptes, puis importez à nouveau.",
+        "rowProblem": {
+          "savingsAccountRequired": "Choisissez le compte d'épargne."
+        }
+      },
       "problems": {
         "dateInvalid": "Saisissez une date valide.",
         "dateInvalidRaw": "Le fichier indique « {raw} » : saisissez une date valide.",
         "labelRequired": "Saisissez un libellé.",
         "amountInvalid": "Saisissez un montant comme -12,50.",
-        "amountZero": "Le montant ne peut pas être nul."
+        "amountZero": "Le montant ne peut pas être nul.",
+        "savingsAccountRequired": "Choisissez le compte d'épargne."
       },
       "columnState": "État",
-      "importFailed": "Une erreur est survenue, rien n'a été importé de ce fichier."
+      "importFailed": "Une erreur est survenue, rien n'a été importé de ce fichier.",
+      "receivingAccount": "Compte qui reçoit les fichiers",
+      "receivingAccountHint": "Le changer relance la lecture des fichiers : les doublons et la devise dépendent du compte, et les modifications faites ici sont perdues.",
+      "savingsAccount": "Compte d'épargne",
+      "savingsAccountHint": "Utilisé par chaque ligne d'épargne qui n'en nomme pas d'autre.",
+      "noSavingsAccount": "Aucun compte d'épargne",
+      "columnType": "Type",
+      "columnCategory": "Catégorie",
+      "columnPaymentMode": "Mode de paiement",
+      "columnSavingsAccount": "Compte d'épargne",
+      "types": {
+        "expense": "Dépense",
+        "income": "Revenu",
+        "savings": "Épargne"
+      },
+      "typeNouns": {
+        "expense": "une dépense",
+        "income": "un revenu",
+        "savings": "de l'épargne"
+      },
+      "noCategory": "Sans catégorie",
+      "noPaymentMode": "Aucun",
+      "notApplicable": "Sans objet",
+      "sameAsFile": "Comme le fichier ({name})",
+      "unknownAccount": "Compte inconnu",
+      "chooseSavingsAccount": "Choisir un compte",
+      "toConfirm": "À confirmer : {reasons}",
+      "toConfirmCount": "{count} lignes à confirmer : leur type a été deviné avec peu d'indices.",
+      "confirm": {
+        "typeCellConflict": {
+          "sign": "la colonne type indique « {value} », ce qui contredit le signe du montant",
+          "debitCredit": "la colonne type indique « {value} », ce qui contredit les colonnes débit et crédit"
+        },
+        "typeCellUnknown": "la colonne type indique « {value} », qui n'est pas un type connu",
+        "categoryWord": "deviné : la catégorie est {category}",
+        "categoryOverruled": "la catégorie est {category}, mais le signe du montant dit le contraire et l'emporte",
+        "history": "deviné : un import précédent a enregistré ce libellé comme {type}",
+        "historyOverruled": "un import précédent a enregistré ce libellé comme {type}, mais le signe du montant dit le contraire et l'emporte",
+        "sign": "deviné d'après le signe du montant : {type}",
+        "debitCredit": "deviné d'après les colonnes débit et crédit : {type}",
+        "typeAgainstSign": {
+          "expense": "Type Dépense et montant positif : le signe est pris du type",
+          "income": "Type Revenu et montant négatif : le signe est pris du type"
+        },
+        "nothing": "rien dans le fichier ne donne le type, pris pour une dépense"
+      },
+      "splitLabel": "Découpage : {parts}",
+      "split": {
+        "to": "{amount} vers le compte {account}",
+        "from": "{amount} depuis le compte {account}",
+        "unplaced": "{amount} ne tient nulle part"
+      },
+      "unplacedNote": "Une partie d'une ligne d'épargne ne tient nulle part dans la chaîne de débordement : ce fichier sera refusé tel quel.",
+      "importAfter": "Importez ou annulez d'abord {name} : les fichiers sont enregistrés dans l'ordre des dates."
     }
   },
   "backup": {
@@ -669,6 +734,11 @@
     "importOfxCurrencyMismatch": "Le relevé est en {found}, mais le compte est en {expected}",
     "importOfxDateInvalid": "Date de comptabilisation invalide « {date} »",
     "importOfxAmountMissing": "Le montant est absent",
+    "importSavingsAccountUnknown": "Le compte d'épargne n'existe plus",
+    "importSavingsAccountArchived": "Le compte d'épargne est archivé",
+    "importSavingsAccountNotSavings": "Le compte choisi n'est pas un compte d'épargne",
+    "importSavingsAccountSameAsAccount": "Le compte d'épargne ne peut pas être le compte qui reçoit le fichier",
+    "importCategoryUnknown": "La catégorie n'existe plus",
     "accountGone": "Ce compte n'existe plus.",
     "categoryGone": "Cette catégorie n'existe plus.",
     "transactionGone": "Cette transaction n'existe plus.",

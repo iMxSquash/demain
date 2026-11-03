@@ -447,6 +447,8 @@ A bank export rarely says whether a row is an expense, an income or savings. The
 3. **The vocabulary of the category.** The first whole word of the category cell that the vocabulary knows (for example `salaire` gives an income, `epargne` gives savings). Words are compared after removing accents and case, never as parts of a longer word.
 4. **The history.** The type given to the same label (compared without case and extra spaces) by earlier imports of the account. The category word comes before the history.
 
+The explicit type also wins in the review of an import, whether it comes from the type cell or from the type the user chose in the dialog. When it contradicts the sign of the amount, the disagreement is kept as a conflict to show: the row is marked "to confirm" in text with its reason, the file is not blocked, and the amount is recorded with the sign of the type (an expense is negative, an income is positive, the absolute value is kept). The amount cell shows that recorded amount (`-50.00` for an expense read on `+50,00`), and the duplicate fingerprints are computed on it, so that the same file imported again is recognized. Savings are not concerned, since they go both ways. A row without an explicit type is still typed by the sign.
+
 A layer below the first two only counts when it agrees with the direction: an outgoing amount accepts an expense or savings, an incoming one accepts an income or savings (an incoming savings row is a withdrawal from the savings account, no longer a conflict). When it disagrees, the direction wins and the disagreement is kept as the conflict, to be shown. When the file has no direction at all (every amount positive in a single column), no conflict can be detected and the clue is used as it is.
 
 ### Confidence
@@ -456,7 +458,7 @@ There are three levels, and no number: `high`, `medium` and `low`. Only `low` fl
 | Situation | Type | Confidence |
 | --- | --- | --- |
 | Type cell, and the direction agrees or is unknown | The cell | High |
-| Type cell that contradicts the direction | The cell: an explicit type wins over the sign | Low, with the sign as the conflict |
+| Type cell that contradicts the direction | The cell: an explicit type wins over the sign, and the recorded sign follows the type | Low, with the sign as the conflict |
 | No type cell; a category word or the history agrees with the direction | The clue | Medium |
 | No type cell; the direction only | Expense when outgoing, income when incoming | Medium |
 | No type cell; a clue contradicts the direction | By the direction | Low, with the clue as the conflict |
@@ -520,6 +522,7 @@ An import records the movements of a bank file on an account that may already ho
 - **Date order.** The rows of a file, and the files of one import, are taken in date order so that the ceilings are read from the balances as they were.
 - **One file, one batch, all or nothing.** Each file is recorded in one transaction under its own batch, and deduplicated against the account that receives it. A part that fits nowhere, a loop in the chain or a row the ledger refuses records nothing of the file.
 - **Not the first run.** An account that already has transactions is accepted.
+- **Review before recording.** Any file opens a review, nothing is recorded until a file is imported. The account that receives the files can be changed there (the files are read again) and a savings account, the head of the overflow chain when there is exactly one, is the default of the savings rows that name none; only an active savings account of the same currency other than the receiving account is offered. The type, category (not for savings), payment mode and savings account of each row can be edited, and the savings split planned from the balances is shown as text before the import. A type that contradicts the sign of the amount does not block the file: the type wins, the amount is recorded with the sign of the type and the row is marked "to confirm" in text with its reason. A row typed with a low confidence is marked "to confirm" in text with its reason. A file can be imported only when every earlier file (by first date) is imported, cancelled or failed, since each is planned from the balances the previous one leaves. The server reads every text again and plans from the real balances: what the review shows is a preview.
 
 ## Migration from the sheet
 

@@ -285,6 +285,47 @@ describe("importing savings rows", () => {
     ]);
   });
 
+  it.each([
+    ["does not exist", "select 1", 999, "importSavingsAccountUnknown"],
+    ["is archived", "update accounts set archived = 1 where id = 2", A_ID, "importSavingsAccountArchived"],
+    ["is not a savings account", "update accounts set kind = 'other' where id = 2", A_ID, "importSavingsAccountNotSavings"],
+    ["is the account of the file", "update accounts set kind = 'savings' where id = 1", CHECKING_ID, "importSavingsAccountSameAsAccount"],
+  ])(
+    "reports the row, not a crash, when the savings account %s",
+    (_name, statement, savingsAccountId, key) => {
+      db.$client.exec(statement);
+
+      const { issues } = previewImport(
+        db,
+        request([savingsRow({}, { savingsAccountId })]),
+      );
+
+      expect(issues).toEqual([{ kind: "rowInvalid", index: 0, ref: { key } }]);
+    },
+  );
+
+  it("checks the savings account of the request for a row that names none", () => {
+    const { issues } = previewImport(db, {
+      accountId: CHECKING_ID,
+      savingsAccountId: 999,
+      rows: [savingsRow({}, { savingsAccountId: null })],
+    });
+
+    expect(issues).toEqual([
+      { kind: "rowInvalid", index: 0, ref: { key: "importSavingsAccountUnknown" } },
+    ]);
+  });
+
+  it("reports a withdrawal from an archived savings account too", () => {
+    db.$client.exec("update accounts set archived = 1 where id = 2");
+
+    const { issues } = previewImport(db, request([savingsRow({ amount: 5_000 })]));
+
+    expect(issues).toEqual([
+      { kind: "rowInvalid", index: 0, ref: { key: "importSavingsAccountArchived" } },
+    ]);
+  });
+
   it("reports the row when the savings account has another currency", () => {
     db.$client.exec("update accounts set currency = 'USD' where id = 2");
 
@@ -445,13 +486,21 @@ describe("importing rows with details", () => {
     expect(listTransactions(db)[0]?.categoryId).toBeNull();
   });
 
-  it("blocks the file on a type that contradicts the sign of the amount", () => {
-    const rows = [expenseRow({ amount: 1_250 })];
+  it("records an expense typed on an incoming amount as an outgoing one, without blocking", () => {
+    const rows = [expenseRow({ amount: 5_000 })];
 
-    expect(() => importRows(rows)).toThrow(ImportBlockedError);
-    expect(previewImport(db, { accountId: CHECKING_ID, rows }).issues).toEqual([
-      { kind: "rowProblem", index: 0, problem: "typeSignMismatch" },
+    expect(previewImport(db, { accountId: CHECKING_ID, rows }).issues).toEqual([]);
+    importRows(rows);
+
+    expect(listTransactions(db).map((t) => [t.kind, t.amount])).toEqual([["expense", -5_000]]);
+  });
+
+  it("records an income typed on an outgoing amount as an incoming one", () => {
+    importRows([
+      expenseRow({ amount: -5_000, details: { ...detailsFromSign(1), type: "income" } }),
     ]);
+
+    expect(listTransactions(db).map((t) => [t.kind, t.amount])).toEqual([["income", 5_000]]);
   });
 
   it("blocks the file on a savings row that names no savings account", () => {
@@ -462,6 +511,20 @@ describe("importing rows with details", () => {
 
     expect(issues).toEqual([
       { kind: "rowProblem", index: 0, problem: "savingsAccountRequired" },
+    ]);
+  });
+
+  it("reports a category that does not exist as an invalid row, not a crash", () => {
+    const { issues } = previewImport(db, {
+      accountId: CHECKING_ID,
+      rows: [
+        expenseRow({ details: { ...detailsFromSign(-1_250), categoryId: 999 } }),
+        expenseRow({ label: "OTHER", details: detailsFromSign(-1_250) }),
+      ],
+    });
+
+    expect(issues).toEqual([
+      { kind: "rowInvalid", index: 0, ref: { key: "importCategoryUnknown" } },
     ]);
   });
 

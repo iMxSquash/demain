@@ -4,6 +4,9 @@ import type { ReactNode } from "react";
 export const CONTROL_CLASS =
   "min-h-11 w-full rounded border border-neutral-500 bg-white px-3 text-neutral-900 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
 
+export const BUTTON_CLASS =
+  "min-h-11 rounded border border-neutral-900 px-4 font-medium disabled:opacity-60";
+
 interface FormFieldProps {
   id: string;
   label: string;

@@ -8,8 +8,13 @@ import {
 } from "../../domain/import-csv";
 import type { RowProblem } from "../../domain/import-draft";
 import { looksLikeOfx } from "../../domain/import-ofx";
-import type { StagedRow } from "../../domain/import-staging";
+import type { SavingsAccountChoice } from "../../domain/import-savings";
+import type { TypedStagedRow } from "../../domain/import-staging";
+import type { OverflowAccount } from "../../domain/overflow";
+import type { Account } from "../../ledger/accounts";
+import type { Category } from "../../ledger/categories";
 import type { ImportFormat } from "../../ledger/imports";
+import type { ReportedImportIssue } from "./describe-issues";
 
 /** Largest file accepted. `serverActions.bodySizeLimit` in next.config.ts must stay above it. */
 export const MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024;
@@ -54,7 +59,48 @@ export interface ImportFormState {
   canImport: boolean;
 }
 
-export interface StagedRowView extends StagedRow {
+/** An active account as the import page offers it: enough to choose it and to choose a savings account. */
+export interface ImportAccountOption extends SavingsAccountChoice {
+  name: string;
+}
+
+export interface ImportCategoryOption {
+  id: number;
+  name: string;
+}
+
+/** What the import page hands to the browser. */
+export interface ImportView {
+  /** The active accounts. */
+  accounts: ImportAccountOption[];
+  /** The active categories. */
+  categories: ImportCategoryOption[];
+  /** The balances of every account, archived ones included: the snapshot the savings rows are planned from. */
+  overflowAccounts: OverflowAccount[];
+}
+
+export function toImportView(
+  accounts: readonly Account[],
+  categories: readonly Category[],
+  overflowAccounts: readonly OverflowAccount[],
+): ImportView {
+  return {
+    accounts: accounts.map(
+      ({ id, name, kind, currency, archived, overflowAccountId }) => ({
+        id,
+        name,
+        kind,
+        currency,
+        archived,
+        overflowAccountId,
+      }),
+    ),
+    categories: categories.map(({ id, name }) => ({ id, name })),
+    overflowAccounts: overflowAccounts.map((account) => ({ ...account })),
+  };
+}
+
+export interface StagedRowView extends TypedStagedRow {
   /** The account already holds this movement: it is left out when the file is imported. */
   isDuplicate: boolean;
 }
@@ -69,6 +115,10 @@ export interface StagedFile {
   /** The CSV mapping that read the file: recorded with the batch, offered at the next import. */
   mapping: CsvMapping | null;
   currency: string;
+  /** Earliest date of the rows, which orders the files of an import; null when none can be read. */
+  firstDate: string | null;
+  /** A CSV file whose columns were not found: the form of the column mapping reads it. */
+  needsMapping: boolean;
   rows: StagedRowView[];
 }
 
@@ -76,6 +126,7 @@ export interface StagedFile {
 export function failedStagedFile(
   fileName: string,
   message: string,
+  { needsMapping = false }: { needsMapping?: boolean } = {},
 ): StagedFile {
   return {
     fileName,
@@ -84,18 +135,23 @@ export function failedStagedFile(
     format: null,
     mapping: null,
     currency: "",
+    firstDate: null,
+    needsMapping,
     rows: [],
   };
 }
 
 export interface CommitStagedState {
-  status: "done" | "invalid" | "error";
+  /** "blocked": the ledger refuses the file as a whole, `issues` says why. */
+  status: "done" | "invalid" | "blocked" | "error";
   /** Translated. */
   message: string;
   /** Translated, for the ceiling and for an archived account. */
   warnings: string[];
   /** Position in the file's rows, for each row the server still refuses. */
   problems: { index: number; problem: RowProblem }[];
+  /** Translated, what blocks the file; each one points at its row when it has one. */
+  issues: ReportedImportIssue[];
 }
 
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */

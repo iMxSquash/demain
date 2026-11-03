@@ -25,6 +25,7 @@ import {
   type MovementFileReading,
   type MovementRow,
 } from "./import-movements";
+import { MoneyParseError, parseAmount } from "./money";
 
 export interface StagedRow {
   /** 1-based line of the file, to find the row again. */
@@ -104,6 +105,31 @@ export interface TypedStagedRow extends StagedRow {
   details: RowDetails;
   /** How the type was found; null for a row the file could not give as a movement. */
   guess: TypeGuess | null;
+}
+
+function signOfAmount(text: string, currency: string): number {
+  try {
+    return parseAmount(text, currency);
+  } catch (error) {
+    if (error instanceof MoneyParseError) return -1;
+    throw error;
+  }
+}
+
+/**
+ * Rows read without a type guess (an OFX statement, a CSV read with a mapping
+ * the user fixed by hand): the sign of the amount decides, as it did before the
+ * type could be chosen. A row whose amount cannot be read is taken for an expense.
+ */
+export function typeRowsBySign(
+  staged: readonly StagedRow[],
+  currency: string,
+): TypedStagedRow[] {
+  return staged.map((row) => ({
+    ...row,
+    guess: null,
+    details: detailsFromSign(signOfAmount(row.draft.amount, currency)),
+  }));
 }
 
 export interface StagedCategory {

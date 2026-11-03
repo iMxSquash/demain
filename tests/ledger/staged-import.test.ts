@@ -112,6 +112,30 @@ describe("commitDrafts", () => {
     expect(listImportBatches(db, accountId)).toEqual([]);
   });
 
+  describe("an explicit type against the sign of the amount", () => {
+    const expense: RowDetails = { ...detailsFromSign(-1), type: "expense" };
+    const against = (amount: string) =>
+      draft({ label: "RENT", amount, details: expense });
+
+    it("records the sign of the type and recognizes the same file the second time", () => {
+      const first = commit([against("+50,00")]);
+      const second = commit([against("+50,00")], "again.csv");
+
+      expect(first).toMatchObject({ status: "done", newCount: 1 });
+      expect(second).toMatchObject({ status: "done", newCount: 0, duplicateCount: 1 });
+      expect(listTransactions(db).map((t) => t.amount)).toEqual([-5_000]);
+    });
+
+    it("recognizes the amount the review already signed as the same movement", () => {
+      commit([against("+50,00")]);
+
+      const second = commit([against("-50,00")], "again.csv");
+
+      expect(second).toMatchObject({ status: "done", newCount: 0, duplicateCount: 1 });
+      expect(listTransactions(db)).toHaveLength(1);
+    });
+  });
+
   it("ignores the rows already in the account, as an import does", () => {
     commit([draft()]);
 
@@ -223,11 +247,10 @@ describe("commitDrafts with the details of a review", () => {
     expect(listTransactions(db).map((t) => t.kind)).toEqual(["expense"]);
   });
 
-  it("names the rows whose type contradicts the sign or that have no savings account, and records nothing", () => {
+  it("names the rows that have no savings account or cannot be read, and records nothing", () => {
     const result = commit([
       savings(),
       savings({}, { savingsAccountId: null }),
-      draft({ date: "2026-03-02", amount: "12,50", details: detailsFromSign(-1) }),
       draft({ date: "" }),
     ]);
 
@@ -235,11 +258,19 @@ describe("commitDrafts with the details of a review", () => {
       status: "invalid",
       problems: [
         { index: 1, problem: "savingsAccountRequired" },
-        { index: 2, problem: "typeSignMismatch" },
-        { index: 3, problem: "dateInvalid" },
+        { index: 2, problem: "dateInvalid" },
       ],
     });
     expect(listTransactions(db)).toEqual([]);
+  });
+
+  it("records an expense typed on a positive amount as an outgoing one, without blocking", () => {
+    const result = commit([
+      draft({ date: "2026-03-02", amount: "50,00", details: detailsFromSign(-1) }),
+    ]);
+
+    expect(result).toMatchObject({ status: "done", newCount: 1 });
+    expect(listTransactions(db).map((t) => [t.kind, t.amount])).toEqual([["expense", -5_000]]);
   });
 
   it("uses the savings account of the request for a row that names none", () => {
@@ -284,6 +315,22 @@ describe("commitDrafts with the details of a review", () => {
       issues: [{ kind: "overflowChainCycle" }],
     });
   });
+
+  it.each([
+    ["archived", "update accounts set archived = 1 where id = 2", "importSavingsAccountArchived"],
+    ["not savings", "update accounts set kind = 'other' where id = 2", "importSavingsAccountNotSavings"],
+  ])(
+    "is blocked, and writes nothing, when the savings account is %s",
+    (_name, statement, key) => {
+      db.$client.exec(statement);
+
+      expect(commit([savings()])).toEqual({
+        status: "blocked",
+        issues: [{ kind: "rowInvalid", index: 0, ref: { key } }],
+      });
+      expect(listTransactions(db)).toEqual([]);
+    },
+  );
 
   it("imports onto an account that already holds transactions", () => {
     createTransaction(db, {
