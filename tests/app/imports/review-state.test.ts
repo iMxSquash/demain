@@ -45,6 +45,7 @@ function stagedFile(
     currency: "EUR",
     firstDate: "2026-03-02",
     needsMapping: false,
+    columns: null,
     rows,
     ...overrides,
   };
