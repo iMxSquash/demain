@@ -262,6 +262,9 @@ const COLUMN_CHOICE_FIELDS = [
   "descriptionColumn",
 ] as const;
 
+/** The roles as the form sends them: a 0-based column number, or "none". */
+export type ColumnChoiceFields = Record<(typeof COLUMN_CHOICE_FIELDS)[number], string>;
+
 /** Sent when the user says the file has no column for a role. */
 export const NO_COLUMN_CHOICE = "none";
 

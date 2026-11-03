@@ -1,3 +1,4 @@
+import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import {
   amountTextForType,
   type RowDetails,
@@ -135,6 +136,33 @@ export function initReview(
       reviewFile(file, sourceIndex, defaultSavingsAccountId),
     ),
   };
+}
+
+/** What the bulk form holds: an empty string keeps the field as it is. */
+export interface BulkChoice {
+  type: string;
+  /** "none" clears the category. */
+  category: string;
+  /** "default" sends the row back to the savings account of the file. */
+  savingsAccount: string;
+}
+
+export const NO_CATEGORY_CHOICE = "none";
+export const DEFAULT_SAVINGS_CHOICE = "default";
+
+/** The change the bulk form asks for; empty when it keeps every field. */
+export function bulkPatch({ type, category, savingsAccount }: BulkChoice): Partial<RowDetails> {
+  const patch: Partial<RowDetails> = {};
+  const movementType = MOVEMENT_TYPES.find((candidate) => candidate === type);
+  if (movementType !== undefined) patch.type = movementType;
+  if (category !== "") {
+    patch.categoryId = category === NO_CATEGORY_CHOICE ? null : Number(category);
+  }
+  if (savingsAccount !== "") {
+    patch.savingsAccountId =
+      savingsAccount === DEFAULT_SAVINGS_CHOICE ? null : Number(savingsAccount);
+  }
+  return patch;
 }
 
 /** The rows that wait for the user to confirm them. */

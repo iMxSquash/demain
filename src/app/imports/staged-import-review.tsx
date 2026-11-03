@@ -7,6 +7,7 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
   type RefObject,
 } from "react";
 
@@ -21,6 +22,7 @@ import {
 } from "../../domain/import-savings";
 import type { OverflowAccount } from "../../domain/overflow";
 import type {
+  ColumnChoiceFields,
   ImportAccountOption,
   ImportCategoryOption,
   StagedFile,
@@ -40,6 +42,8 @@ interface ReviewBodyProps {
   isReading: boolean;
   accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
+  /** Reads a file again with the columns the user chose; `sourceIndex` is its place among the files chosen. */
+  onRestage: (sourceIndex: number, choices: ColumnChoiceFields) => Promise<StagedFile>;
 }
 
 function ReviewBody({
@@ -51,6 +55,7 @@ function ReviewBody({
   isReading,
   accountSelectRef,
   onAccountChange,
+  onRestage,
 }: ReviewBodyProps) {
   const t = useTranslations("imports.staged");
   const accountSelectId = useId();
@@ -98,7 +103,27 @@ function ReviewBody({
     [state.files, currency, savingsAccountId, overflowAccounts],
   );
   const phases = state.files.map((file) => file.phase);
-  const isBusy = isReading || phases.includes("importing");
+  // Index of the file being read again with other columns.
+  const [restaging, setRestaging] = useState<number | null>(null);
+  const isBusy = isReading || restaging !== null || phases.includes("importing");
+
+  // Resolves to a message when the file could not be read again: it then keeps its rows.
+  async function restageFile(
+    fileIndex: number,
+    choices: ColumnChoiceFields,
+  ): Promise<string | null> {
+    const file = state.files[fileIndex];
+    if (file === undefined) return null;
+    setRestaging(fileIndex);
+    try {
+      const staged = await onRestage(file.sourceIndex, choices);
+      if (staged.status === "failed") return staged.message;
+      dispatch({ type: "replaceFile", file: fileIndex, staged });
+      return null;
+    } finally {
+      setRestaging(null);
+    }
+  }
 
   return (
     <>
@@ -165,7 +190,8 @@ function ReviewBody({
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
             lookups={lookups}
-            isReading={isReading}
+            isReading={isBusy}
+            onChangeColumns={(choices) => restageFile(index, choices)}
             dispatch={dispatch}
           />
         );

@@ -14,6 +14,7 @@ import {
   type ImportView,
   type MappingFields,
   failedStagedFile,
+  type ColumnChoiceFields,
   type StagedFile,
 } from "./import-form-data";
 import { stageFileAction } from "./stage-actions";
@@ -213,10 +214,12 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
   async function stageOne(
     file: File,
     accountText: string,
+    columns: Partial<ColumnChoiceFields> = {},
   ): Promise<StagedFile> {
     const formData = new FormData();
     formData.set("accountId", accountText);
     formData.set("file", file);
+    for (const [name, value] of Object.entries(columns)) formData.set(name, value);
     try {
       return await stageFileAction(formData);
     } catch (error) {
@@ -249,6 +252,15 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
         ? null
         : { ...current, files, overflowAccounts, batch: current.batch + 1 },
     );
+  }
+
+  // One file again, with the columns the user chose: the others are left as they are.
+  async function restageSource(sourceIndex: number, choices: ColumnChoiceFields) {
+    const source = review?.sources[sourceIndex];
+    if (review === null || source === undefined) {
+      return failedStagedFile("", t("staged.readFailed"));
+    }
+    return stageOne(source, String(review.accountId), choices);
   }
 
   async function stageThenReview(
@@ -461,6 +473,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
             staging === null ? null : t("staged.reading", { ...staging })
           }
           onAccountChange={changeReviewAccount}
+          onRestage={restageSource}
           onClose={() => setReview(null)}
         />
       )}

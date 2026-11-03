@@ -5,6 +5,7 @@ import type {
   StagedRowView,
 } from "../../../src/app/imports/import-form-data";
 import {
+  bulkPatch,
   countRowsToConfirm,
   initReview,
   reviewReducer,
@@ -593,5 +594,30 @@ describe("rows to confirm", () => {
     });
 
     expect(visibleRowIndexes(next.files[0]!.rows, true)).toEqual([]);
+  });
+});
+
+describe("bulkPatch", () => {
+  const KEEP = { type: "", category: "", savingsAccount: "" } as const;
+
+  it("changes nothing when every field is kept", () => {
+    expect(bulkPatch(KEEP)).toEqual({});
+  });
+
+  it("reads the type, the category and the savings account that were chosen", () => {
+    expect(bulkPatch({ type: "savings", category: "12", savingsAccount: "7" })).toEqual({
+      type: "savings",
+      categoryId: 12,
+      savingsAccountId: 7,
+    });
+  });
+
+  it("clears the category, or sends the row back to the savings account of the file", () => {
+    expect(bulkPatch({ ...KEEP, category: "none" })).toEqual({ categoryId: null });
+    expect(bulkPatch({ ...KEEP, savingsAccount: "default" })).toEqual({ savingsAccountId: null });
+  });
+
+  it("ignores a type that does not exist", () => {
+    expect(bulkPatch({ ...KEEP, type: "transfer" })).toEqual({});
   });
 });
