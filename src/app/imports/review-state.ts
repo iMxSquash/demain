@@ -1,5 +1,7 @@
+import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import {
   amountTextForType,
+  type ImportDraft,
   type RowDetails,
   type RowProblem,
 } from "../../domain/import-draft";
@@ -22,6 +24,12 @@ export function parseOptionalId(value: string): number | null {
 
 export type EditableField = "date" | "label" | "amount";
 
+/** What the user changed on a row, kept to be applied again when the file is read again. */
+export interface RowCorrection {
+  draft: Partial<Pick<ImportDraft, EditableField>>;
+  details: Partial<RowDetails>;
+}
+
 /** A row with what is wrong with it, kept up to date as it is edited: the others are not read again. */
 export interface ReviewRow extends StagedRowView {
   /**
@@ -35,6 +43,8 @@ export interface ReviewRow extends StagedRowView {
   /** Everything the user is asked to confirm, in text: the guess and a sign taken from the type. */
   confirmReasons: ConfirmReason[];
   needsConfirmation: boolean;
+  /** Null until the user changes the row. */
+  correction: RowCorrection | null;
 }
 
 /** What the last attempt to import a file said. */
@@ -46,9 +56,25 @@ export interface Outcome {
 }
 
 export interface ReviewFile extends Omit<StagedFile, "rows"> {
+  /** Position of the file among those the user chose, which the review reorders by date. */
+  sourceIndex: number;
   rows: ReviewRow[];
   phase: FilePhase;
   outcome: Outcome | null;
+  /**
+   * Why the last attempt to read the file again with other columns failed. The
+   * rows are still those of the earlier reading, so the file is not imported
+   * until a reading succeeds.
+   */
+  rereadError: string | null;
+  /** What the last successful reading did with the user's corrections; null before any. */
+  lastReread: RereadSummary | null;
+}
+
+/** Corrections carried over to the new rows, and those whose line the new reading no longer has. */
+export interface RereadSummary {
+  kept: number;
+  dropped: number;
 }
 
 export interface ReviewState {
@@ -62,6 +88,18 @@ export type ReviewAction =
   | { type: "edit"; file: number; row: number; field: EditableField; value: string }
   | { type: "settleAmount"; file: number; row: number }
   | { type: "setDetails"; file: number; row: number; details: Partial<RowDetails> }
+  | { type: "setDetailsMany"; file: number; rows: readonly number[]; details: Partial<RowDetails> }
+  /** The file was read again, with other columns: the corrections follow their line. */
+  | { type: "replaceFile"; file: number; staged: StagedFile }
+  /** Every file was read again, for another account: the corrections follow their line too. */
+  | {
+      type: "replaceAll";
+      /** In the order the files were chosen. */
+      staged: readonly StagedFile[];
+      defaultSavingsAccountId: number | null;
+    }
+  /** Reading the file again failed: it keeps its rows and says why. */
+  | { type: "rereadFailed"; file: number; message: string }
   | { type: "setDefaultSavings"; savingsAccountId: number | null }
   | { type: "setPhase"; file: number; phase: FilePhase; outcome?: Outcome };
 
@@ -98,6 +136,7 @@ function reviewRow(
         sourceAmount: row.draft.amount,
         problem: reviewRowProblem(row.draft, row.details, currency, defaultSavingsAccountId),
         guessReasons: confirmReasons(row.guess),
+        correction: null,
       },
       currency,
     ),
@@ -105,19 +144,120 @@ function reviewRow(
   );
 }
 
+function reviewFile(
+  { rows, ...file }: StagedFile,
+  sourceIndex: number,
+  defaultSavingsAccountId: number | null,
+): ReviewFile {
+  return {
+    ...file,
+    sourceIndex,
+    rows: rows.map((row) => reviewRow(row, file.currency, defaultSavingsAccountId)),
+    phase: file.status === "failed" ? "failed" : "reviewing",
+    outcome: null,
+    rereadError: null,
+    lastReread: null,
+  };
+}
+
+// The new reading is corrected again with what the user changed on each line
+// the file still has; the corrections of the other lines are counted and dropped.
+function readAgain(
+  staged: StagedFile,
+  previous: ReviewFile,
+  defaultSavingsAccountId: number | null,
+): ReviewFile {
+  const corrections = new Map(
+    previous.rows.flatMap((row) => (row.correction === null ? [] : [[row.line, row.correction]])),
+  );
+  let kept = 0;
+  const base = reviewFile(staged, previous.sourceIndex, defaultSavingsAccountId);
+  const rows = base.rows.map((row) => {
+    const correction = corrections.get(row.line);
+    if (correction === undefined) return row;
+    kept += 1;
+    return applyCorrection(row, correction, base.currency, defaultSavingsAccountId);
+  });
+  return { ...base, rows, lastReread: { kept, dropped: corrections.size - kept } };
+}
+
+// The files are listed by date; a file the user already corrected is read again, the others are new.
+function reviewFiles(
+  files: readonly StagedFile[],
+  defaultSavingsAccountId: number | null,
+  earlier: ReadonlyMap<number, ReviewFile>,
+): ReviewState {
+  const chosen = files.map((file, index) => ({ ...file, sourceIndex: index }));
+  return {
+    defaultSavingsAccountId,
+    files: orderFilesByDate(chosen).map(({ sourceIndex, ...file }) => {
+      const previous = earlier.get(sourceIndex);
+      return previous === undefined
+        ? reviewFile(file, sourceIndex, defaultSavingsAccountId)
+        : readAgain(file, previous, defaultSavingsAccountId);
+    }),
+  };
+}
+
 export function initReview(
   files: readonly StagedFile[],
   defaultSavingsAccountId: number | null,
 ): ReviewState {
-  return {
-    defaultSavingsAccountId,
-    files: orderFilesByDate(files).map(({ rows, ...file }) => ({
-      ...file,
-      rows: rows.map((row) => reviewRow(row, file.currency, defaultSavingsAccountId)),
-      phase: file.status === "failed" ? "failed" : "reviewing",
-      outcome: null,
-    })),
-  };
+  return reviewFiles(files, defaultSavingsAccountId, new Map());
+}
+
+/** What the bulk form holds: an empty string keeps the field as it is. */
+export interface BulkChoice {
+  type: string;
+  /** "none" clears the category. */
+  category: string;
+  /** "default" sends the row back to the savings account of the file. */
+  savingsAccount: string;
+}
+
+export const NO_CATEGORY_CHOICE = "none";
+export const DEFAULT_SAVINGS_CHOICE = "default";
+
+/** The change the bulk form asks for; empty when it keeps every field. */
+export function bulkPatch({ type, category, savingsAccount }: BulkChoice): Partial<RowDetails> {
+  const patch: Partial<RowDetails> = {};
+  const movementType = MOVEMENT_TYPES.find((candidate) => candidate === type);
+  if (movementType !== undefined) patch.type = movementType;
+  if (category !== "") {
+    patch.categoryId = category === NO_CATEGORY_CHOICE ? null : Number(category);
+  }
+  if (savingsAccount !== "") {
+    patch.savingsAccountId =
+      savingsAccount === DEFAULT_SAVINGS_CHOICE ? null : Number(savingsAccount);
+  }
+  return patch;
+}
+
+/** The rows that wait for the user to confirm them. */
+export function countRowsToConfirm(rows: readonly ReviewRow[]): number {
+  return rows.filter((row) => row.needsConfirmation).length;
+}
+
+/** Whether the file may be imported now: nothing to fix, nothing to wait for, no failed reading. */
+export function canImportFile(
+  file: ReviewFile,
+  { isReading, waitFor }: { isReading: boolean; waitFor: string | null },
+): boolean {
+  return (
+    file.phase === "reviewing" &&
+    !isReading &&
+    waitFor === null &&
+    file.rereadError === null &&
+    file.rows.every((row) => row.problem === null)
+  );
+}
+
+/** Positions of the rows the table shows: all of them, or only those to confirm. */
+export function visibleRowIndexes(
+  rows: readonly ReviewRow[],
+  onlyToConfirm: boolean,
+): number[] {
+  return rows.flatMap((row, index) => (onlyToConfirm && !row.needsConfirmation ? [] : [index]));
 }
 
 // A savings row has no category and a row of another type has no savings account.
@@ -142,21 +282,92 @@ function updateFile(
 
 // Edited rows are only kept while the file is being reviewed; the outcome of an
 // earlier attempt describes rows that are no longer the same.
+function updateRows(
+  state: ReviewState,
+  fileIndex: number,
+  rowIndexes: readonly number[],
+  update: (row: ReviewRow, file: ReviewFile) => ReviewRow,
+): ReviewState {
+  return updateFile(state, fileIndex, (file) => {
+    const targets = new Set(rowIndexes.filter((index) => file.rows[index] !== undefined));
+    if (targets.size === 0 || file.phase !== "reviewing") return file;
+    const rows = file.rows.map((row, i) => (targets.has(i) ? update(row, file) : row));
+    // The note on the last reading describes rows that are no longer the ones shown.
+    const isChanged = rows.some((row, i) => row !== file.rows[i]);
+    return {
+      ...file,
+      rows,
+      outcome: null,
+      lastReread: isChanged ? null : file.lastReread,
+    };
+  });
+}
+
 function updateRow(
   state: ReviewState,
   fileIndex: number,
   rowIndex: number,
   update: (row: ReviewRow, file: ReviewFile) => ReviewRow,
 ): ReviewState {
-  return updateFile(state, fileIndex, (file) => {
-    const row = file.rows[rowIndex];
-    if (row === undefined || file.phase !== "reviewing") return file;
-    return {
-      ...file,
-      rows: file.rows.map((other, i) => (i === rowIndex ? update(row, file) : other)),
-      outcome: null,
-    };
-  });
+  return updateRows(state, fileIndex, [rowIndex], update);
+}
+
+function applyDetails(
+  row: ReviewRow,
+  currency: string,
+  patch: Partial<RowDetails>,
+  defaultSavingsAccountId: number | null,
+): ReviewRow {
+  const details = mergeDetails(row.details, patch);
+  const shown = withShownAmount({ ...row, details }, currency);
+  return withConfirmation(
+    {
+      ...shown,
+      problem: reviewRowProblem(shown.draft, details, currency, defaultSavingsAccountId),
+      guessReasons: patch.type === undefined ? row.guessReasons : [],
+      correction: {
+        draft: row.correction?.draft ?? {},
+        details: { ...row.correction?.details, ...patch },
+      },
+    },
+    currency,
+  );
+}
+
+function applyDraftEdit(
+  row: ReviewRow,
+  currency: string,
+  edit: Partial<Pick<ImportDraft, EditableField>>,
+  defaultSavingsAccountId: number | null,
+): ReviewRow {
+  const draft = { ...row.draft, ...edit };
+  return withConfirmation(
+    {
+      ...row,
+      draft,
+      sourceAmount: edit.amount ?? row.sourceAmount,
+      problem: reviewRowProblem(draft, row.details, currency, defaultSavingsAccountId),
+      correction: {
+        draft: { ...row.correction?.draft, ...edit },
+        details: row.correction?.details ?? {},
+      },
+    },
+    currency,
+  );
+}
+
+function applyCorrection(
+  row: ReviewRow,
+  correction: RowCorrection,
+  currency: string,
+  defaultSavingsAccountId: number | null,
+): ReviewRow {
+  return applyDetails(
+    applyDraftEdit(row, currency, correction.draft, defaultSavingsAccountId),
+    currency,
+    correction.details,
+    defaultSavingsAccountId,
+  );
 }
 
 export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewState {
@@ -164,37 +375,49 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
 
   switch (action.type) {
     case "edit":
-      return updateRow(state, action.file, action.row, (row, file) => {
-        const draft = { ...row.draft, [action.field]: action.value };
-        return withConfirmation(
-          {
-            ...row,
-            draft,
-            sourceAmount: action.field === "amount" ? action.value : row.sourceAmount,
-            problem: reviewRowProblem(draft, row.details, file.currency, defaultSavingsAccountId),
-          },
-          file.currency,
-        );
-      });
-
-    case "settleAmount":
       return updateRow(state, action.file, action.row, (row, file) =>
-        withConfirmation(withShownAmount(row, file.currency), file.currency),
+        applyDraftEdit(
+          row,
+          file.currency,
+          { [action.field]: action.value },
+          defaultSavingsAccountId,
+        ),
       );
 
-    case "setDetails":
+    case "settleAmount":
       return updateRow(state, action.file, action.row, (row, file) => {
-        const details = mergeDetails(row.details, action.details);
-        const shown = withShownAmount({ ...row, details }, file.currency);
-        return withConfirmation(
-          {
-            ...shown,
-            problem: reviewRowProblem(shown.draft, details, file.currency, defaultSavingsAccountId),
-            guessReasons: action.details.type === undefined ? row.guessReasons : [],
-          },
-          file.currency,
-        );
+        const settled = withConfirmation(withShownAmount(row, file.currency), file.currency);
+        return settled.draft.amount === row.draft.amount ? row : settled;
       });
+
+    case "setDetails":
+      return updateRow(state, action.file, action.row, (row, file) =>
+        applyDetails(row, file.currency, action.details, defaultSavingsAccountId),
+      );
+
+    case "setDetailsMany":
+      return updateRows(state, action.file, action.rows, (row, file) =>
+        applyDetails(row, file.currency, action.details, defaultSavingsAccountId),
+      );
+
+    case "replaceFile":
+      return updateFile(state, action.file, (file) =>
+        file.phase === "reviewing"
+          ? readAgain(action.staged, file, defaultSavingsAccountId)
+          : file,
+      );
+
+    case "replaceAll":
+      return reviewFiles(
+        action.staged,
+        action.defaultSavingsAccountId,
+        new Map(state.files.map((file) => [file.sourceIndex, file])),
+      );
+
+    case "rereadFailed":
+      return updateFile(state, action.file, (file) =>
+        file.phase === "reviewing" ? { ...file, rereadError: action.message } : file,
+      );
 
     case "setDefaultSavings":
       return {

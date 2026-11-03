@@ -4,6 +4,7 @@ import {
   decodeImportFile,
   detectImportFormat,
   mappingToFields,
+  readColumnChoices,
   readMappingFields,
   toImportView,
 } from "../../../src/app/imports/import-form-data";
@@ -140,5 +141,23 @@ describe("toImportView", () => {
     const view = toImportView([CHECKING], [], BALANCES);
 
     expect(view.overflowAccounts).toEqual(BALANCES);
+  });
+});
+
+describe("readColumnChoices", () => {
+  it("leaves a role to the detection when the field is absent or empty", () => {
+    expect(readColumnChoices(formOf({ typeColumn: "" }))).toEqual({});
+  });
+
+  it("reads a column number, 0-based, and the answer that the file has none", () => {
+    expect(
+      readColumnChoices(formOf({ typeColumn: "3", categoryColumn: "none", descriptionColumn: "0" })),
+    ).toEqual({ typeColumn: 3, categoryColumn: null, descriptionColumn: 0 });
+  });
+
+  it("leaves to the detection anything that is not a column number", () => {
+    expect(
+      readColumnChoices(formOf({ typeColumn: "-1", paymentModeColumn: "1e3", categoryColumn: "9999" })),
+    ).toEqual({});
   });
 });

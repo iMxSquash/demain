@@ -49,6 +49,35 @@ export interface VocabularyColumn {
   alsoMatching: number[];
 }
 
+/** What one column holds, seen through `read`: how many cells are known and the distinct names that are not. */
+function readVocabularyCells(
+  rows: readonly (readonly string[])[],
+  firstLine: number,
+  read: (text: string) => unknown,
+  column: number,
+): { known: number; unrecognized: { cellCount: number; values: UnrecognizedValue[] } } {
+  const cells = rows
+    .map((row, index) => ({
+      text: (row[column] ?? "").trim(),
+      line: firstLine + index,
+    }))
+    .filter((cell) => cell.text !== "");
+  const unknown = cells.filter((cell) => read(cell.text) === null);
+
+  // Spellings that differ only by case or accents are one value to map.
+  const byValue = new Map<string, UnrecognizedValue>();
+  for (const { text, line } of unknown) {
+    const key = normalizeHeader(text);
+    const seen = byValue.get(key);
+    if (seen === undefined) byValue.set(key, { value: text, lines: [line] });
+    else seen.lines.push(line);
+  }
+  return {
+    known: cells.length - unknown.length,
+    unrecognized: { cellCount: unknown.length, values: [...byValue.values()] },
+  };
+}
+
 /**
  * The first column (0-based) where most non-empty cells are known to `read`.
  * The other cells are reported, since they are in the same column but unknown.
@@ -66,25 +95,9 @@ function detectVocabularyColumn(
   const columnCount = widestRowLength(rows);
   const matches: Omit<VocabularyColumn, "alsoMatching">[] = [];
   for (let column = 0; column < columnCount; column += 1) {
-    const cells = rows
-      .map((row, index) => ({
-        text: (row[column] ?? "").trim(),
-        line: firstLine + index,
-      }))
-      .filter((cell) => cell.text !== "");
-    const unknown = cells.filter((cell) => read(cell.text) === null);
-    const known = cells.length - unknown.length;
-    if (known === 0 || (column !== named && known <= unknown.length)) continue;
-
-    // Spellings that differ only by case or accents are one value to map.
-    const byValue = new Map<string, UnrecognizedValue>();
-    for (const { text, line } of unknown) {
-      const key = normalizeHeader(text);
-      const known = byValue.get(key);
-      if (known === undefined) byValue.set(key, { value: text, lines: [line] });
-      else known.lines.push(line);
-    }
-    matches.push({ column, unrecognized: [...byValue.values()] });
+    const { known, unrecognized } = readVocabularyCells(rows, firstLine, read, column);
+    if (known === 0 || (column !== named && known <= unrecognized.cellCount)) continue;
+    matches.push({ column, unrecognized: unrecognized.values });
   }
 
   // Stable sort: the other columns keep their order.
@@ -181,6 +194,19 @@ export type ColumnIssue =
     }
   | ({ kind: "unrecognizedValue"; role: VocabularyRole } & UnrecognizedValue);
 
+/**
+ * The columns the user chose for the roles, over the detected ones. A number
+ * is the column (0-based), null says the file has none, and a role left out
+ * stays detected. A column that holds the date, the label or the amount, or
+ * that an earlier role already took, is not accepted: the role is detected.
+ */
+export interface ColumnChoices {
+  typeColumn?: number | null;
+  paymentModeColumn?: number | null;
+  categoryColumn?: number | null;
+  descriptionColumn?: number | null;
+}
+
 export interface ColumnRoles {
   typeColumn: number | null;
   paymentModeColumn: number | null;
@@ -241,45 +267,84 @@ function columnNamed(
   return column === -1 ? null : column;
 }
 
+/** The names of a column the user chose: it is accepted whatever it holds. */
+function vocabularyColumnAt(
+  rows: readonly (readonly string[])[],
+  firstLine: number,
+  read: (text: string) => unknown,
+  column: number,
+): VocabularyColumn {
+  const { unrecognized } = readVocabularyCells(rows, firstLine, read, column);
+  return { column, unrecognized: unrecognized.values, alsoMatching: [] };
+}
+
 /**
  * Finds the optional columns (type, payment mode, category, description) of a
- * file whose date, label and amount columns are already mapped. A header that
- * names a role comes first; the values decide in the end, and decide alone
- * when no header helps. Nothing is dropped: a column not found and a value not
- * read both end up in `issues`. `header` is the header row, empty when none.
+ * file whose date, label and amount columns are already mapped. A column chosen
+ * by the user comes first; then a header that names a role; the values decide
+ * in the end, and decide alone when no header helps. Nothing is dropped: a
+ * column not found and a value not read both end up in `issues`, except for a
+ * role the user said the file does not have. `header` is the header row, empty
+ * when none.
  */
 export function detectColumnRoles(
   rows: readonly (readonly string[])[],
   firstLine: number,
   mappedColumns: readonly number[],
   header: readonly string[],
+  choices: ColumnChoices = {},
 ): ColumnRoles {
   const headers = header.map(normalizeHeader);
-  const type = detectTypeColumn(
-    rows,
-    firstLine,
-    columnNamed(headers, TYPE_HEADER_WORDS, mappedColumns),
-  );
-  const paymentMode = detectPaymentModeColumn(
-    rows,
-    firstLine,
-    columnNamed(headers, PAYMENT_MODE_HEADER_WORDS, mappedColumns),
-  );
-  const taken = [...mappedColumns];
+  const claimed = [...mappedColumns];
+  const accept = (choice: number | null | undefined): number | null | undefined => {
+    if (choice === undefined || choice === null) return choice;
+    if (claimed.includes(choice)) return undefined;
+    claimed.push(choice);
+    return choice;
+  };
+  const chosenType = accept(choices.typeColumn);
+  const chosenPaymentMode = accept(choices.paymentModeColumn);
+  const chosenCategory = accept(choices.categoryColumn);
+  const chosenDescription = accept(choices.descriptionColumn);
+
+  const type =
+    chosenType === undefined
+      ? detectTypeColumn(rows, firstLine, columnNamed(headers, TYPE_HEADER_WORDS, mappedColumns))
+      : chosenType === null
+        ? null
+        : vocabularyColumnAt(rows, firstLine, readMovementType, chosenType);
+  const paymentMode =
+    chosenPaymentMode === undefined
+      ? detectPaymentModeColumn(
+          rows,
+          firstLine,
+          columnNamed(headers, PAYMENT_MODE_HEADER_WORDS, mappedColumns),
+        )
+      : chosenPaymentMode === null
+        ? null
+        : vocabularyColumnAt(rows, firstLine, readPaymentMode, chosenPaymentMode);
+
+  const taken = [...claimed];
   if (type !== null) taken.push(type.column);
   if (paymentMode !== null) taken.push(paymentMode.column);
-  const namedCategory = columnNamed(headers, CATEGORY_HEADER_WORDS, taken);
-  const descriptionColumn = columnNamed(headers, DESCRIPTION_HEADER_WORDS, [
-    ...taken,
-    ...(namedCategory === null ? [] : [namedCategory]),
-  ]);
+  const namedCategory =
+    chosenCategory === undefined ? columnNamed(headers, CATEGORY_HEADER_WORDS, taken) : null;
+  const descriptionColumn =
+    chosenDescription !== undefined
+      ? chosenDescription
+      : columnNamed(headers, DESCRIPTION_HEADER_WORDS, [
+          ...taken,
+          ...(namedCategory === null ? [] : [namedCategory]),
+        ]);
   // A column named as the description is not a category, even when it repeats like one.
   const categoryColumn =
-    namedCategory ??
-    detectCategoryColumn(rows, [
-      ...taken,
-      ...(descriptionColumn === null ? [] : [descriptionColumn]),
-    ]);
+    chosenCategory !== undefined
+      ? chosenCategory
+      : (namedCategory ??
+        detectCategoryColumn(rows, [
+          ...taken,
+          ...(descriptionColumn === null ? [] : [descriptionColumn]),
+        ]));
 
   return {
     typeColumn: type?.column ?? null,
@@ -287,9 +352,9 @@ export function detectColumnRoles(
     categoryColumn,
     descriptionColumn,
     issues: [
-      ...issuesOf("type", type),
-      ...issuesOf("paymentMode", paymentMode),
-      ...(categoryColumn === null
+      ...(chosenType === null ? [] : issuesOf("type", type)),
+      ...(chosenPaymentMode === null ? [] : issuesOf("paymentMode", paymentMode)),
+      ...(categoryColumn === null && chosenCategory !== null
         ? [{ kind: "columnNotFound" as const, role: "category" as const }]
         : []),
     ],

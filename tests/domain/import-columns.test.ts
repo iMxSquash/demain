@@ -457,3 +457,65 @@ describe("detectColumnRoles", () => {
     });
   });
 });
+
+describe("detectColumnRoles with columns chosen by the user", () => {
+  const MAPPED_COLUMNS = [0, 1, 2];
+  const FIRST_LINE = 2;
+  const NO_HEADER: string[] = [];
+  const rows = [
+    ["01/02/2026", "Carrefour", "-12,50", "Expense", "Card", "Food"],
+    ["02/02/2026", "Landlord", "-700,00", "Expense", "Transfer", "Rent"],
+    ["03/02/2026", "Auchan", "-30,00", "Expense", "Card", "Food"],
+  ];
+
+  it("takes the column chosen for a role instead of the detected one", () => {
+    const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER, {
+      categoryColumn: 4,
+    });
+
+    expect(roles.categoryColumn).toBe(4);
+    expect(roles.typeColumn).toBe(3);
+  });
+
+  it("leaves a role empty when the user says the file has none, without reporting it", () => {
+    const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER, {
+      typeColumn: null,
+      categoryColumn: null,
+    });
+
+    expect(roles.typeColumn).toBeNull();
+    expect(roles.categoryColumn).toBeNull();
+    expect(roles.issues).toEqual([]);
+  });
+
+  it("lists the values a chosen vocabulary column holds that are not known", () => {
+    const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER, {
+      typeColumn: 5,
+    });
+
+    expect(roles.typeColumn).toBe(5);
+    expect(roles.issues).toContainEqual({
+      kind: "unrecognizedValue",
+      role: "type",
+      value: "Food",
+      lines: [2, 4],
+    });
+  });
+
+  it("does not detect another role in a column the user took", () => {
+    const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER, {
+      descriptionColumn: 5,
+    });
+
+    expect(roles.descriptionColumn).toBe(5);
+    expect(roles.categoryColumn).not.toBe(5);
+  });
+
+  it("ignores a chosen column that holds the date, the label or the amount", () => {
+    const roles = detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER, {
+      categoryColumn: 1,
+    });
+
+    expect(roles.categoryColumn).toBe(5);
+  });
+});

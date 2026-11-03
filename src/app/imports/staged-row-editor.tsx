@@ -53,6 +53,9 @@ interface RowEditorProps {
   rowIndex: number;
   /** The split of a savings row, already written; null for any other row. */
   splitText: string | null;
+  isSelected: boolean;
+  /** Stable, so that choosing one row does not render the others again. */
+  onSelect: (rowIndex: number, isSelected: boolean) => void;
   lookups: RowLookups;
   dispatch: ReviewDispatch;
 }
@@ -63,6 +66,8 @@ export const RowEditor = memo(function RowEditor({
   fileIndex,
   rowIndex,
   splitText,
+  isSelected,
+  onSelect,
   lookups,
   dispatch,
 }: RowEditorProps) {
@@ -109,6 +114,18 @@ export const RowEditor = memo(function RowEditor({
 
   return (
     <tr className="border-b border-neutral-300 align-top">
+      <td>
+        {/* The label makes the whole 44 px square a target; the input names itself. */}
+        <label className="flex min-h-11 min-w-11 items-center justify-center">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            aria-label={t("selectRow", { line: row.line })}
+            onChange={(event) => onSelect(rowIndex, event.currentTarget.checked)}
+            className="size-6"
+          />
+        </label>
+      </td>
       <th scope="row" className="py-2 pr-2 text-right font-normal tabular-nums">
         {row.line}
       </th>

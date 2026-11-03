@@ -7,6 +7,7 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
   type RefObject,
 } from "react";
 
@@ -21,17 +22,21 @@ import {
 } from "../../domain/import-savings";
 import type { OverflowAccount } from "../../domain/overflow";
 import type {
+  ColumnChoiceFields,
   ImportAccountOption,
   ImportCategoryOption,
   StagedFile,
 } from "./import-form-data";
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { rereadFile } from "./reread-file";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
 import type { RowLookups } from "./staged-row-editor";
 
 interface ReviewBodyProps {
   files: StagedFile[];
+  /** Changes with every reading of all the files: the review then follows the new rows. */
+  batch: number;
   accountId: number;
   accounts: ImportAccountOption[];
   categories: ImportCategoryOption[];
@@ -40,10 +45,13 @@ interface ReviewBodyProps {
   isReading: boolean;
   accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
+  /** Reads a file again with the columns the user chose; `sourceIndex` is its place among the files chosen. */
+  onRestage: (sourceIndex: number, choices: ColumnChoiceFields) => Promise<StagedFile>;
 }
 
 function ReviewBody({
   files,
+  batch,
   accountId,
   accounts,
   categories,
@@ -51,6 +59,7 @@ function ReviewBody({
   isReading,
   accountSelectRef,
   onAccountChange,
+  onRestage,
 }: ReviewBodyProps) {
   const t = useTranslations("imports.staged");
   const accountSelectId = useId();
@@ -65,6 +74,16 @@ function ReviewBody({
     files,
     (staged) => initReview(staged, defaultSavingsAccountId(accounts, receiving)),
   );
+  // All the files were read again (another account): what the user corrected follows its line.
+  const [seenBatch, setSeenBatch] = useState(batch);
+  if (seenBatch !== batch) {
+    setSeenBatch(batch);
+    dispatch({
+      type: "replaceAll",
+      staged: files,
+      defaultSavingsAccountId: defaultSavingsAccountId(accounts, receiving),
+    });
+  }
 
   const savingsAccounts = useMemo(
     () =>
@@ -98,7 +117,29 @@ function ReviewBody({
     [state.files, currency, savingsAccountId, overflowAccounts],
   );
   const phases = state.files.map((file) => file.phase);
-  const isBusy = isReading || phases.includes("importing");
+  // Index of the file being read again with other columns.
+  const [restaging, setRestaging] = useState<number | null>(null);
+  const isBusy = isReading || restaging !== null || phases.includes("importing");
+
+  // Resolves to false when the file could not be read again: it then keeps its
+  // rows, says why, and is not imported until a reading succeeds.
+  async function restageFile(
+    fileIndex: number,
+    choices: ColumnChoiceFields,
+  ): Promise<boolean> {
+    const file = state.files[fileIndex];
+    if (file === undefined) return false;
+    setRestaging(fileIndex);
+    try {
+      return await rereadFile(
+        fileIndex,
+        () => onRestage(file.sourceIndex, choices),
+        dispatch,
+      );
+    } finally {
+      setRestaging(null);
+    }
+  }
 
   return (
     <>
@@ -156,7 +197,7 @@ function ReviewBody({
         const waitIndex = nextFileToSettle(phases, index);
         return (
           <FileCard
-            key={`${index}-${file.fileName}`}
+            key={`${batch}-${index}-${file.fileName}`}
             file={file}
             fileIndex={index}
             plan={plans[index] ?? emptyFilePlan()}
@@ -165,7 +206,8 @@ function ReviewBody({
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
             lookups={lookups}
-            isReading={isReading}
+            isReading={isBusy}
+            onChangeColumns={(choices) => restageFile(index, choices)}
             dispatch={dispatch}
           />
         );
@@ -176,8 +218,6 @@ function ReviewBody({
 
 interface StagedImportReviewProps
   extends Omit<ReviewBodyProps, "isReading" | "accountSelectRef"> {
-  /** Changes with every reading of the files: what the user edited belongs to one reading. */
-  batch: number;
   /** Translated progress while the files are read again; null otherwise. */
   readingText: string | null;
   onClose: () => void;
@@ -242,8 +282,8 @@ export function StagedImportReview({
           {readingText === null ? null : <p className="font-medium">{readingText}</p>}
         </div>
         <ReviewBody
-          key={batch}
           {...body}
+          batch={batch}
           isReading={isReading}
           accountSelectRef={accountSelectRef}
           onAccountChange={(accountId) => {

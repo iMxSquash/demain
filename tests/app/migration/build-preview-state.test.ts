@@ -30,6 +30,7 @@ const reading = (
     paymentModeColumn: null,
     categoryColumn: null,
     descriptionColumn: null,
+    roleColumns: [],
     headerIndex: 0,
     ignoredLines: [],
     yearApplied: null,

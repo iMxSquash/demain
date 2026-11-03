@@ -274,10 +274,16 @@ VERSION:102
     rmSync(dataDir, { recursive: true, force: true });
   });
 
-  function stage(content: string, fileName = "2026-03.csv", accountId = CHECKING_ID) {
+  function stage(
+    content: string,
+    fileName = "2026-03.csv",
+    accountId = CHECKING_ID,
+    columns: Record<string, string> = {},
+  ) {
     const form = new FormData();
     form.set("accountId", String(accountId));
     form.set("file", new File([content], fileName));
+    for (const [name, value] of Object.entries(columns)) form.set(name, value);
     return stageFileAction(form);
   }
 
@@ -301,6 +307,54 @@ VERSION:102
       ["Carrefour", "-12.50", "expense", groceries.id, "expense"],
       ["Salary ACME", "1500.00", "income", salary.id, "income"],
     ]);
+  });
+
+  describe("columns", () => {
+    const NOTES_CSV = [
+      "Date;Label;Amount;Notes;Rubrique",
+      "02/03/2026;Carrefour;-12,50;weekly shop;GROCERIES",
+      "05/03/2026;Salary ACME;1 500,00;payroll;Salary",
+    ].join("\n");
+
+    it("tells which column holds each role and which columns can take one", async () => {
+      const file = await stage(NOTES_CSV);
+
+      expect(file.columns).toEqual({
+        roles: { typeColumn: null, paymentModeColumn: null, categoryColumn: 4, descriptionColumn: 3 },
+        available: [
+          { column: 3, header: "Notes" },
+          { column: 4, header: "Rubrique" },
+        ],
+      });
+    });
+
+    it("reads the file again with the column the user assigned to a role", async () => {
+      const groceries = createCategory(db, { name: "weekly shop" });
+
+      const file = await stage(NOTES_CSV, "2026-03.csv", CHECKING_ID, {
+        categoryColumn: "3",
+        descriptionColumn: "4",
+      });
+
+      expect(file.columns?.roles).toMatchObject({ categoryColumn: 3, descriptionColumn: 4 });
+      expect(file.rows.map((row) => row.details.categoryId)).toEqual([groceries.id, null]);
+      expect(file.rows.map((row) => row.details.description)).toEqual(["GROCERIES", "Salary"]);
+    });
+
+    it("leaves a role empty when the user says the file has none", async () => {
+      const file = await stage(NOTES_CSV, "2026-03.csv", CHECKING_ID, {
+        categoryColumn: "none",
+      });
+
+      expect(file.columns?.roles.categoryColumn).toBeNull();
+      expect(file.rows.map((row) => row.details.categoryId)).toEqual([null, null]);
+    });
+
+    it("has no columns to offer for an OFX statement", async () => {
+      const file = await stage(OFX, "statement.ofx");
+
+      expect(file.columns).toBeNull();
+    });
   });
 
   it("gives the first date of the file, whatever the order of its rows", async () => {

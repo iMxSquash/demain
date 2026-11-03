@@ -1,3 +1,5 @@
+import type { RoleColumn } from "../../domain/import-analysis";
+import type { ColumnChoices } from "../../domain/import-columns";
 import {
   CSV_DATE_FORMATS,
   CSV_DELIMITERS,
@@ -105,6 +107,13 @@ export interface StagedRowView extends TypedStagedRow {
   isDuplicate: boolean;
 }
 
+/** The columns of a CSV file that hold the optional roles, and those that could. */
+export interface StagedColumns {
+  roles: Required<ColumnChoices>;
+  /** Every column that holds none of the date, the label and the amount. */
+  available: RoleColumn[];
+}
+
 /** One file of a multi-file import, read and waiting for the user's decision. */
 export interface StagedFile {
   fileName: string;
@@ -119,6 +128,8 @@ export interface StagedFile {
   firstDate: string | null;
   /** A CSV file whose columns were not found: the form of the column mapping reads it. */
   needsMapping: boolean;
+  /** Null for an OFX statement, and for a CSV read with a saved mapping rather than by its layout. */
+  columns: StagedColumns | null;
   rows: StagedRowView[];
 }
 
@@ -137,6 +148,7 @@ export function failedStagedFile(
     currency: "",
     firstDate: null,
     needsMapping,
+    columns: null,
     rows: [],
   };
 }
@@ -241,4 +253,31 @@ export function readMappingFields(formData: FormData): CsvMapping | null {
     labelColumn,
     amount,
   };
+}
+
+const COLUMN_CHOICE_FIELDS = [
+  "typeColumn",
+  "paymentModeColumn",
+  "categoryColumn",
+  "descriptionColumn",
+] as const;
+
+/** The roles as the form sends them: a 0-based column number, or "none". */
+export type ColumnChoiceFields = Record<(typeof COLUMN_CHOICE_FIELDS)[number], string>;
+
+/** Sent when the user says the file has no column for a role. */
+export const NO_COLUMN_CHOICE = "none";
+
+/**
+ * The columns the user assigned to the roles, 0-based. A field that is absent,
+ * empty or not a column number leaves its role to the detection.
+ */
+export function readColumnChoices(formData: FormData): ColumnChoices {
+  const choices: ColumnChoices = {};
+  for (const name of COLUMN_CHOICE_FIELDS) {
+    const text = String(formData.get(name) ?? "").trim();
+    if (text === NO_COLUMN_CHOICE) choices[name] = null;
+    else if (/^\d{1,3}$/.test(text)) choices[name] = Number(text);
+  }
+  return choices;
 }

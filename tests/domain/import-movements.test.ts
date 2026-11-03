@@ -338,3 +338,60 @@ describe("readMovementFile", () => {
     expect(reading.rows).toHaveLength(1);
   });
 });
+
+describe("readMovementFile with columns chosen by the user", () => {
+  // The detection takes "Notes" for the category; the user knows it is the description.
+  const FILE = [
+    "Date;Description;Montant;Notes;Rubrique",
+    "13/01/2026;Carrefour;-12,50;weekly shop;Courses",
+    "14/01/2026;Fnac;-30,00;gift;Loisirs",
+    "15/01/2026;Salaire;1500,00;payroll;Paie",
+  ].join("\n");
+
+  it("reads the rows again with the roles the user assigned", () => {
+    const reading = readMovementFile(FILE, {
+      ...OPTIONS,
+      columns: { categoryColumn: 3, descriptionColumn: 4 },
+    });
+
+    expect(reading.analysis.categoryColumn).toBe(3);
+    expect(reading.analysis.descriptionColumn).toBe(4);
+    expect(reading.rows.map(({ category, description }) => [category, description])).toEqual([
+      ["weekly shop", "Courses"],
+      ["gift", "Loisirs"],
+      ["payroll", "Paie"],
+    ]);
+  });
+
+  it("keeps a row whose chosen type column holds no known type, and says why", () => {
+    const reading = readMovementFile(FILE, { ...OPTIONS, columns: { typeColumn: 3 } });
+
+    expect(reading.rows).toHaveLength(3);
+    expect(reading.rows[0]?.typeCell).toBe("weekly shop");
+    expect(reading.rows[0]?.type.ignoredTypeCell).toBe("weekly shop");
+    expect(reading.issues).toContainEqual(
+      expect.objectContaining({ kind: "unrecognizedValue", role: "type", value: "gift" }),
+    );
+  });
+
+  it("offers the columns that can take a role, with their header", () => {
+    const { analysis } = readMovementFile(FILE, OPTIONS);
+
+    expect(analysis.roleColumns).toEqual([
+      { column: 3, header: "Notes" },
+      { column: 4, header: "Rubrique" },
+    ]);
+  });
+
+  it("offers no column for a column beside the table", () => {
+    const beside = [
+      "Date;Description;Montant;Type;;Month;Total",
+      "13/01/2026;Carrefour;-12,50;Expense;;January;-12,50",
+      "14/01/2026;Salaire;1500,00;Income;;;",
+    ].join("\n");
+
+    const { analysis } = readMovementFile(beside, OPTIONS);
+
+    expect(analysis.roleColumns.map(({ column }) => column)).toEqual([3]);
+  });
+});

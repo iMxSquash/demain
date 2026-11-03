@@ -14,10 +14,12 @@ import {
   type ImportView,
   type MappingFields,
   failedStagedFile,
+  type ColumnChoiceFields,
   type StagedFile,
 } from "./import-form-data";
 import { stageFileAction } from "./stage-actions";
 import { StagedImportReview } from "./staged-import-review";
+import { stageSources, type ColumnChoicesBySource } from "./stage-sources";
 
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
 
@@ -198,6 +200,8 @@ interface Review {
   files: StagedFile[];
   /** The balances when the files were read: the page refreshes after each import, the plan must not. */
   overflowAccounts: OverflowAccount[];
+  /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */
+  columnChoices: ColumnChoicesBySource;
   /** Counts the readings of the files: what was edited belongs to one of them. */
   batch: number;
 }
@@ -213,10 +217,12 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
   async function stageOne(
     file: File,
     accountText: string,
+    columns: ColumnChoiceFields | undefined,
   ): Promise<StagedFile> {
     const formData = new FormData();
     formData.set("accountId", accountText);
     formData.set("file", file);
+    for (const [name, value] of Object.entries(columns ?? {})) formData.set(name, value);
     try {
       return await stageFileAction(formData);
     } catch (error) {
@@ -227,12 +233,18 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
   }
 
   // One file after the other, as if each had been sent alone: nothing is recorded here.
-  async function stageFiles(files: File[], accountText: string) {
-    const staged: StagedFile[] = [];
-    for (const [index, file] of files.entries()) {
-      setStaging({ current: index + 1, total: files.length, name: file.name });
-      staged.push(await stageOne(file, accountText));
-    }
+  async function stageFiles(
+    files: File[],
+    accountText: string,
+    choices: ColumnChoicesBySource,
+  ) {
+    const staged = await stageSources(
+      files,
+      choices,
+      (file, columns) => stageOne(file, accountText, columns),
+      (current, file) =>
+        setStaging({ current, total: files.length, name: file.name }),
+    );
     setStaging(null);
     return staged;
   }
@@ -240,9 +252,9 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
   // The duplicates and the currency depend on the account: the files are read again for the new one.
   async function changeReviewAccount(accountId: number) {
     if (review === null) return;
-    const { sources } = review;
+    const { sources, columnChoices } = review;
     setReview({ ...review, accountId });
-    const files = await stageFiles(sources, String(accountId));
+    const files = await stageFiles(sources, String(accountId), columnChoices);
     // Closed while the files were read: it stays closed.
     setReview((current) =>
       current === null
@@ -251,12 +263,30 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
     );
   }
 
+  // One file again, with the columns the user chose: the others are left as they are.
+  async function restageSource(sourceIndex: number, choices: ColumnChoiceFields) {
+    const source = review?.sources[sourceIndex];
+    if (review === null || source === undefined) {
+      return failedStagedFile("", t("staged.readFailed"));
+    }
+    const staged = await stageOne(source, String(review.accountId), choices);
+    // Remembered only when the reading worked: a failed one leaves the earlier choices in force.
+    if (staged.status !== "failed") {
+      setReview((current) =>
+        current === null
+          ? null
+          : { ...current, columnChoices: { ...current.columnChoices, [sourceIndex]: choices } },
+      );
+    }
+    return staged;
+  }
+
   async function stageThenReview(
     files: File[],
     accountText: string,
     fallback: () => void,
   ) {
-    const staged = await stageFiles(files, accountText);
+    const staged = await stageFiles(files, accountText, {});
     // A lone CSV whose columns are not found goes back to the mapping form.
     if (files.length === 1 && staged[0]?.needsMapping === true) {
       fallback();
@@ -267,6 +297,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
       sources: files,
       files: staged,
       overflowAccounts,
+      columnChoices: {},
       batch: 1,
     });
   }
@@ -461,6 +492,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
             staging === null ? null : t("staged.reading", { ...staging })
           }
           onAccountChange={changeReviewAccount}
+          onRestage={restageSource}
           onClose={() => setReview(null)}
         />
       )}
