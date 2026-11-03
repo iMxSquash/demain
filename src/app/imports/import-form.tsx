@@ -206,6 +206,8 @@ interface Review {
   files: StagedFile[];
   /** The balances when the files were read: the page refreshes after each import, the plan must not. */
   overflowAccounts: OverflowAccount[];
+  /** The same balances without the choices made so far: what a file needs is read from them. */
+  storedOverflowAccounts: OverflowAccount[];
   /** The overflow accounts chosen so far: written with the first file imported, never before. */
   overflowChoices: PendingOverflow[];
   /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */
@@ -271,6 +273,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
             ...current,
             files,
             overflowAccounts,
+            storedOverflowAccounts: overflowAccounts,
             // The balances are back to the stored ones: the choices go with them.
             overflowChoices: [],
             batch: current.batch + 1,
@@ -344,6 +347,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
       sources: files,
       files: staged,
       overflowAccounts,
+      storedOverflowAccounts: overflowAccounts,
       overflowChoices: [],
       columnChoices: {},
       batch: 1,
@@ -536,6 +540,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
           accounts={accounts}
           categories={categories}
           overflowAccounts={review.overflowAccounts}
+          storedOverflowAccounts={review.storedOverflowAccounts}
           overflowChoices={review.overflowChoices}
           readingText={
             staging === null ? null : t("staged.reading", { ...staging })

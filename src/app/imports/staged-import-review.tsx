@@ -49,6 +49,8 @@ interface ReviewBodyProps {
   categories: ImportCategoryOption[];
   /** The balances as they were when the files were read: what the first file is planned from. */
   overflowAccounts: OverflowAccount[];
+  /** The balances as stored: what each file needs is read from them, not from the choices made. */
+  storedOverflowAccounts: OverflowAccount[];
   isReading: boolean;
   accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
@@ -67,6 +69,7 @@ function ReviewBody({
   accounts,
   categories,
   overflowAccounts,
+  storedOverflowAccounts,
   isReading,
   accountSelectRef,
   onAccountChange,
@@ -135,6 +138,16 @@ function ReviewBody({
     [state.files, currency, savingsAccountId, overflowAccounts],
   );
   const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
+  // Read on the stored balances: a choice already made would hide the need it answers.
+  const storedPlans = useMemo(
+    () =>
+      planReview(state.files, {
+        currency,
+        defaultSavingsAccountId: savingsAccountId,
+        accounts: storedOverflowAccounts,
+      }),
+    [state.files, currency, savingsAccountId, storedOverflowAccounts],
+  );
   const phases = state.files.map((file) => file.phase);
   // Index of the file being read again with other columns.
   const [restaging, setRestaging] = useState<number | null>(null);
@@ -233,6 +246,7 @@ function ReviewBody({
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
             overflowChoices={overflowChoices}
+            overflowNeeds={storedPlans[index]?.shortfalls ?? []}
             lookups={lookups}
             isReading={isBusy}
             onChangeColumns={(choices) => restageFile(index, choices)}
