@@ -20,7 +20,8 @@ import {
   type SavingsMovement,
   type SavingsTransfer,
 } from "./import-savings";
-import type { OverflowAccount } from "./overflow";
+import type { OverflowShortfall } from "./import-overflow";
+import { overflowChainTail, type OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
@@ -192,10 +193,12 @@ export interface FilePlan {
   splits: Map<number, SplitSegment[]>;
   /** A loop in the overflow chain spoils every deposit of the file. */
   isChainLooping: boolean;
+  /** What fits nowhere because the end of a chain has a ceiling and no overflow account. */
+  shortfalls: OverflowShortfall[];
 }
 
 export function emptyFilePlan(): FilePlan {
-  return { splits: new Map(), isChainLooping: false };
+  return { splits: new Map(), isChainLooping: false, shortfalls: [] };
 }
 
 function savingsMovementsOf(
@@ -242,6 +245,13 @@ export function planReview(
     target.isChainLooping = plan.issues.some((issue) => issue.kind === "overflowChainCycle");
     for (const transfer of plan.transfers) {
       target.splits.set(transfer.index, splitSegments(transfer));
+      if (transfer.kind !== "deposit" || transfer.unplaced === 0) continue;
+      const start = file.movements.find(({ index }) => index === transfer.index);
+      const tail =
+        start === undefined ? null : overflowChainTail(start.savingsAccountId, context.accounts);
+      if (tail !== null) {
+        target.shortfalls.push({ index: transfer.index, accountId: tail, amount: transfer.unplaced });
+      }
     }
   }
   return plans;

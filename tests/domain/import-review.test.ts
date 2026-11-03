@@ -477,3 +477,63 @@ describe("rowConfirmReasons", () => {
     expect(rowConfirmReasons([debitCredit], sign)).toEqual([debitCredit, sign]);
   });
 });
+
+describe("planReview shortfalls", () => {
+  const SAVINGS_ID = 2;
+  const OTHER_ID = 3;
+  const account = (overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount => ({
+    currency: "EUR",
+    archived: false,
+    balance: 0,
+    ceiling: null,
+    overflowAccountId: null,
+    ...overrides,
+  });
+  const deposit = (amount: string): ReviewedRow =>
+    reviewedRow({ draft: { date: "2026-03-10", label: "VIR", amount, externalId: null } });
+  const plan = (rows: ReviewedRow[], accounts: OverflowAccount[], defaultId: number | null = SAVINGS_ID) => {
+    const [first] = planReview(
+      [{ firstDate: "2026-03-01", phase: "reviewing", rows }],
+      { currency: "EUR", defaultSavingsAccountId: defaultId, accounts },
+    );
+    return first;
+  };
+  // Room for 100,00 and no overflow account.
+  const capped = account({ id: SAVINGS_ID, balance: 90_000, ceiling: 100_000 });
+
+  it("reports nothing when every deposit fits", () => {
+    expect(plan([deposit("-50,00")], [capped])?.shortfalls).toEqual([]);
+  });
+
+  it("reports the amount that does not fit in an account with a ceiling and no overflow account", () => {
+    expect(plan([deposit("-150,00")], [capped])?.shortfalls).toEqual([
+      { index: 0, accountId: SAVINGS_ID, amount: 5_000 },
+    ]);
+  });
+
+  it("reports the end of the chain when every account of it is full", () => {
+    const first = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
+    const last = account({ id: OTHER_ID, balance: 20_000, ceiling: 20_000 });
+
+    expect(plan([deposit("-30,00")], [first, last])?.shortfalls).toEqual([
+      { index: 0, accountId: OTHER_ID, amount: 3_000 },
+    ]);
+  });
+
+  it("reports nothing when the overflow account is already defined and has room", () => {
+    const first = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
+
+    expect(plan([deposit("-30,00")], [first, account({ id: OTHER_ID })])?.shortfalls).toEqual([]);
+  });
+
+  it("reports nothing for a savings row that has no savings account", () => {
+    expect(plan([deposit("-150,00")], [capped], null)?.shortfalls).toEqual([]);
+  });
+
+  it("reports nothing when the chain loops", () => {
+    const a = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
+    const b = account({ id: OTHER_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: SAVINGS_ID });
+
+    expect(plan([deposit("-30,00")], [a, b])?.shortfalls).toEqual([]);
+  });
+});
