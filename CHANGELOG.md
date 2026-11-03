@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- In the import dialog, an explicit type (the type column of the file or the one chosen in the row) wins over the sign of the amount: the row is recorded with the sign of the type (an expense is negative, an income is positive, the absolute value is kept), marked "To confirm" in text with its reason, and its file is no longer blocked. Savings are not affected.
+- In the import dialog, an explicit type (the type column of the file or the one chosen in the row) wins over the sign of the amount: the row is recorded with the sign of the type (an expense is negative, an income is positive, the absolute value is kept), marked "To confirm" in text with its reason, and its file is no longer blocked. The amount cell shows the amount that will be recorded, and the duplicate fingerprints follow it. Savings are not affected.
 - The monthly synthesis converts accounts and flows in another currency with the stored exchange rates instead of leaving them out, and its reference currency is the setting of the `/currencies` screen instead of a fixed EUR.
 - Next.js is upgraded from 16.4.0 to 16.4.3, which fixes three advisories reported by `npm audit` (two unauthenticated remote code execution flaws in the image optimization API and in `use cache`, neither used by Demain, and a denial of service through Server Actions, which Demain exposes). The minimum version in `package.json` is raised to match.
 - Archiving an account is refused unless its computed balance is exactly zero (a negative balance included). No transaction can be entered on, edited on or deleted from an archived account, and the currency of an account cannot change once it has a transaction.
