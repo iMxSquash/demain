@@ -20,7 +20,8 @@ import {
   type SavingsMovement,
   type SavingsTransfer,
 } from "./import-savings";
-import type { OverflowAccount } from "./overflow";
+import type { OverflowShortfall } from "./import-overflow";
+import { overflowChainTail, type OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
@@ -192,10 +193,12 @@ export interface FilePlan {
   splits: Map<number, SplitSegment[]>;
   /** A loop in the overflow chain spoils every deposit of the file. */
   isChainLooping: boolean;
+  /** What fits nowhere because the end of a chain has a ceiling and no overflow account. */
+  shortfalls: OverflowShortfall[];
 }
 
 export function emptyFilePlan(): FilePlan {
-  return { splits: new Map(), isChainLooping: false };
+  return { splits: new Map(), isChainLooping: false, shortfalls: [] };
 }
 
 function savingsMovementsOf(
@@ -236,12 +239,21 @@ export function planReview(
       phase === "cancelled" || phase === "failed" ? [] : savingsMovementsOf(rows, context),
   }));
 
+  const accountsById = new Map(context.accounts.map((account) => [account.id, account]));
   for (const { file, plan } of planFilesInDateOrder(planned, context.accounts)) {
     const target = plans[file.position];
     if (target === undefined) continue;
     target.isChainLooping = plan.issues.some((issue) => issue.kind === "overflowChainCycle");
+    const movementsByIndex = new Map(file.movements.map((movement) => [movement.index, movement]));
     for (const transfer of plan.transfers) {
       target.splits.set(transfer.index, splitSegments(transfer));
+      if (transfer.kind !== "deposit" || transfer.unplaced === 0) continue;
+      const start = movementsByIndex.get(transfer.index);
+      const tail =
+        start === undefined ? null : overflowChainTail(start.savingsAccountId, accountsById);
+      if (tail !== null) {
+        target.shortfalls.push({ accountId: tail, amount: transfer.unplaced });
+      }
     }
   }
   return plans;

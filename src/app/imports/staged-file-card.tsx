@@ -6,6 +6,7 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { RowDetails } from "../../domain/import-draft";
+import type { PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
 import { BUTTON_CLASS } from "../form-field";
 import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
@@ -142,6 +143,8 @@ interface FileCardProps {
   defaultSavingsAccountId: number | null;
   /** Names of the accounts, to write where a savings row goes. */
   accountNames: ReadonlyMap<number, string>;
+  /** The overflow accounts this file needs: saved with the file, or not at all. */
+  overflowChoices: readonly PendingOverflow[];
   lookups: RowLookups;
   isReading: boolean;
   /** Reads the file again with other columns; resolves to whether the new rows are in. */
@@ -157,6 +160,7 @@ export function FileCard({
   accountId,
   defaultSavingsAccountId,
   accountNames,
+  overflowChoices,
   lookups,
   isReading,
   onChangeColumns,
@@ -274,6 +278,7 @@ export function FileCard({
         mapping: file.mapping,
         savingsAccountId: defaultSavingsAccountId,
         drafts: rows.map((row) => ({ ...row.draft, details: row.details })),
+        overflowChoices: [...overflowChoices],
       });
       dispatch({
         type: "setPhase",

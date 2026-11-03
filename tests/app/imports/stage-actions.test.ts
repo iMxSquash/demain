@@ -9,7 +9,13 @@ import {
   stageFileAction,
 } from "../../../src/app/imports/stage-actions";
 import type { CommitStagedRequest } from "../../../src/app/imports/commit-request";
-import { createAccount, getAccountBalance, updateAccount } from "../../../src/ledger/accounts";
+import {
+  createAccount,
+  getAccount,
+  getAccountBalance,
+  listAccounts,
+  updateAccount,
+} from "../../../src/ledger/accounts";
 import { createCategory } from "../../../src/ledger/categories";
 import { commitImport } from "../../../src/ledger/imports";
 import { listTransactions } from "../../../src/ledger/transactions";
@@ -24,6 +30,7 @@ const holder = vi.hoisted(() => ({ db: null as unknown }));
 
 vi.mock("next-intl/server", () => ({
   getLocale: async () => "en",
+  getTimeZone: async () => "UTC",
   getTranslations: async () => (key: string, values?: Record<string, unknown>) =>
     values === undefined ? key : `${key} ${JSON.stringify(values)}`,
 }));
@@ -219,6 +226,88 @@ describe("commitStagedFileAction", () => {
       expect(state.status).toBe("blocked");
       expect(state.issues).toEqual([{ message: "overflowChainCycle" }]);
     });
+  });
+});
+
+describe("commitStagedFileAction with an overflow account chosen in the review", () => {
+  let dataDir: string;
+  let db: AppDatabase;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    db = openDatabase(dataDir);
+    migrateDatabase(db);
+    holder.db = db;
+    createAccount(db, { ...ACCOUNT, name: "Checking", kind: "checking", openingBalance: 100_000 });
+    createAccount(db, {
+      ...ACCOUNT,
+      name: "A",
+      kind: "savings",
+      openingBalance: 90_000,
+      depositCeiling: 100_000,
+    });
+    createAccount(db, { ...ACCOUNT, name: "B", kind: "savings", openingBalance: 0 });
+  });
+
+  afterEach(() => {
+    db.$client.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  function commit(overflowChoices: unknown[]) {
+    return commitStagedFileAction({
+      accountId: CHECKING_ID,
+      fileName: "2026-03.csv",
+      format: "csv",
+      mapping: null,
+      drafts: [savingsDraft(A_ID)],
+      overflowChoices,
+    } as CommitStagedRequest);
+  }
+
+  const accountNames = () => listAccounts(db, { includeArchived: true }).map(({ name }) => name);
+
+  it("saves the link with the import", async () => {
+    const state = await commit([{ accountId: A_ID, target: { kind: "existing", id: B_ID } }]);
+
+    expect(state.status).toBe("done");
+    expect(getAccount(db, A_ID).overflowAccountId).toBe(B_ID);
+    expect(listTransactions(db)).toHaveLength(4);
+  });
+
+  it("creates the new account only when the file is imported", async () => {
+    expect(accountNames()).not.toContain("Spare");
+
+    const state = await commit([{ accountId: A_ID, target: { kind: "new", name: "Spare" } }]);
+
+    expect(state.status).toBe("done");
+    expect(accountNames()).toContain("Spare");
+  });
+
+  it("refuses the whole import with a message when the account chosen would loop", async () => {
+    db.$client.exec("update accounts set overflow_account_id = 2 where id = 3");
+
+    const state = await commit([{ accountId: A_ID, target: { kind: "existing", id: B_ID } }]);
+
+    expect(state).toMatchObject({ status: "error", message: "overflowChainLoop" });
+    expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
+    expect(listTransactions(db)).toEqual([]);
+  });
+
+  it("refuses the whole import with a message when the account chosen is archived", async () => {
+    db.$client.exec("update accounts set archived = 1 where id = 3");
+
+    const state = await commit([{ accountId: A_ID, target: { kind: "existing", id: B_ID } }]);
+
+    expect(state).toMatchObject({ status: "error", message: "overflowAccountArchived" });
+    expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
+  });
+
+  it("refuses a choice shaped otherwise, and records nothing", async () => {
+    const state = await commit([{ accountId: A_ID, target: { kind: "existing", id: B_ID }, extra: 1 }]);
+
+    expect(state.status).toBe("error");
+    expect(listTransactions(db)).toEqual([]);
   });
 });
 

@@ -142,3 +142,26 @@ export function assertOverflowTargetAllowed(
         : byId.get(current.overflowAccountId);
   }
 }
+
+/**
+ * The last account of the chain that starts at `startId`: the one whose
+ * surplus has nowhere to go. Null when the chain loops or starts nowhere.
+ */
+export function overflowChainTail(
+  startId: number,
+  byId: ReadonlyMap<number, Pick<OverflowAccount, "id" | "overflowAccountId">>,
+): number | null {
+  const visited = new Set<number>();
+  let current = byId.get(startId);
+  let tail: number | null = null;
+  while (current !== undefined) {
+    if (visited.has(current.id)) return null;
+    visited.add(current.id);
+    tail = current.id;
+    current =
+      current.overflowAccountId === null
+        ? undefined
+        : byId.get(current.overflowAccountId);
+  }
+  return tail;
+}

@@ -4,6 +4,8 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { AccountValidationError } from "../../src/domain/account";
+import type { PendingOverflow } from "../../src/domain/import-overflow";
 import {
   detailsFromSign,
   type ReviewedDraft,
@@ -11,7 +13,9 @@ import {
 } from "../../src/domain/import-draft";
 import {
   createAccount,
+  getAccount,
   getAccountBalance,
+  listAccounts,
   updateAccount,
 } from "../../src/ledger/accounts";
 import { listImportBatches } from "../../src/ledger/imports";
@@ -305,6 +309,148 @@ describe("commitDrafts with the details of a review", () => {
     });
     expect(listTransactions(db)).toEqual([]);
     expect(listImportBatches(db, CHECKING_ID)).toEqual([]);
+  });
+
+  describe("with an overflow account chosen in the review", () => {
+    const OPENING_DATE = "2026-03-01";
+
+    beforeEach(() => {
+      updateAccount(db, A_ID, {
+        ...ACCOUNT,
+        name: "A",
+        kind: "savings",
+        openingBalance: 90_000,
+        depositCeiling: 100_000,
+        overflowAccountId: null,
+      });
+    });
+
+    const chooseB = { accountId: A_ID, target: { kind: "existing", id: B_ID } } as const;
+
+    function commitWith(
+      choices: readonly PendingOverflow[],
+      drafts: ReviewedDraft[] = [savings()],
+    ) {
+      return commitDrafts(db, {
+        accountId: CHECKING_ID,
+        format: "csv",
+        fileName: "2026-03.csv",
+        mapping: null,
+        drafts,
+        now: NOW,
+        overflow: { choices, openingDate: OPENING_DATE },
+      });
+    }
+
+    const accountNames = () => listAccounts(db, { includeArchived: true }).map(({ name }) => name);
+
+    it("saves the link and the import together", () => {
+      const result = commitWith([chooseB]);
+
+      expect(result).toMatchObject({ status: "done", transferCount: 2 });
+      expect(getAccount(db, A_ID).overflowAccountId).toBe(B_ID);
+      expect(getAccountBalance(db, B_ID)).toBe(20_000);
+    });
+
+    it("creates the new account only with the import, then links it", () => {
+      const result = commitWith([{ accountId: A_ID, target: { kind: "new", name: "Spare" } }]);
+
+      expect(result).toMatchObject({ status: "done" });
+      const spare = listAccounts(db).find(({ name }) => name === "Spare");
+      expect(spare).toMatchObject({ kind: "savings", currency: "EUR", openingDate: OPENING_DATE });
+      expect(getAccount(db, A_ID).overflowAccountId).toBe(spare?.id);
+      expect(getAccountBalance(db, spare?.id ?? 0)).toBe(20_000);
+    });
+
+    it("applies the same choice again for a second file without creating a second account", () => {
+      const choice = { accountId: A_ID, target: { kind: "new", name: "Spare" } } as const;
+      commitWith([choice]);
+
+      const second = commitWith([choice], [savings({ date: "2026-03-12", label: "VIR LIVRET 2" })]);
+
+      expect(second).toMatchObject({ status: "done" });
+      expect(accountNames().filter((name) => name === "Spare")).toHaveLength(1);
+    });
+
+    it("writes neither the link nor the new account when a row is still invalid", () => {
+      const result = commitWith(
+        [chooseB, { accountId: B_ID, target: { kind: "new", name: "Spare" } }],
+        [savings(), draft({ date: "2026-13-45" })],
+      );
+
+      expect(result.status).toBe("invalid");
+      expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
+      expect(accountNames()).not.toContain("Spare");
+    });
+
+    it("writes neither the link nor the new account when the ledger blocks the file", () => {
+      const result = commitWith(
+        [{ accountId: A_ID, target: { kind: "new", name: "Spare" } }],
+        [savings(), savings({ label: "BAD" }, { categoryId: 999, type: "expense", savingsAccountId: null })],
+      );
+
+      expect(result.status).toBe("blocked");
+      expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
+      expect(accountNames()).not.toContain("Spare");
+      expect(listTransactions(db)).toEqual([]);
+    });
+
+    const refusal = (action: () => unknown): AccountValidationError => {
+      try {
+        action();
+      } catch (error) {
+        if (error instanceof AccountValidationError) return error;
+        throw error;
+      }
+      throw new Error("Expected a refusal");
+    };
+
+    it.each([
+      ["loops back to the account", "update accounts set overflow_account_id = 2 where id = 3", "overflowChainLoop"],
+      ["is archived", "update accounts set archived = 1 where id = 3", "overflowAccountArchived"],
+      ["has another currency", "update accounts set currency = 'USD' where id = 3", "overflowAccountCurrencyMismatch"],
+    ])("refuses the whole import, and writes nothing, when the account chosen %s", (_name, statement, key) => {
+      db.$client.exec(statement);
+
+      expect(refusal(() => commitWith([chooseB])).ref.key).toBe(key);
+
+      expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
+      expect(listTransactions(db)).toEqual([]);
+      expect(listImportBatches(db, CHECKING_ID)).toEqual([]);
+    });
+
+    it("refuses the whole import when the new account has no name, and writes nothing", () => {
+      expect(
+        refusal(() => commitWith([{ accountId: A_ID, target: { kind: "new", name: " " } }])).ref.key,
+      ).toBe("accountNameRequired");
+
+      expect(listTransactions(db)).toEqual([]);
+    });
+
+    it("refuses to replace an overflow account defined since the review", () => {
+      updateAccount(db, A_ID, {
+        ...ACCOUNT,
+        name: "A",
+        kind: "savings",
+        openingBalance: 90_000,
+        depositCeiling: 100_000,
+        overflowAccountId: B_ID,
+      });
+      const other = createAccount(db, { ...ACCOUNT, name: "Other", kind: "savings", openingBalance: 0 });
+
+      const error = refusal(() =>
+        commitWith([{ accountId: A_ID, target: { kind: "existing", id: other.id } }]),
+      );
+
+      expect(error.ref.key).toBe("importOverflowAlreadySet");
+      expect(getAccount(db, A_ID).overflowAccountId).toBe(B_ID);
+    });
+
+    it("refuses the account that receives the file", () => {
+      expect(
+        refusal(() => commitWith([{ accountId: A_ID, target: { kind: "existing", id: CHECKING_ID } }])).ref.key,
+      ).toBe("importOverflowIsReceiving");
+    });
   });
 
   it("is blocked when the stored chain loops", () => {

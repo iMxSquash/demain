@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
+import {
+  placeholderAccountId,
+  withOverflowAccount,
+  type OverflowTarget,
+  type PendingOverflow,
+} from "../../domain/import-overflow";
 import type { OverflowAccount } from "../../domain/overflow";
 import { BUTTON_CLASS, CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
@@ -200,6 +206,10 @@ interface Review {
   files: StagedFile[];
   /** The balances when the files were read: the page refreshes after each import, the plan must not. */
   overflowAccounts: OverflowAccount[];
+  /** The same balances without the choices made so far: what a file needs is read from them. */
+  storedOverflowAccounts: OverflowAccount[];
+  /** The overflow accounts chosen so far: written with the first file imported, never before. */
+  overflowChoices: PendingOverflow[];
   /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */
   columnChoices: ColumnChoicesBySource;
   /** Counts the readings of the files: what was edited belongs to one of them. */
@@ -259,8 +269,48 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
     setReview((current) =>
       current === null
         ? null
-        : { ...current, files, overflowAccounts, batch: current.batch + 1 },
+        : {
+            ...current,
+            files,
+            overflowAccounts,
+            storedOverflowAccounts: overflowAccounts,
+            // The balances are back to the stored ones: the choices go with them.
+            overflowChoices: [],
+            batch: current.batch + 1,
+          },
     );
+  }
+
+  // The choice is only remembered: the plan of the review follows it, and it is
+  // saved with the first file imported (an account to create is stood for by a placeholder).
+  function chooseOverflow(accountId: number, target: OverflowTarget) {
+    setReview((current) => {
+      if (current === null) return null;
+      const placeholderId = placeholderAccountId(current.overflowChoices.length);
+      const overflowAccountId = target.kind === "existing" ? target.id : placeholderId;
+      const currency = current.overflowAccounts.find(({ id }) => id === accountId)?.currency;
+      const created: OverflowAccount | undefined =
+        target.kind === "new" && currency !== undefined
+          ? {
+              id: placeholderId,
+              currency,
+              archived: false,
+              balance: 0,
+              ceiling: null,
+              overflowAccountId: null,
+            }
+          : undefined;
+      return {
+        ...current,
+        overflowAccounts: withOverflowAccount(
+          current.overflowAccounts,
+          accountId,
+          overflowAccountId,
+          created,
+        ),
+        overflowChoices: [...current.overflowChoices, { accountId, target }],
+      };
+    });
   }
 
   // One file again, with the columns the user chose: the others are left as they are.
@@ -297,6 +347,8 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
       sources: files,
       files: staged,
       overflowAccounts,
+      storedOverflowAccounts: overflowAccounts,
+      overflowChoices: [],
       columnChoices: {},
       batch: 1,
     });
@@ -488,10 +540,13 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
           accounts={accounts}
           categories={categories}
           overflowAccounts={review.overflowAccounts}
+          storedOverflowAccounts={review.storedOverflowAccounts}
+          overflowChoices={review.overflowChoices}
           readingText={
             staging === null ? null : t("staged.reading", { ...staging })
           }
           onAccountChange={changeReviewAccount}
+          onOverflowChosen={chooseOverflow}
           onRestage={restageSource}
           onClose={() => setReview(null)}
         />

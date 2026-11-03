@@ -12,6 +12,13 @@ import {
 } from "react";
 
 import {
+  choicesForShortfalls,
+  overflowDemands,
+  pendingAccountNames,
+  type OverflowTarget,
+  type PendingOverflow,
+} from "../../domain/import-overflow";
+import {
   emptyFilePlan,
   nextFileToSettle,
   planReview,
@@ -28,6 +35,7 @@ import type {
   StagedFile,
 } from "./import-form-data";
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
@@ -42,9 +50,15 @@ interface ReviewBodyProps {
   categories: ImportCategoryOption[];
   /** The balances as they were when the files were read: what the first file is planned from. */
   overflowAccounts: OverflowAccount[];
+  /** The balances as stored: what each file needs is read from them, not from the choices made. */
+  storedOverflowAccounts: OverflowAccount[];
   isReading: boolean;
   accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
+  /** What the user chose for the accounts whose surplus has nowhere to go: kept until a file is imported. */
+  overflowChoices: readonly PendingOverflow[];
+  /** An overflow account was chosen for a savings account: the plan follows it, nothing is saved yet. */
+  onOverflowChosen: (accountId: number, target: OverflowTarget) => void;
   /** Reads a file again with the columns the user chose; `sourceIndex` is its place among the files chosen. */
   onRestage: (sourceIndex: number, choices: ColumnChoiceFields) => Promise<StagedFile>;
 }
@@ -56,9 +70,12 @@ function ReviewBody({
   accounts,
   categories,
   overflowAccounts,
+  storedOverflowAccounts,
   isReading,
   accountSelectRef,
   onAccountChange,
+  overflowChoices,
+  onOverflowChosen,
   onRestage,
 }: ReviewBodyProps) {
   const t = useTranslations("imports.staged");
@@ -93,8 +110,13 @@ function ReviewBody({
     [accounts, receiving],
   );
   const accountNames = useMemo(
-    () => new Map(accounts.map((account) => [account.id, account.name])),
-    [accounts],
+    () =>
+      new Map([
+        ...accounts.map((account): [number, string] => [account.id, account.name]),
+        // The accounts the import will create are named in the splits already.
+        ...pendingAccountNames(overflowChoices),
+      ]),
+    [accounts, overflowChoices],
   );
   const { defaultSavingsAccountId: savingsAccountId } = state;
   const lookups = useMemo<RowLookups>(
@@ -115,6 +137,20 @@ function ReviewBody({
         accounts: overflowAccounts,
       }),
     [state.files, currency, savingsAccountId, overflowAccounts],
+  );
+  const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
+  // Read on the stored balances: a choice already made would hide the need it answers.
+  // Without a choice the stored balances are the shown ones, so the plan is reused.
+  const storedPlans = useMemo(
+    () =>
+      overflowChoices.length === 0
+        ? plans
+        : planReview(state.files, {
+            currency,
+            defaultSavingsAccountId: savingsAccountId,
+            accounts: storedOverflowAccounts,
+          }),
+    [plans, overflowChoices.length, state.files, currency, savingsAccountId, storedOverflowAccounts],
   );
   const phases = state.files.map((file) => file.phase);
   // Index of the file being read again with other columns.
@@ -193,6 +229,14 @@ function ReviewBody({
         </div>
       </div>
 
+      <OverflowPrompt
+        demands={demands}
+        accounts={accounts}
+        receivingAccountId={accountId}
+        isBusy={isBusy}
+        onChosen={onOverflowChosen}
+      />
+
       {state.files.map((file, index) => {
         const waitIndex = nextFileToSettle(phases, index);
         return (
@@ -205,6 +249,7 @@ function ReviewBody({
             accountId={accountId}
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
+            overflowChoices={choicesForShortfalls(overflowChoices, storedPlans[index]?.shortfalls ?? [])}
             lookups={lookups}
             isReading={isBusy}
             onChangeColumns={(choices) => restageFile(index, choices)}
@@ -226,7 +271,8 @@ interface StagedImportReviewProps
 /**
  * The files of an import, one card each, in a native dialog (focus trap,
  * Escape, focus given back). Nothing is recorded until a card's file is
- * imported; closing the dialog drops what was not.
+ * imported, the overflow accounts chosen here included; closing the dialog
+ * drops what was not.
  */
 export function StagedImportReview({
   batch,
