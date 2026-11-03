@@ -292,7 +292,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *Refusing a non-empty account in the import.* It would make the monthly import impossible, which is its main use.
 - *Migrating file by file.* The opening balances and the assertions are set on the whole history, and a resumed run would record the history twice.
 
-**Consequences.** The order of the imports matters for the ceilings: the same file imported earlier or later may be split differently. The screen that replaces `/migration` must keep the first-run rule. A file blocked for a part that fits nowhere stays blocked until a later change lets the user decide what to do with the surplus.
+**Consequences.** The order of the imports matters for the ceilings: the same file imported earlier or later may be split differently. The screen that replaces `/migration` must keep the first-run rule. A file blocked for a part that fits nowhere stays blocked until the user chooses an overflow account for the account at the end of the chain, in the review. That choice is saved at once and for good, through the same save as the account screen, so the rules of ADR-013 apply to it unchanged.
 
 ## Tooling
 
