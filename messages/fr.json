@@ -394,6 +394,7 @@
       "importFile": "Importer ce fichier",
       "cancelFile": "Annuler ce fichier",
       "fixFirst": "Corrigez les lignes signalées comme problèmes pour importer ce fichier.",
+      "rereadFile": "Relire le fichier",
       "rereadFailed": "{name} : les nouvelles colonnes n'ont pas pu être appliquées. Les lignes ci-dessous sont toujours celles de la lecture précédente, et ce fichier ne peut pas être importé tant qu'une lecture n'a pas réussi. {message}",
       "cancelled": "Annulé : rien n'a été importé de ce fichier.",
       "stillInvalid": "{count} lignes sont encore invalides : rien n'a été importé de ce fichier.",

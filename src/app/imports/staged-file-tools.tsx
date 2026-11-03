@@ -16,6 +16,7 @@ import {
   type ColumnChoiceFields,
   type StagedColumns,
 } from "./import-form-data";
+import { columnChoicesOf } from "./reread-file";
 import type { RowLookups } from "./staged-row-editor";
 import type { RowDetails } from "../../domain/import-draft";
 
@@ -89,9 +90,9 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
                 onChange={(event) => {
                   focusRole.current = role;
                   onChange({
-                    ...Object.fromEntries(COLUMN_ROLES.map((other) => [other.role, current(other.role)])),
+                    ...columnChoicesOf(columns),
                     [role]: event.currentTarget.value,
-                  } as ColumnChoiceFields);
+                  });
                 }}
               >
                 <option value={NO_COLUMN_CHOICE}>{t("noColumn")}</option>

@@ -8,7 +8,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { RowDetails } from "../../domain/import-draft";
 import type { FilePlan } from "../../domain/import-review";
 import { BUTTON_CLASS } from "../form-field";
-import type { ColumnChoiceFields } from "./import-form-data";
+import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
+import { columnChoicesOf } from "./reread-file";
 import { describeSplit } from "./review-text";
 import { commitStagedFileAction } from "./stage-actions";
 import {
@@ -227,6 +228,22 @@ export function FileCard({
     if (isRead) setSelected(new Set());
   }
 
+  // The button is disabled while the file is read, which drops the focus: it is
+  // given back once the reading is over, to the button if the error stays, or to
+  // the title of the card when the button is gone.
+  const rereadButtonRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const isFocusDue = useRef(false);
+  useEffect(() => {
+    if (isLocked || !isFocusDue.current) return;
+    isFocusDue.current = false;
+    (rereadButtonRef.current ?? titleRef.current)?.focus();
+  }, [isLocked, file.rereadError]);
+  const rereadFileAgain = (columns: StagedColumns) => {
+    isFocusDue.current = true;
+    void changeColumns(columnChoicesOf(columns));
+  };
+
   // The text of a split comes from the plan of the domain, not from a sum made here.
   const splitTexts = useMemo(() => {
     const say = {
@@ -295,7 +312,7 @@ export function FileCard({
       aria-labelledby={headingId}
       className="flex flex-col gap-3 rounded border border-neutral-500 p-4"
     >
-      <h3 id={headingId} className="text-lg font-semibold break-all">
+      <h3 id={headingId} ref={titleRef} tabIndex={-1} className="text-lg font-semibold break-all">
         {file.fileName}
       </h3>
 
@@ -326,9 +343,23 @@ export function FileCard({
             />
           )}
           {file.rereadError === null ? null : (
-            <p id={rereadErrorId} role="alert" className="font-medium text-red-800">
-              {t("rereadFailed", { name: file.fileName, message: file.rereadError })}
-            </p>
+            <div className="flex flex-col items-start gap-2">
+              <p id={rereadErrorId} role="alert" className="font-medium text-red-800">
+                {t("rereadFailed", { name: file.fileName, message: file.rereadError })}
+              </p>
+              {file.columns === null ? null : (
+                <button
+                  ref={rereadButtonRef}
+                  type="button"
+                  disabled={isLocked}
+                  aria-describedby={rereadErrorId}
+                  onClick={() => file.columns !== null && rereadFileAgain(file.columns)}
+                  className={BUTTON_CLASS}
+                >
+                  {t("rereadFile")}
+                </button>
+              )}
+            </div>
           )}
           <label className="flex min-h-11 items-center gap-2">
             <input

@@ -28,6 +28,7 @@ import type {
   StagedFile,
 } from "./import-form-data";
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { rereadFile } from "./reread-file";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
 import type { RowLookups } from "./staged-row-editor";
@@ -130,13 +131,11 @@ function ReviewBody({
     if (file === undefined) return false;
     setRestaging(fileIndex);
     try {
-      const staged = await onRestage(file.sourceIndex, choices);
-      if (staged.status === "failed") {
-        dispatch({ type: "rereadFailed", file: fileIndex, message: staged.message });
-        return false;
-      }
-      dispatch({ type: "replaceFile", file: fileIndex, staged });
-      return true;
+      return await rereadFile(
+        fileIndex,
+        () => onRestage(file.sourceIndex, choices),
+        dispatch,
+      );
     } finally {
       setRestaging(null);
     }
