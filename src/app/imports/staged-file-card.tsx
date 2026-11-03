@@ -120,7 +120,7 @@ export function FileCard({
       t,
       currency: file.currency,
       locale,
-      nameOf: (id: number) => accountNames.get(id) ?? `#${id}`,
+      nameOf: (id: number) => accountNames.get(id) ?? t("unknownAccount"),
     };
     return new Map(
       [...plan.splits].map(([rowIndex, segments]) => [

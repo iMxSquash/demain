@@ -442,6 +442,7 @@
       "noPaymentMode": "Aucun",
       "notApplicable": "Sans objet",
       "sameAsFile": "Comme le fichier ({name})",
+      "unknownAccount": "Compte inconnu",
       "chooseSavingsAccount": "Choisir un compte",
       "toConfirm": "À confirmer : {reasons}",
       "toConfirmCount": "{count} lignes à confirmer : leur type a été deviné avec peu d'indices.",

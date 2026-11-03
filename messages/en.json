@@ -442,6 +442,7 @@
       "noPaymentMode": "None",
       "notApplicable": "Not applicable",
       "sameAsFile": "Same as the file ({name})",
+      "unknownAccount": "Unknown account",
       "chooseSavingsAccount": "Choose an account",
       "toConfirm": "To confirm: {reasons}",
       "toConfirmCount": "{count} rows to confirm: their type was guessed with little evidence.",
