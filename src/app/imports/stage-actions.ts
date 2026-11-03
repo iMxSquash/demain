@@ -28,6 +28,7 @@ import {
   decodeImportFile,
   detectImportFormat,
   failedStagedFile,
+  readColumnChoices,
   MAX_IMPORT_FILE_BYTES,
   type CommitStagedState,
   type StagedFile,
@@ -80,6 +81,7 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
       accountId,
       currency,
       categories,
+      columns: readColumnChoices(formData),
     });
     if (statement.status === "mappingNeeded") {
       return failed(t("staged.mappingNeeded"), { needsMapping: true });
@@ -98,6 +100,7 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
       currency,
       firstDate: firstMovementDate(statement.rows.map((row) => row.draft.date)),
       needsMapping: false,
+      columns: statement.columns,
       rows: statement.rows.map((row, index) => ({
         ...row,
         isDuplicate: isDuplicate[index] ?? false,
