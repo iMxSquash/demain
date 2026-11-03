@@ -530,6 +530,20 @@ describe("planReview shortfalls", () => {
     expect(plan([deposit("-150,00")], [capped], null)?.shortfalls).toEqual([]);
   });
 
+  it("reports the shortfall at the tail of a chain of three accounts", () => {
+    const FIRST_ID = 2;
+    const MIDDLE_ID = 3;
+    const TAIL_ID = 4;
+    const first = account({ id: FIRST_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: MIDDLE_ID });
+    const middle = account({ id: MIDDLE_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: TAIL_ID });
+    // Room for 200,00 and no overflow account: 250,00 leaves 50,00 over.
+    const tail = account({ id: TAIL_ID, balance: 0, ceiling: 20_000 });
+
+    expect(plan([deposit("-250,00")], [first, middle, tail], FIRST_ID)?.shortfalls).toEqual([
+      { index: 0, accountId: TAIL_ID, amount: 5_000 },
+    ]);
+  });
+
   it("reports nothing when the chain loops", () => {
     const a = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
     const b = account({ id: OTHER_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: SAVINGS_ID });
