@@ -17,6 +17,7 @@ import {
   type RowLookups,
 } from "./staged-row-editor";
 import {
+  canImportFile,
   countRowsToConfirm,
   visibleRowIndexes,
   type ReviewFile,
@@ -142,8 +143,8 @@ interface FileCardProps {
   accountNames: ReadonlyMap<number, string>;
   lookups: RowLookups;
   isReading: boolean;
-  /** Reads the file again with other columns; resolves once the new rows are in. */
-  onChangeColumns: (choices: ColumnChoiceFields) => Promise<string | null>;
+  /** Reads the file again with other columns; resolves to whether the new rows are in. */
+  onChangeColumns: (choices: ColumnChoiceFields) => Promise<boolean>;
   dispatch: ReviewDispatch;
 }
 
@@ -165,6 +166,7 @@ export function FileCard({
   const headingId = useId();
   const hintId = useId();
   const waitId = useId();
+  const rereadErrorId = useId();
   const { phase, outcome, rows } = file;
 
   const problemCount = rows.filter((row) => row.problem !== null).length;
@@ -177,7 +179,6 @@ export function FileCard({
   const [onlyToConfirm, setOnlyToConfirm] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
-  const [columnsError, setColumnsError] = useState<string | null>(null);
   const regionRef = useRef<HTMLDivElement>(null);
   const visible = useMemo(
     () => visibleRowIndexes(rows, onlyToConfirm),
@@ -222,10 +223,8 @@ export function FileCard({
   }, [onlyToConfirm, visible.length]);
 
   async function changeColumns(choices: ColumnChoiceFields) {
-    setColumnsError(null);
-    const error = await onChangeColumns(choices);
-    setColumnsError(error);
-    if (error === null) setSelected(new Set());
+    const isRead = await onChangeColumns(choices);
+    if (isRead) setSelected(new Set());
   }
 
   // The text of a split comes from the plan of the domain, not from a sum made here.
@@ -248,6 +247,7 @@ export function FileCard({
   );
 
   async function importFile() {
+    if (!canImport) return;
     dispatch({ type: "setPhase", file: fileIndex, phase: "importing" });
     try {
       const result = await commitStagedFileAction({
@@ -279,9 +279,14 @@ export function FileCard({
     }
   }
 
+  const canImport = canImportFile(file, { isReading, waitFor });
   const isReviewing = phase === "reviewing" || phase === "importing";
   const describedBy =
-    [problemCount > 0 ? hintId : null, waitFor === null ? null : waitId]
+    [
+      problemCount > 0 ? hintId : null,
+      waitFor === null ? null : waitId,
+      file.rereadError === null ? null : rereadErrorId,
+    ]
       .filter((id) => id !== null)
       .join(" ") || undefined;
 
@@ -320,9 +325,9 @@ export function FileCard({
               onChange={changeColumns}
             />
           )}
-          {columnsError === null ? null : (
-            <p role="alert" className="font-medium text-red-800">
-              {columnsError}
+          {file.rereadError === null ? null : (
+            <p id={rereadErrorId} role="alert" className="font-medium text-red-800">
+              {t("rereadFailed", { name: file.fileName, message: file.rereadError })}
             </p>
           )}
           <label className="flex min-h-11 items-center gap-2">
@@ -367,12 +372,7 @@ export function FileCard({
             <button
               type="button"
               onClick={importFile}
-              disabled={
-                phase === "importing" ||
-                isReading ||
-                problemCount > 0 ||
-                waitFor !== null
-              }
+              disabled={!canImport}
               aria-describedby={describedBy}
               className={BUTTON_CLASS}
             >

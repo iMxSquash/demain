@@ -394,6 +394,7 @@
       "importFile": "Import this file",
       "cancelFile": "Cancel this file",
       "fixFirst": "Fix the rows marked as problems to import this file.",
+      "rereadFailed": "{name}: the new columns could not be applied. The rows below are still those of the earlier reading, and this file cannot be imported until a reading succeeds. {message}",
       "cancelled": "Cancelled: nothing was imported from this file.",
       "stillInvalid": "{count} rows are still invalid: nothing was imported from this file.",
       "toCategorize": "Categorize the imported transactions",

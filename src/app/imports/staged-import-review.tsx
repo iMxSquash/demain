@@ -107,19 +107,23 @@ function ReviewBody({
   const [restaging, setRestaging] = useState<number | null>(null);
   const isBusy = isReading || restaging !== null || phases.includes("importing");
 
-  // Resolves to a message when the file could not be read again: it then keeps its rows.
+  // Resolves to false when the file could not be read again: it then keeps its
+  // rows, says why, and is not imported until a reading succeeds.
   async function restageFile(
     fileIndex: number,
     choices: ColumnChoiceFields,
-  ): Promise<string | null> {
+  ): Promise<boolean> {
     const file = state.files[fileIndex];
-    if (file === undefined) return null;
+    if (file === undefined) return false;
     setRestaging(fileIndex);
     try {
       const staged = await onRestage(file.sourceIndex, choices);
-      if (staged.status === "failed") return staged.message;
+      if (staged.status === "failed") {
+        dispatch({ type: "rereadFailed", file: fileIndex, message: staged.message });
+        return false;
+      }
       dispatch({ type: "replaceFile", file: fileIndex, staged });
-      return null;
+      return true;
     } finally {
       setRestaging(null);
     }

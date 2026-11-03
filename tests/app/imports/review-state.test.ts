@@ -6,6 +6,7 @@ import type {
 } from "../../../src/app/imports/import-form-data";
 import {
   bulkPatch,
+  canImportFile,
   countRowsToConfirm,
   initReview,
   reviewReducer,
@@ -488,23 +489,27 @@ describe("reviewReducer on several rows", () => {
 });
 
 describe("reviewReducer when a file is read again", () => {
-  it("replaces the rows of the file with the new reading and drops the edits and the outcome", () => {
-    const edited = reviewReducer(
+  it("replaces the rows of the file with the new reading and drops the outcome", () => {
+    const imported = reviewReducer(
       start([stagedFile("march.csv", [stagedRow()]), stagedFile("april.csv", [stagedRow()], { firstDate: "2026-04-01" })]),
-      { type: "edit", file: 0, row: 0, field: "label", value: "edited" },
+      {
+        type: "setPhase",
+        file: 0,
+        phase: "reviewing",
+        outcome: { message: "blocked", warnings: [], issues: [] },
+      },
     );
 
-    const next = reviewReducer(edited, {
+    const next = reviewReducer(imported, {
       type: "replaceFile",
       file: 0,
       staged: stagedFile("march.csv", [stagedRow({ line: 8 })]),
     });
 
-    expect(next.files[0]?.rows.map((row) => [row.line, row.draft.label])).toEqual([
-      [8, "CARD SHOP"],
-    ]);
+    expect(next.files[0]?.rows.map((row) => row.line)).toEqual([8]);
+    expect(next.files[0]?.outcome).toBeNull();
     expect(next.files[0]?.phase).toBe("reviewing");
-    expect(next.files[1]).toBe(edited.files[1]);
+    expect(next.files[1]).toBe(imported.files[1]);
   });
 
   it("reads the new rows against the savings account of the review", () => {
@@ -619,5 +624,106 @@ describe("bulkPatch", () => {
 
   it("ignores a type that does not exist", () => {
     expect(bulkPatch({ ...KEEP, type: "transfer" })).toEqual({});
+  });
+});
+
+describe("reviewReducer when a file cannot be read again", () => {
+  it("keeps the rows and the corrections of the file and records the error", () => {
+    const edited = reviewReducer(start(), {
+      type: "edit",
+      file: 0,
+      row: 0,
+      field: "label",
+      value: "edited",
+    });
+
+    const next = reviewReducer(edited, {
+      type: "rereadFailed",
+      file: 0,
+      message: "Could not read the file",
+    });
+
+    expect(next.files[0]?.rows).toBe(edited.files[0]?.rows);
+    expect(next.files[0]?.rows[0]?.draft.label).toBe("edited");
+    expect(next.files[0]?.rereadError).toBe("Could not read the file");
+  });
+
+  it("clears the error once the file is read again", () => {
+    const failed = reviewReducer(start(), {
+      type: "rereadFailed",
+      file: 0,
+      message: "Could not read the file",
+    });
+
+    const next = reviewReducer(failed, {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [stagedRow()]),
+    });
+
+    expect(next.files[0]?.rereadError).toBeNull();
+  });
+
+  it("ignores a failure for a file that does not exist", () => {
+    const state = start();
+
+    expect(reviewReducer(state, { type: "rereadFailed", file: 4, message: "x" })).toBe(state);
+  });
+});
+
+describe("canImportFile", () => {
+  const GO = { isReading: false, waitFor: null };
+  const first = (state: ReviewState) => {
+    const file = state.files[0];
+    if (file === undefined) throw new Error("no file");
+    return file;
+  };
+
+  it("allows a file with no problem that nothing waits for", () => {
+    expect(canImportFile(first(start([stagedFile("march.csv", [stagedRow()])])), GO)).toBe(true);
+  });
+
+  it("refuses a file whose last reading failed, even when its rows have no problem", () => {
+    const failed = reviewReducer(start([stagedFile("march.csv", [stagedRow()])]), {
+      type: "rereadFailed",
+      file: 0,
+      message: "Could not read the file",
+    });
+
+    expect(canImportFile(first(failed), GO)).toBe(false);
+  });
+
+  it("allows the file again once it is read again", () => {
+    const failed = reviewReducer(start([stagedFile("march.csv", [stagedRow()])]), {
+      type: "rereadFailed",
+      file: 0,
+      message: "Could not read the file",
+    });
+    const read = reviewReducer(failed, {
+      type: "replaceFile",
+      file: 0,
+      staged: stagedFile("march.csv", [stagedRow()]),
+    });
+
+    expect(canImportFile(first(read), GO)).toBe(true);
+  });
+
+  it("refuses a file with a problem, an earlier file to settle, or a reading in progress", () => {
+    const withProblem = first(start());
+    const ok = first(start([stagedFile("march.csv", [stagedRow()])]));
+
+    expect(canImportFile(withProblem, GO)).toBe(false);
+    expect(canImportFile(ok, { isReading: false, waitFor: "feb.csv" })).toBe(false);
+    expect(canImportFile(ok, { isReading: true, waitFor: null })).toBe(false);
+  });
+
+  it("refuses a file that is already being imported", () => {
+    const importing = reviewReducer(start([stagedFile("march.csv", [stagedRow()])]), {
+      type: "setPhase",
+      file: 0,
+      phase: "importing",
+    });
+
+    expect(canImportFile(first(importing), GO)).toBe(false);
   });
 });

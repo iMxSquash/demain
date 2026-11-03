@@ -52,6 +52,12 @@ export interface ReviewFile extends Omit<StagedFile, "rows"> {
   rows: ReviewRow[];
   phase: FilePhase;
   outcome: Outcome | null;
+  /**
+   * Why the last attempt to read the file again with other columns failed. The
+   * rows are still those of the earlier reading, so the file is not imported
+   * until a reading succeeds.
+   */
+  rereadError: string | null;
 }
 
 export interface ReviewState {
@@ -68,6 +74,8 @@ export type ReviewAction =
   | { type: "setDetailsMany"; file: number; rows: readonly number[]; details: Partial<RowDetails> }
   /** The file was read again, with other columns: its rows start over. */
   | { type: "replaceFile"; file: number; staged: StagedFile }
+  /** Reading the file again failed: it keeps its rows and says why. */
+  | { type: "rereadFailed"; file: number; message: string }
   | { type: "setDefaultSavings"; savingsAccountId: number | null }
   | { type: "setPhase"; file: number; phase: FilePhase; outcome?: Outcome };
 
@@ -122,6 +130,7 @@ function reviewFile(
     rows: rows.map((row) => reviewRow(row, file.currency, defaultSavingsAccountId)),
     phase: file.status === "failed" ? "failed" : "reviewing",
     outcome: null,
+    rereadError: null,
   };
 }
 
@@ -168,6 +177,20 @@ export function bulkPatch({ type, category, savingsAccount }: BulkChoice): Parti
 /** The rows that wait for the user to confirm them. */
 export function countRowsToConfirm(rows: readonly ReviewRow[]): number {
   return rows.filter((row) => row.needsConfirmation).length;
+}
+
+/** Whether the file may be imported now: nothing to fix, nothing to wait for, no failed reading. */
+export function canImportFile(
+  file: ReviewFile,
+  { isReading, waitFor }: { isReading: boolean; waitFor: string | null },
+): boolean {
+  return (
+    file.phase === "reviewing" &&
+    !isReading &&
+    waitFor === null &&
+    file.rereadError === null &&
+    file.rows.every((row) => row.problem === null)
+  );
 }
 
 /** Positions of the rows the table shows: all of them, or only those to confirm. */
@@ -282,6 +305,11 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
         file.phase === "reviewing"
           ? reviewFile(action.staged, file.sourceIndex, defaultSavingsAccountId)
           : file,
+      );
+
+    case "rereadFailed":
+      return updateFile(state, action.file, (file) =>
+        file.phase === "reviewing" ? { ...file, rereadError: action.message } : file,
       );
 
     case "setDefaultSavings":
