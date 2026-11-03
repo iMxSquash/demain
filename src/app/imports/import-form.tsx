@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
+import { withOverflowAccount } from "../../domain/import-overflow";
 import type { OverflowAccount } from "../../domain/overflow";
 import { BUTTON_CLASS, CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
@@ -263,6 +264,27 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
     );
   }
 
+  // The link is saved: the plan of the review follows it without reading the files again.
+  function chooseOverflow(
+    accountId: number,
+    overflowAccountId: number,
+    created: OverflowAccount | undefined,
+  ) {
+    setReview((current) =>
+      current === null
+        ? null
+        : {
+            ...current,
+            overflowAccounts: withOverflowAccount(
+              current.overflowAccounts,
+              accountId,
+              overflowAccountId,
+              created,
+            ),
+          },
+    );
+  }
+
   // One file again, with the columns the user chose: the others are left as they are.
   async function restageSource(sourceIndex: number, choices: ColumnChoiceFields) {
     const source = review?.sources[sourceIndex];
@@ -492,6 +514,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
             staging === null ? null : t("staged.reading", { ...staging })
           }
           onAccountChange={changeReviewAccount}
+          onOverflowChosen={chooseOverflow}
           onRestage={restageSource}
           onClose={() => setReview(null)}
         />

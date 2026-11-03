@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 
+import { overflowDemands } from "../../domain/import-overflow";
 import {
   emptyFilePlan,
   nextFileToSettle,
@@ -28,6 +29,7 @@ import type {
   StagedFile,
 } from "./import-form-data";
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
@@ -45,6 +47,12 @@ interface ReviewBodyProps {
   isReading: boolean;
   accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
+  /** An overflow account was saved for a savings account: the plan follows it. */
+  onOverflowChosen: (
+    accountId: number,
+    overflowAccountId: number,
+    created: OverflowAccount | undefined,
+  ) => void;
   /** Reads a file again with the columns the user chose; `sourceIndex` is its place among the files chosen. */
   onRestage: (sourceIndex: number, choices: ColumnChoiceFields) => Promise<StagedFile>;
 }
@@ -59,6 +67,7 @@ function ReviewBody({
   isReading,
   accountSelectRef,
   onAccountChange,
+  onOverflowChosen,
   onRestage,
 }: ReviewBodyProps) {
   const t = useTranslations("imports.staged");
@@ -116,6 +125,7 @@ function ReviewBody({
       }),
     [state.files, currency, savingsAccountId, overflowAccounts],
   );
+  const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
   const phases = state.files.map((file) => file.phase);
   // Index of the file being read again with other columns.
   const [restaging, setRestaging] = useState<number | null>(null);
@@ -192,6 +202,14 @@ function ReviewBody({
           </p>
         </div>
       </div>
+
+      <OverflowPrompt
+        demands={demands}
+        accounts={accounts}
+        receivingAccountId={accountId}
+        isBusy={isBusy}
+        onChosen={onOverflowChosen}
+      />
 
       {state.files.map((file, index) => {
         const waitIndex = nextFileToSettle(phases, index);
