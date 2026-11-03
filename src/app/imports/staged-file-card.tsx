@@ -6,7 +6,7 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { RowDetails } from "../../domain/import-draft";
-import type { PendingOverflow } from "../../domain/import-overflow";
+import { choicesForShortfalls, type PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
 import { BUTTON_CLASS } from "../form-field";
 import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
@@ -278,7 +278,7 @@ export function FileCard({
         mapping: file.mapping,
         savingsAccountId: defaultSavingsAccountId,
         drafts: rows.map((row) => ({ ...row.draft, details: row.details })),
-        overflowChoices: [...overflowChoices],
+        overflowChoices: choicesForShortfalls(overflowChoices, plan.shortfalls),
       });
       dispatch({
         type: "setPhase",

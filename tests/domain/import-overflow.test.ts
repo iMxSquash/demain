@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  choicesForShortfalls,
   overflowDemands,
   pendingAccountNames,
   placeholderAccountId,
@@ -41,6 +42,25 @@ describe("overflowDemands", () => {
     ).toEqual([
       { accountId: 4, amount: 400, rows: 2 },
       { accountId: 2, amount: 200, rows: 1 },
+    ]);
+  });
+});
+
+describe("choicesForShortfalls", () => {
+  const existing = (accountId: number): PendingOverflow => ({
+    accountId,
+    target: { kind: "existing", id: 9 },
+  });
+
+  it("sends nothing when the file falls short nowhere", () => {
+    expect(choicesForShortfalls([existing(2)], [])).toEqual([]);
+  });
+
+  it("keeps only the choices of the accounts where the file falls short", () => {
+    const choices = [existing(2), existing(4)];
+
+    expect(choicesForShortfalls(choices, [{ index: 0, accountId: 4, amount: 100 }])).toEqual([
+      existing(4),
     ]);
   });
 });

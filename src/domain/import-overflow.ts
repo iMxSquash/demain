@@ -54,6 +54,15 @@ export function pendingAccountNames(choices: readonly PendingOverflow[]): Map<nu
   return names;
 }
 
+/** The choices a file needs: those of the accounts where its own rows fall short. */
+export function choicesForShortfalls(
+  choices: readonly PendingOverflow[],
+  shortfalls: readonly OverflowShortfall[],
+): PendingOverflow[] {
+  const shortAccountIds = new Set(shortfalls.map(({ accountId }) => accountId));
+  return choices.filter(({ accountId }) => shortAccountIds.has(accountId));
+}
+
 /** Groups the shortfalls of the files by account, in the order accounts first fall short. */
 export function overflowDemands(
   shortfallsByFile: readonly (readonly OverflowShortfall[])[],
