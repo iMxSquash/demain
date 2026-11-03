@@ -491,6 +491,20 @@
         "from": "{amount} depuis le compte {account}",
         "unplaced": "{amount} ne tient nulle part"
       },
+      "overflow": {
+        "heading": "Compte de débordement de {account}",
+        "shortfall": "{amount} ne rentre pas dans {account}, qui a un plafond et pas de compte de débordement. Lignes d'épargne concernées : {rows}. Choisissez le compte qui reçoit le surplus.",
+        "selectLabel": "Compte de débordement de {account}",
+        "noChoice": "Choisir un compte",
+        "permanent": "Le compte choisi reste définitivement le compte de débordement de {account}, pour cet import et les suivants.",
+        "chooseRequired": "Choisissez d'abord un compte.",
+        "choose": "Utiliser comme compte de débordement",
+        "createLegend": "Ou créer un compte",
+        "nameLabel": "Nom du nouveau compte",
+        "createHint": "Un compte d'épargne en {currency}, sans plafond. Il est ajouté aux choix ci-dessus, puis vous le confirmez.",
+        "create": "Créer le compte",
+        "chosen": "{overflow} est maintenant le compte de débordement de {account}."
+      },
       "unplacedNote": "Une partie d'une ligne d'épargne ne tient nulle part dans la chaîne de débordement : ce fichier sera refusé tel quel.",
       "importAfter": "Importez ou annulez d'abord {name} : les fichiers sont enregistrés dans l'ordre des dates."
     }
@@ -761,6 +775,8 @@
     "importSavingsAccountArchived": "Le compte d'épargne est archivé",
     "importSavingsAccountNotSavings": "Le compte choisi n'est pas un compte d'épargne",
     "importSavingsAccountSameAsAccount": "Le compte d'épargne ne peut pas être le compte qui reçoit le fichier",
+    "importOverflowIsReceiving": "Le compte de débordement ne peut pas être le compte qui reçoit le fichier",
+    "importOverflowAlreadySet": "Ce compte a déjà un compte de débordement",
     "importCategoryUnknown": "La catégorie n'existe plus",
     "accountGone": "Ce compte n'existe plus.",
     "categoryGone": "Cette catégorie n'existe plus.",

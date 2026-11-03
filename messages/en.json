@@ -491,6 +491,20 @@
         "from": "{amount} from {account}",
         "unplaced": "{amount} fits nowhere"
       },
+      "overflow": {
+        "heading": "Overflow account for {account}",
+        "shortfall": "{amount} does not fit in {account}, which has a ceiling and no overflow account. Savings rows concerned: {rows}. Choose the account that receives the surplus.",
+        "selectLabel": "Overflow account of {account}",
+        "noChoice": "Choose an account",
+        "permanent": "The account you choose stays the overflow account of {account} for good, for this import and the next ones.",
+        "chooseRequired": "Choose an account first.",
+        "choose": "Use as overflow account",
+        "createLegend": "Or create an account",
+        "nameLabel": "Name of the new account",
+        "createHint": "A savings account in {currency}, with no ceiling. It is added to the choices above, then you confirm it.",
+        "create": "Create account",
+        "chosen": "{overflow} is now the overflow account of {account}."
+      },
       "unplacedNote": "Part of a savings row fits nowhere along the overflow chain: this file will be refused as it is.",
       "importAfter": "Import or cancel {name} first: the files are recorded in date order."
     }
@@ -761,6 +775,8 @@
     "importSavingsAccountArchived": "The savings account is archived",
     "importSavingsAccountNotSavings": "The chosen account is not a savings account",
     "importSavingsAccountSameAsAccount": "The savings account cannot be the account that receives the file",
+    "importOverflowIsReceiving": "The overflow account cannot be the account that receives the file",
+    "importOverflowAlreadySet": "This account already has an overflow account",
     "importCategoryUnknown": "The category no longer exists",
     "accountGone": "This account no longer exists.",
     "categoryGone": "This category no longer exists.",

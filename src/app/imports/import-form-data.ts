@@ -281,3 +281,11 @@ export function readColumnChoices(formData: FormData): ColumnChoices {
   }
   return choices;
 }
+
+/** What the actions of the overflow prompt answer. */
+export type OverflowActionState =
+  | { status: "done" }
+  /** The new account, as the plan sees it, and its name for the selects. */
+  | { status: "created"; account: OverflowAccount; name: string }
+  /** Translated. */
+  | { status: "error"; message: string };
