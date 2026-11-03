@@ -1,7 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useMemo, useReducer, useRef } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useReducer,
+  useRef,
+  type RefObject,
+} from "react";
 
 import {
   emptyFilePlan,
@@ -31,6 +38,7 @@ interface ReviewBodyProps {
   /** The balances as they were when the files were read: what the first file is planned from. */
   overflowAccounts: OverflowAccount[];
   isReading: boolean;
+  accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
 }
 
@@ -41,6 +49,7 @@ function ReviewBody({
   categories,
   overflowAccounts,
   isReading,
+  accountSelectRef,
   onAccountChange,
 }: ReviewBodyProps) {
   const t = useTranslations("imports.staged");
@@ -98,6 +107,7 @@ function ReviewBody({
           <label htmlFor={accountSelectId}>{t("receivingAccount")}</label>
           <select
             id={accountSelectId}
+            ref={accountSelectRef}
             value={accountId}
             disabled={isBusy}
             aria-describedby={accountHintId}
@@ -164,7 +174,8 @@ function ReviewBody({
   );
 }
 
-interface StagedImportReviewProps extends Omit<ReviewBodyProps, "isReading"> {
+interface StagedImportReviewProps
+  extends Omit<ReviewBodyProps, "isReading" | "accountSelectRef"> {
   /** Changes with every reading of the files: what the user edited belongs to one reading. */
   batch: number;
   /** Translated progress while the files are read again; null otherwise. */
@@ -181,12 +192,26 @@ export function StagedImportReview({
   batch,
   readingText,
   onClose,
+  onAccountChange,
   ...body
 }: StagedImportReviewProps) {
   const t = useTranslations("imports.staged");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const accountSelectRef = useRef<HTMLSelectElement>(null);
+  // The batch shown when the user changed the account; null when no change awaits its reading.
+  const accountChangedAtBatch = useRef<number | null>(null);
   const titleId = useId();
+  const isReading = readingText !== null;
+
+  useEffect(() => {
+    // Rereading disables the select and replaces the body: the focus would fall on
+    // the page (WCAG 2.4.3), so it is given back once the new body is ready.
+    if (isReading || accountChangedAtBatch.current === null) return;
+    if (accountChangedAtBatch.current === batch) return;
+    accountChangedAtBatch.current = null;
+    accountSelectRef.current?.focus();
+  }, [batch, isReading]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -219,7 +244,12 @@ export function StagedImportReview({
         <ReviewBody
           key={batch}
           {...body}
-          isReading={readingText !== null}
+          isReading={isReading}
+          accountSelectRef={accountSelectRef}
+          onAccountChange={(accountId) => {
+            accountChangedAtBatch.current = batch;
+            onAccountChange(accountId);
+          }}
         />
         <button
           type="button"
