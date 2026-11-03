@@ -23,7 +23,7 @@ import type { OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
-  | { kind: "typeCellConflict"; value: string }
+  | { kind: "typeCellConflict"; value: string; against: "sign" | "debitCredit" }
   | { kind: "categoryWord"; category: string }
   | { kind: "categoryOverruled"; category: string }
   | { kind: "history"; type: MovementType }
@@ -40,7 +40,11 @@ function reasonOfEvidence(
   const { conflict } = guess;
   switch (evidence.kind) {
     case "typeCell":
-      return { kind: "typeCellConflict", value: evidence.value };
+      return {
+        kind: "typeCellConflict",
+        value: evidence.value,
+        against: conflict?.kind === "debitCredit" ? "debitCredit" : "sign",
+      };
     case "categoryWord":
       return { kind: "categoryWord", category: evidence.category };
     case "history":

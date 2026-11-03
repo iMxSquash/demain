@@ -102,7 +102,19 @@ describe("confirmReasons", () => {
           conflict: { kind: "sign", direction: "out" },
         }),
       ),
-    ).toEqual([{ kind: "typeCellConflict", value: "Revenu" }]);
+    ).toEqual([{ kind: "typeCellConflict", value: "Revenu", against: "sign" }]);
+  });
+
+  it("names the debit and credit columns when they are what the type cell contradicts", () => {
+    expect(
+      confirmReasons(
+        guess({
+          type: "income",
+          evidence: { kind: "typeCell", value: "Revenu" },
+          conflict: { kind: "debitCredit", direction: "out" },
+        }),
+      ),
+    ).toEqual([{ kind: "typeCellConflict", value: "Revenu", against: "debitCredit" }]);
   });
 
   it("says that nothing in the file gave the type", () => {

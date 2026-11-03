@@ -24,7 +24,8 @@ function stagedIn(locale: "en" | "fr"): StagedT {
 }
 
 const REASONS: ConfirmReason[] = [
-  { kind: "typeCellConflict", value: "Revenu" },
+  { kind: "typeCellConflict", value: "Revenu", against: "sign" },
+  { kind: "typeCellConflict", value: "Revenu", against: "debitCredit" },
   { kind: "typeCellUnknown", value: "misc" },
   { kind: "categoryWord", category: "Salaire" },
   { kind: "categoryOverruled", category: "Salaire" },
@@ -50,6 +51,20 @@ describe("describeConfirmReasons", () => {
     expect(
       describeConfirmReasons([{ kind: "categoryWord", category: "salaire" }], stagedIn("fr")),
     ).toBe("deviné : la catégorie est salaire");
+  });
+
+  it("names the columns a type cell contradicts", () => {
+    const sign = describeConfirmReasons(
+      [{ kind: "typeCellConflict", value: "Revenu", against: "sign" }],
+      stagedIn("en"),
+    );
+    const columns = describeConfirmReasons(
+      [{ kind: "typeCellConflict", value: "Revenu", against: "debitCredit" }],
+      stagedIn("en"),
+    );
+
+    expect(sign).toContain("sign of the amount");
+    expect(columns).toContain("debit and credit columns");
   });
 
   it("puts the reasons one after the other", () => {

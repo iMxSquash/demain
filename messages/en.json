@@ -446,7 +446,10 @@
       "toConfirm": "To confirm: {reasons}",
       "toConfirmCount": "{count} rows to confirm: their type was guessed with little evidence.",
       "confirm": {
-        "typeCellConflict": "the type column says \"{value}\", which contradicts the sign of the amount",
+        "typeCellConflict": {
+          "sign": "the type column says \"{value}\", which contradicts the sign of the amount",
+          "debitCredit": "the type column says \"{value}\", which contradicts the debit and credit columns"
+        },
         "typeCellUnknown": "the type column says \"{value}\", which is not a known type",
         "categoryWord": "guessed, the category is {category}",
         "categoryOverruled": "the category is {category}, but the sign of the amount says otherwise and wins",

@@ -14,6 +14,7 @@ export type StagedT = (
 function describeConfirmReason(reason: ConfirmReason, t: StagedT): string {
   switch (reason.kind) {
     case "typeCellConflict":
+      return t(`confirm.typeCellConflict.${reason.against}`, { value: reason.value });
     case "typeCellUnknown":
       return t(`confirm.${reason.kind}`, { value: reason.value });
     case "categoryWord":

@@ -446,7 +446,10 @@
       "toConfirm": "À confirmer : {reasons}",
       "toConfirmCount": "{count} lignes à confirmer : leur type a été deviné avec peu d'indices.",
       "confirm": {
-        "typeCellConflict": "la colonne type indique « {value} », ce qui contredit le signe du montant",
+        "typeCellConflict": {
+          "sign": "la colonne type indique « {value} », ce qui contredit le signe du montant",
+          "debitCredit": "la colonne type indique « {value} », ce qui contredit les colonnes débit et crédit"
+        },
         "typeCellUnknown": "la colonne type indique « {value} », qui n'est pas un type connu",
         "categoryWord": "deviné : la catégorie est {category}",
         "categoryOverruled": "la catégorie est {category}, mais le signe du montant dit le contraire et l'emporte",
