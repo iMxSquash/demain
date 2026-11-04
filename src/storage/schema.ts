@@ -111,7 +111,8 @@ export const transactions = sqliteTable(
     transferCounterpartId: integer("transfer_counterpart_id").references(
       (): AnySQLiteColumn => transactions.id,
     ),
-    // Set for a transaction created by an import. Deleting a batch is not offered.
+    // Set for a transaction created by an import. A batch row is removed only by
+    // undoImportBatch, which first checks the digest so that nothing edited is lost.
     importBatchId: integer("import_batch_id").references(
       () => importBatches.id,
       {
