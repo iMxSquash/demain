@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 
+import type { EnteredTransactionKind } from "./transaction";
+
 /** The fields of a transaction that an undo must find unchanged. */
 export interface DigestRow {
   id: number;
   accountId: number;
   date: string;
   amount: number;
-  kind: string;
+  kind: EnteredTransactionKind | "transfer";
   label: string;
   description?: string | null;
   paymentMode?: string | null;

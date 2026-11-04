@@ -8,6 +8,7 @@ import {
   readRuleLabel,
   type CategorizationRule,
 } from "./categorization-rule";
+import type { EnteredTransactionKind } from "./transaction";
 
 export interface RuleProposal {
   /** Stable identity of the pair, sent back by the browser to select it. */
@@ -25,7 +26,7 @@ export interface RuleProposal {
 
 export interface ProposalRow {
   label: string;
-  kind: "expense" | "income" | "interest" | "transfer";
+  kind: EnteredTransactionKind | "transfer";
   categoryId: number | null;
 }
 
