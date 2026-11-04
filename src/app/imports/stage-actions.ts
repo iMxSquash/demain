@@ -12,6 +12,7 @@ import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { AccountValidationError } from "../../domain/account";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
+import { getBatchEndDate } from "../../ledger/import-checks";
 import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
 import { commitDrafts } from "../../ledger/staged-import";
 import { withDatabase } from "../../storage/with-database";
@@ -170,6 +171,8 @@ export async function commitStagedFileAction(
     warnings: [],
     problems: [],
     issues: [],
+    batchId: null,
+    endDate: null,
   });
 
   const parsed = commitRequestSchema.safeParse(request);
@@ -179,15 +182,22 @@ export async function commitStagedFileAction(
   try {
     const now = new Date();
     const openingDate = todayIn(timeZone, now);
-    const { currency, outcome } = withDatabase((db) => ({
-      currency: getAccount(db, file.accountId).currency,
-      outcome: commitDrafts(db, {
+    const { currency, outcome, endDate } = withDatabase((db) => {
+      const outcome = commitDrafts(db, {
         ...file,
         savingsAccountId: savingsAccountId ?? undefined,
         now,
         overflow: { choices: overflowChoices ?? [], openingDate },
-      }),
-    }));
+      });
+      return {
+        currency: getAccount(db, file.accountId).currency,
+        outcome,
+        endDate:
+          outcome.status === "done" && outcome.batchId !== null
+            ? getBatchEndDate(db, outcome.batchId)
+            : null,
+      };
+    });
     if (outcome.status === "invalid") {
       return {
         status: "invalid",
@@ -195,6 +205,8 @@ export async function commitStagedFileAction(
         warnings: [],
         problems: outcome.problems,
         issues: [],
+        batchId: null,
+        endDate: null,
       };
     }
 
@@ -212,6 +224,8 @@ export async function commitStagedFileAction(
         warnings: [],
         problems: [],
         issues: outcome.issues.map((issue) => describeImportIssue(issue, say)),
+        batchId: null,
+        endDate: null,
       };
     }
 
@@ -242,6 +256,8 @@ export async function commitStagedFileAction(
       warnings,
       problems: [],
       issues: [],
+      batchId: outcome.batchId,
+      endDate,
     };
   } catch (error) {
     if (error instanceof AccountNotFoundError) {

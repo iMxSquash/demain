@@ -164,6 +164,43 @@ export interface CommitStagedState {
   problems: { index: number; problem: RowProblem }[];
   /** Translated, what blocks the file; each one points at its row when it has one. */
   issues: ReportedImportIssue[];
+  /** The batch the file was recorded in, to check its end balance; null unless done, or when every row was already there. */
+  batchId: number | null;
+  /** The date the file ends on (its last movement), YYYY-MM-DD; null exactly when `batchId` is. */
+  endDate: string | null;
+}
+
+export interface BalanceCheckState {
+  status: "gap" | "recorded" | "error";
+  /** Translated: the gap with the real balance, the recorded assertion, or why neither could be done. */
+  message: string;
+}
+
+export interface UndoImportState {
+  status: "undone" | "error";
+  /** Translated: how many movements were removed, or why none was. */
+  message: string;
+}
+
+/** One rule the user may create from a recorded file. */
+export interface RuleProposalView {
+  /** Stable identity of the pair, sent back to select it. */
+  key: string;
+  /** The text the `equals` rule would compare with the label. */
+  label: string;
+  categoryName: string;
+  /** Category of an existing rule that matches the label first and would hide this one; null if none. */
+  shadowingCategoryName: string | null;
+}
+
+export type RuleProposalsState =
+  | { status: "ready"; proposals: RuleProposalView[]; hasCategorizedRow: boolean }
+  | { status: "error"; message: string };
+
+export interface RuleProposalsSaveState {
+  status: "saved" | "error";
+  /** Translated: how many rules were created, or why none was. */
+  message: string;
 }
 
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */

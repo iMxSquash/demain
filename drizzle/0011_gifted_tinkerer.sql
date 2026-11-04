@@ -1,0 +1,1 @@
+ALTER TABLE `import_batches` ADD `content_digest` text;

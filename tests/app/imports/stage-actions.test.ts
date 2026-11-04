@@ -17,7 +17,7 @@ import {
   updateAccount,
 } from "../../../src/ledger/accounts";
 import { createCategory } from "../../../src/ledger/categories";
-import { commitImport } from "../../../src/ledger/imports";
+import { commitImport, listImportBatches } from "../../../src/ledger/imports";
 import { listTransactions } from "../../../src/ledger/transactions";
 import {
   type AppDatabase,
@@ -144,6 +144,48 @@ describe("commitStagedFileAction", () => {
       paymentMode: "card",
       description: "weekly shop",
     });
+  });
+
+  it("carries the id of the batch the file was recorded in", async () => {
+    const state = await commit([draft()]);
+
+    const batches = listImportBatches(db, CHECKING_ID);
+    expect(state.status).toBe("done");
+    expect(batches).toHaveLength(1);
+    expect(state.batchId).toBe(batches[0]?.id);
+  });
+
+  it("carries the end date of the file with the batch id", async () => {
+    const state = await commit([draft()]);
+
+    expect(state.batchId).not.toBeNull();
+    expect(state.endDate).toBe(listTransactions(db)[0]?.date);
+  });
+
+  it("carries no end date when no batch was recorded", async () => {
+    await commit([draft()]);
+
+    const again = await commit([draft()]);
+    const refused = await commit([draft({ amount: "abc" })]);
+
+    expect(again.endDate).toBeNull();
+    expect(refused.endDate).toBeNull();
+  });
+
+  it("carries no batch id when every row was already in the account", async () => {
+    await commit([draft()]);
+
+    const state = await commit([draft()]);
+
+    expect(state.status).toBe("done");
+    expect(state.batchId).toBeNull();
+  });
+
+  it("carries no batch id when the file is refused", async () => {
+    const state = await commit([draft({ amount: "abc" })]);
+
+    expect(state.status).toBe("invalid");
+    expect(state.batchId).toBeNull();
   });
 
   it("records a savings row on the savings account the row names", async () => {

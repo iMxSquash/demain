@@ -66,7 +66,7 @@ export function ConfirmActionButton({
         <button
           type="submit"
           form={formId}
-          onClick={formId ? () => dialogRef.current?.close() : undefined}
+          onClick={() => dialogRef.current?.close()}
           className="min-h-11 rounded bg-red-800 px-4 font-medium text-white"
         >
           {confirmLabel}

@@ -56,7 +56,7 @@ function buildExport(db: AppDatabase, now: Date): DemainExport {
       .from(categorizationRules)
       .orderBy(asc(categorizationRules.id))
       .all(),
-    importBatches: db.select().from(importBatches).orderBy(asc(importBatches.id)).all(),
+    importBatches: exportImportBatches(db),
     transactions: exportTransactions(db, moneyOf),
     balanceAssertions: exportBalanceAssertions(db, moneyOf),
     exchangeRates: db.select().from(exchangeRates).orderBy(asc(exchangeRates.id)).all(),
@@ -97,6 +97,24 @@ function exportAccounts(db: AppDatabase, moneyOf: MoneyOf): DemainExport["accoun
       archived: row.archived,
       depositCeiling: row.depositCeiling === null ? null : moneyOf(row.id, row.depositCeiling),
       overflowAccountId: row.overflowAccountId,
+    }));
+}
+
+// The content digest only guards the undo of a batch: like the fingerprints it
+// is an internal key, and it is left out.
+function exportImportBatches(db: AppDatabase): DemainExport["importBatches"] {
+  return db
+    .select()
+    .from(importBatches)
+    .orderBy(asc(importBatches.id))
+    .all()
+    .map((row) => ({
+      id: row.id,
+      accountId: row.accountId,
+      format: row.format,
+      importedAt: row.importedAt,
+      fileName: row.fileName,
+      mapping: row.mapping,
     }));
 }
 

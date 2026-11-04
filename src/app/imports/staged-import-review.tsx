@@ -37,6 +37,7 @@ import type {
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
 import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
+import { isOwnCloseEvent } from "./review-dialog-close";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
 import type { RowLookups } from "./staged-row-editor";
@@ -311,7 +312,9 @@ export function StagedImportReview({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      onClose={onClose}
+      onClose={(event) => {
+        if (isOwnCloseEvent(event)) onClose();
+      }}
       className="m-auto max-h-[90vh] w-[min(80rem,95vw)] overflow-y-auto rounded border border-neutral-500 bg-white p-6 text-neutral-900 backdrop:bg-black/40"
     >
       <div className="flex flex-col gap-4">
