@@ -42,6 +42,23 @@ const MAX_PROPOSAL_KEY_LENGTH = 1000;
 
 type Translator = Awaited<ReturnType<typeof getTranslations>>;
 
+/** The translators, the locale and the error builders every action of this file starts from. */
+async function loadActionContext(
+  namespace:
+    | "imports.staged.balanceCheck"
+    | "imports.staged.ruleProposals"
+    | "imports.staged.undo",
+) {
+  const [t, translate, locale] = await Promise.all([
+    getTranslations(namespace),
+    getTranslator(),
+    getLocale(),
+  ]);
+  const failText = (message: string) => ({ status: "error", message }) as const;
+  const fail = (key: FeedbackKey) => failText(translate(messageRef(key)));
+  return { t, translate, locale, fail, failText };
+}
+
 /** The gap between the two balances, told in a sentence that names the date. */
 function describeGap(
   t: Translator,
@@ -66,15 +83,9 @@ export async function checkBatchBalanceAction(
   realBalanceText: string,
 ): Promise<BalanceCheckState> {
   await requireSession();
-  const [t, translate, locale] = await Promise.all([
-    getTranslations("imports.staged.balanceCheck"),
-    getTranslator(),
-    getLocale(),
-  ]);
-  const fail = (key: FeedbackKey): BalanceCheckState => ({
-    status: "error",
-    message: translate(messageRef(key)),
-  });
+  const { t, translate, locale, fail } = await loadActionContext(
+    "imports.staged.balanceCheck",
+  );
 
   const parsed = requestSchema.safeParse({ batchId, realBalanceText });
   if (!parsed.success) return fail("balanceCheckFailed");
@@ -114,15 +125,9 @@ export async function recordBatchBalanceAssertionAction(
   realBalanceText: string,
 ): Promise<BalanceCheckState> {
   await requireSession();
-  const [t, translate, locale] = await Promise.all([
-    getTranslations("imports.staged.balanceCheck"),
-    getTranslator(),
-    getLocale(),
-  ]);
-  const fail = (key: FeedbackKey): BalanceCheckState => ({
-    status: "error",
-    message: translate(messageRef(key)),
-  });
+  const { t, translate, locale, fail } = await loadActionContext(
+    "imports.staged.balanceCheck",
+  );
 
   const parsed = requestSchema.safeParse({ batchId, realBalanceText });
   if (!parsed.success) return fail("balanceAssertionNotSaved");
@@ -174,11 +179,7 @@ export async function listRuleProposalsAction(
   batchId: number,
 ): Promise<RuleProposalsState> {
   await requireSession();
-  const translate = await getTranslator();
-  const fail = (key: FeedbackKey): RuleProposalsState => ({
-    status: "error",
-    message: translate(messageRef(key)),
-  });
+  const { fail } = await loadActionContext("imports.staged.ruleProposals");
 
   const parsed = batchIdSchema.safeParse(batchId);
   if (!parsed.success) return fail("ruleProposalsFailed");
@@ -216,35 +217,28 @@ export async function saveRuleProposalsAction(
   selectedKeys: string[],
 ): Promise<RuleProposalsSaveState> {
   await requireSession();
-  const [t, translate] = await Promise.all([
-    getTranslations("imports.staged.ruleProposals"),
-    getTranslator(),
-  ]);
-  const fail = (message: string): RuleProposalsSaveState => ({
-    status: "error",
-    message,
-  });
+  const { t, fail, failText } = await loadActionContext("imports.staged.ruleProposals");
 
   const parsed = z
     .object({ batchId: batchIdSchema, selectedKeys: proposalSelectionSchema })
     .safeParse({ batchId, selectedKeys });
-  if (!parsed.success) return fail(translate(messageRef("ruleProposalsNotSaved")));
-  if (parsed.data.selectedKeys.length === 0) return fail(t("noneSelected"));
+  if (!parsed.success) return fail("ruleProposalsNotSaved");
+  if (parsed.data.selectedKeys.length === 0) return failText(t("noneSelected"));
 
   try {
     const { created } = withDatabase((db) =>
       saveRuleProposals(db, parsed.data.batchId, parsed.data.selectedKeys),
     );
-    if (created === 0) return fail(t("nothingCreated"));
+    if (created === 0) return failText(t("nothingCreated"));
     revalidatePath("/rules");
     return { status: "saved", message: t("saved", { count: created }) };
   } catch (error) {
     if (error instanceof ImportBatchNotFoundError) {
-      return fail(translate(messageRef("importBatchGone")));
+      return fail("importBatchGone");
     }
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Saving rule proposals failed", error);
-    return fail(translate(messageRef("ruleProposalsNotSaved")));
+    return fail("ruleProposalsNotSaved");
   }
 }
 
@@ -257,14 +251,7 @@ export async function undoImportBatchAction(
   batchId: number,
 ): Promise<UndoImportState> {
   await requireSession();
-  const [t, translate] = await Promise.all([
-    getTranslations("imports.staged.undo"),
-    getTranslator(),
-  ]);
-  const fail = (key: FeedbackKey): UndoImportState => ({
-    status: "error",
-    message: translate(messageRef(key)),
-  });
+  const { t, fail } = await loadActionContext("imports.staged.undo");
 
   const parsed = batchIdSchema.safeParse(batchId);
   if (!parsed.success) return fail("importUndoFailed");
