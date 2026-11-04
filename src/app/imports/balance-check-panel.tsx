@@ -1,15 +1,26 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
-import { checkBatchBalanceAction } from "./checks-actions";
+import { formatCalendarDate } from "../../i18n/dates";
+import {
+  checkBatchBalanceAction,
+  recordBatchBalanceAssertionAction,
+} from "./checks-actions";
 import type { BalanceCheckState } from "./import-form-data";
 
 /** Asks for the real balance at the end of a recorded file and tells the gap in text. */
-export function BalanceCheckPanel({ batchId }: { batchId: number }) {
+export function BalanceCheckPanel({
+  batchId,
+  endDate,
+}: {
+  batchId: number;
+  endDate: string;
+}) {
   const t = useTranslations("imports.staged.balanceCheck");
+  const locale = useLocale();
   const headingId = useId();
   const inputId = useId();
   const hintId = useId();
@@ -17,14 +28,20 @@ export function BalanceCheckPanel({ batchId }: { batchId: number }) {
   const [text, setText] = useState("");
   const [result, setResult] = useState<BalanceCheckState | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [pendingKey, setPendingKey] = useState<"checking" | "recording">("checking");
 
-  function check() {
+  function run(
+    action: typeof checkBatchBalanceAction,
+    progress: "checking" | "recording",
+    failure: "failed" | "recordFailed",
+  ) {
+    setPendingKey(progress);
     startTransition(async () => {
       try {
-        setResult(await checkBatchBalanceAction(batchId, text));
+        setResult(await action(batchId, text));
       } catch (error) {
         console.error("Balance check failed", error);
-        setResult({ status: "error", message: t("failed") });
+        setResult({ status: "error", message: t(failure) });
       }
     });
   }
@@ -42,11 +59,13 @@ export function BalanceCheckPanel({ batchId }: { batchId: number }) {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          check();
+          run(checkBatchBalanceAction, "checking", "failed");
         }}
         className="flex w-full flex-col items-start gap-2"
       >
-        <label htmlFor={inputId}>{t("label")}</label>
+        <label htmlFor={inputId}>
+          {t("label", { date: formatCalendarDate(endDate, locale) })}
+        </label>
         <p id={hintId}>{t("hint")}</p>
         <input
           id={inputId}
@@ -62,9 +81,19 @@ export function BalanceCheckPanel({ batchId }: { batchId: number }) {
         <button type="submit" disabled={isPending} className={BUTTON_CLASS}>
           {t("submit")}
         </button>
+        <button
+          type="button"
+          disabled={isPending || text.trim() === ""}
+          onClick={() =>
+            run(recordBatchBalanceAssertionAction, "recording", "recordFailed")
+          }
+          className={BUTTON_CLASS}
+        >
+          {t("record")}
+        </button>
       </form>
       <div role="status">
-        {isPending ? <p>{t("checking")}</p> : null}
+        {isPending ? <p>{t(pendingKey)}</p> : null}
         {result === null || isPending ? null : (
           <p id={resultId} className="font-medium">
             {result.message}

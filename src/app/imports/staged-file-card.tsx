@@ -290,6 +290,7 @@ export function FileCard({
           warnings: result.warnings,
           issues: result.issues,
           batchId: result.batchId,
+          endDate: result.endDate,
         },
       });
     } catch (error) {
@@ -298,7 +299,7 @@ export function FileCard({
         type: "setPhase",
         file: fileIndex,
         phase: "reviewing",
-        outcome: { message: t("importFailed"), warnings: [], issues: [], batchId: null },
+        outcome: { message: t("importFailed"), warnings: [], issues: [], batchId: null, endDate: null },
       });
     }
   }
@@ -461,8 +462,8 @@ export function FileCard({
         ) : null}
       </div>
 
-      {phase === "done" && outcome?.batchId != null ? (
-        <BalanceCheckPanel batchId={outcome.batchId} />
+      {phase === "done" && outcome?.batchId != null && outcome.endDate !== null ? (
+        <BalanceCheckPanel batchId={outcome.batchId} endDate={outcome.endDate} />
       ) : null}
     </section>
   );

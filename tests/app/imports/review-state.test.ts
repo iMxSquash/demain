@@ -314,7 +314,7 @@ describe("reviewReducer", () => {
   });
 
   it("keeps the outcome of an import until the file is edited", () => {
-    const outcome = { message: "Blocked", warnings: [], issues: [{ index: 1, message: "x" }], batchId: null };
+    const outcome = { message: "Blocked", warnings: [], issues: [{ index: 1, message: "x" }], batchId: null, endDate: null };
     const blocked = reviewReducer(start(), {
       type: "setPhase",
       file: 0,
@@ -496,7 +496,7 @@ describe("reviewReducer when a file is read again", () => {
         type: "setPhase",
         file: 0,
         phase: "reviewing",
-        outcome: { message: "blocked", warnings: [], issues: [], batchId: null },
+        outcome: { message: "blocked", warnings: [], issues: [], batchId: null, endDate: null },
       },
     );
 

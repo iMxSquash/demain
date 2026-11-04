@@ -155,6 +155,23 @@ describe("commitStagedFileAction", () => {
     expect(state.batchId).toBe(batches[0]?.id);
   });
 
+  it("carries the end date of the file with the batch id", async () => {
+    const state = await commit([draft()]);
+
+    expect(state.batchId).not.toBeNull();
+    expect(state.endDate).toBe(listTransactions(db)[0]?.date);
+  });
+
+  it("carries no end date when no batch was recorded", async () => {
+    await commit([draft()]);
+
+    const again = await commit([draft()]);
+    const refused = await commit([draft({ amount: "abc" })]);
+
+    expect(again.endDate).toBeNull();
+    expect(refused.endDate).toBeNull();
+  });
+
   it("carries no batch id when every row was already in the account", async () => {
     await commit([draft()]);
 

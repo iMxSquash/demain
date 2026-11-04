@@ -5,7 +5,11 @@ import { computeUnexplainedGap } from "../domain/balance-assertion";
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
 import { getAccount } from "./accounts";
-import { listAccountMovements } from "./balance-assertions";
+import {
+  listAccountMovements,
+  saveBalanceAssertion,
+  type BalanceAssertion,
+} from "./balance-assertions";
 
 export class ImportBatchNotFoundError extends Error {
   constructor(id: number) {
@@ -80,4 +84,23 @@ export function batchBalanceGap(
     [],
     { date: check.endDate, amount: realBalance },
   ).gap;
+}
+
+/**
+ * Records the real balance read in the bank as a balance assertion dated on
+ * the end of the file. The assertion rules are those of any other: the
+ * account must be active and an assertion of the same day is replaced.
+ */
+export function recordBatchBalanceAssertion(
+  db: AppDatabase,
+  batchId: number,
+  realBalance: number,
+): BalanceAssertion {
+  const { accountId, endDate } = getBatchBalanceCheck(db, batchId);
+  return saveBalanceAssertion(db, {
+    accountId,
+    date: endDate,
+    amount: realBalance,
+    note: null,
+  });
 }

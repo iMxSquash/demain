@@ -4,13 +4,19 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createAccount } from "../../src/ledger/accounts";
+import { archiveAccount, createAccount } from "../../src/ledger/accounts";
+import {
+  BalanceAssertionOnArchivedAccountError,
+  listBalanceAssertions,
+  saveBalanceAssertion,
+} from "../../src/ledger/balance-assertions";
 import { commitImport } from "../../src/ledger/imports";
 import {
   batchBalanceGap,
   getBatchBalanceCheck,
   ImportBatchNotFoundError,
   ImportBatchWithoutMovementError,
+  recordBatchBalanceAssertion,
 } from "../../src/ledger/import-checks";
 import { createTransaction } from "../../src/ledger/transactions";
 import {
@@ -18,7 +24,7 @@ import {
   migrateDatabase,
   openDatabase,
 } from "../../src/storage/database";
-import { transactions } from "../../src/storage/schema";
+import { balanceAssertions, transactions } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");
 const OPENING_BALANCE = 10_000;
@@ -134,6 +140,68 @@ describe("import checks", () => {
 
     it("is negative when Demain holds less than the bank", () => {
       expect(batchBalanceGap(check, 53_456)).toBe(-3_456);
+    });
+  });
+
+  describe("recordBatchBalanceAssertion", () => {
+    const TYPED_BALANCE = 114_388;
+
+    function assertionRows() {
+      return db.select().from(balanceAssertions).all();
+    }
+
+    it("dates the assertion on the end date of the file, not today", () => {
+      const batchId = importFile([row("2026-03-10", -1_000, "A"), row("2026-03-31", -500, "B")]);
+
+      const saved = recordBatchBalanceAssertion(db, batchId, TYPED_BALANCE);
+
+      expect(saved.date).toBe("2026-03-31");
+      expect(saved.accountId).toBe(accountId);
+    });
+
+    it("stores the typed amount in minor units, without a note", () => {
+      const batchId = importFile([row("2026-03-31", -500, "B")]);
+
+      recordBatchBalanceAssertion(db, batchId, TYPED_BALANCE);
+
+      expect(assertionRows()).toMatchObject([{ amount: 114_388, note: null }]);
+    });
+
+    it("replaces an assertion of the same day instead of adding one", () => {
+      const batchId = importFile([row("2026-03-31", -500, "B")]);
+      saveBalanceAssertion(db, { accountId, date: "2026-03-31", amount: 1, note: "old" });
+
+      recordBatchBalanceAssertion(db, batchId, TYPED_BALANCE);
+
+      expect(assertionRows()).toMatchObject([{ amount: 114_388, note: null }]);
+    });
+
+    it("refuses an archived account and writes nothing", () => {
+      const batchId = importFile([row("2026-03-31", -500, "B")]);
+      createTransaction(db, { accountId, date: "2026-04-01", amount: -9_500, kind: "expense", label: "Empty" });
+      archiveAccount(db, accountId);
+
+      expect(() => recordBatchBalanceAssertion(db, batchId, TYPED_BALANCE)).toThrow(
+        BalanceAssertionOnArchivedAccountError,
+      );
+      expect(assertionRows()).toHaveLength(0);
+    });
+
+    it("leaves no gap when the recorded balance is the computed one", () => {
+      const batchId = importFile([row("2026-03-31", -500, "B")]);
+      const { computedBalance } = getBatchBalanceCheck(db, batchId);
+
+      recordBatchBalanceAssertion(db, batchId, computedBalance);
+
+      expect(batchBalanceGap(getBatchBalanceCheck(db, batchId), computedBalance)).toBe(0);
+      expect(listBalanceAssertions(db, accountId)[0]?.gap).toBe(0);
+    });
+
+    it("refuses an unknown batch and writes nothing", () => {
+      expect(() => recordBatchBalanceAssertion(db, 999, TYPED_BALANCE)).toThrow(
+        ImportBatchNotFoundError,
+      );
+      expect(assertionRows()).toHaveLength(0);
     });
   });
 });

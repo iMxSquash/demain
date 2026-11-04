@@ -166,11 +166,13 @@ export interface CommitStagedState {
   issues: ReportedImportIssue[];
   /** The batch the file was recorded in, to check its end balance; null unless done, or when every row was already there. */
   batchId: number | null;
+  /** The date the file ends on (its last movement), YYYY-MM-DD; null exactly when `batchId` is. */
+  endDate: string | null;
 }
 
 export interface BalanceCheckState {
-  status: "gap" | "error";
-  /** Translated: the gap with the real balance, or why it could not be computed. */
+  status: "gap" | "recorded" | "error";
+  /** Translated: the gap with the real balance, the recorded assertion, or why neither could be done. */
   message: string;
 }
 

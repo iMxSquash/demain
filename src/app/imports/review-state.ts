@@ -55,6 +55,8 @@ export interface Outcome {
   issues: ReportedImportIssue[];
   /** The batch the file was recorded in, to check the balance at its end; null when none was recorded. */
   batchId: number | null;
+  /** The date the file ends on, YYYY-MM-DD, shown before the balance is typed; null when no batch. */
+  endDate: string | null;
 }
 
 export interface ReviewFile extends Omit<StagedFile, "rows"> {
