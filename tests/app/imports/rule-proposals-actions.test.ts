@@ -77,6 +77,17 @@ describe("rule proposal actions", () => {
     expect(state).toMatchObject({
       status: "ready",
       proposals: [{ label: "cinema", categoryName: "Leisure" }],
+      hasCategorizedRow: true,
+    });
+  });
+
+  it("tells when the file has no categorized row at all", async () => {
+    db.update(transactions).set({ categoryId: null }).where(eq(transactions.importBatchId, batchId)).run();
+
+    expect(await listRuleProposalsAction(batchId)).toEqual({
+      status: "ready",
+      proposals: [],
+      hasCategorizedRow: false,
     });
   });
 

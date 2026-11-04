@@ -431,6 +431,7 @@
         "legend": "Suggested rules",
         "option": "Label \"{label}\" gives the category {category}",
         "empty": "No rule to suggest: every categorized row of this file is already covered by a rule.",
+        "noCategorizedRow": "No rule to suggest: no row of this file has a category yet. Categorize some, then come back.",
         "submit": "Create the selected rules",
         "saving": "Creating the rules.",
         "noneSelected": "No rule is selected: nothing was created.",

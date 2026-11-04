@@ -431,6 +431,7 @@
         "legend": "Règles suggérées",
         "option": "Le libellé « {label} » donne la catégorie {category}",
         "empty": "Aucune règle à suggérer : toutes les lignes catégorisées de ce fichier sont déjà couvertes par une règle.",
+        "noCategorizedRow": "Aucune règle à suggérer : aucune ligne de ce fichier n'a encore de catégorie. Catégorisez-en quelques-unes, puis revenez.",
         "submit": "Créer les règles cochées",
         "saving": "Création des règles en cours.",
         "noneSelected": "Aucune règle n'est cochée : rien n'a été créé.",

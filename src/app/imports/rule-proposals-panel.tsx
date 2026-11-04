@@ -71,7 +71,9 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
       </h4>
       {proposals === null ? <p role="status">{t("loading")}</p> : null}
       {proposals?.status === "error" ? <p role="status">{proposals.message}</p> : null}
-      {proposals?.status === "ready" && list.length === 0 ? <p>{t("empty")}</p> : null}
+      {proposals?.status === "ready" && list.length === 0 ? (
+        <p>{proposals.hasCategorizedRow ? t("empty") : t("noCategorizedRow")}</p>
+      ) : null}
       {list.length > 0 ? (
         <form
           onSubmit={(event) => {

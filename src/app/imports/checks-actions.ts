@@ -13,6 +13,7 @@ import {
   getBatchBalanceCheck,
   ImportBatchNotFoundError,
   ImportBatchWithoutMovementError,
+  hasCategorizedRow,
   listRuleProposals,
   recordBatchBalanceAssertion,
   saveRuleProposals,
@@ -183,9 +184,13 @@ export async function listRuleProposalsAction(
   if (!parsed.success) return fail("ruleProposalsFailed");
 
   try {
-    const proposals = withDatabase((db) => listRuleProposals(db, parsed.data));
+    const { proposals, hasCategorizedRow: isAnyRowCategorized } = withDatabase((db) => ({
+      proposals: listRuleProposals(db, parsed.data),
+      hasCategorizedRow: hasCategorizedRow(db, parsed.data),
+    }));
     return {
       status: "ready",
+      hasCategorizedRow: isAnyRowCategorized,
       proposals: proposals.map(({ key, label, categoryName }) => ({
         key,
         label,

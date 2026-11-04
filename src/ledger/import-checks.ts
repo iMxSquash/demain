@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
 
 import { lastMovementDate } from "../domain/batch-balance";
 import { computeUnexplainedGap } from "../domain/balance-assertion";
@@ -153,6 +153,18 @@ export function listRuleProposals(
     ...proposal,
     categoryName: getCategory(db, proposal.categoryId).name,
   }));
+}
+
+/** Whether any movement of the file has a category: without one, no rule can be proposed. */
+export function hasCategorizedRow(db: AppDatabase, batchId: number): boolean {
+  return (
+    db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(and(eq(transactions.importBatchId, batchId), isNotNull(transactions.categoryId)))
+      .limit(1)
+      .get() !== undefined
+  );
 }
 
 /**

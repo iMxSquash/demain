@@ -192,7 +192,7 @@ export interface RuleProposalView {
 }
 
 export type RuleProposalsState =
-  | { status: "ready"; proposals: RuleProposalView[] }
+  | { status: "ready"; proposals: RuleProposalView[]; hasCategorizedRow: boolean }
   | { status: "error"; message: string };
 
 export interface RuleProposalsSaveState {
