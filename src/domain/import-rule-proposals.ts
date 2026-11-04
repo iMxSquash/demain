@@ -30,10 +30,11 @@ export interface ProposalRow {
 }
 
 /**
- * The distinct (label, category) pairs of the rows that no rule already gives
- * that category to, for the account of the file. A pair that an existing rule
- * of another category would hide is still proposed, with that rule in
- * `shadowedBy`. Transfers and rows without a category carry nothing to learn from.
+ * The distinct (label, category) pairs of the categorized rows, whatever set
+ * the category, that no rule already gives that category to, for the account
+ * of the file. A pair that an existing rule of another category would hide is
+ * still proposed, with that rule in `shadowedBy`. Transfers and rows without
+ * a category carry nothing to learn from.
  */
 export function proposeRules(input: {
   rows: readonly ProposalRow[];
