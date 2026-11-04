@@ -95,7 +95,7 @@ describe("a file with a summary beside the table and a total at the bottom", () 
 
 // Line numbers are not asserted on this fixture: the parser drops blank lines
 // before numbering the rows, so the numbers it reports are shifted by the empty
-// line (a known issue, see the final report of the change that added this note).
+// line.
 describe("a file with lines above the header and an empty line in the middle", () => {
   const reading = read("import-preamble-blank-line-fr.csv");
 

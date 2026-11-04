@@ -53,8 +53,11 @@ export function UndoImportPanel({
           buttonClassName={BUTTON_CLASS}
         />
       )}
-      <div role={result?.status === "error" ? "alert" : "status"}>
-        {result === null ? null : <p className="font-medium">{result.message}</p>}
+      <div role="status">
+        {result?.status === "undone" ? <p className="font-medium">{result.message}</p> : null}
+      </div>
+      <div role="alert">
+        {result?.status === "error" ? <p className="font-medium">{result.message}</p> : null}
       </div>
     </section>
   );

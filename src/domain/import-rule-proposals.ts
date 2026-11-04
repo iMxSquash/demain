@@ -23,10 +23,6 @@ export interface ProposalRow {
   categoryId: number | null;
 }
 
-function proposalKey(categoryId: number, label: string): string {
-  return `${categoryId}:${label}`;
-}
-
 /**
  * The distinct (label, category) pairs of the rows that no rule already gives
  * that category to, for the account of the file. Transfers and rows without a
@@ -43,7 +39,7 @@ export function proposeRules(input: {
     if (row.kind === "transfer" || row.categoryId === null) continue;
     const label = readRuleLabel(row.label);
     if (label === "") continue;
-    const key = proposalKey(row.categoryId, label);
+    const key = `${row.categoryId}:${label}`;
     if (proposals.has(key)) continue;
     const covering = findMatchingRule(input.rules, {
       label,
