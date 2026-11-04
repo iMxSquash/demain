@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 
 import {
   computeUnexplainedGap,
+  type AssertionMovement,
   validateBalanceAssertionInput,
   type BalanceAssertionInput,
   type UnexplainedGap,
@@ -53,13 +54,12 @@ export function saveBalanceAssertion(
     .get();
 }
 
-/** The assertions of an account, most recent first, each with its unexplained gap. */
-export function listBalanceAssertions(
+/** Every movement of an account, the input of the computed balance. */
+export function listAccountMovements(
   db: AppDatabase,
   accountId: number,
-): BalanceAssertionWithGap[] {
-  const account = getAccount(db, accountId);
-  const movements = db
+): AssertionMovement[] {
+  return db
     .select({
       accountId: transactions.accountId,
       date: transactions.date,
@@ -68,6 +68,15 @@ export function listBalanceAssertions(
     .from(transactions)
     .where(eq(transactions.accountId, accountId))
     .all();
+}
+
+/** The assertions of an account, most recent first, each with its unexplained gap. */
+export function listBalanceAssertions(
+  db: AppDatabase,
+  accountId: number,
+): BalanceAssertionWithGap[] {
+  const account = getAccount(db, accountId);
+  const movements = listAccountMovements(db, accountId);
   return db
     .select()
     .from(balanceAssertions)

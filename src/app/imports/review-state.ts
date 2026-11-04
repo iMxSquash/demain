@@ -53,6 +53,8 @@ export interface Outcome {
   warnings: string[];
   /** What blocks the file, when the ledger refused it as a whole. */
   issues: ReportedImportIssue[];
+  /** The batch the file was recorded in, to check the balance at its end; null when none was recorded. */
+  batchId: number | null;
 }
 
 export interface ReviewFile extends Omit<StagedFile, "rows"> {

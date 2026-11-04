@@ -399,6 +399,17 @@
       "cancelled": "Cancelled: nothing was imported from this file.",
       "stillInvalid": "{count} rows are still invalid: nothing was imported from this file.",
       "toCategorize": "Categorize the imported transactions",
+      "balanceCheck": {
+        "heading": "Balance at the end of the file",
+        "label": "Balance at the end of the file",
+        "hint": "Enter the balance your bank shows after the last movement of this file, for example 1,143.88.",
+        "submit": "Show the gap",
+        "checking": "Checking the balance.",
+        "failed": "Something went wrong, the balance could not be checked.",
+        "gapMore": "On {date}, Demain holds {amount} more than the bank.",
+        "gapLess": "On {date}, Demain holds {amount} less than the bank.",
+        "gapMatch": "On {date}, the balances match."
+      },
       "blocked": "This file cannot be imported as it is: nothing was imported from it. See the points below.",
       "issues": {
         "withRow": "{label} ({date}): {text}",
@@ -779,6 +790,9 @@
     "importOverflowAlreadySet": "This account already has an overflow account",
     "importCategoryUnknown": "The category no longer exists",
     "accountGone": "This account no longer exists.",
+    "realBalanceRequired": "Enter the balance shown by your bank.",
+    "importBatchGone": "This file no longer has any recorded movement to check.",
+    "balanceCheckFailed": "Something went wrong, the balance could not be checked.",
     "categoryGone": "This category no longer exists.",
     "transactionGone": "This transaction no longer exists.",
     "accountNotSaved": "Something went wrong, the account was not saved.",

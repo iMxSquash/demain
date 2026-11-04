@@ -24,6 +24,7 @@ import {
   visibleRowIndexes,
   type ReviewFile,
 } from "./review-state";
+import { BalanceCheckPanel } from "./balance-check-panel";
 import { BulkEdit, ColumnRoles } from "./staged-file-tools";
 
 function RowsTable({
@@ -288,6 +289,7 @@ export function FileCard({
           message: result.message,
           warnings: result.warnings,
           issues: result.issues,
+          batchId: result.batchId,
         },
       });
     } catch (error) {
@@ -296,7 +298,7 @@ export function FileCard({
         type: "setPhase",
         file: fileIndex,
         phase: "reviewing",
-        outcome: { message: t("importFailed"), warnings: [], issues: [] },
+        outcome: { message: t("importFailed"), warnings: [], issues: [], batchId: null },
       });
     }
   }
@@ -458,6 +460,10 @@ export function FileCard({
           </Link>
         ) : null}
       </div>
+
+      {phase === "done" && outcome?.batchId != null ? (
+        <BalanceCheckPanel batchId={outcome.batchId} />
+      ) : null}
     </section>
   );
 }

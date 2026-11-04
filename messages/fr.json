@@ -399,6 +399,17 @@
       "cancelled": "Annulé : rien n'a été importé de ce fichier.",
       "stillInvalid": "{count} lignes sont encore invalides : rien n'a été importé de ce fichier.",
       "toCategorize": "Catégoriser les transactions importées",
+      "balanceCheck": {
+        "heading": "Solde à la fin du fichier",
+        "label": "Solde à la fin du fichier",
+        "hint": "Saisissez le solde que votre banque affiche après le dernier mouvement de ce fichier, par exemple 1 143,88.",
+        "submit": "Afficher l'écart",
+        "checking": "Vérification du solde en cours.",
+        "failed": "Une erreur est survenue, le solde n'a pas pu être vérifié.",
+        "gapMore": "Au {date}, Demain détient {amount} de plus que la banque.",
+        "gapLess": "Au {date}, Demain détient {amount} de moins que la banque.",
+        "gapMatch": "Au {date}, les soldes concordent."
+      },
       "blocked": "Ce fichier ne peut pas être importé tel quel : rien n'en a été importé. Voir les points ci-dessous.",
       "issues": {
         "withRow": "{label} ({date}) : {text}",
@@ -779,6 +790,9 @@
     "importOverflowAlreadySet": "Ce compte a déjà un compte de débordement",
     "importCategoryUnknown": "La catégorie n'existe plus",
     "accountGone": "Ce compte n'existe plus.",
+    "realBalanceRequired": "Saisissez le solde affiché par votre banque.",
+    "importBatchGone": "Ce fichier n'a plus aucun mouvement enregistré à vérifier.",
+    "balanceCheckFailed": "Une erreur est survenue, le solde n'a pas pu être vérifié.",
     "categoryGone": "Cette catégorie n'existe plus.",
     "transactionGone": "Cette transaction n'existe plus.",
     "accountNotSaved": "Une erreur est survenue, le compte n'a pas été enregistré.",

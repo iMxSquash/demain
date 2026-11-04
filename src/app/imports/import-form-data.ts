@@ -164,6 +164,14 @@ export interface CommitStagedState {
   problems: { index: number; problem: RowProblem }[];
   /** Translated, what blocks the file; each one points at its row when it has one. */
   issues: ReportedImportIssue[];
+  /** The batch the file was recorded in, to check its end balance; null unless done, or when every row was already there. */
+  batchId: number | null;
+}
+
+export interface BalanceCheckState {
+  status: "gap" | "error";
+  /** Translated: the gap with the real balance, or why it could not be computed. */
+  message: string;
 }
 
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */
