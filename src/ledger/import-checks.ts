@@ -171,6 +171,7 @@ export function hasCategorizedRow(db: AppDatabase, batchId: number): boolean {
  * Creates a rule, scoped to the account of the file, for each selected key.
  * The proposals are derived again from the batch: a key that is not among
  * them (forged, or already covered since the page was shown) is ignored.
+ * Either every selected rule is created or none is.
  */
 export function saveRuleProposals(
   db: AppDatabase,
@@ -179,16 +180,18 @@ export function saveRuleProposals(
 ): { created: number } {
   const { accountId, proposals } = deriveRuleProposals(db, batchId);
   const chosen = new Set(selected);
-  let created = 0;
-  for (const proposal of proposals) {
-    if (!chosen.has(proposal.key)) continue;
-    createRule(db, {
-      operator: "equals",
-      value: proposal.label,
-      accountId,
-      categoryId: proposal.categoryId,
-    });
-    created += 1;
-  }
-  return { created };
+  const toCreate = proposals.filter((proposal) => chosen.has(proposal.key));
+  // All or nothing. `db` is the one connection the transaction runs on, so
+  // createRule writes inside it (same as undoImportBatch).
+  db.transaction(() => {
+    for (const proposal of toCreate) {
+      createRule(db, {
+        operator: "equals",
+        value: proposal.label,
+        accountId,
+        categoryId: proposal.categoryId,
+      });
+    }
+  });
+  return { created: toCreate.length };
 }

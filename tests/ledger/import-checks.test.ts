@@ -298,6 +298,21 @@ describe("import checks", () => {
       ]);
     });
 
+    it("creates no rule at all when one of the selected rules cannot be created", () => {
+      const batchId = proposalBatch();
+      const keys = listRuleProposals(db, batchId).map(({ key }) => key);
+      expect(keys).toHaveLength(2);
+      // Fails on the second proposal, after the first rule was inserted.
+      db.$client.exec(
+        `CREATE TRIGGER fail_cinema_rule BEFORE INSERT ON categorization_rules
+         WHEN NEW.value = 'cinema' BEGIN SELECT RAISE(ABORT, 'insert refused'); END`,
+      );
+
+      expect(() => saveRuleProposals(db, batchId, keys)).toThrow("insert refused");
+
+      expect(listRules(db)).toHaveLength(0);
+    });
+
     it("creates no rule for a selection that is not derived from the batch", () => {
       const batchId = proposalBatch();
 
