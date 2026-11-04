@@ -11,11 +11,11 @@ import {
   listBalanceAssertions,
   saveBalanceAssertion,
 } from "../../src/ledger/balance-assertions";
+import { ImportBatchNotFoundError } from "../../src/ledger/import-batch-lookup";
 import { commitImport } from "../../src/ledger/imports";
 import {
   batchBalanceGap,
   getBatchBalanceCheck,
-  ImportBatchNotFoundError,
   ImportBatchWithoutMovementError,
   listRuleProposals,
   recordBatchBalanceAssertion,

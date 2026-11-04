@@ -3,7 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { digestBatchTransactions } from "../domain/import-digest";
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
-import { ImportBatchNotFoundError } from "./import-checks";
+import { getImportBatch } from "./import-batch-lookup";
 import { getOpenAccount } from "./transactions";
 
 export class ImportBatchUnverifiableError extends Error {
@@ -30,12 +30,7 @@ export class ImportBatchChangedError extends Error {
  */
 export function undoImportBatch(db: AppDatabase, batchId: number): number {
   return db.transaction((tx) => {
-    const batch = tx
-      .select()
-      .from(importBatches)
-      .where(eq(importBatches.id, batchId))
-      .get();
-    if (batch === undefined) throw new ImportBatchNotFoundError(batchId);
+    const batch = getImportBatch(tx, batchId);
     if (batch.contentDigest === null) throw new ImportBatchUnverifiableError(batchId);
 
     const rows = tx

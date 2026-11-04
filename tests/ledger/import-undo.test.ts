@@ -14,7 +14,7 @@ import {
   ImportBatchUnverifiableError,
   undoImportBatch,
 } from "../../src/ledger/import-undo";
-import { ImportBatchNotFoundError } from "../../src/ledger/import-checks";
+import { ImportBatchNotFoundError } from "../../src/ledger/import-batch-lookup";
 import { commitImport, listImportBatches, type ImportRow } from "../../src/ledger/imports";
 import {
   createTransaction,

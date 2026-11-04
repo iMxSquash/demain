@@ -11,13 +11,13 @@ import { formatCalendarDate } from "../../i18n/dates";
 import {
   batchBalanceGap,
   getBatchBalanceCheck,
-  ImportBatchNotFoundError,
   ImportBatchWithoutMovementError,
   hasCategorizedRow,
   listRuleProposals,
   recordBatchBalanceAssertion,
   saveRuleProposals,
 } from "../../ledger/import-checks";
+import { ImportBatchNotFoundError } from "../../ledger/import-batch-lookup";
 import {
   ImportBatchChangedError,
   ImportBatchUnverifiableError,

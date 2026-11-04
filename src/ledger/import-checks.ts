@@ -4,8 +4,9 @@ import { lastMovementDate } from "../domain/batch-balance";
 import { computeUnexplainedGap } from "../domain/balance-assertion";
 import { proposeRules, type RuleProposal } from "../domain/import-rule-proposals";
 import type { AppDatabase } from "../storage/database";
-import { importBatches, transactions } from "../storage/schema";
+import { transactions } from "../storage/schema";
 import { getAccount } from "./accounts";
+import { getImportBatch } from "./import-batch-lookup";
 import { createRule, listApplicableRules } from "./categorization-rules";
 import { getCategory } from "./categories";
 import {
@@ -13,13 +14,6 @@ import {
   saveBalanceAssertion,
   type BalanceAssertion,
 } from "./balance-assertions";
-
-export class ImportBatchNotFoundError extends Error {
-  constructor(id: number) {
-    super(`Import batch ${id} does not exist`);
-    this.name = "ImportBatchNotFoundError";
-  }
-}
 
 export class ImportBatchWithoutMovementError extends Error {
   constructor(id: number) {
@@ -43,12 +37,7 @@ export function getBatchBalanceCheck(
   db: AppDatabase,
   batchId: number,
 ): BatchBalanceCheck {
-  const batch = db
-    .select({ accountId: importBatches.accountId })
-    .from(importBatches)
-    .where(eq(importBatches.id, batchId))
-    .get();
-  if (batch === undefined) throw new ImportBatchNotFoundError(batchId);
+  const batch = getImportBatch(db, batchId);
 
   const endDate = lastMovementDate(
     db
@@ -118,12 +107,7 @@ function deriveRuleProposals(
   db: AppDatabase,
   batchId: number,
 ): { accountId: number; proposals: RuleProposal[] } {
-  const batch = db
-    .select({ accountId: importBatches.accountId })
-    .from(importBatches)
-    .where(eq(importBatches.id, batchId))
-    .get();
-  if (batch === undefined) throw new ImportBatchNotFoundError(batchId);
+  const batch = getImportBatch(db, batchId);
 
   const proposals = proposeRules({
     rows: db
