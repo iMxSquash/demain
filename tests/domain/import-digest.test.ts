@@ -90,12 +90,6 @@ describe("digestBatchTransactions", () => {
     );
   });
 
-  it("tells null from undefined", () => {
-    expect(digestBatchTransactions([{ ...FIRST, description: undefined }])).not.toBe(
-      digestBatchTransactions([{ ...FIRST, description: null }]),
-    );
-  });
-
   it("tells a null description from the text null", () => {
     expect(digestBatchTransactions([{ ...FIRST, description: "null" }])).not.toBe(
       digestBatchTransactions([{ ...FIRST, description: null }]),

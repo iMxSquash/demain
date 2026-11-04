@@ -10,17 +10,15 @@ export interface DigestRow {
   amount: number;
   kind: EnteredTransactionKind | "transfer";
   label: string;
-  description?: string | null;
-  paymentMode?: string | null;
-  categoryId?: number | null;
-  transferCounterpartId?: number | null;
+  description: string | null;
+  paymentMode: string | null;
+  categoryId: number | null;
+  transferCounterpartId: number | null;
 }
 
-// JSON quotes and escapes every text, so no value can run into the next one.
-// null and undefined get a spelling that no JSON value has.
-function encode(value: string | number | null | undefined): string {
-  if (value === null) return "null";
-  if (value === undefined) return "undefined";
+// JSON quotes and escapes every text, so no value can run into the next one:
+// the text "null" is quoted, the null value is not.
+function encode(value: string | number | null): string {
   return JSON.stringify(value);
 }
 
