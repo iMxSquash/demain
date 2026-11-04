@@ -13,15 +13,23 @@ import {
   getBatchBalanceCheck,
   ImportBatchNotFoundError,
   ImportBatchWithoutMovementError,
+  listRuleProposals,
   recordBatchBalanceAssertion,
+  saveRuleProposals,
 } from "../../ledger/import-checks";
 import { BalanceAssertionOnArchivedAccountError } from "../../ledger/balance-assertions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { getTranslator } from "../translator";
-import type { BalanceCheckState } from "./import-form-data";
+import type {
+  BalanceCheckState,
+  RuleProposalsSaveState,
+  RuleProposalsState,
+} from "./import-form-data";
 
 const MAX_BALANCE_TEXT_LENGTH = 100;
+const MAX_SELECTED_PROPOSALS = 1000;
+const MAX_PROPOSAL_KEY_LENGTH = 1000;
 
 type Translator = Awaited<ReturnType<typeof getTranslations>>;
 
@@ -143,5 +151,85 @@ export async function recordBatchBalanceAssertionAction(
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Balance assertion from an import failed", error);
     return fail("balanceAssertionNotSaved");
+  }
+}
+
+const batchIdSchema = z.number().int().min(1);
+
+const proposalSelectionSchema = z
+  .array(z.string().max(MAX_PROPOSAL_KEY_LENGTH))
+  .max(MAX_SELECTED_PROPOSALS);
+
+/** The rules the categorized rows of a recorded file suggest. Nothing is written. */
+export async function listRuleProposalsAction(
+  batchId: number,
+): Promise<RuleProposalsState> {
+  await requireSession();
+  const translate = await getTranslator();
+  const fail = (key: FeedbackKey): RuleProposalsState => ({
+    status: "error",
+    message: translate(messageRef(key)),
+  });
+
+  const parsed = batchIdSchema.safeParse(batchId);
+  if (!parsed.success) return fail("ruleProposalsFailed");
+
+  try {
+    const proposals = withDatabase((db) => listRuleProposals(db, parsed.data));
+    return {
+      status: "ready",
+      proposals: proposals.map(({ key, label, categoryName }) => ({
+        key,
+        label,
+        categoryName,
+      })),
+    };
+  } catch (error) {
+    if (error instanceof ImportBatchNotFoundError) return fail("importBatchGone");
+    // Unexpected failures are logged with their detail, the user sees a generic message.
+    console.error("Rule proposals failed", error);
+    return fail("ruleProposalsFailed");
+  }
+}
+
+/**
+ * Creates the rules the user selected among the proposals of a recorded file.
+ * The server derives the proposals again: a key it does not propose creates
+ * nothing.
+ */
+export async function saveRuleProposalsAction(
+  batchId: number,
+  selectedKeys: string[],
+): Promise<RuleProposalsSaveState> {
+  await requireSession();
+  const [t, translate] = await Promise.all([
+    getTranslations("imports.staged.ruleProposals"),
+    getTranslator(),
+  ]);
+  const fail = (message: string): RuleProposalsSaveState => ({
+    status: "error",
+    message,
+  });
+
+  const parsed = z
+    .object({ batchId: batchIdSchema, selectedKeys: proposalSelectionSchema })
+    .safeParse({ batchId, selectedKeys });
+  if (!parsed.success) return fail(translate(messageRef("ruleProposalsNotSaved")));
+  if (parsed.data.selectedKeys.length === 0) return fail(t("noneSelected"));
+
+  try {
+    const { created } = withDatabase((db) =>
+      saveRuleProposals(db, parsed.data.batchId, parsed.data.selectedKeys),
+    );
+    if (created === 0) return fail(t("nothingCreated"));
+    revalidatePath("/rules");
+    return { status: "saved", message: t("saved", { count: created }) };
+  } catch (error) {
+    if (error instanceof ImportBatchNotFoundError) {
+      return fail(translate(messageRef("importBatchGone")));
+    }
+    // Unexpected failures are logged with their detail, the user sees a generic message.
+    console.error("Saving rule proposals failed", error);
+    return fail(translate(messageRef("ruleProposalsNotSaved")));
   }
 }

@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Gap with the real balance at the end of an imported file: after a file is recorded, its card asks for the balance the bank shows at the end of the file and tells, in text, whether Demain holds more, less or the same. The end date is the last movement date of the file, and the typed amount is read without rounding.
 - Balance assertion from the import review: a button records the real balance typed for the end of a file as a balance assertion dated on the last movement of the file, replacing an assertion of the same day.
 - Repository structure: license (AGPL-3.0), `.github/` templates and CI skeleton, contribution and security policies.
+- Import: once a file is recorded, the (label, category) pairs of its categorized rows are proposed as `equals` rules for its account. Nothing is created without selection, and pairs already covered by a rule are not proposed.
 
 ### Changed
 

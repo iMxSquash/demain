@@ -1,10 +1,13 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { lastMovementDate } from "../domain/batch-balance";
 import { computeUnexplainedGap } from "../domain/balance-assertion";
+import { proposeRules, type RuleProposal } from "../domain/import-rule-proposals";
 import type { AppDatabase } from "../storage/database";
 import { importBatches, transactions } from "../storage/schema";
 import { getAccount } from "./accounts";
+import { createRule, listApplicableRules } from "./categorization-rules";
+import { getCategory } from "./categories";
 import {
   listAccountMovements,
   saveBalanceAssertion,
@@ -103,4 +106,77 @@ export function recordBatchBalanceAssertion(
     amount: realBalance,
     note: null,
   });
+}
+
+export interface BatchRuleProposal extends RuleProposal {
+  categoryName: string;
+}
+
+function deriveRuleProposals(
+  db: AppDatabase,
+  batchId: number,
+): { accountId: number; proposals: RuleProposal[] } {
+  const batch = db
+    .select({ accountId: importBatches.accountId })
+    .from(importBatches)
+    .where(eq(importBatches.id, batchId))
+    .get();
+  if (batch === undefined) throw new ImportBatchNotFoundError(batchId);
+
+  const proposals = proposeRules({
+    rows: db
+      .select({
+        label: transactions.label,
+        kind: transactions.kind,
+        categoryId: transactions.categoryId,
+      })
+      .from(transactions)
+      .where(eq(transactions.importBatchId, batchId))
+      .orderBy(asc(transactions.date), asc(transactions.id))
+      .all(),
+    rules: listApplicableRules(db),
+    accountId: batch.accountId,
+  });
+  return { accountId: batch.accountId, proposals };
+}
+
+/**
+ * Rules worth creating from the categorized rows of a recorded file: one
+ * `equals` rule per distinct (label, category) pair that no applicable rule
+ * already gives. Nothing is written.
+ */
+export function listRuleProposals(
+  db: AppDatabase,
+  batchId: number,
+): BatchRuleProposal[] {
+  return deriveRuleProposals(db, batchId).proposals.map((proposal) => ({
+    ...proposal,
+    categoryName: getCategory(db, proposal.categoryId).name,
+  }));
+}
+
+/**
+ * Creates a rule, scoped to the account of the file, for each selected key.
+ * The proposals are derived again from the batch: a key that is not among
+ * them (forged, or already covered since the page was shown) is ignored.
+ */
+export function saveRuleProposals(
+  db: AppDatabase,
+  batchId: number,
+  selected: readonly string[],
+): { created: number } {
+  const { accountId, proposals } = deriveRuleProposals(db, batchId);
+  const chosen = new Set(selected);
+  let created = 0;
+  for (const proposal of proposals) {
+    if (!chosen.has(proposal.key)) continue;
+    createRule(db, {
+      operator: "equals",
+      value: proposal.label,
+      accountId,
+      categoryId: proposal.categoryId,
+    });
+    created += 1;
+  }
+  return { created };
 }

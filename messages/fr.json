@@ -414,6 +414,20 @@
         "gapLess": "Au {date}, Demain détient {amount} de moins que la banque.",
         "gapMatch": "Au {date}, les soldes concordent."
       },
+      "ruleProposals": {
+        "heading": "Règles à créer depuis ce fichier",
+        "loading": "Recherche de règles à suggérer.",
+        "intro": "Chaque case est une règle pour ce compte : quand le libellé est exactement le texte affiché, la catégorie est celle affichée. Rien n'est créé tant que vous n'enregistrez pas.",
+        "legend": "Règles suggérées",
+        "option": "Le libellé « {label} » donne la catégorie {category}",
+        "empty": "Aucune règle à suggérer : toutes les lignes catégorisées de ce fichier sont déjà couvertes par une règle.",
+        "submit": "Créer les règles cochées",
+        "saving": "Création des règles en cours.",
+        "noneSelected": "Aucune règle n'est cochée : rien n'a été créé.",
+        "nothingCreated": "Aucune des règles cochées n'a pu être créée : elles existent peut-être déjà.",
+        "saved": "Règles créées : {count}.",
+        "failed": "Une erreur est survenue, aucune règle n'a été créée."
+      },
       "blocked": "Ce fichier ne peut pas être importé tel quel : rien n'en a été importé. Voir les points ci-dessous.",
       "issues": {
         "withRow": "{label} ({date}) : {text}",
@@ -819,6 +833,8 @@
     "authPasswordWrong": "Mot de passe incorrect",
     "authNotSaved": "La demande n'a pas pu être traitée. Réessayez.",
     "ruleAccountUnknown": "Compte inconnu",
+    "ruleProposalsFailed": "Une erreur est survenue, les règles suggérées n'ont pas pu être listées.",
+    "ruleProposalsNotSaved": "Une erreur est survenue, aucune règle n'a été créée.",
     "balanceAssertionNotSaved": "Le solde n'a pas pu être enregistré",
     "exchangeRateNotSaved": "Le taux de change n'a pas pu être enregistré",
     "ecbFetchDisabled": "La récupération des taux de la BCE est désactivée : activez-la d'abord",

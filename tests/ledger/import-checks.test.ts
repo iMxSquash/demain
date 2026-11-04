@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { archiveAccount, createAccount } from "../../src/ledger/accounts";
@@ -16,8 +17,12 @@ import {
   getBatchBalanceCheck,
   ImportBatchNotFoundError,
   ImportBatchWithoutMovementError,
+  listRuleProposals,
   recordBatchBalanceAssertion,
+  saveRuleProposals,
 } from "../../src/ledger/import-checks";
+import { createCategory } from "../../src/ledger/categories";
+import { createRule, listRules } from "../../src/ledger/categorization-rules";
 import { createTransaction } from "../../src/ledger/transactions";
 import {
   type AppDatabase,
@@ -202,6 +207,129 @@ describe("import checks", () => {
         ImportBatchNotFoundError,
       );
       expect(assertionRows()).toHaveLength(0);
+    });
+  });
+
+  describe("rule proposals", () => {
+    let groceries: number;
+    let leisure: number;
+
+    beforeEach(() => {
+      groceries = createCategory(db, { name: "Groceries" }).id;
+      leisure = createCategory(db, { name: "Leisure" }).id;
+    });
+
+    function categorize(batchId: number, label: string, categoryId: number, kind?: "transfer") {
+      db.update(transactions)
+        .set({ categoryId, ...(kind === undefined ? {} : { kind }) })
+        .where(and(eq(transactions.importBatchId, batchId), eq(transactions.label, label)))
+        .run();
+    }
+
+    function proposalBatch(): number {
+      const batchId = importFile([
+        row("2026-03-02", -100, "Card Shop"),
+        row("2026-03-09", -200, "CARD SHOP"),
+        row("2026-03-10", -300, "Cinema"),
+        row("2026-03-11", -400, "Moving"),
+        row("2026-03-12", -500, "Unknown"),
+      ]);
+      categorize(batchId, "Card Shop", groceries);
+      categorize(batchId, "CARD SHOP", groceries);
+      categorize(batchId, "Cinema", leisure);
+      categorize(batchId, "Moving", groceries, "transfer");
+      return batchId;
+    }
+
+    it("proposes a pair shared by two rows of the batch once", () => {
+      const proposals = listRuleProposals(db, proposalBatch());
+
+      expect(proposals.filter(({ label }) => label === "card shop")).toHaveLength(1);
+    });
+
+    it("does not propose a pair already covered by an applicable rule", () => {
+      createRule(db, { operator: "contains", value: "shop", categoryId: groceries });
+
+      const labels = listRuleProposals(db, proposalBatch()).map(({ label }) => label);
+
+      expect(labels).toEqual(["cinema"]);
+    });
+
+    it("proposes the same label with another category than the existing rule", () => {
+      createRule(db, { operator: "equals", value: "cinema", categoryId: groceries });
+
+      const proposals = listRuleProposals(db, proposalBatch());
+
+      expect(proposals).toContainEqual(expect.objectContaining({ label: "cinema", categoryId: leisure }));
+    });
+
+    it("ignores transfer rows and rows without a category", () => {
+      const labels = listRuleProposals(db, proposalBatch()).map(({ label }) => label);
+
+      expect(labels).not.toContain("moving");
+      expect(labels).not.toContain("unknown");
+    });
+
+    it("names the category of each proposal", () => {
+      const proposals = listRuleProposals(db, proposalBatch());
+
+      expect(proposals.find(({ label }) => label === "cinema")?.categoryName).toBe("Leisure");
+    });
+
+    it("creates no rule when the selection is empty", () => {
+      const batchId = proposalBatch();
+
+      const result = saveRuleProposals(db, batchId, []);
+
+      expect(result.created).toBe(0);
+      expect(listRules(db)).toHaveLength(0);
+    });
+
+    it("creates one equals rule scoped to the account for a selected proposal", () => {
+      const batchId = proposalBatch();
+      const cinema = listRuleProposals(db, batchId).find(({ label }) => label === "cinema");
+      if (cinema === undefined) throw new Error("no proposal for cinema");
+
+      const result = saveRuleProposals(db, batchId, [cinema.key]);
+
+      expect(result.created).toBe(1);
+      expect(listRules(db)).toMatchObject([
+        { operator: "equals", value: "cinema", categoryId: leisure, accountId },
+      ]);
+    });
+
+    it("creates no rule for a selection that is not derived from the batch", () => {
+      const batchId = proposalBatch();
+
+      const result = saveRuleProposals(db, batchId, ["999:not-a-label"]);
+
+      expect(result.created).toBe(0);
+      expect(listRules(db)).toHaveLength(0);
+    });
+
+    it("creates a rule once when the same key is selected twice", () => {
+      const batchId = proposalBatch();
+      const cinema = listRuleProposals(db, batchId).find(({ label }) => label === "cinema");
+      if (cinema === undefined) throw new Error("no proposal for cinema");
+
+      saveRuleProposals(db, batchId, [cinema.key, cinema.key]);
+
+      expect(listRules(db)).toHaveLength(1);
+    });
+
+    it("no longer proposes a pair that has just been saved", () => {
+      const batchId = proposalBatch();
+      const cinema = listRuleProposals(db, batchId).find(({ label }) => label === "cinema");
+      if (cinema === undefined) throw new Error("no proposal for cinema");
+
+      saveRuleProposals(db, batchId, [cinema.key]);
+
+      expect(listRuleProposals(db, batchId).map(({ label }) => label)).not.toContain("cinema");
+    });
+
+    it("refuses an unknown batch", () => {
+      expect(() => listRuleProposals(db, 999)).toThrow(ImportBatchNotFoundError);
+      expect(() => saveRuleProposals(db, 999, [])).toThrow(ImportBatchNotFoundError);
     });
   });
 });

@@ -414,6 +414,20 @@
         "gapLess": "On {date}, Demain holds {amount} less than the bank.",
         "gapMatch": "On {date}, the balances match."
       },
+      "ruleProposals": {
+        "heading": "Rules to create from this file",
+        "loading": "Looking for rules to suggest.",
+        "intro": "Each box is a rule for this account: when the label is exactly the text shown, the category is the one shown. Nothing is created until you save.",
+        "legend": "Suggested rules",
+        "option": "Label \"{label}\" gives the category {category}",
+        "empty": "No rule to suggest: every categorized row of this file is already covered by a rule.",
+        "submit": "Create the selected rules",
+        "saving": "Creating the rules.",
+        "noneSelected": "No rule is selected: nothing was created.",
+        "nothingCreated": "None of the selected rules could be created: they may already exist.",
+        "saved": "Rules created: {count}.",
+        "failed": "Something went wrong, no rule was created."
+      },
       "blocked": "This file cannot be imported as it is: nothing was imported from it. See the points below.",
       "issues": {
         "withRow": "{label} ({date}): {text}",
@@ -819,6 +833,8 @@
     "authPasswordWrong": "Incorrect password",
     "authNotSaved": "The request could not be processed. Try again.",
     "ruleAccountUnknown": "Unknown account",
+    "ruleProposalsFailed": "Something went wrong, the suggested rules could not be listed.",
+    "ruleProposalsNotSaved": "Something went wrong, no rule was created.",
     "balanceAssertionNotSaved": "The balance could not be saved",
     "exchangeRateNotSaved": "The exchange rate could not be saved",
     "ecbFetchDisabled": "The ECB fetch is disabled: enable it first",

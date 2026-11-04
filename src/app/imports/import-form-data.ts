@@ -176,6 +176,25 @@ export interface BalanceCheckState {
   message: string;
 }
 
+/** One rule the user may create from a recorded file. */
+export interface RuleProposalView {
+  /** Stable identity of the pair, sent back to select it. */
+  key: string;
+  /** The text the `equals` rule would compare with the label. */
+  label: string;
+  categoryName: string;
+}
+
+export type RuleProposalsState =
+  | { status: "ready"; proposals: RuleProposalView[] }
+  | { status: "error"; message: string };
+
+export interface RuleProposalsSaveState {
+  status: "saved" | "error";
+  /** Translated: how many rules were created, or why none was. */
+  message: string;
+}
+
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */
 export function decodeImportFile(bytes: ArrayBuffer): string {
   try {

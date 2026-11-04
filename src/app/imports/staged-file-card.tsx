@@ -25,6 +25,7 @@ import {
   type ReviewFile,
 } from "./review-state";
 import { BalanceCheckPanel } from "./balance-check-panel";
+import { RuleProposalsPanel } from "./rule-proposals-panel";
 import { BulkEdit, ColumnRoles } from "./staged-file-tools";
 
 function RowsTable({
@@ -463,7 +464,10 @@ export function FileCard({
       </div>
 
       {phase === "done" && outcome?.batchId != null && outcome.endDate !== null ? (
-        <BalanceCheckPanel batchId={outcome.batchId} endDate={outcome.endDate} />
+        <>
+          <BalanceCheckPanel batchId={outcome.batchId} endDate={outcome.endDate} />
+          <RuleProposalsPanel batchId={outcome.batchId} />
+        </>
       ) : null}
     </section>
   );

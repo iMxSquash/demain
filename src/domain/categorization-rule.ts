@@ -30,6 +30,11 @@ export interface RuleSubject {
   accountId: number;
 }
 
+/** The label as rules read it: trimmed and lowercased. */
+export function readRuleLabel(label: string): string {
+  return label.trim().toLowerCase();
+}
+
 function matches(
   rule: CategorizationRule,
   subject: RuleSubject,
@@ -58,7 +63,7 @@ export function findMatchingRule(
   rules: readonly CategorizationRule[],
   subject: RuleSubject,
 ): CategorizationRule | null {
-  const label = subject.label.trim().toLowerCase();
+  const label = readRuleLabel(subject.label);
   return rules.find((rule) => matches(rule, subject, label)) ?? null;
 }
 
