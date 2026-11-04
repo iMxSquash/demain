@@ -414,6 +414,16 @@
         "gapLess": "Au {date}, Demain détient {amount} de moins que la banque.",
         "gapMatch": "Au {date}, les soldes concordent."
       },
+      "undo": {
+        "heading": "Annuler cet import",
+        "open": "Annuler cet import",
+        "subject": "du fichier {name}",
+        "title": "Annuler l'import de {name} ?",
+        "message": "Tous les mouvements enregistrés depuis ce fichier seront supprimés, les deux jambes d'un virement comprises, et le fichier pourra être importé de nouveau. Cela ne fonctionne que si rien n'a été modifié dans ce fichier depuis l'import. Les règles, les assertions de solde et les comptes de débordement créés avec lui restent.",
+        "confirm": "Supprimer les mouvements de ce fichier",
+        "done": "Import annulé. Mouvements supprimés : {count}.",
+        "failed": "Une erreur est survenue, rien n'a été supprimé."
+      },
       "ruleProposals": {
         "heading": "Règles à créer depuis ce fichier",
         "loading": "Recherche de règles à suggérer.",
@@ -810,6 +820,10 @@
     "accountGone": "Ce compte n'existe plus.",
     "realBalanceRequired": "Saisissez le solde affiché par votre banque.",
     "importBatchGone": "Ce fichier n'a plus aucun mouvement enregistré à vérifier.",
+    "importUndoChanged": "Ce fichier ne peut pas être annulé : un mouvement enregistré depuis lui a été modifié, déplacé ou supprimé depuis l'import. Rien n'a été supprimé.",
+    "importUndoUnverifiable": "Ce fichier ne peut pas être annulé : il a été enregistré avant l'existence de l'annulation, son contenu ne peut donc pas être vérifié. Rien n'a été supprimé.",
+    "importUndoArchivedAccount": "Ce fichier ne peut pas être annulé : un compte qu'il touche est archivé. Rien n'a été supprimé.",
+    "importUndoFailed": "Une erreur est survenue, rien n'a été supprimé.",
     "balanceCheckFailed": "Une erreur est survenue, le solde n'a pas pu être vérifié.",
     "categoryGone": "Cette catégorie n'existe plus.",
     "transactionGone": "Cette transaction n'existe plus.",

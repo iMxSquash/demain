@@ -176,6 +176,12 @@ export interface BalanceCheckState {
   message: string;
 }
 
+export interface UndoImportState {
+  status: "undone" | "error";
+  /** Translated: how many movements were removed, or why none was. */
+  message: string;
+}
+
 /** One rule the user may create from a recorded file. */
 export interface RuleProposalView {
   /** Stable identity of the pair, sent back to select it. */

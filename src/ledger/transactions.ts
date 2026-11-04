@@ -49,7 +49,7 @@ export function getTransaction(db: AppDatabase, id: number): Transaction {
 
 // An archived account holds nothing and takes no entered movement (DOMAIN,
 // archiving an account). Imports are the documented exception, handled apart.
-function getOpenAccount(db: AppDatabase, id: number): Account {
+export function getOpenAccount(db: AppDatabase, id: number): Account {
   const account = getAccount(db, id);
   if (account.archived) {
     throw new TransactionValidationError(

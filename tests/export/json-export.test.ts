@@ -11,6 +11,7 @@ import { exportSchema } from "../../src/export/export-schema";
 import { createJsonExport } from "../../src/export/json-export";
 import { createAccount } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
+import { commitImport } from "../../src/ledger/imports";
 import { createTransaction, createTransfer } from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { balanceAssertions, exchangeRates, settings } from "../../src/storage/schema";
@@ -175,6 +176,29 @@ describe("JSON export", () => {
     for (const secret of ["$argon2id", "JBSWY3DPEHPK3PXP", "abc123hash", "session-hash-value"]) {
       expect(text).not.toContain(secret);
     }
+  });
+
+  it("exports an import batch without its content digest", async () => {
+    const account = createAccount(db, {
+      name: "Checking",
+      kind: "checking",
+      currency: "EUR",
+      openingDate: "2026-01-01",
+      openingBalance: 0,
+    });
+    commitImport(db, {
+      accountId: account.id,
+      rows: [{ date: "2026-03-10", amount: -1_000, label: "A", externalId: null }],
+      format: "csv",
+      fileName: "march.csv",
+      mapping: null,
+      now: NOW,
+    });
+
+    const text = (await createJsonExport(db, NOW)).toString("utf8");
+
+    expect(exportSchema.safeParse(JSON.parse(text)).success).toBe(true);
+    expect(text).not.toContain("contentDigest");
   });
 
   it("is plain readable JSON when no password is given", async () => {

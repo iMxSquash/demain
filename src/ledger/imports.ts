@@ -18,6 +18,7 @@ import {
   withDefaultSavingsAccount,
   type RowDetails,
 } from "../domain/import-draft";
+import { digestBatchTransactions } from "../domain/import-digest";
 import {
   fingerprintRows,
   type FingerprintedRow,
@@ -564,6 +565,19 @@ export function commitImport(
     for (const pair of pairs) {
       insertTransferLegs(tx, pair.legs, legColumns(pair, batch.id));
     }
+
+    // Read back, not computed from the plan: the undo hashes what the rows hold.
+    const contentDigest = digestBatchTransactions(
+      tx
+        .select()
+        .from(transactions)
+        .where(eq(transactions.importBatchId, batch.id))
+        .all(),
+    );
+    tx.update(importBatches)
+      .set({ contentDigest })
+      .where(eq(importBatches.id, batch.id))
+      .run();
     return { ...preview, batchId: batch.id };
   });
 }

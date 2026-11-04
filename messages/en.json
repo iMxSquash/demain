@@ -414,6 +414,16 @@
         "gapLess": "On {date}, Demain holds {amount} less than the bank.",
         "gapMatch": "On {date}, the balances match."
       },
+      "undo": {
+        "heading": "Undo this import",
+        "open": "Undo this import",
+        "subject": "of the file {name}",
+        "title": "Undo the import of {name}?",
+        "message": "Every movement recorded from this file will be removed, both legs of a transfer included, and the file can be imported again. This works only if nothing in the file was changed since the import. The rules, the balance assertions and the overflow accounts created with it stay.",
+        "confirm": "Remove the movements of this file",
+        "done": "Import undone. Movements removed: {count}.",
+        "failed": "Something went wrong, nothing was removed."
+      },
       "ruleProposals": {
         "heading": "Rules to create from this file",
         "loading": "Looking for rules to suggest.",
@@ -810,6 +820,10 @@
     "accountGone": "This account no longer exists.",
     "realBalanceRequired": "Enter the balance shown by your bank.",
     "importBatchGone": "This file no longer has any recorded movement to check.",
+    "importUndoChanged": "This file cannot be undone: a movement recorded from it was changed, moved or deleted since the import. Nothing was removed.",
+    "importUndoUnverifiable": "This file cannot be undone: it was recorded before the undo existed, so its content cannot be verified. Nothing was removed.",
+    "importUndoArchivedAccount": "This file cannot be undone: an account it touches is archived. Nothing was removed.",
+    "importUndoFailed": "Something went wrong, nothing was removed.",
     "balanceCheckFailed": "Something went wrong, the balance could not be checked.",
     "categoryGone": "This category no longer exists.",
     "transactionGone": "This transaction no longer exists.",

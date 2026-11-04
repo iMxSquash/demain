@@ -17,14 +17,22 @@ import {
   recordBatchBalanceAssertion,
   saveRuleProposals,
 } from "../../ledger/import-checks";
+import {
+  ImportBatchChangedError,
+  ImportBatchUnverifiableError,
+  undoImportBatch,
+} from "../../ledger/import-undo";
+import { TransactionValidationError } from "../../domain/transaction";
 import { BalanceAssertionOnArchivedAccountError } from "../../ledger/balance-assertions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
 import type {
   BalanceCheckState,
   RuleProposalsSaveState,
   RuleProposalsState,
+  UndoImportState,
 } from "./import-form-data";
 
 const MAX_BALANCE_TEXT_LENGTH = 100;
@@ -231,5 +239,43 @@ export async function saveRuleProposalsAction(
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Saving rule proposals failed", error);
     return fail(translate(messageRef("ruleProposalsNotSaved")));
+  }
+}
+
+/**
+ * Removes a recorded file as a whole. The ledger refuses, and removes nothing,
+ * when the file changed since it was recorded, cannot be verified, or touches
+ * an archived account.
+ */
+export async function undoImportBatchAction(
+  batchId: number,
+): Promise<UndoImportState> {
+  await requireSession();
+  const [t, translate] = await Promise.all([
+    getTranslations("imports.staged.undo"),
+    getTranslator(),
+  ]);
+  const fail = (key: FeedbackKey): UndoImportState => ({
+    status: "error",
+    message: translate(messageRef(key)),
+  });
+
+  const parsed = batchIdSchema.safeParse(batchId);
+  if (!parsed.success) return fail("importUndoFailed");
+
+  try {
+    const removed = withDatabase((db) => undoImportBatch(db, parsed.data));
+    revalidateLedger();
+    return { status: "undone", message: t("done", { count: removed }) };
+  } catch (error) {
+    if (error instanceof ImportBatchNotFoundError) return fail("importBatchGone");
+    if (error instanceof ImportBatchChangedError) return fail("importUndoChanged");
+    if (error instanceof ImportBatchUnverifiableError) return fail("importUndoUnverifiable");
+    if (error instanceof TransactionValidationError) {
+      return fail("importUndoArchivedAccount");
+    }
+    // Unexpected failures are logged with their detail, the user sees a generic message.
+    console.error("Undoing an import failed", error);
+    return fail("importUndoFailed");
   }
 }

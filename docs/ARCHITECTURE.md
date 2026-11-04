@@ -294,6 +294,21 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** The order of the imports matters for the ceilings: the same file imported earlier or later may be split differently. The screen that replaces `/migration` must keep the first-run rule. A file blocked for a part that fits nowhere stays blocked until the user chooses an overflow account for the account at the end of the chain, in the review. That choice is kept in the dialog and saved for good together with the file, in the same transaction, through the same save as the account screen, so the rules of ADR-013 apply to it unchanged and a file that is not recorded leaves no link and no account behind.
 
+### ADR-017: An imported file is undone by deleting its rows, guarded by a digest recorded at import
+
+**Context.** A wrong file (bad account, bad mapping) must be removable without hand-deleting each movement, but the owner keeps editing the ledger after an import: categorizing, correcting, deleting. An undo that silently removes edited movements, or leaves a half-removed file, would lose real work or break the transfer pairs.
+
+**Decision.** Undo deletes the rows of the batch and the batch itself, in one database transaction. At import, in the same transaction as the rows, a SHA-256 digest of the batch's transactions (id, account, date, amount, kind, label, description, payment mode, category, transfer counterpart, in order of id) is stored on the batch. The undo recomputes the digest from the current rows and is refused when it differs, or when the batch has no digest (recorded before this decision), or when an account it touches is archived (same guard as the deletion of a transaction). The legs of a transfer are deleted in one statement. The rules, balance assertions and overflow accounts created with the file are not removed. The digest is an internal key and is not part of the JSON export.
+
+**Alternatives rejected.**
+
+- *Compensating reversal transactions.* They pollute the ledger, the synthesis and the balances with entries the owner never made.
+- *A soft-delete flag filtered everywhere.* Every query would need the filter, and a forgotten one shows deleted movements.
+- *A per-row "modified" flag set by the update paths.* It misses deletions and any path that forgets to set it.
+- *A last-changed timestamp.* It needs a clock in the write path and misses deletions.
+
+**Consequences.** Any change to a movement of the batch makes the undo impossible for good, which is intended: the file is then part of the owner's ledger. Batches recorded before the digest existed cannot be undone. A new field on transactions that the owner can edit must be added to the digest, or its edits would go unnoticed. Because the fingerprints are deleted with the rows, the same file can be imported again afterwards.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.

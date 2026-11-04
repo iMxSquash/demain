@@ -48,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Balance assertion from the import review: a button records the real balance typed for the end of a file as a balance assertion dated on the last movement of the file, replacing an assertion of the same day.
 - Repository structure: license (AGPL-3.0), `.github/` templates and CI skeleton, contribution and security policies.
 - Import: once a file is recorded, the (label, category) pairs of its categorized rows are proposed as `equals` rules for its account. Nothing is created without selection, and pairs already covered by a rule are not proposed.
+- Undo of an imported file from its card on `/imports`: every movement of the batch (both legs of a transfer included) is removed in one operation, only while nothing in it changed since it was recorded. A changed batch, or one recorded before undo existed, is refused with the reason. The rules, balance assertions and overflow accounts created with the file stay.
 
 ### Changed
 

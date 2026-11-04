@@ -78,6 +78,9 @@ export const importBatches = sqliteTable("import_batches", {
   fileName: text("file_name").notNull(),
   // CSV only: the column mapping as JSON, offered again at the next import.
   mapping: text("mapping"),
+  // SHA-256 of the transactions of the batch as recorded: the undo is allowed
+  // only while they still hash to it. Null for a batch recorded before it existed.
+  contentDigest: text("content_digest"),
 });
 
 export const transactions = sqliteTable(

@@ -78,6 +78,13 @@
       "when": 1793284193082,
       "tag": "0010_exchange_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1793796370582,
+      "tag": "0011_gifted_tinkerer",
+      "breakpoints": true
     }
   ]
 }

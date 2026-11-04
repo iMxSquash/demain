@@ -60,7 +60,7 @@ The **JSON export** form downloads `demain-export-YYYY-MM-DD.json`. It is meant 
 
 - **Not encrypted by default.** The page says so. Typing a password (twice) encrypts the file with the same format as the snapshot, with payload kind `2`; it is then named `.json.enc`.
 - **Amounts are integers in minor units**, always next to their currency code: `{ "minorUnits": -1234, "currency": "EUR" }` is -12.34 EUR. There is no decimal number anywhere. An exchange `rate` is an exact integer: 1 `base` is worth `rate / 100000000` `quote`.
-- **The credentials of the account are not exported**: no password hash, no second-factor secret or backup code, no session. Neither are the internal keys Demain uses to recognize a movement imported twice.
+- **The credentials of the account are not exported**: no password hash, no second-factor secret or backup code, no session. Neither are the internal keys Demain uses to recognize a movement imported twice, nor the digest that guards the undo of an imported file.
 - Dates are `YYYY-MM-DD` calendar days, instants are ISO 8601 in UTC, and the two legs of a transfer reference each other through `transferCounterpartId`.
 
 The format is defined by [export.schema.json](export.schema.json) (JSON Schema, draft 2020-12), which carries a description of every field. `schemaVersion` is `1`; any change to an existing field is a new version, and a test keeps the schema file in step with the code that writes the export.

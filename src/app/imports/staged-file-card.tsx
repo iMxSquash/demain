@@ -26,6 +26,7 @@ import {
 } from "./review-state";
 import { BalanceCheckPanel } from "./balance-check-panel";
 import { RuleProposalsPanel } from "./rule-proposals-panel";
+import { UndoImportPanel } from "./undo-import-panel";
 import { BulkEdit, ColumnRoles } from "./staged-file-tools";
 
 function RowsTable({
@@ -186,6 +187,7 @@ export function FileCard({
   const [onlyToConfirm, setOnlyToConfirm] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [isUndone, setIsUndone] = useState(false);
   const regionRef = useRef<HTMLDivElement>(null);
   const visible = useMemo(
     () => visibleRowIndexes(rows, onlyToConfirm),
@@ -437,7 +439,7 @@ export function FileCard({
 
       <div role="status" className="flex flex-col gap-2">
         {phase === "cancelled" ? <p>{t("cancelled")}</p> : null}
-        {outcome === null ? null : (
+        {outcome === null || isUndone ? null : (
           <>
             <p className="font-medium">{outcome.message}</p>
             {outcome.issues.length > 0 ? (
@@ -456,7 +458,7 @@ export function FileCard({
             ) : null}
           </>
         )}
-        {phase === "done" ? (
+        {phase === "done" && !isUndone ? (
           <Link href="/categories" className="self-start underline">
             {t("toCategorize")}
           </Link>
@@ -465,8 +467,17 @@ export function FileCard({
 
       {phase === "done" && outcome?.batchId != null && outcome.endDate !== null ? (
         <>
-          <BalanceCheckPanel batchId={outcome.batchId} endDate={outcome.endDate} />
-          <RuleProposalsPanel batchId={outcome.batchId} />
+          {isUndone ? null : (
+            <>
+              <BalanceCheckPanel batchId={outcome.batchId} endDate={outcome.endDate} />
+              <RuleProposalsPanel batchId={outcome.batchId} />
+            </>
+          )}
+          <UndoImportPanel
+            batchId={outcome.batchId}
+            fileName={file.fileName}
+            onUndone={() => setIsUndone(true)}
+          />
         </>
       ) : null}
     </section>
