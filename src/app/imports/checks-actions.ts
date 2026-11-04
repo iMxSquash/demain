@@ -10,6 +10,7 @@ import { formatAmount } from "../../domain/money";
 import { formatCalendarDate } from "../../i18n/dates";
 import {
   batchBalanceGap,
+  type BatchBalanceCheck,
   getBatchBalanceCheck,
   ImportBatchWithoutMovementError,
   hasCategorizedRow,
@@ -69,10 +70,28 @@ function describeGap(
   return t(gap > 0 ? "gapMore" : "gapLess", values);
 }
 
+const batchIdSchema = z.number().int().min(1);
+
 const requestSchema = z.object({
-  batchId: z.number().int().min(1),
+  batchId: batchIdSchema,
   realBalanceText: z.string().max(MAX_BALANCE_TEXT_LENGTH),
 });
+
+/** Whether the batch is gone, or has no movement left, so no check can be made on it. */
+function isBatchGone(error: unknown): boolean {
+  return (
+    error instanceof ImportBatchNotFoundError ||
+    error instanceof ImportBatchWithoutMovementError
+  );
+}
+
+/** The date and the absolute gap, as the sentences of the check and the record name them. */
+function gapValues(check: BatchBalanceCheck, gap: number, locale: string) {
+  return {
+    date: formatCalendarDate(check.endDate, locale),
+    amount: formatAmount(Math.abs(gap), check.currency, locale),
+  };
+}
 
 /**
  * Tells how far the balance Demain computes at the end of a recorded file is
@@ -94,21 +113,12 @@ export async function checkBatchBalanceAction(
     const check = withDatabase((db) => getBatchBalanceCheck(db, parsed.data.batchId));
     const realBalance = parseRealBalance(parsed.data.realBalanceText, check.currency);
     const gap = batchBalanceGap(check, realBalance);
-    const values = {
-      date: formatCalendarDate(check.endDate, locale),
-      amount: formatAmount(Math.abs(gap), check.currency, locale),
-    };
-    return { status: "gap", message: describeGap(t, gap, values) };
+    return { status: "gap", message: describeGap(t, gap, gapValues(check, gap, locale)) };
   } catch (error) {
     if (error instanceof RealBalanceError) {
       return { status: "error", message: translate(error.ref) };
     }
-    if (
-      error instanceof ImportBatchNotFoundError ||
-      error instanceof ImportBatchWithoutMovementError
-    ) {
-      return fail("importBatchGone");
-    }
+    if (isBatchGone(error)) return fail("importBatchGone");
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Balance check failed", error);
     return fail("balanceCheckFailed");
@@ -141,10 +151,7 @@ export async function recordBatchBalanceAssertionAction(
     });
     revalidatePath(`/accounts/${check.accountId}/balances`);
     const gap = batchBalanceGap(check, realBalance);
-    const values = {
-      date: formatCalendarDate(check.endDate, locale),
-      amount: formatAmount(Math.abs(gap), check.currency, locale),
-    };
+    const values = gapValues(check, gap, locale);
     return {
       status: "recorded",
       message: `${t("balanceAssertionRecorded", values)} ${describeGap(t, gap, values)}`,
@@ -156,19 +163,12 @@ export async function recordBatchBalanceAssertionAction(
     if (error instanceof BalanceAssertionOnArchivedAccountError) {
       return fail("balanceAssertionOnArchivedAccount");
     }
-    if (
-      error instanceof ImportBatchNotFoundError ||
-      error instanceof ImportBatchWithoutMovementError
-    ) {
-      return fail("importBatchGone");
-    }
+    if (isBatchGone(error)) return fail("importBatchGone");
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Balance assertion from an import failed", error);
     return fail("balanceAssertionNotSaved");
   }
 }
-
-const batchIdSchema = z.number().int().min(1);
 
 const proposalSelectionSchema = z
   .array(z.string().max(MAX_PROPOSAL_KEY_LENGTH))

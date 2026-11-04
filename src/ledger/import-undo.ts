@@ -44,8 +44,8 @@ export function undoImportBatch(db: AppDatabase, batchId: number): number {
 
     // Same guard as deleteTransaction: an archived account keeps a zero balance.
     // `db` is the one connection the transaction runs on, it reads the same state.
-    getOpenAccount(db, batch.accountId);
-    for (const accountId of new Set(rows.map((row) => row.accountId))) {
+    const accountIds = new Set([batch.accountId, ...rows.map((row) => row.accountId)]);
+    for (const accountId of accountIds) {
       getOpenAccount(db, accountId);
     }
 

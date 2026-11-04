@@ -12,7 +12,7 @@ import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { AccountValidationError } from "../../domain/account";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
-import { getBatchBalanceCheck } from "../../ledger/import-checks";
+import { getBatchEndDate } from "../../ledger/import-checks";
 import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
 import { commitDrafts } from "../../ledger/staged-import";
 import { withDatabase } from "../../storage/with-database";
@@ -194,7 +194,7 @@ export async function commitStagedFileAction(
         outcome,
         endDate:
           outcome.status === "done" && outcome.batchId !== null
-            ? getBatchBalanceCheck(db, outcome.batchId).endDate
+            ? getBatchEndDate(db, outcome.batchId)
             : null,
       };
     });

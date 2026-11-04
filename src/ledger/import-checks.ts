@@ -8,7 +8,7 @@ import { transactions } from "../storage/schema";
 import { getAccount } from "./accounts";
 import { getImportBatch } from "./import-batch-lookup";
 import { createRule, listApplicableRules } from "./categorization-rules";
-import { getCategory } from "./categories";
+import { CategoryNotFoundError, listCategories } from "./categories";
 import {
   listAccountMovements,
   saveBalanceAssertion,
@@ -33,12 +33,8 @@ export interface BatchBalanceCheck {
   computedBalance: number;
 }
 
-export function getBatchBalanceCheck(
-  db: AppDatabase,
-  batchId: number,
-): BatchBalanceCheck {
-  const batch = getImportBatch(db, batchId);
-
+/** Date of the last movement of a recorded file, YYYY-MM-DD. */
+export function getBatchEndDate(db: AppDatabase, batchId: number): string {
   const endDate = lastMovementDate(
     db
       .select({ date: transactions.date })
@@ -48,6 +44,15 @@ export function getBatchBalanceCheck(
       .map(({ date }) => date),
   );
   if (endDate === null) throw new ImportBatchWithoutMovementError(batchId);
+  return endDate;
+}
+
+export function getBatchBalanceCheck(
+  db: AppDatabase,
+  batchId: number,
+): BatchBalanceCheck {
+  const batch = getImportBatch(db, batchId);
+  const endDate = getBatchEndDate(db, batchId);
 
   const account = getAccount(db, batch.accountId);
   const { computedBalance } = computeUnexplainedGap(
@@ -130,13 +135,19 @@ export function listRuleProposals(
   db: AppDatabase,
   batchId: number,
 ): BatchRuleProposal[] {
+  const namesById = new Map(
+    listCategories(db, { includeArchived: true }).map(({ id, name }) => [id, name]),
+  );
+  const nameOf = (categoryId: number): string => {
+    const name = namesById.get(categoryId);
+    if (name === undefined) throw new CategoryNotFoundError(categoryId);
+    return name;
+  };
   return deriveRuleProposals(db, batchId).proposals.map((proposal) => ({
     ...proposal,
-    categoryName: getCategory(db, proposal.categoryId).name,
+    categoryName: nameOf(proposal.categoryId),
     shadowingCategoryName:
-      proposal.shadowedBy === null
-        ? null
-        : getCategory(db, proposal.shadowedBy.categoryId).name,
+      proposal.shadowedBy === null ? null : nameOf(proposal.shadowedBy.categoryId),
   }));
 }
 
