@@ -45,6 +45,27 @@ describe("digestBatchTransactions", () => {
     expect(digestBatchTransactions([FIRST])).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  // Stored batches are checked against digests taken in this format: changing
+  // it would make every recorded file refuse its undo.
+  it("keeps the digest format of the batches already recorded", () => {
+    const full: DigestRow = {
+      id: 2,
+      accountId: 1,
+      date: "2026-03-11",
+      amount: 4_000,
+      kind: "transfer",
+      label: 'Quote " \u00e9',
+      description: "note",
+      paymentMode: "card",
+      categoryId: 3,
+      transferCounterpartId: 1,
+    };
+
+    expect(digestBatchTransactions([FIRST, full])).toBe(
+      "0e0dc7a14b66eb1df13061b05219dcb846ee9715478ef574f8582b254a3734a9",
+    );
+  });
+
   it("gives the same digest to the same content", () => {
     expect(digestBatchTransactions([FIRST, SECOND])).toBe(
       digestBatchTransactions([{ ...FIRST }, { ...SECOND }]),
