@@ -15,6 +15,12 @@ export interface RuleProposal {
   /** The label as rules read it: the value of the `equals` rule to create. */
   label: string;
   categoryId: number;
+  /**
+   * The existing rule that matches the label but gives another category.
+   * Rules are first match wins and a new rule goes last, so it would hide the
+   * proposed one. Null when nothing hides it.
+   */
+  shadowedBy: CategorizationRule | null;
 }
 
 export interface ProposalRow {
@@ -25,8 +31,9 @@ export interface ProposalRow {
 
 /**
  * The distinct (label, category) pairs of the rows that no rule already gives
- * that category to, for the account of the file. Transfers and rows without a
- * category carry nothing to learn from.
+ * that category to, for the account of the file. A pair that an existing rule
+ * of another category would hide is still proposed, with that rule in
+ * `shadowedBy`. Transfers and rows without a category carry nothing to learn from.
  */
 export function proposeRules(input: {
   rows: readonly ProposalRow[];
@@ -46,7 +53,12 @@ export function proposeRules(input: {
       accountId: input.accountId,
     });
     if (covering?.categoryId === row.categoryId) continue;
-    proposals.set(key, { key, label, categoryId: row.categoryId });
+    proposals.set(key, {
+      key,
+      label,
+      categoryId: row.categoryId,
+      shadowedBy: covering,
+    });
   }
   return [...proposals.values()];
 }

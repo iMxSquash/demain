@@ -191,10 +191,11 @@ export async function listRuleProposalsAction(
     return {
       status: "ready",
       hasCategorizedRow: isAnyRowCategorized,
-      proposals: proposals.map(({ key, label, categoryName }) => ({
+      proposals: proposals.map(({ key, label, categoryName, shadowingCategoryName }) => ({
         key,
         label,
         categoryName,
+        shadowingCategoryName,
       })),
     };
   } catch (error) {

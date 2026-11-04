@@ -189,6 +189,8 @@ export interface RuleProposalView {
   /** The text the `equals` rule would compare with the label. */
   label: string;
   categoryName: string;
+  /** Category of an existing rule that matches the label first and would hide this one; null if none. */
+  shadowingCategoryName: string | null;
 }
 
 export type RuleProposalsState =

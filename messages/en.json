@@ -430,6 +430,7 @@
         "intro": "Each box is a rule for this account: when the label is exactly the text shown, the category is the one shown. Nothing is created until you save.",
         "legend": "Suggested rules",
         "option": "Label \"{label}\" gives the category {category}",
+        "shadowed": "Warning: an existing rule already matches this label and gives the category {category}. It is evaluated first, so this new rule would never apply unless you move it up in the rules list.",
         "empty": "No rule to suggest: every categorized row of this file is already covered by a rule.",
         "noCategorizedRow": "No rule to suggest: no row of this file has a category yet. Categorize some, then come back.",
         "submit": "Create the selected rules",

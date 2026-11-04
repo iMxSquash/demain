@@ -430,6 +430,7 @@
         "intro": "Chaque case est une règle pour ce compte : quand le libellé est exactement le texte affiché, la catégorie est celle affichée. Rien n'est créé tant que vous n'enregistrez pas.",
         "legend": "Règles suggérées",
         "option": "Le libellé « {label} » donne la catégorie {category}",
+        "shadowed": "Attention : une règle existante correspond déjà à ce libellé et donne la catégorie {category}. Elle est évaluée en premier, donc cette nouvelle règle ne s'appliquerait jamais tant que vous ne la remontez pas dans la liste des règles.",
         "empty": "Aucune règle à suggérer : toutes les lignes catégorisées de ce fichier sont déjà couvertes par une règle.",
         "noCategorizedRow": "Aucune règle à suggérer : aucune ligne de ce fichier n'a encore de catégorie. Catégorisez-en quelques-unes, puis revenez.",
         "submit": "Créer les règles cochées",

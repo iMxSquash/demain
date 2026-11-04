@@ -17,6 +17,7 @@ import type {
 export function RuleProposalsPanel({ batchId }: { batchId: number }) {
   const t = useTranslations("imports.staged.ruleProposals");
   const headingId = useId();
+  const warningIdPrefix = useId();
   const [proposals, setProposals] = useState<RuleProposalsState | null>(null);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [result, setResult] = useState<RuleProposalsSaveState | null>(null);
@@ -85,18 +86,31 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
           <p>{t("intro")}</p>
           <fieldset className="flex flex-col gap-1">
             <legend className="font-medium">{t("legend")}</legend>
-            {list.map((proposal) => (
-              <label key={proposal.key} className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={selected.has(proposal.key)}
-                  onChange={(event) => toggle(proposal.key, event.currentTarget.checked)}
-                />
-                <span>
-                  {t("option", { label: proposal.label, category: proposal.categoryName })}
-                </span>
-              </label>
-            ))}
+            {list.map((proposal) => {
+              const warningId = `${warningIdPrefix}-${proposal.key}`;
+              return (
+                <div key={proposal.key} className="flex flex-col gap-1">
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(proposal.key)}
+                      aria-describedby={
+                        proposal.shadowingCategoryName === null ? undefined : warningId
+                      }
+                      onChange={(event) => toggle(proposal.key, event.currentTarget.checked)}
+                    />
+                    <span>
+                      {t("option", { label: proposal.label, category: proposal.categoryName })}
+                    </span>
+                  </label>
+                  {proposal.shadowingCategoryName === null ? null : (
+                    <p id={warningId} className="ml-6 text-sm">
+                      {t("shadowed", { category: proposal.shadowingCategoryName })}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </fieldset>
           <button type="submit" disabled={isPending} className={BUTTON_CLASS}>
             {t("submit")}

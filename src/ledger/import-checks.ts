@@ -110,6 +110,8 @@ export function recordBatchBalanceAssertion(
 
 export interface BatchRuleProposal extends RuleProposal {
   categoryName: string;
+  /** Category of the existing rule that would hide the proposal, see `shadowedBy`. */
+  shadowingCategoryName: string | null;
 }
 
 function deriveRuleProposals(
@@ -152,6 +154,10 @@ export function listRuleProposals(
   return deriveRuleProposals(db, batchId).proposals.map((proposal) => ({
     ...proposal,
     categoryName: getCategory(db, proposal.categoryId).name,
+    shadowingCategoryName:
+      proposal.shadowedBy === null
+        ? null
+        : getCategory(db, proposal.shadowedBy.categoryId).name,
   }));
 }
 

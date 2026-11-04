@@ -263,6 +263,15 @@ describe("import checks", () => {
       expect(proposals).toContainEqual(expect.objectContaining({ label: "cinema", categoryId: leisure }));
     });
 
+    it("names the category of the rule that would hide a proposal", () => {
+      createRule(db, { operator: "equals", value: "cinema", categoryId: groceries });
+
+      const proposals = listRuleProposals(db, proposalBatch());
+
+      expect(proposals.find(({ label }) => label === "cinema")?.shadowingCategoryName).toBe("Groceries");
+      expect(proposals.find(({ label }) => label === "card shop")?.shadowingCategoryName).toBeNull();
+    });
+
     it("ignores transfer rows and rows without a category", () => {
       const labels = listRuleProposals(db, proposalBatch()).map(({ label }) => label);
 
