@@ -70,12 +70,7 @@ export function batchBalanceGap(
   check: BatchBalanceCheck,
   realBalance: number,
 ): number {
-  // The balance is already computed up to the end date: no movement is left to add.
-  return computeUnexplainedGap(
-    { id: check.accountId, openingBalance: check.computedBalance },
-    [],
-    { date: check.endDate, amount: realBalance },
-  ).gap;
+  return check.computedBalance - realBalance;
 }
 
 /**
