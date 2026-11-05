@@ -30,58 +30,60 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
         <li>{t("origins.history")}: {t("originHelp.history")}</li>
       </ul>
 
-      <table className="w-full border-collapse text-left">
-        <caption className="pb-2 text-left">{t("caption")}</caption>
-        <thead>
-          <tr className="border-b border-neutral-500">
-            <th scope="col" className="py-2 pr-4">{t("columns.word")}</th>
-            <th scope="col" className="py-2 pr-4">{t("columns.type")}</th>
-            <th scope="col" className="py-2 pr-4">{t("columns.origin")}</th>
-            <th scope="col" className="py-2">{t("columns.actions")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {overview.words.map(({ word, type, origin }) => (
-            <tr key={word} className="border-b border-neutral-300">
-              <th scope="row" className="py-2 pr-4 font-medium">{word}</th>
-              <td className="py-2 pr-4">{t(`types.${type}`)}</td>
-              <td className="py-2 pr-4">{t(`origins.${origin}`)}</td>
-              <td className="py-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <form
-                    action={changeVocabularyTypeAction.bind(null, word)}
-                    className="flex items-center gap-2"
-                  >
-                    <label htmlFor={`type-${word}`} className="sr-only">
-                      {t("changeTypeOf", { word })}
-                    </label>
-                    <select
-                      id={`type-${word}`}
-                      name="type"
-                      defaultValue={type}
-                      className={`${CONTROL_CLASS} w-auto`}
-                    >
-                      {MOVEMENT_TYPES.map((option) => (
-                        <option key={option} value={option}>
-                          {t(`types.${option}`)}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="min-h-11 px-2 underline">
-                      {t("change")}<span className="sr-only"> {word}</span>
-                    </button>
-                  </form>
-                  <form action={removeVocabularyWordAction.bind(null, word)}>
-                    <button type="submit" className="min-h-11 px-2 underline">
-                      {t("remove")}<span className="sr-only"> {word}</span>
-                    </button>
-                  </form>
-                </div>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left">
+          <caption className="pb-2 text-left">{t("caption")}</caption>
+          <thead>
+            <tr className="border-b border-neutral-500">
+              <th scope="col" className="py-2 pr-4">{t("columns.word")}</th>
+              <th scope="col" className="py-2 pr-4">{t("columns.type")}</th>
+              <th scope="col" className="py-2 pr-4">{t("columns.origin")}</th>
+              <th scope="col" className="py-2">{t("columns.actions")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {overview.words.map(({ word, type, origin }) => (
+              <tr key={word} className="border-b border-neutral-300">
+                <th scope="row" className="py-2 pr-4 font-medium">{word}</th>
+                <td className="py-2 pr-4">{t(`types.${type}`)}</td>
+                <td className="py-2 pr-4">{t(`origins.${origin}`)}</td>
+                <td className="py-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <form
+                      action={changeVocabularyTypeAction.bind(null, word)}
+                      className="flex items-center gap-2"
+                    >
+                      <label htmlFor={`type-${word}`} className="sr-only">
+                        {t("changeTypeOf", { word })}
+                      </label>
+                      <select
+                        id={`type-${word}`}
+                        name="type"
+                        defaultValue={type}
+                        className={`${CONTROL_CLASS} w-auto`}
+                      >
+                        {MOVEMENT_TYPES.map((option) => (
+                          <option key={option} value={option}>
+                            {t(`types.${option}`)}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit" className="min-h-11 min-w-11 px-2 underline">
+                        {t("change")}<span className="sr-only"> {word}</span>
+                      </button>
+                    </form>
+                    <form action={removeVocabularyWordAction.bind(null, word)}>
+                      <button type="submit" className="min-h-11 min-w-11 px-2 underline">
+                        {t("remove")}<span className="sr-only"> {word}</span>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {overview.removed.length > 0 ? (
         <section aria-labelledby="removed-heading" className="flex flex-col gap-2">
@@ -94,7 +96,7 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
               <li key={word} className="flex items-center gap-2">
                 <span className="font-medium">{word}</span>
                 <form action={restoreVocabularyWordAction.bind(null, word)}>
-                  <button type="submit" className="min-h-11 px-2 underline">
+                  <button type="submit" className="min-h-11 min-w-11 px-2 underline">
                     {t("restore")}<span className="sr-only"> {word}</span>
                   </button>
                 </form>
