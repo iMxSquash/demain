@@ -17,6 +17,7 @@ import { requireSession } from "../../../auth/session";
 import { flashError, flashSuccess, runWithNotice } from "../../../feedback/flash";
 import { getTranslator } from "../../../translator";
 import {
+  parseAccountId,
   parseBalanceAssertionForm,
   readSubmittedValues,
   type BalanceAssertionFormState,
@@ -91,6 +92,24 @@ export async function saveBalanceAssertionAction(
     await flashSuccess("balanceAssertionSaved");
   }
   return null;
+}
+
+/** The form of `/balances`: the account is a field of the form, not of the route. */
+export async function saveBalanceAssertionForChosenAccountAction(
+  previous: BalanceAssertionFormState | null,
+  formData: FormData,
+): Promise<BalanceAssertionFormState | null> {
+  await requireSession();
+  const accountId = parseAccountId(formData);
+  if (accountId === null) {
+    const translate = await getTranslator();
+    return {
+      field: "accountId",
+      message: translate(messageRef("balanceAssertionAccountRequired")),
+      values: readSubmittedValues(formData),
+    };
+  }
+  return saveBalanceAssertionAction(accountId, previous, formData);
 }
 
 function describeDeleteFailure(error: unknown): MessageRef {

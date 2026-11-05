@@ -76,6 +76,7 @@ export default async function BalanceAssertionsPage({
           <BalanceAssertionForm
             action={saveBalanceAssertionAction.bind(null, account.id)}
             initialValues={{
+              accountId: "",
               date: todayIn(timeZone, new Date()),
               amount: "",
               note: "",

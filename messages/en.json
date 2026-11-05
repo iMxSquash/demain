@@ -107,7 +107,8 @@
     "form": {
       "date": "Date (end of day)",
       "amount": "Balance shown by the bank",
-      "note": "Note (optional)"
+      "note": "Note (optional)",
+      "account": "Account"
     },
     "columns": {
       "date": "Date",
@@ -128,12 +129,13 @@
     "archivedNote": "This account is archived: its recorded balances are kept as they are and can no longer be replaced or deleted.",
     "allMetaTitle": "Balance assertions of all accounts | Demain",
     "allTitle": "Balance assertions of all accounts",
-    "allIntro": "Every balance recorded for your accounts, archived accounts included. To record a balance or replace one, open the balances of the account.",
+    "allIntro": "Every balance recorded for your accounts, archived accounts included. Record a new one below; recording a day that already has one replaces it.",
     "allEmpty": "No balance recorded yet. Open an account to record one.",
     "allCaption": "Balances recorded for all accounts, most recent first",
     "accountColumn": "Account",
     "accountBalancesLink": "Balances of the account",
-    "accountsLink": "Go to the accounts to record a balance"
+    "accountsLink": "To record a balance, add an account first.",
+    "chooseAccount": "Choose an account"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -913,7 +915,8 @@
     "totpDisabled": "The second factor is turned off.",
     "signedOut": "You are signed out.",
     "setupDone": "Your account is ready.",
-    "balanceAssertionReplaced": "Balance check saved. It replaced the one already recorded on {date}."
+    "balanceAssertionReplaced": "Balance check saved. It replaced the one already recorded on {date}.",
+    "balanceAssertionAccountRequired": "Choose the account the balance belongs to"
   },
   "auth": {
     "signOut": "Sign out",

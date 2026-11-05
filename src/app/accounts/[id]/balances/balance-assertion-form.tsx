@@ -16,11 +16,14 @@ interface BalanceAssertionFormProps {
     formData: FormData,
   ) => Promise<BalanceAssertionFormState | null>;
   initialValues: BalanceAssertionFormValues;
+  /** Offers a selector when the account is not already given by the route. */
+  accounts?: readonly { id: number; name: string }[];
 }
 
 export function BalanceAssertionForm({
   action,
   initialValues,
+  accounts,
 }: BalanceAssertionFormProps) {
   const t = useTranslations("balances");
   const [state, formAction, isPending] = useActionState(action, null);
@@ -44,6 +47,23 @@ export function BalanceAssertionForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
+      {accounts === undefined ? null : (
+        <FormField
+          id="accountId"
+          label={t("form.account")}
+          error={errorOf("accountId")}
+        >
+          <select {...controlProps("accountId")} required>
+            <option value="">{t("chooseAccount")}</option>
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
+
       <FormField id="date" label={t("form.date")} error={errorOf("date")}>
         <input {...controlProps("date")} type="date" required />
       </FormField>

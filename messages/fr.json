@@ -107,7 +107,8 @@
     "form": {
       "date": "Date (fin de journée)",
       "amount": "Solde affiché par la banque",
-      "note": "Note (facultatif)"
+      "note": "Note (facultatif)",
+      "account": "Compte"
     },
     "columns": {
       "date": "Date",
@@ -128,12 +129,13 @@
     "archivedNote": "Ce compte est archivé : ses soldes enregistrés sont conservés tels quels et ne peuvent plus être remplacés ni supprimés.",
     "allMetaTitle": "Soldes constatés de tous les comptes | Demain",
     "allTitle": "Soldes constatés de tous les comptes",
-    "allIntro": "Tous les soldes enregistrés pour vos comptes, comptes archivés compris. Pour enregistrer un solde ou en remplacer un, ouvrez les soldes du compte.",
+    "allIntro": "Tous les soldes enregistrés pour vos comptes, comptes archivés compris. Enregistrez-en un nouveau ci-dessous ; enregistrer un jour qui a déjà un solde le remplace.",
     "allEmpty": "Aucun solde enregistré pour l'instant. Ouvrez un compte pour en enregistrer un.",
     "allCaption": "Soldes enregistrés pour tous les comptes, du plus récent au plus ancien",
     "accountColumn": "Compte",
     "accountBalancesLink": "Soldes du compte",
-    "accountsLink": "Aller aux comptes pour enregistrer un solde"
+    "accountsLink": "Pour enregistrer un solde, ajoutez d'abord un compte.",
+    "chooseAccount": "Choisir un compte"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -913,7 +915,8 @@
     "totpDisabled": "Le second facteur est désactivé.",
     "signedOut": "Vous êtes déconnecté.",
     "setupDone": "Votre compte est prêt.",
-    "balanceAssertionReplaced": "Contrôle de solde enregistré. Il remplace celui déjà enregistré le {date}."
+    "balanceAssertionReplaced": "Contrôle de solde enregistré. Il remplace celui déjà enregistré le {date}.",
+    "balanceAssertionAccountRequired": "Choisissez le compte auquel appartient le solde"
   },
   "auth": {
     "signOut": "Se déconnecter",
