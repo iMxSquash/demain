@@ -8,15 +8,21 @@ import { messageRef } from "./message";
 
 const SAVINGS_KIND: AccountKind = "savings";
 
-export interface OverflowAccount {
-  id: number;
+/**
+ * Which account a chain refers to: the id of a stored account, or the name of
+ * an account the import will create, which has no id yet.
+ */
+export type AccountRef = number | string;
+
+export interface OverflowAccount<Id extends AccountRef = number> {
+  id: Id;
   currency: string;
   archived: boolean;
   /** Signed integer in minor units. */
   balance: number;
   /** Maximum balance reachable through deposits, in minor units. */
   ceiling: number | null;
-  overflowAccountId: number | null;
+  overflowAccountId: Id | null;
 }
 
 /** What the validation of a chain needs to know about an account. */
@@ -25,15 +31,15 @@ export type OverflowLink = Pick<
   "id" | "currency" | "archived" | "overflowAccountId"
 > & { kind: string };
 
-export interface Placement {
-  accountId: number;
+export interface Placement<Id extends AccountRef = number> {
+  accountId: Id;
   amount: number;
 }
 
-export type OverflowRouting =
+export type OverflowRouting<Id extends AccountRef = number> =
   | {
       status: "ok";
-      placements: Placement[];
+      placements: Placement<Id>[];
       /** Part that fits nowhere along the chain: it stays in the source account. */
       unplaced: number;
     }
@@ -60,12 +66,15 @@ export function depositRoom(
  * membership (assertOverflowTargetAllowed) rely on that: every account on the
  * path is still listed, and the walk is guaranteed to terminate.
  */
-function walkOverflowChain<T extends Pick<OverflowAccount, "id" | "overflowAccountId">>(
-  startId: number,
-  byId: ReadonlyMap<number, T>,
+function walkOverflowChain<
+  Id extends AccountRef,
+  T extends Pick<OverflowAccount<Id>, "id" | "overflowAccountId">,
+>(
+  startId: Id,
+  byId: ReadonlyMap<Id, T>,
 ): { accounts: T[]; hasLoop: boolean } {
   const accounts: T[] = [];
-  const visited = new Set<number>();
+  const visited = new Set<Id>();
   let current = byId.get(startId);
   while (current !== undefined) {
     if (visited.has(current.id)) return { accounts, hasLoop: true };
@@ -79,11 +88,11 @@ function walkOverflowChain<T extends Pick<OverflowAccount, "id" | "overflowAccou
   return { accounts, hasLoop: false };
 }
 
-export function routeAlongOverflowChain(
+export function routeAlongOverflowChain<Id extends AccountRef = number>(
   amount: number,
-  destinationId: number,
-  accounts: readonly OverflowAccount[],
-): OverflowRouting {
+  destinationId: Id,
+  accounts: readonly OverflowAccount<Id>[],
+): OverflowRouting<Id> {
   if (!Number.isSafeInteger(amount) || amount < 0) {
     throw new RangeError("The amount to route must be a non-negative integer");
   }
@@ -96,7 +105,7 @@ export function routeAlongOverflowChain(
   const { accounts: chain, hasLoop } = walkOverflowChain(destinationId, byId);
   if (hasLoop) return { status: "invalid", reason: "cycle" };
 
-  const placements: Placement[] = [];
+  const placements: Placement<Id>[] = [];
   let remaining = amount;
   for (const current of chain) {
     const placed = Math.min(remaining, depositRoom(current));
@@ -175,10 +184,10 @@ export function assertOverflowTargetAllowed(
  * The last account of the chain that starts at `startId`: the one whose
  * surplus has nowhere to go. Null when the chain loops or starts nowhere.
  */
-export function overflowChainTail(
-  startId: number,
-  byId: ReadonlyMap<number, Pick<OverflowAccount, "id" | "overflowAccountId">>,
-): number | null {
+export function overflowChainTail<Id extends AccountRef>(
+  startId: Id,
+  byId: ReadonlyMap<Id, Pick<OverflowAccount<Id>, "id" | "overflowAccountId">>,
+): Id | null {
   const { accounts, hasLoop } = walkOverflowChain(startId, byId);
   if (hasLoop) return null;
   return accounts.at(-1)?.id ?? null;

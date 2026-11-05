@@ -1,6 +1,7 @@
 import type en from "../../../messages/en.json";
 import type { ConfirmReason, SplitSegment } from "../../domain/import-review";
 import { formatAmount } from "../../domain/money";
+import type { AccountRef } from "../../domain/overflow";
 import type { Flatten } from "./describe-issues";
 
 /** Keys of the review messages, checked against the reference translation file. */
@@ -44,7 +45,7 @@ export interface SplitSay {
   t: StagedT;
   currency: string;
   locale: string;
-  nameOf: (accountId: number) => string;
+  nameOf: (accountId: AccountRef) => string;
 }
 
 /** The parts of a savings row, from the plan of the domain: "100.00 to A, 200.00 to B". */

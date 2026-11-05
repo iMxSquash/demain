@@ -5,7 +5,7 @@
  */
 
 import { isSelectableSavingsAccount, type SavingsAccountChoice } from "./import-savings";
-import type { OverflowAccount } from "./overflow";
+import type { AccountRef, OverflowAccount } from "./overflow";
 
 /** The part of one savings row that fits nowhere, and the account at the end of its chain. */
 export interface OverflowShortfall {
@@ -35,24 +35,6 @@ export interface PendingOverflow {
   target: OverflowTarget;
 }
 
-/**
- * Stands for the account a choice will create, in the plan and in the texts of
- * the review: negative, so it is never the id of a stored account. The choices
- * of a review are only added to, so the place of a choice gives its id.
- */
-export function placeholderAccountId(choiceIndex: number): number {
-  return -(choiceIndex + 1);
-}
-
-/** The names of the accounts the choices will create, by placeholder id. */
-export function pendingAccountNames(choices: readonly PendingOverflow[]): Map<number, string> {
-  const names = new Map<number, string>();
-  choices.forEach(({ target }, index) => {
-    if (target.kind === "new") names.set(placeholderAccountId(index), target.name);
-  });
-  return names;
-}
-
 /** The choices a file needs: those of the accounts where its own rows fall short. */
 export function choicesForShortfalls(
   choices: readonly PendingOverflow[],
@@ -79,19 +61,34 @@ export function overflowDemands(
 }
 
 /**
- * The accounts once the user's choice is recorded. `created` is an account the
- * user just made and the snapshot does not hold yet.
+ * The accounts once the user's choice is recorded. An account to create is
+ * referred to by its name and added with the defaults the server gives it (see
+ * `createOverflowCandidate`): a savings account in the currency of the account
+ * that overflows, with no balance, no ceiling and no overflow account.
  */
-export function withOverflowAccount(
-  accounts: readonly OverflowAccount[],
-  accountId: number,
-  overflowAccountId: number,
-  created?: OverflowAccount,
-): OverflowAccount[] {
-  const known =
-    created === undefined || accounts.some(({ id }) => id === created.id)
-      ? accounts
-      : [...accounts, created];
+export function withOverflowChoice(
+  accounts: readonly OverflowAccount<AccountRef>[],
+  { accountId, target }: PendingOverflow,
+): OverflowAccount<AccountRef>[] {
+  const overflowAccountId = target.kind === "existing" ? target.id : target.name;
+  const currency = accounts.find(({ id }) => id === accountId)?.currency;
+  const isToAdd =
+    target.kind === "new" &&
+    currency !== undefined &&
+    !accounts.some(({ id }) => id === overflowAccountId);
+  const known = isToAdd
+    ? [
+        ...accounts,
+        {
+          id: overflowAccountId,
+          currency,
+          archived: false,
+          balance: 0,
+          ceiling: null,
+          overflowAccountId: null,
+        },
+      ]
+    : accounts;
   return known.map((account) =>
     account.id === accountId ? { ...account, overflowAccountId } : { ...account },
   );

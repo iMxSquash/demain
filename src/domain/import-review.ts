@@ -22,7 +22,7 @@ import {
   type SavingsTransfer,
 } from "./import-savings";
 import type { OverflowShortfall } from "./import-overflow";
-import { overflowChainTail, type OverflowAccount } from "./overflow";
+import { overflowChainTail, type AccountRef, type OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
@@ -122,13 +122,13 @@ export interface SplitSegment {
   /** "to" a savings account, "from" one, or "unplaced": the part that fits nowhere. */
   direction: "to" | "from" | "unplaced";
   /** Null for the part that fits nowhere. */
-  accountId: number | null;
+  accountId: AccountRef | null;
   /** Positive, in minor units. */
   amount: number;
 }
 
 /** The parts a planned savings row is split into, in the order they are recorded. */
-export function splitSegments(transfer: SavingsTransfer): SplitSegment[] {
+export function splitSegments(transfer: SavingsTransfer<AccountRef>): SplitSegment[] {
   if (transfer.kind === "withdrawal") {
     return [{ direction: "from", accountId: transfer.accountId, amount: transfer.amount }];
   }
@@ -228,7 +228,7 @@ interface ReviewContext {
   /** The savings account of the savings rows that name none. */
   defaultSavingsAccountId: number | null;
   /** The balances the first file is planned from. */
-  accounts: readonly OverflowAccount[];
+  accounts: readonly OverflowAccount<AccountRef>[];
 }
 
 export interface FilePlan {
@@ -247,7 +247,7 @@ export function emptyFilePlan(): FilePlan {
 function savingsMovementsOf(
   rows: readonly ReviewedRow[],
   { currency, defaultSavingsAccountId, accounts }: ReviewContext,
-): SavingsMovement[] {
+): SavingsMovement<AccountRef>[] {
   const known = new Set(accounts.map(({ id }) => id));
   return rows.flatMap((row, index) => {
     if (row.isDuplicate || row.details.type !== "savings") return [];
@@ -293,7 +293,8 @@ export function planReview(
       const start = movementsByIndex.get(transfer.index);
       const tail =
         start === undefined ? null : overflowChainTail(start.savingsAccountId, accountsById);
-      if (tail !== null) {
+      // The end of a chain that falls short has a ceiling: an account to create has none.
+      if (typeof tail === "number") {
         target.shortfalls.push({ accountId: tail, amount: transfer.unplaced });
       }
     }

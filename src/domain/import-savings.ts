@@ -8,12 +8,13 @@ import { isCalendarDate, type AccountKind } from "./account";
 import { messageRef, type MessageRef } from "./message";
 import {
   routeAlongOverflowChain,
+  type AccountRef,
   type OverflowAccount,
   type Placement,
 } from "./overflow";
 
 /** A savings row of an import, seen from the account that receives the file. */
-export interface SavingsMovement {
+export interface SavingsMovement<Id extends AccountRef = number> {
   /** Position in the rows of the file: the plan points back to it. */
   index: number;
   /** YYYY-MM-DD. */
@@ -23,16 +24,16 @@ export interface SavingsMovement {
    * negative is a deposit to savings, positive a withdrawal from it.
    */
   amount: number;
-  savingsAccountId: number;
+  savingsAccountId: Id;
 }
 
-export type SavingsTransfer =
+export type SavingsTransfer<Id extends AccountRef = number> =
   | {
       kind: "deposit";
       index: number;
       date: string;
       /** Part of the deposit received by each account of the chain. */
-      placements: Placement[];
+      placements: Placement<Id>[];
       /** Part that fits nowhere along the chain; also reported in `issues`. */
       unplaced: number;
     }
@@ -40,7 +41,7 @@ export type SavingsTransfer =
       kind: "withdrawal";
       index: number;
       date: string;
-      accountId: number;
+      accountId: Id;
       /** Positive, in minor units. */
       amount: number;
     };
@@ -129,11 +130,11 @@ export type SavingsPlanIssue =
   | { kind: "savingsUnplaced"; index: number; amount: number }
   | { kind: "overflowChainCycle" };
 
-export interface SavingsPlan {
-  transfers: SavingsTransfer[];
+export interface SavingsPlan<Id extends AccountRef = number> {
+  transfers: SavingsTransfer<Id>[];
   issues: SavingsPlanIssue[];
   /** The accounts once the transfers are applied: the starting point of the next plan. */
-  accounts: OverflowAccount[];
+  accounts: OverflowAccount<Id>[];
 }
 
 // ISO dates sort as text; the sort is stable, so rows of one day keep the file order.
@@ -152,12 +153,12 @@ function isValidAmount(amount: number): boolean {
  * check. The balances of the accounts given are not modified. A loop in the
  * chain spoils every deposit, so it plans nothing.
  */
-export function planSavingsTransfers(
-  movements: readonly SavingsMovement[],
-  accounts: readonly OverflowAccount[],
-): SavingsPlan {
+export function planSavingsTransfers<Id extends AccountRef = number>(
+  movements: readonly SavingsMovement<Id>[],
+  accounts: readonly OverflowAccount<Id>[],
+): SavingsPlan<Id> {
   const running = accounts.map((account) => ({ ...account }));
-  const transfers: SavingsTransfer[] = [];
+  const transfers: SavingsTransfer<Id>[] = [];
   const issues: SavingsPlanIssue[] = [];
 
   const chronological = [...movements].sort((a, b) => compareDates(a.date, b.date));
@@ -243,11 +244,12 @@ export function orderFilesByDate<T extends DatedFile>(files: readonly T[]): T[] 
 
 /** Plans each file in date order, on the balances the previous file leaves. */
 export function planFilesInDateOrder<
-  T extends DatedFile & { movements: readonly SavingsMovement[] },
+  Id extends AccountRef,
+  T extends DatedFile & { movements: readonly SavingsMovement<Id>[] },
 >(
   files: readonly T[],
-  accounts: readonly OverflowAccount[],
-): { file: T; plan: SavingsPlan }[] {
+  accounts: readonly OverflowAccount<Id>[],
+): { file: T; plan: SavingsPlan<Id> }[] {
   let current = accounts;
   return orderFilesByDate(files).map((file) => {
     const plan = planSavingsTransfers(file.movements, current);

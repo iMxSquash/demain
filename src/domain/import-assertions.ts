@@ -55,7 +55,8 @@ export function fileMovements(
       return [{ accountId, date, amount: signedAmountForType(row.details.type, amount) }];
     }
     return (plan.splits.get(index) ?? []).flatMap(({ direction, accountId: otherId, amount: part }) => {
-      if (direction === "unplaced" || otherId === null) return [];
+      // An account to create has no balance assertion to check the movement against.
+      if (direction === "unplaced" || typeof otherId !== "number") return [];
       const sign = direction === "to" ? -1 : 1;
       return [
         { accountId, date, amount: sign * part },

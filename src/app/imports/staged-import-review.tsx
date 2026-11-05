@@ -15,7 +15,6 @@ import { linkReviewAssertions, type AssertionLinkSnapshot } from "../../domain/i
 import {
   choicesForShortfalls,
   overflowDemands,
-  pendingAccountNames,
   type OverflowTarget,
   type PendingOverflow,
 } from "../../domain/import-overflow";
@@ -31,7 +30,7 @@ import {
   isSelectableSavingsAccount,
   lastMovementDate,
 } from "../../domain/import-savings";
-import type { OverflowAccount } from "../../domain/overflow";
+import type { AccountRef, OverflowAccount } from "../../domain/overflow";
 import type {
   ColumnChoiceFields,
   ImportAccountOption,
@@ -54,9 +53,9 @@ interface ReviewBodyProps {
   accounts: ImportAccountOption[];
   categories: ImportCategoryOption[];
   /** The balances as they were when the files were read: what the first file is planned from. */
-  overflowAccounts: OverflowAccount[];
+  overflowAccounts: OverflowAccount<AccountRef>[];
   /** The balances as stored: what each file needs is read from them, not from the choices made. */
-  storedOverflowAccounts: OverflowAccount[];
+  storedOverflowAccounts: OverflowAccount<AccountRef>[];
   /** The assertions and movements as they were when the files were read: what each file is compared with. */
   assertionSnapshot: AssertionLinkSnapshot;
   isReading: boolean;
@@ -120,12 +119,8 @@ function ReviewBody({
   );
   const accountNames = useMemo(
     () =>
-      new Map([
-        ...accounts.map((account): [number, string] => [account.id, account.name]),
-        // The accounts the import will create are named in the splits already.
-        ...pendingAccountNames(overflowChoices),
-      ]),
-    [accounts, overflowChoices],
+      new Map(accounts.map((account): [number, string] => [account.id, account.name])),
+    [accounts],
   );
   const { defaultSavingsAccountId: savingsAccountId } = state;
   const lookups = useMemo<RowLookups>(
