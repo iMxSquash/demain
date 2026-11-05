@@ -222,6 +222,52 @@ export function readSheetSummary(
   return { months, issues };
 }
 
+/** The real account balance of a Summary month; null when the sheet reports none. */
+export interface SummaryBalance {
+  month: Month;
+  /** Signed integer in minor units. */
+  amount: number | null;
+}
+
+export type SummaryBalancesIssue =
+  | SummaryIssue
+  /** Only the first row of the month is kept. */
+  | { kind: "monthDuplicated"; month: Month };
+
+export interface SummaryBalancesReading {
+  balances: SummaryBalance[];
+  issues: SummaryBalancesIssue[];
+}
+
+// The other figures of the tab are the verification's business, not the balances'.
+function concernsBalances(issue: SummaryIssue): boolean {
+  if (!("column" in issue) || typeof issue.column !== "string") return true;
+  return issue.column === "month" || issue.column === "realAccountBalance";
+}
+
+/**
+ * The monthly real account balances of the Summary tab, to become balance
+ * assertions. A month the sheet leaves without a balance stays in the list
+ * with a null amount: it is not an error, and it is not dropped. The
+ * separator is detected from the file unless the caller gives it.
+ */
+export function readSummaryBalances(
+  text: string,
+  options: SummaryOptions,
+): SummaryBalancesReading {
+  const reading = readSheetSummary(text, options);
+  const issues: SummaryBalancesIssue[] = reading.issues.filter(concernsBalances);
+  const balances: SummaryBalance[] = [];
+  for (const { month, realAccountBalance } of reading.months) {
+    if (balances.some((balance) => balance.month === month)) {
+      issues.push({ kind: "monthDuplicated", month });
+      continue;
+    }
+    balances.push({ month, amount: realAccountBalance });
+  }
+  return { balances, issues };
+}
+
 export interface SummaryScope {
   inScope: SummaryMonth[];
   /** Left out because they fall outside the period of the rows, and named so. */
