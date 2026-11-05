@@ -258,11 +258,13 @@ export function readSummaryBalances(
   const reading = readSheetSummary(text, options);
   const issues: SummaryBalancesIssue[] = reading.issues.filter(concernsBalances);
   const balances: SummaryBalance[] = [];
+  const seen = new Set<Month>();
   for (const { month, realAccountBalance } of reading.months) {
-    if (balances.some((balance) => balance.month === month)) {
+    if (seen.has(month)) {
       issues.push({ kind: "monthDuplicated", month });
       continue;
     }
+    seen.add(month);
     balances.push({ month, amount: realAccountBalance });
   }
   return { balances, issues };
