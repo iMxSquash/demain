@@ -3,13 +3,14 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import {
   computeUnexplainedGap,
   type AssertionMovement,
+  type AssertionSnapshot,
   validateBalanceAssertionInput,
   type BalanceAssertionInput,
   type ValidBalanceAssertionInput,
   type UnexplainedGap,
 } from "../domain/balance-assertion";
 import type { AppDatabase } from "../storage/database";
-import { balanceAssertions, transactions } from "../storage/schema";
+import { accounts, balanceAssertions, transactions } from "../storage/schema";
 import { getAccount, listAccounts } from "./accounts";
 
 export type BalanceAssertion = typeof balanceAssertions.$inferSelect;
@@ -165,6 +166,26 @@ export function listAllBalanceAssertions(
         accountArchived: account.archived,
       };
     });
+}
+
+/**
+ * The assertions of the active accounts, in the shape the review of an import
+ * compares with the balances a file leaves. An archived account is frozen
+ * (DOMAIN, archiving an account): nothing it holds is checked.
+ */
+export function listAssertionSnapshots(db: AppDatabase): AssertionSnapshot[] {
+  return db
+    .select({
+      id: balanceAssertions.id,
+      accountId: balanceAssertions.accountId,
+      date: balanceAssertions.date,
+      amount: balanceAssertions.amount,
+    })
+    .from(balanceAssertions)
+    .innerJoin(accounts, eq(accounts.id, balanceAssertions.accountId))
+    .where(eq(accounts.archived, false))
+    .orderBy(asc(balanceAssertions.date), asc(balanceAssertions.id))
+    .all();
 }
 
 /**
