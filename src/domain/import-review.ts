@@ -139,6 +139,11 @@ export function splitSegments(transfer: SavingsTransfer): SplitSegment[] {
 /** Where a file of the import stands: "failed" is a file that could not be read. */
 export type FilePhase = "reviewing" | "importing" | "done" | "cancelled" | "failed";
 
+/** Whether the file still counts in the plan: a cancelled or failed file records nothing. */
+export function isFileRecorded({ phase }: { phase: FilePhase }): boolean {
+  return phase !== "cancelled" && phase !== "failed";
+}
+
 const SETTLED_PHASES: readonly FilePhase[] = ["done", "cancelled", "failed"];
 
 /**
@@ -235,8 +240,7 @@ export function planReview(
   const planned = files.map(({ firstDate, phase, rows }, position) => ({
     position,
     firstDate,
-    movements:
-      phase === "cancelled" || phase === "failed" ? [] : savingsMovementsOf(rows, context),
+    movements: isFileRecorded({ phase }) ? savingsMovementsOf(rows, context) : [],
   }));
 
   const accountsById = new Map(context.accounts.map((account) => [account.id, account]));

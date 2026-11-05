@@ -28,6 +28,12 @@ export interface AssertionPoint {
   amount: number;
 }
 
+/** A stored balance assertion as the comparisons read it. */
+export interface AssertionSnapshot extends AssertionPoint {
+  id: number;
+  accountId: number;
+}
+
 export interface UnexplainedGap {
   computedBalance: number;
   /** Computed balance minus asserted amount: positive when Demain holds more than the bank. */
