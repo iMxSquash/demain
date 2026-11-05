@@ -16,6 +16,7 @@ import {
   listAllBalanceAssertions,
   listAssertionSnapshots,
   listBalanceAssertions,
+  readAssertionLinkSnapshot,
   saveBalanceAssertion,
 } from "../../src/ledger/balance-assertions";
 import { createTransaction } from "../../src/ledger/transactions";
@@ -153,6 +154,53 @@ describe("balance assertions", () => {
       createAccount(db, CHECKING_INPUT);
 
       expect(listAssertionSnapshots(db)).toEqual([]);
+    });
+  });
+
+  describe("readAssertionLinkSnapshot", () => {
+    it("reads the active accounts with an assertion, their movements and the assertions", () => {
+      const checking = createAccount(db, CHECKING_INPUT);
+      const bare = createAccount(db, { ...CHECKING_INPUT, name: "Bare", openingBalance: 0 });
+      const closed = createAccount(db, { ...CHECKING_INPUT, name: "Old", openingBalance: 0 });
+      createTransaction(db, {
+        accountId: checking.id,
+        date: "2026-01-10",
+        amount: -1000,
+        kind: "expense",
+        label: "Groceries",
+      });
+      createTransaction(db, {
+        accountId: bare.id,
+        date: "2026-01-11",
+        amount: 500,
+        kind: "income",
+        label: "Gift",
+      });
+      const assertion = saveBalanceAssertion(db, {
+        accountId: checking.id,
+        date: "2026-01-31",
+        amount: 4627,
+      });
+      saveBalanceAssertion(db, { accountId: closed.id, date: "2026-01-31", amount: 0 });
+      archiveAccount(db, closed.id);
+
+      expect(readAssertionLinkSnapshot(db)).toEqual({
+        accounts: [{ id: checking.id, openingBalance: 5627 }],
+        transactions: [{ accountId: checking.id, date: "2026-01-10", amount: -1000 }],
+        assertions: [
+          { id: assertion.id, accountId: checking.id, date: "2026-01-31", amount: 4627 },
+        ],
+      });
+    });
+
+    it("is empty without any assertion", () => {
+      createAccount(db, CHECKING_INPUT);
+
+      expect(readAssertionLinkSnapshot(db)).toEqual({
+        accounts: [],
+        transactions: [],
+        assertions: [],
+      });
     });
   });
 
