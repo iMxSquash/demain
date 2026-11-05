@@ -14,6 +14,7 @@ import {
   BalanceAssertionOnArchivedAccountError,
   deleteBalanceAssertion,
   listAllBalanceAssertions,
+  listAssertionSnapshots,
   listBalanceAssertions,
   saveBalanceAssertion,
 } from "../../src/ledger/balance-assertions";
@@ -131,6 +132,28 @@ describe("balance assertions", () => {
     expect(() =>
       saveBalanceAssertion(db, { accountId: 999, date: "2026-01-31", amount: 0 }),
     ).toThrow(AccountNotFoundError);
+  });
+
+  describe("listAssertionSnapshots", () => {
+    it("lists the assertions of the active accounts only, oldest first", () => {
+      const active = createAccount(db, CHECKING_INPUT);
+      const closed = createAccount(db, { ...CHECKING_INPUT, name: "Old", openingBalance: 0 });
+      const later = saveBalanceAssertion(db, { accountId: active.id, date: "2026-02-28", amount: 5627 });
+      const earlier = saveBalanceAssertion(db, { accountId: active.id, date: "2026-01-31", amount: 5000 });
+      saveBalanceAssertion(db, { accountId: closed.id, date: "2026-01-31", amount: 0 });
+      archiveAccount(db, closed.id);
+
+      expect(listAssertionSnapshots(db)).toEqual([
+        { id: earlier.id, accountId: active.id, date: "2026-01-31", amount: 5000 },
+        { id: later.id, accountId: active.id, date: "2026-02-28", amount: 5627 },
+      ]);
+    });
+
+    it("is empty without any assertion", () => {
+      createAccount(db, CHECKING_INPUT);
+
+      expect(listAssertionSnapshots(db)).toEqual([]);
+    });
   });
 
   describe("listAllBalanceAssertions", () => {
