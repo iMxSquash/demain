@@ -375,7 +375,44 @@
     "delete": "Delete",
     "deleteTitle": "Delete this rule?",
     "deleteMessage": "The rule is removed. Transactions that already have a category keep it.",
-    "deleteConfirm": "Delete rule"
+    "deleteConfirm": "Delete rule",
+    "vocabulary": {
+      "heading": "Words that give the type of an imported row",
+      "intro": "When a file has a category column, the import looks for a word in the category to tell an income or savings from an expense. Your changes win over the fixed words and over what the history taught.",
+      "origins": {
+        "user": "Your vocabulary",
+        "fixed": "Fixed vocabulary",
+        "history": "History"
+      },
+      "originHelp": {
+        "user": "words you added or changed.",
+        "fixed": "French and English words that come with Demain.",
+        "history": "words learned from the categories you gave in earlier imports, only when the fixed vocabulary does not know them."
+      },
+      "caption": "Words of the vocabulary, their type and where they come from",
+      "columns": {
+        "word": "Word",
+        "type": "Type",
+        "origin": "Origin",
+        "actions": "Actions"
+      },
+      "types": {
+        "expense": "Expense",
+        "income": "Income",
+        "savings": "Savings"
+      },
+      "changeTypeOf": "Type of the word {word}",
+      "change": "Change type",
+      "remove": "Remove",
+      "removedHeading": "Removed words",
+      "removedIntro": "These words are no longer recognized. Restoring one gives back the fixed or learned word, if there is one.",
+      "restore": "Restore",
+      "addHeading": "Add or change a word",
+      "word": "Word",
+      "wordHint": "One word, without spaces, 40 characters at most. Accents and capitals do not matter. Adding a word that already exists changes its type.",
+      "type": "Type",
+      "addSubmit": "Save the word"
+    }
   },
   "synthesis": {
     "metaTitle": "Monthly synthesis | Demain",
@@ -648,8 +685,16 @@
           "debitCredit": "the type column says \"{value}\", which contradicts the debit and credit columns"
         },
         "typeCellUnknown": "the type column says \"{value}\", which is not a known type",
-        "categoryWord": "guessed, the category is {category}",
-        "categoryOverruled": "the category is {category}, but the sign of the amount says otherwise and wins",
+        "categoryWord": {
+          "fixed": "guessed, the category is {category} (word of the fixed vocabulary)",
+          "history": "guessed, the category is {category} (word learned from the history)",
+          "user": "guessed, the category is {category} (word of your vocabulary)"
+        },
+        "categoryOverruled": {
+          "fixed": "the category is {category} (word of the fixed vocabulary), but the sign of the amount says otherwise and wins",
+          "history": "the category is {category} (word learned from the history), but the sign of the amount says otherwise and wins",
+          "user": "the category is {category} (word of your vocabulary), but the sign of the amount says otherwise and wins"
+        },
         "history": "guessed, an earlier import recorded this label as {type}",
         "historyOverruled": "an earlier import recorded this label as {type}, but the sign of the amount says otherwise and wins",
         "sign": "guessed from the sign of the amount: {type}",
@@ -877,7 +922,13 @@
     "balanceAssertionReplaced": "Balance check saved. It replaced the one already recorded on {date}.",
     "balanceAssertionAccountRequired": "Choose the account the balance belongs to",
     "summaryBalancesSaved": "Balances recorded from the Summary: {count}.",
-    "summaryBalancesNotSaved": "Something went wrong, no balance was recorded from the Summary."
+    "summaryBalancesNotSaved": "Something went wrong, no balance was recorded from the Summary.",
+    "vocabularyWordInvalid": "The word must be a single word of 40 characters at most.",
+    "vocabularyTypeInvalid": "Choose a type: expense, income or savings.",
+    "vocabularyWordSaved": "Word saved.",
+    "vocabularyWordRemoved": "Word removed.",
+    "vocabularyWordRestored": "Word restored.",
+    "vocabularyNotChanged": "Something went wrong, the vocabulary was not changed."
   },
   "auth": {
     "signOut": "Sign out",

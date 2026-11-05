@@ -15,6 +15,7 @@ import { listCategories } from "../../ledger/categories";
 import { getBatchEndDate } from "../../ledger/import-checks";
 import { findDuplicateRows, type ImportFormat } from "../../ledger/imports";
 import { commitDrafts } from "../../ledger/staged-import";
+import { getTypeVocabulary } from "../../ledger/type-vocabulary";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { flashError, flashSuccess } from "../feedback/flash";
@@ -71,9 +72,10 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   }
 
   try {
-    const { currency, categories } = withDatabase((db) => ({
+    const { currency, categories, vocabulary } = withDatabase((db) => ({
       currency: getAccount(db, accountId).currency,
       categories: listCategories(db),
+      vocabulary: getTypeVocabulary(db),
     }));
     const text = decodeImportFile(await file.arrayBuffer());
     const format: ImportFormat = detectImportFormat(text);
@@ -83,6 +85,7 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
       accountId,
       currency,
       categories,
+      vocabulary,
       columns: readColumnChoices(formData),
     });
     if (statement.status === "mappingNeeded") {

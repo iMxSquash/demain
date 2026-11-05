@@ -59,10 +59,11 @@ describe("confirmReasons", () => {
             category: "Salaire",
             word: "salaire",
             type: "income",
+            origin: "history",
           },
         }),
       ),
-    ).toEqual([{ kind: "categoryWord", category: "Salaire" }]);
+    ).toEqual([{ kind: "categoryWord", category: "Salaire", origin: "history" }]);
   });
 
   it("says that the sign won over a category that disagreed", () => {
@@ -75,10 +76,11 @@ describe("confirmReasons", () => {
             category: "Salaire",
             word: "salaire",
             type: "income",
+            origin: "history",
           },
         }),
       ),
-    ).toEqual([{ kind: "categoryOverruled", category: "Salaire" }]);
+    ).toEqual([{ kind: "categoryOverruled", category: "Salaire", origin: "history" }]);
   });
 
   it("says that the sign won over the history of the label", () => {

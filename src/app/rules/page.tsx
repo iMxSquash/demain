@@ -6,11 +6,13 @@ import { connection } from "next/server";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listRules } from "../../ledger/categorization-rules";
+import { getVocabularyOverview } from "../../ledger/type-vocabulary";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { deleteRuleAction, createRuleAction, moveRuleAction } from "./actions";
 import { RuleForm } from "./rule-form";
+import { VocabularySection } from "./vocabulary-section";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("rules");
@@ -25,11 +27,12 @@ export default async function RulesPage() {
     getTranslations("rules"),
     getTranslations("common"),
   ]);
-  const { rules, accounts, categories } = withDatabase((db) => ({
+  const { rules, accounts, categories, vocabulary } = withDatabase((db) => ({
     rules: listRules(db),
     // Archived ones are kept to name the rules that still point to them.
     accounts: listAccounts(db, { includeArchived: true }),
     categories: listCategories(db, { includeArchived: true }),
+    vocabulary: getVocabularyOverview(db),
   }));
   const accountName = new Map(accounts.map((account) => [account.id, account.name]));
   const categoryName = new Map(
@@ -134,6 +137,8 @@ export default async function RulesPage() {
           categories={categories.filter((category) => !category.archived)}
         />
       </section>
+
+      <VocabularySection overview={vocabulary} />
     </main>
   );
 }
