@@ -3,8 +3,10 @@
  * See DOMAIN, section Deposit ceiling and overflow, and ADR-013.
  */
 
-import { AccountValidationError } from "./account";
+import { AccountValidationError, type AccountKind } from "./account";
 import { messageRef } from "./message";
+
+const SAVINGS_KIND: AccountKind = "savings";
 
 export interface OverflowAccount {
   id: number;
@@ -21,7 +23,7 @@ export interface OverflowAccount {
 export type OverflowLink = Pick<
   OverflowAccount,
   "id" | "currency" | "archived" | "overflowAccountId"
->;
+> & { kind: string };
 
 export interface Placement {
   accountId: number;
@@ -87,9 +89,16 @@ export function routeAlongOverflowChain(
   return { status: "ok", placements, unplaced: remaining };
 }
 
+/** The accounts that may take a surplus: active savings accounts (ADR-013). */
+export function overflowTargetsOf<T extends { kind: string; archived: boolean }>(
+  accounts: readonly T[],
+): T[] {
+  return accounts.filter(({ kind, archived }) => kind === SAVINGS_KIND && !archived);
+}
+
 /**
- * Refuses an overflow target that would create a cycle, cross currencies or
- * point to an unknown or archived account. Runs on every save, since the
+ * Refuses an overflow target that would create a cycle, cross currencies,
+ * point to an unknown or archived account, or is not a savings account. Runs on every save, since the
  * configuration comes from user input.
  */
 export function assertOverflowTargetAllowed(
@@ -113,6 +122,13 @@ export function assertOverflowTargetAllowed(
       "overflowAccountId",
       "The overflow account is archived",
       messageRef("overflowAccountArchived"),
+    );
+  }
+  if (target.kind !== SAVINGS_KIND) {
+    throw new AccountValidationError(
+      "overflowAccountId",
+      "The overflow account must be a savings account",
+      messageRef("overflowAccountNotSavings"),
     );
   }
   if (target.currency !== candidate.currency) {

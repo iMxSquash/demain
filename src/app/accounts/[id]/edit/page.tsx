@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { formatEditableAmount } from "../../../../domain/money";
+import { overflowTargetsOf } from "../../../../domain/overflow";
 import {
   AccountNotFoundError,
   getAccount,
@@ -38,7 +39,9 @@ export default async function EditAccountPage({
   try {
     ({ account, overflowOptions } = withDatabase((db) => ({
       account: getAccount(db, id),
-      overflowOptions: listAccounts(db).filter((other) => other.id !== id),
+      overflowOptions: overflowTargetsOf(listAccounts(db)).filter(
+          (other) => other.id !== id,
+        ),
     })));
   } catch (error) {
     if (error instanceof AccountNotFoundError) notFound();

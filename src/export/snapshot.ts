@@ -103,8 +103,8 @@ function assertRestorable(file: string): void {
  */
 function assertOverflowChainsValid(candidate: Database.Database): void {
   const rows = candidate
-    .prepare<[], { id: number; currency: string; archived: number; overflowAccountId: number | null }>(
-      "select id, currency, archived, overflow_account_id as overflowAccountId from accounts",
+    .prepare<[], { id: number; currency: string; kind: string; archived: number; overflowAccountId: number | null }>(
+      "select id, kind, currency, archived, overflow_account_id as overflowAccountId from accounts",
     )
     .all();
   const links: OverflowLink[] = rows.map((row) => ({ ...row, archived: row.archived === 1 }));

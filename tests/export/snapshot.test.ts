@@ -199,10 +199,15 @@ describe("encrypted snapshot", () => {
       "ends on an archived account",
       ["update accounts set archived = 1 where id = 2", "update accounts set overflow_account_id = 2 where id = 1"],
     ],
+    [
+      "ends on a checking account",
+      ["update accounts set kind = 'checking' where id = 2", "update accounts set overflow_account_id = 2 where id = 1"],
+    ],
   ])("changes nothing when an overflow chain %s", async (_problem, statements) => {
     const source = newInstance();
     insertAccount(source.db, "First");
     insertAccount(source.db, "Second");
+    source.db.$client.exec("update accounts set kind = 'savings'");
     for (const statement of statements) {
       source.db.$client.exec(statement);
     }
@@ -221,6 +226,7 @@ describe("encrypted snapshot", () => {
     const source = newInstance();
     insertAccount(source.db, "First");
     insertAccount(source.db, "Second");
+    source.db.$client.exec("update accounts set kind = 'savings'");
     source.db.$client.exec("update accounts set overflow_account_id = 2 where id = 1");
     const snapshot = await createSnapshot(source.db, PASSWORD);
     const { db } = newInstance();

@@ -779,6 +779,7 @@
     "balanceAssertionOnArchivedAccount": "This account is archived: its balances can no longer be changed",
     "overflowAccountMissing": "The overflow account does not exist",
     "overflowAccountArchived": "The overflow account is archived",
+    "overflowAccountNotSavings": "The overflow account must be a savings account",
     "overflowAccountCurrencyMismatch": "The overflow account must have the same currency",
     "overflowChainLoop": "The overflow chain would loop back to this account",
     "overflowAccountUnknown": "Unknown overflow account",

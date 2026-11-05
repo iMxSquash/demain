@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertOverflowTargetAllowed,
+  overflowTargetsOf,
   routeAlongOverflowChain,
   type OverflowAccount,
 } from "../../src/domain/overflow";
@@ -10,13 +11,16 @@ const LIVRET_A_ID = 1;
 const LIVRET_JEUNE_ID = 2;
 const CHECKING_ID = 3;
 
-function account(overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount {
+function account(
+  overrides: Partial<OverflowAccount> & { id: number; kind?: string },
+): OverflowAccount & { kind: string } {
   return {
     currency: "EUR",
     balance: 0,
     ceiling: null,
     overflowAccountId: null,
     archived: false,
+    kind: "savings",
     ...overrides,
   };
 }
@@ -197,6 +201,28 @@ describe("assertOverflowTargetAllowed", () => {
     );
   });
 
+  it("refuses a checking account as target", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID }),
+      account({ id: CHECKING_ID, kind: "checking" }),
+    ];
+
+    expectRefused(() =>
+      assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), CHECKING_ID, accounts),
+    );
+  });
+
+  it("refuses an archived savings account as target", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_A_ID, kind: "savings", archived: true }),
+    ];
+
+    expectRefused(() =>
+      assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), LIVRET_A_ID, accounts),
+    );
+  });
+
   it("refuses an unknown target", () => {
     const accounts = [account({ id: LIVRET_JEUNE_ID })];
 
@@ -215,5 +241,18 @@ describe("assertOverflowTargetAllowed", () => {
     expect(() =>
       assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), LIVRET_A_ID, accounts),
     ).not.toThrow();
+  });
+});
+
+describe("overflowTargetsOf", () => {
+  it("keeps only the active savings accounts", () => {
+    const accounts = [
+      account({ id: 1 }),
+      account({ id: 2, kind: "checking" }),
+      account({ id: 3, kind: "other" }),
+      account({ id: 4, archived: true }),
+    ];
+
+    expect(overflowTargetsOf(accounts).map(({ id }) => id)).toEqual([1]);
   });
 });
