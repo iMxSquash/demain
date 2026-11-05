@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import {
   computeUnexplainedGap,
@@ -9,6 +9,7 @@ import {
   type ValidBalanceAssertionInput,
   type UnexplainedGap,
 } from "../domain/balance-assertion";
+import type { AssertionLinkSnapshot } from "../domain/import-assertions";
 import type { AppDatabase } from "../storage/database";
 import { accounts, balanceAssertions, transactions } from "../storage/schema";
 import { getAccount, listAccounts } from "./accounts";
@@ -186,6 +187,36 @@ export function listAssertionSnapshots(db: AppDatabase): AssertionSnapshot[] {
     .where(eq(accounts.archived, false))
     .orderBy(asc(balanceAssertions.date), asc(balanceAssertions.id))
     .all();
+}
+
+/**
+ * What the review of an import compares a file with: the active accounts that
+ * hold an assertion, their movements and the assertions. An account without an
+ * assertion is left out, its balance is never compared, which keeps the payload
+ * the page sends to the browser small.
+ */
+export function readAssertionLinkSnapshot(db: AppDatabase): AssertionLinkSnapshot {
+  const assertions = listAssertionSnapshots(db);
+  const assertedIds = [...new Set(assertions.map(({ accountId }) => accountId))];
+  if (assertedIds.length === 0) return { accounts: [], transactions: [], assertions: [] };
+  return {
+    accounts: db
+      .select({ id: accounts.id, openingBalance: accounts.openingBalance })
+      .from(accounts)
+      .where(inArray(accounts.id, assertedIds))
+      .orderBy(asc(accounts.id))
+      .all(),
+    transactions: db
+      .select({
+        accountId: transactions.accountId,
+        date: transactions.date,
+        amount: transactions.amount,
+      })
+      .from(transactions)
+      .where(inArray(transactions.accountId, assertedIds))
+      .all(),
+    assertions,
+  };
 }
 
 /**

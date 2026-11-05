@@ -10,6 +10,7 @@ import {
   fileMovements,
   filePeriod,
   linkAssertions,
+  linkReviewAssertions,
   type FileContext,
 } from "../../src/domain/import-assertions";
 import {
@@ -79,6 +80,13 @@ const file = (rows: ReviewedRow[], overrides: Partial<ReviewedFile> = {}): Revie
   rows,
   ...overrides,
 });
+
+const assertion = (
+  id: number,
+  accountId: number,
+  date: string,
+  amount: number,
+): AssertionSnapshot => ({ id, accountId, date, amount });
 
 function movementsOf(reviewed: ReviewedFile): AssertionMovement[] {
   const [plan] = planReview([reviewed], {
@@ -192,13 +200,6 @@ describe("filePeriod", () => {
 });
 
 describe("linkAssertions", () => {
-  const assertion = (
-    id: number,
-    accountId: number,
-    date: string,
-    amount: number,
-  ): AssertionSnapshot => ({ id, accountId, date, amount });
-
   const link = (
     movements: AssertionMovement[],
     assertions: AssertionSnapshot[],
@@ -367,6 +368,65 @@ describe("linkAssertions", () => {
       [EXPENSE_MOVEMENT],
       [assertion(1, CHECKING_ID, "2026-03-31", 1)],
       { accounts: ASSERTED_ACCOUNTS.filter(({ id }) => id !== CHECKING_ID) },
+    );
+
+    expect(result).toEqual({ accounts: [], checked: 0, matching: 0 });
+  });
+});
+
+describe("linkReviewAssertions", () => {
+  const march = file([row("2026-03-02", "10,00")]);
+  const april = file([row("2026-04-02", "20,00")], { firstDate: "2026-04-02" });
+  const snapshot = (assertions: AssertionSnapshot[]) => ({
+    accounts: ASSERTED_ACCOUNTS,
+    transactions: [],
+    assertions,
+  });
+  const linkAll = (files: ReviewedFile[], assertions: AssertionSnapshot[]) =>
+    linkReviewAssertions(
+      files,
+      planReview(files, {
+        currency: CONTEXT.currency,
+        defaultSavingsAccountId: DEFAULT_SAVINGS_ACCOUNT_ID,
+        accounts: OVERFLOW_ACCOUNTS,
+      }),
+      snapshot(assertions),
+      CONTEXT,
+    );
+
+  it("gives one result per file, in the order of the files", () => {
+    const results = linkAll([march, april], [
+      assertion(1, CHECKING_ID, "2026-03-02", 99_000),
+      assertion(2, CHECKING_ID, "2026-04-02", 97_000),
+    ]);
+
+    expect(results.map((result) => result.checked)).toEqual([1, 1]);
+    expect(results.map((result) => result.matching)).toEqual([1, 1]);
+  });
+
+  it("chains the movements of the earlier files into the balance of a later one", () => {
+    const [, second] = linkAll([march, april], [assertion(1, CHECKING_ID, "2026-04-02", 97_000)]);
+
+    expect(second?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 97_000, gap: 0 });
+  });
+
+  it("does not chain the movements of a later file into an earlier one", () => {
+    const [first] = linkAll([march, april], [assertion(1, CHECKING_ID, "2026-03-02", 99_000)]);
+
+    expect(first?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 99_000, gap: 0 });
+  });
+
+  it("leaves out the movements of an earlier file that is cancelled", () => {
+    const cancelled = { ...march, phase: "cancelled" as const };
+    const [, second] = linkAll([cancelled, april], [assertion(1, CHECKING_ID, "2026-04-02", 98_000)]);
+
+    expect(second?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 98_000, gap: 0 });
+  });
+
+  it("checks nothing for a cancelled file", () => {
+    const [result] = linkAll(
+      [{ ...march, phase: "cancelled" }],
+      [assertion(1, CHECKING_ID, "2026-03-02", 1)],
     );
 
     expect(result).toEqual({ accounts: [], checked: 0, matching: 0 });

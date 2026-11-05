@@ -4,6 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { listAccounts, listOverflowAccounts } from "../../ledger/accounts";
+import { readAssertionLinkSnapshot } from "../../ledger/balance-assertions";
 import { listCategories } from "../../ledger/categories";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
@@ -23,9 +24,10 @@ export default async function ImportsPage() {
     getTranslations("imports"),
     getTranslations("common"),
   ]);
-  const view = withDatabase((db) =>
-    toImportView(listAccounts(db), listCategories(db), listOverflowAccounts(db)),
-  );
+  const { view, assertionSnapshot } = withDatabase((db) => ({
+    view: toImportView(listAccounts(db), listCategories(db), listOverflowAccounts(db)),
+    assertionSnapshot: readAssertionLinkSnapshot(db),
+  }));
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
@@ -37,7 +39,7 @@ export default async function ImportsPage() {
       {view.accounts.length === 0 ? (
         <p>{t("noAccount")}</p>
       ) : (
-        <ImportForm {...view} />
+        <ImportForm {...view} assertionSnapshot={assertionSnapshot} />
       )}
     </main>
   );

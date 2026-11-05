@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import type { AssertionLinks } from "../../domain/import-assertions";
 import type { RowDetails } from "../../domain/import-draft";
 import type { PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
@@ -24,6 +25,7 @@ import {
   visibleRowIndexes,
   type ReviewFile,
 } from "./review-state";
+import { AssertionLinkPanel } from "./assertion-link-panel";
 import { BalanceCheckPanel } from "./balance-check-panel";
 import { RuleProposalsPanel } from "./rule-proposals-panel";
 import { UndoImportPanel } from "./undo-import-panel";
@@ -140,6 +142,8 @@ interface FileCardProps {
   file: ReviewFile;
   fileIndex: number;
   plan: FilePlan;
+  /** What the balance assertions of the period say about the file; null when it is not compared. */
+  assertionLinks: AssertionLinks | null;
   /** Name of the earlier file to import or cancel first; null when this one may go. */
   waitFor: string | null;
   accountId: number;
@@ -159,6 +163,7 @@ export function FileCard({
   file,
   fileIndex,
   plan,
+  assertionLinks,
   waitFor,
   accountId,
   defaultSavingsAccountId,
@@ -409,6 +414,14 @@ export function FileCard({
             dispatch={dispatch}
             regionRef={regionRef}
           />
+          {assertionLinks === null ? null : (
+            <AssertionLinkPanel
+              links={assertionLinks}
+              fileName={file.fileName}
+              currency={file.currency}
+              accountNames={accountNames}
+            />
+          )}
           {problemCount > 0 ? <p id={hintId}>{t("fixFirst")}</p> : null}
           {waitFor === null ? null : (
             <p id={waitId}>{t("importAfter", { name: waitFor })}</p>

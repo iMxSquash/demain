@@ -494,6 +494,22 @@
         "gapLess": "Au {date}, Demain détient {amount} de moins que la banque.",
         "gapMatch": "Au {date}, les soldes concordent."
       },
+      "assertionLinks": {
+        "heading": "Soldes constatés dans les dates de ce fichier",
+        "summary": "{matching} sur {checked} soldes constatés concordent",
+        "summaryOne": "{matching} sur {checked} solde constaté concorde",
+        "empty": "Aucun solde constaté ne tombe dans les dates de ce fichier : rien à comparer.",
+        "regionLabel": "Soldes constatés dans les dates de {name}, tableau défilable",
+        "caption": "Soldes constatés dans les dates de {name} : le solde de la banque, le solde que Demain calcule une fois ce fichier enregistré, et l'écart. Tolérance zéro : toute différence est un écart.",
+        "columnAccount": "Compte",
+        "columnDate": "Date (fin de journée)",
+        "columnReal": "Solde de la banque",
+        "columnComputed": "Solde calculé",
+        "columnGap": "Écart",
+        "gapNone": "Aucun écart",
+        "gapDemainHigher": "{amount} : Demain compte plus que la banque",
+        "gapBankHigher": "{amount} : la banque affiche plus que Demain"
+      },
       "undo": {
         "heading": "Annuler cet import",
         "open": "Annuler cet import",

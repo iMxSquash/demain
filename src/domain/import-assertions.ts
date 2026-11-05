@@ -181,3 +181,33 @@ export function linkAssertions(
     matching: all.filter(({ gap }) => gap === 0).length,
   };
 }
+
+/**
+ * `linkAssertions` for every file of a review, in the order of the files. A file
+ * is compared with the balances once the files before it are recorded too: the
+ * snapshot holds the transactions as they were before any of them, so a file
+ * already imported still counts. A file after it does not, since it is imported
+ * later. The result of a cancelled or failed file checks nothing.
+ */
+export function linkReviewAssertions(
+  files: readonly ReviewedFile[],
+  plans: readonly FilePlan[],
+  snapshot: AssertionLinkSnapshot,
+  context: FileContext,
+): AssertionLinks[] {
+  const earlierMovements: AssertionMovement[] = [];
+  return files.map((file, index) => {
+    const plan = plans[index];
+    const movements = plan === undefined ? [] : fileMovements(file, plan, context);
+    const links = linkAssertions(
+      {
+        accountId: context.accountId,
+        period: filePeriod(file, context.currency),
+        movements,
+      },
+      { ...snapshot, transactions: [...snapshot.transactions, ...earlierMovements] },
+    );
+    earlierMovements.push(...movements);
+    return links;
+  });
+}
