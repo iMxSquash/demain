@@ -681,6 +681,12 @@
         "chosen": "{overflow} sera le compte de débordement de {account} à l'import d'un fichier."
       },
       "unplacedNote": "Une partie d'une ligne d'épargne ne tient nulle part dans la chaîne de débordement : ce fichier sera refusé tel quel.",
+      "order": {
+        "heading": "Ordre de traitement",
+        "intro": "Les fichiers sont traités par date de leur premier mouvement, pour que les plafonds de dépôt soient évalués dans l'ordre du temps. Deux fichiers qui commencent le même jour gardent l'ordre de votre choix.",
+        "reordered": "Ce n'est pas l'ordre dans lequel vous les avez choisis.",
+        "overlap": "Les dates chevauchent celles d'un fichier listé avant : {names}. Chaque fichier est traité en entier, donc ses lignes d'épargne sont placées après toutes celles des fichiers précédents, même quand certaines sont plus anciennes."
+      },
       "importAfter": "Importez ou annulez d'abord {name} : les fichiers sont enregistrés dans l'ordre des dates."
     }
   },

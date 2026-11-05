@@ -23,10 +23,13 @@ import {
   emptyFilePlan,
   nextFileToSettle,
   planReview,
+  processingOrder,
 } from "../../domain/import-review";
 import {
   defaultSavingsAccountId,
+  firstMovementDate,
   isSelectableSavingsAccount,
+  lastMovementDate,
 } from "../../domain/import-savings";
 import type { OverflowAccount } from "../../domain/overflow";
 import type {
@@ -88,6 +91,7 @@ function ReviewBody({
   const accountHintId = useId();
   const savingsSelectId = useId();
   const savingsHintId = useId();
+  const orderHeadingId = useId();
 
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? "";
   const receiving = useMemo(() => ({ id: accountId, currency }), [accountId, currency]);
@@ -163,6 +167,20 @@ function ReviewBody({
     [plans, overflowChoices.length, state.files, currency, savingsAccountId, storedOverflowAccounts],
   );
   const phases = state.files.map((file) => file.phase);
+  const order = useMemo(
+    () =>
+      processingOrder(
+        state.files.map(({ sourceIndex, rows }) => {
+          const dates = rows.map((row) => row.draft.date);
+          return {
+            sourceIndex,
+            firstDate: firstMovementDate(dates),
+            lastDate: lastMovementDate(dates),
+          };
+        }),
+      ),
+    [state.files],
+  );
   // Index of the file being read again with other columns.
   const [restaging, setRestaging] = useState<number | null>(null);
   const isBusy = isReading || restaging !== null || phases.includes("importing");
@@ -238,6 +256,32 @@ function ReviewBody({
           </p>
         </div>
       </div>
+
+      {state.files.length < 2 ? null : (
+        <section aria-labelledby={orderHeadingId} className="flex flex-col gap-1">
+          <h3 id={orderHeadingId} className="font-semibold">
+            {t("order.heading")}
+          </h3>
+          <p>
+            {t("order.intro")}
+            {order.isReordered ? ` ${t("order.reordered")}` : ""}
+          </p>
+          <ol className="list-decimal pl-6">
+            {state.files.map((file) => (
+              <li key={`${file.sourceIndex}-${file.fileName}`}>{file.fileName}</li>
+            ))}
+          </ol>
+          {order.overlapping.length === 0 ? null : (
+            <p>
+              {t("order.overlap", {
+                names: order.overlapping
+                  .map((position) => state.files[position]?.fileName ?? "")
+                  .join(", "),
+              })}
+            </p>
+          )}
+        </section>
+      )}
 
       <OverflowPrompt
         demands={demands}

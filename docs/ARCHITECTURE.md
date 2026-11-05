@@ -288,6 +288,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Alternatives rejected.**
 
+- *Interleaving the movements of overlapping files by day.* It would need all the files in one plan and one transaction, which contradicts one batch per file. Files are ordered by first date (ties keep the order chosen) and processed whole, and the review warns when their dates overlap.
 - *All files in a single transaction.* One wrong file would block every other one, and the files are independent once they are deduplicated.
 - *Refusing a non-empty account in the import.* It would make the monthly import impossible, which is its main use.
 - *Migrating file by file with the one-time migration.* It set the opening balances and the assertions on the whole history, and a resumed run would have recorded the history twice. The deduplication of the import removes that risk.

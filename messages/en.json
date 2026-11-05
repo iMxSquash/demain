@@ -681,6 +681,12 @@
         "chosen": "{overflow} will be the overflow account of {account} when a file is imported."
       },
       "unplacedNote": "Part of a savings row fits nowhere along the overflow chain: this file will be refused as it is.",
+      "order": {
+        "heading": "Order of processing",
+        "intro": "Files are processed by the date of their first movement, so that deposit ceilings are read in time order. Files that start the same day keep the order you chose.",
+        "reordered": "This is not the order in which you chose them.",
+        "overlap": "Dates overlap with a file listed before: {names}. Each file is processed whole, so its savings rows are placed after all those of the files before it, even when some are earlier."
+      },
       "importAfter": "Import or cancel {name} first: the files are recorded in date order."
     }
   },
