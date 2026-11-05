@@ -1,4 +1,3 @@
-import type en from "../../../../messages/en.json";
 import { formatAmount } from "../../../domain/money";
 import type {
   SummaryBalance,
@@ -12,12 +11,9 @@ import {
   describeSummaryIssue,
   describeVerificationIssue,
   figureLabel,
-  type Flatten,
   type Say,
-} from "../../migration/describe-issues";
+} from "./describe-issues";
 import type { SummaryField } from "./summary-balances-form-data";
-
-export type SummaryKey = Flatten<(typeof en)["summaryBalances"]>;
 
 export interface SummaryBalanceRow {
   month: string;
@@ -62,7 +58,6 @@ export interface SummaryBalancesReading {
 }
 
 export interface SummaryBalancesContext {
-  t: (key: SummaryKey, values?: Record<string, string | number>) => string;
   /** Speaks the language of the Summary file's own issues and of the comparison. */
   say: Say;
   /** "done" once the balances are recorded: the outcomes are then in the past tense. */
@@ -71,8 +66,9 @@ export interface SummaryBalancesContext {
 
 function describeRows(
   reading: SummaryBalancesReading,
-  { t, say, phase }: SummaryBalancesContext,
+  { say, phase }: SummaryBalancesContext,
 ): SummaryBalanceRow[] {
+  const { t } = say;
   const money = (amount: number) => formatAmount(amount, say.currency, say.locale);
   const planned = new Map(
     reading.preview.assertions.map((assertion) => [assertion.date, assertion]),
@@ -113,18 +109,19 @@ function describeRows(
 
 function describeNotes(
   reading: SummaryBalancesReading,
-  { t, say }: SummaryBalancesContext,
+  { say }: SummaryBalancesContext,
 ): string[] {
+  const { t } = say;
   const month = (value: string) => formatMonth(value, say.locale);
   const { futureMonths } = reading.comparison;
   return [
     ...reading.issues.map((issue) =>
       issue.kind === "monthDuplicated"
         ? t("issues.monthDuplicated", { month: month(issue.month) })
-        : describeSummaryIssue(reading.source, issue, say).text,
+        : describeSummaryIssue(reading.source, issue, say),
     ),
-    ...reading.comparison.issues.map(
-      (issue) => describeVerificationIssue(issue, say).text,
+    ...reading.comparison.issues.map((issue) =>
+      describeVerificationIssue(issue, say),
     ),
     ...(futureMonths.length === 0
       ? []
@@ -153,7 +150,7 @@ function describeDifferences(
 }
 
 function headline(
-  { t, phase }: SummaryBalancesContext,
+  { say: { t }, phase }: SummaryBalancesContext,
   { assertions, refused }: SummaryAssertionPreview,
 ): string {
   if (phase === "done") return t("messages.done", { count: assertions.length });

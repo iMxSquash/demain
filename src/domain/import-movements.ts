@@ -3,8 +3,7 @@
  * the layout is analyzed, then each row gets its date, label, signed amount
  * and, when the file has them, its type, category, payment mode and
  * description. Pure functions: no database, no clock. Whatever cannot be read
- * is reported with its line, never dropped. See DOMAIN, section Migration from
- * the sheet.
+ * is reported with its line, never dropped. See DOMAIN, section Importing files.
  */
 
 import { readPaymentMode, type ColumnChoices } from "./import-columns";

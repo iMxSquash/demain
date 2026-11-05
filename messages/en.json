@@ -34,7 +34,6 @@
     "synthesis": "Monthly synthesis",
     "imports": "Import",
     "rules": "Categorization rules",
-    "migration": "Sheet migration",
     "currencies": "Currencies",
     "backup": "Backup and export",
     "balances": "Balance checks"
@@ -201,8 +200,47 @@
     },
     "issues": {
       "monthDuplicated": "{month} appears several times in the Summary: the first row is used.",
-      "futureMonths": "Summary months that are not over are not compared: {months}."
-    }
+      "futureMonths": "Summary months that are not over are not compared: {months}.",
+      "emptyFile": "The file is empty.",
+      "delimiterNotFound": "No separator found in the file: choose the separator above.",
+      "unreadableFile": "The file cannot be read: {message}",
+      "columnNotFound": {
+        "month": "No month column in the Summary.",
+        "net": "No final balance column in the Summary.",
+        "savings": "No savings column in the Summary.",
+        "cumulativeSavings": "No cumulative savings column in the Summary.",
+        "cumulativeAccount": "No cumulative account column in the Summary.",
+        "savingsBalance": "No real savings balance column in the Summary.",
+        "realAccountBalance": "No real account balance column in the Summary."
+      },
+      "columnUnrecognized": "Summary column {column} (\"{header}\") is not recognized and is ignored.",
+      "columnAmbiguous": {
+        "month": "Several Summary columns look like the month: column {first} is used, not {others}.",
+        "net": "Several Summary columns look like the final balance: column {first} is used, not {others}.",
+        "savings": "Several Summary columns look like the savings: column {first} is used, not {others}.",
+        "cumulativeSavings": "Several Summary columns look like the cumulative savings: column {first} is used, not {others}.",
+        "cumulativeAccount": "Several Summary columns look like the cumulative account: column {first} is used, not {others}.",
+        "savingsBalance": "Several Summary columns look like the real savings balance: column {first} is used, not {others}.",
+        "realAccountBalance": "Several Summary columns look like the real account balance: column {first} is used, not {others}."
+      },
+      "monthUnreadable": "Summary row skipped: \"{text}\" is not a month.",
+      "monthYearMissing": "Summary row skipped: \"{text}\" has no year. Enter the year above.",
+      "amountUnreadable": "Summary amount \"{text}\" cannot be read: the figure stays empty.",
+      "monthMissingInSheet": "{month} is in the new history but not in the Summary.",
+      "monthMissingInDemain": "{month} is in the Summary but has no row in the monthly tabs.",
+      "duplicateSheetMonth": "{month} appears several times in the Summary: the first row is compared.",
+      "figureMissingInSheet": "{month}: the Summary has no value for {figure}."
+    },
+    "figures": {
+      "net": "Final balance",
+      "savings": "Savings",
+      "cumulativeSavings": "Cumulative savings",
+      "cumulativeAccount": "Cumulative account",
+      "savingsBalance": "Real savings balance"
+    },
+    "location": "{source}, line {line}",
+    "locationFile": "{source}",
+    "withLocation": "{location}: {text}"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -675,172 +713,6 @@
     "restoreConfirm": "Replace everything",
     "failed": "The file could not be prepared. Check your connection and try again."
   },
-  "migration": {
-    "metaTitle": "Sheet migration | Demain",
-    "title": "Migrate the spreadsheet history",
-    "intro": "Import your monthly tabs, exported as CSV, once. The files are read on this server and go nowhere else. Nothing is written until you confirm, and a problem in a file is shown, never skipped silently.",
-    "noAccount": "No active account yet. Create the checking account and the savings accounts before migrating.",
-    "tabsLabel": "Monthly tabs (CSV)",
-    "tabsHint": "Choose all the monthly tabs at once: {max} files at most, {size} KB each.",
-    "summaryLabel": "Summary tab (CSV, optional)",
-    "summaryHint": "Used to check the figures month by month and to record the real account balances.",
-    "yearLabel": "Year of the dates",
-    "yearHint": "Only needed when the dates have no year. Leave empty if the files give it.",
-    "delimiterLabel": "Separator",
-    "delimiterAuto": "Detect it",
-    "delimiters": {
-      "semicolon": "Semicolon (;)",
-      "comma": "Comma (,)",
-      "tab": "Tab"
-    },
-    "checkingLabel": "Checking account",
-    "savingsLabel": "First savings account",
-    "savingsHint": "Savings go there up to its deposit ceiling, then along its overflow chain.",
-    "chooseAccount": "Choose an account",
-    "openingDateLabel": "Opening date",
-    "openingDateHint": "The balances below count from this day, before the first row.",
-    "openingBalancesHeading": "Opening balances",
-    "openingBalancesHint": "Leave a field empty to keep the balance the account already has.",
-    "previewSubmit": "Preview",
-    "commitSubmit": "Migrate",
-    "confirmReview": "I have read the points to check and the differences below",
-    "blockingHeading": "To fix before migrating",
-    "reviewHeading": "To check",
-    "planHeading": "What the migration will record",
-    "planTransactions": "Transactions: {count}",
-    "planTransfers": "Savings transfers: {count}",
-    "planCategories": "Categories to create: {count}",
-    "planRules": "Categorization rules to create: {count}",
-    "planAssertions": "Balance assertions to create: {count}",
-    "splitsHeading": "How the savings are split",
-    "splitsColumns": {
-      "location": "Row",
-      "date": "Date",
-      "amount": "Amount",
-      "parts": "Goes to"
-    },
-    "verificationHeading": "Comparison with the Summary",
-    "verificationColumns": {
-      "month": "Month",
-      "figure": "Figure",
-      "sheet": "Summary",
-      "demain": "Demain",
-      "difference": "Difference"
-    },
-    "figures": {
-      "net": "Final balance",
-      "savings": "Savings",
-      "cumulativeSavings": "Cumulative savings",
-      "cumulativeAccount": "Cumulative account",
-      "savingsBalance": "Real savings balance"
-    },
-    "verificationMatches": "Every month matches the Summary to the cent.",
-    "location": "{source}, line {line}",
-    "locationFile": "{source}",
-    "withLocation": "{location}: {text}",
-    "errors": {
-      "accountRequired": "Choose the checking account and the first savings account.",
-      "sameAccount": "The checking account and the savings account must be different.",
-      "filesRequired": "Choose at least one monthly tab.",
-      "tooManyFiles": "Too many files: {max} monthly tabs at most.",
-      "fileTooLarge": "{name} is larger than {max} KB.",
-      "fileEmpty": "{name} is empty.",
-      "yearInvalid": "The year must be four digits, for example 2026.",
-      "openingDateInvalid": "Enter the opening date as a calendar date.",
-      "balanceInvalid": "The opening balance of {account} is not a valid amount.",
-      "accountGone": "An account no longer exists. Reload the page.",
-      "confirmRequired": "Tick the box to confirm that you have read the points to check.",
-      "duplicateFileName": "Two files have the same name ({name}): rename one so that its rows can be told apart."
-    },
-    "messages": {
-      "noRows": "No row could be read from the monthly tabs.",
-      "blocked": "The migration cannot start: fix the points below, then preview again.",
-      "previewReady": "Ready to migrate. Check the points below, then confirm.",
-      "done": "Migration done: {count} transactions recorded."
-    },
-    "toCategorize": "Categorize the transactions",
-    "issues": {
-      "emptyFile": "The file is empty.",
-      "delimiterNotFound": "No separator found in the file: choose the separator above.",
-      "unreadableFile": "The file cannot be read: {message}",
-      "mappingColumnNotFound": {
-        "date": "No date column found: the file is not read.",
-        "label": "No label column found: the file is not read.",
-        "amount": "No amount column found: the file is not read."
-      },
-      "dateFormatNotFound": "No date format reads every date of the file.",
-      "dateFormatAmbiguous": {
-        "dmy": "The dates can be read several ways. Read as day/month/year: check it.",
-        "mdy": "The dates can be read several ways. Read as month/day/year: check it.",
-        "ymd": "The dates can be read several ways. Read as year/month/day: check it."
-      },
-      "dateYearMissing": "The dates have no year and none was given: enter the year above. No row is read.",
-      "dateYearAssumed": "The dates have no year: {year} was taken from the file name. Check it, or enter the year above.",
-      "columnNotFound": {
-        "type": "No type column found.",
-        "paymentMode": "No payment mode column found.",
-        "category": "No category column found."
-      },
-      "ambiguousColumn": {
-        "type": "Several columns look like the type column: column {column} is used, not {others}.",
-        "paymentMode": "Several columns look like the payment mode column: column {column} is used, not {others}."
-      },
-      "unrecognizedValue": {
-        "type": "\"{value}\" is not a known type (lines {lines}).",
-        "paymentMode": "\"{value}\" is not a known payment mode (lines {lines})."
-      },
-      "columnsIgnored": "Columns {columns} look like another table beside the movements and are ignored.",
-      "rowsIgnored": {
-        "beforeHeader": "Lines {lines} are above the header and are ignored.",
-        "total": "Lines {lines} look like totals and are ignored."
-      },
-      "numberFormatAmbiguous": "The amounts do not all use the same number format. Read as {example}: check it.",
-      "rowUnreadable": "Row skipped: {message}",
-      "typeUnrecognized": "Row skipped: the type \"{value}\" is not recognized.",
-      "typeMissing": "Row skipped: its type is empty.",
-      "labelFromCategory": "The label is empty: the category \"{category}\" is used as the label.",
-      "summaryColumnNotFound": {
-        "month": "No month column in the Summary.",
-        "net": "No final balance column in the Summary.",
-        "savings": "No savings column in the Summary.",
-        "cumulativeSavings": "No cumulative savings column in the Summary.",
-        "cumulativeAccount": "No cumulative account column in the Summary.",
-        "savingsBalance": "No real savings balance column in the Summary.",
-        "realAccountBalance": "No real account balance column in the Summary."
-      },
-      "summaryColumnUnrecognized": "Summary column {column} (\"{header}\") is not recognized and is ignored.",
-      "summaryColumnAmbiguous": {
-        "month": "Several Summary columns look like the month: column {first} is used, not {others}.",
-        "net": "Several Summary columns look like the final balance: column {first} is used, not {others}.",
-        "savings": "Several Summary columns look like the savings: column {first} is used, not {others}.",
-        "cumulativeSavings": "Several Summary columns look like the cumulative savings: column {first} is used, not {others}.",
-        "cumulativeAccount": "Several Summary columns look like the cumulative account: column {first} is used, not {others}.",
-        "savingsBalance": "Several Summary columns look like the real savings balance: column {first} is used, not {others}.",
-        "realAccountBalance": "Several Summary columns look like the real account balance: column {first} is used, not {others}."
-      },
-      "summaryMonthUnreadable": "Summary row skipped: \"{text}\" is not a month.",
-      "summaryMonthYearMissing": "Summary row skipped: \"{text}\" has no year. Enter the year above.",
-      "summaryAmountUnreadable": "Summary amount \"{text}\" cannot be read: the figure stays empty.",
-      "savingsAmountInvalid": "Savings row skipped: the amount must be a positive number.",
-      "savingsUnplaced": "{amount} of this savings row fits in no account of the chain.",
-      "overflowChainCycle": "The overflow chain of the savings accounts loops back on itself.",
-      "accountArchived": "The checking account is archived.",
-      "ledgerNotEmpty": "{account} already has transactions: this migration is one-time.",
-      "categoryArchived": "The category \"{name}\" is archived and cannot be used ({rows}).",
-      "rowInvalid": "Row not valid: {message}",
-      "assertionInvalid": "The real balance of {month} cannot be recorded: {message}",
-      "assertionSkipped": "No real account balance for {month}: no balance assertion for it.",
-      "ruleConflict": "\"{label}\" has several categories ({categories}): no rule created for it.",
-      "ruleExists": "A rule already exists for \"{label}\": it is left as it is.",
-      "summaryNotProvided": "No Summary month to check against: nothing is checked against the Summary.",
-      "summaryMonthsIgnored": "Summary months outside the imported period are ignored: {months}.",
-      "monthMissingInSheet": "{month} is in the new history but not in the Summary.",
-      "monthMissingInDemain": "{month} is in the Summary but has no row in the monthly tabs.",
-      "duplicateSheetMonth": "{month} appears several times in the Summary: the first row is compared.",
-      "figureMissingInSheet": "{month}: the Summary has no value for {figure}."
-    },
-    "moreIssues": "And {count} more."
-  },
   "feedback": {
     "accountNameRequired": "The account name is required",
     "accountKindUnknown": "Unknown account kind \"{kind}\"",
@@ -992,8 +864,6 @@
     "balanceAssertionNotDeleted": "Something went wrong, the balance check was not deleted.",
     "importDone": "Transactions imported: {imported}. Duplicates ignored: {duplicates}.",
     "importFailed": "Something went wrong, nothing was imported.",
-    "migrationDone": "Transactions migrated: {count}.",
-    "migrationFailed": "Something went wrong, nothing was migrated.",
     "backupRestored": "The backup is restored. Sign in with the credentials it holds.",
     "totpDisabled": "The second factor is turned off.",
     "signedOut": "You are signed out.",

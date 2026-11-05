@@ -1,6 +1,6 @@
 # Domain
 
-This document defines the vocabulary of Demain, the entities and their relationships, the rules that must always hold, and the main algorithms (monthly synthesis, planned items, matching, scenario evaluation, migration from the sheet). The product context is in [PRODUCT.md](PRODUCT.md), the technical context in [ARCHITECTURE.md](ARCHITECTURE.md).
+This document defines the vocabulary of Demain, the entities and their relationships, the rules that must always hold, and the main algorithms (monthly synthesis, planned items, matching, scenario evaluation). The product context is in [PRODUCT.md](PRODUCT.md), the technical context in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Entities are described as tables of fields, not as code. Field names are indicative; the final schema will be defined in M1.
 
@@ -193,7 +193,7 @@ There is at most one assertion per account and date: recording the same day agai
 
 The real account balances of the sheet's Summary tab become balance assertions through the same rules (a day that already has one is replaced, and announced as such). A Summary month gives one assertion, dated the **last day of the month** (leap years included), on the account chosen by the user. A month the sheet leaves without a balance creates nothing and is named, it is not an error. A month is **refused** when the account is archived, when the month ended before the opening date of the account, or when its last day is after today (the current month is not over, so its real balance is not known yet). Everything accepted is recorded in one transaction, all or nothing, after a preview that lists what would be created, replaced and refused. When two rows name the same month, the first is kept and the other is reported.
 
-The `/balances/summary` screen does this in two steps: the file, the account (active accounts only) and an optional year give a preview, a table that says in text, for each month, whether its balance will be created, will replace the balance of that day (with the previous amount), is refused (with the reason) or is nothing to record; then an explicit second action records everything. The same screen compares the Summary with the history already stored in Demain, month by month (net, savings, cumulative savings, cumulative account, real savings balance), with the same comparison as the migration. Only the months from the first to the last Summary month that is over are compared (the others are named), the savings balance is the sum of the balances of the accounts of kind savings, and a difference is shown as the two amounts and the signed gap (Demain minus the Summary), never by color alone. Tolerance is zero.
+The `/balances/summary` screen does this in two steps: the file, the account (active accounts only) and an optional year give a preview, a table that says in text, for each month, whether its balance will be created, will replace the balance of that day (with the previous amount), is refused (with the reason) or is nothing to record; then an explicit second action records everything. The same screen compares the Summary with the history already stored in Demain, month by month (net, savings, cumulative savings, cumulative account, real savings balance), with the month-by-month comparison of the sheet figures. Only the months from the first to the last Summary month that is over are compared (the others are named), the savings balance is the sum of the balances of the accounts of kind savings, and a difference is shown as the two amounts and the signed gap (Demain minus the Summary), never by color alone. Tolerance is zero.
 
 ### Scenario and modification
 
@@ -315,7 +315,7 @@ Figures from the sheet's Summary tab (EUR):
 | January | 576.14 | 573.16 | 573.16 | 576.14 - 573.16 = **2.98** |
 | February | 806.07 | 650.00 | 573.16 + 650.00 = **1223.16** | (576.14 + 806.07) - 1223.16 = 1382.21 - 1223.16 = **159.05** |
 
-In minor units, January is `57614 - 57316 = 298` and February is `(57614 + 80607) - 122316 = 15905`. After migration, Demain must reproduce these numbers exactly; this is an acceptance test of M1 (see [ROADMAP.md](ROADMAP.md#m1-ledger)).
+In minor units, January is `57614 - 57316 = 298` and February is `(57614 + 80607) - 122316 = 15905`. Once the history is imported, Demain must reproduce these numbers exactly; this is an acceptance test of M1 (see [ROADMAP.md](ROADMAP.md#m1-ledger)).
 
 The sheet also had a real account balance and a real savings balance entered by hand each month. These become **balance assertions** at the last day of each month, and any difference with the computed balance appears as an unexplained gap instead of being silently overwritten.
 
@@ -449,7 +449,7 @@ A bank export rarely says whether a row is an expense, an income or savings. The
 
 ### Layers
 
-1. **An explicit type cell.** A cell read by the same reader as the migration (`Expense`, `Depense`, `Income` and `Revenu`, singular or plural; `Savings`, `Saving` and `Epargne`, but not `Epargnes`) gives the type.
+1. **An explicit type cell.** A cell read by the same reader as the import (`Expense`, `Depense`, `Income` and `Revenu`, singular or plural; `Savings`, `Saving` and `Epargne`, but not `Epargnes`) gives the type.
 2. **The direction of the amount.** Separate debit and credit columns, or the sign of a single amount column: negative leaves the account (expense or savings), positive enters it (income).
 3. **The vocabulary of the category.** The first whole word of the category cell that the vocabulary knows (for example `salaire` gives an income, `epargne` gives savings). Words are compared after removing accents and case, never as parts of a longer word.
 4. **The history.** The type given to the same label (compared without case and extra spaces) by earlier imports of the account. The category word comes before the history.
@@ -487,7 +487,7 @@ The vocabulary and the history are inputs of the function, like the rest of the 
 
 ## Reading any CSV file
 
-One reader (`readMovementFile`) serves the migration and, later, the import. It analyzes the layout of the file, then reads each row into a date, a label, a signed amount and, when the file has them, a type guess (see above), a category, a payment mode and a description. The migration keeps its own strict policy on top of it (see Migration from the sheet).
+One reader (`readMovementFile`) serves the import. It analyzes the layout of the file, then reads each row into a date, a label, a signed amount and, when the file has them, a type guess (see above), a category, a payment mode and a description.
 
 ### Blocks
 
@@ -515,7 +515,7 @@ The type, the payment mode, the category and the description are looked for by t
 
 The columns are settled in this order: type, payment mode, then the category named by a header, then the description, then the category guessed from the values. A column named as the description is therefore never taken for the category, even when its values repeat like categories do (a `Note` column holding `perso` and `pro`).
 
-The values always have the last word: a `Type` column that holds `CB` and `VIR` is the payment mode column. A header named `Description` gives the label (as in the column mapping of the migration) and a second text column named like a description gives the description.
+The values always have the last word: a `Type` column that holds `CB` and `VIR` is the payment mode column. A header named `Description` gives the label  and a second text column named like a description gives the description.
 
 ### Label from the category
 
@@ -523,7 +523,7 @@ A row whose label is empty and whose category is filled takes the category as la
 
 ## Importing files
 
-An import records the movements of a bank file on an account that may already hold transactions. It is not the sheet migration (see below, and ADR-016).
+An import records the movements of a bank file on an account that may already hold transactions. See ADR-016 and, for the history of the sheet, Migration from the sheet.
 
 - **Savings go both ways.** A negative amount typed as savings is a deposit: the money leaves the account of the file and is split along the overflow chain of the savings account, one linked pair of transfers per part. A positive amount typed as savings is a withdrawal: a transfer from the savings account to the account of the file.
 - **Date order.** The rows of a file, and the files of one import, are taken in date order so that the ceilings are read from the balances as they were.
@@ -537,60 +537,10 @@ An import records the movements of a bank file on an account that may already ho
 
 ## Migration from the sheet
 
-The sheet's history is imported once, during M1.
+Historical note. The history of the sheet (January to October 2026) was brought into Demain once, and the dedicated `/migration` screen that did it was retired (ADR-018). What remains of it is part of the general rules:
 
-### Scope
-
-- The monthly tabs from January to October 2026 are imported, each exported as CSV.
-- The 2027 tabs are **ignored**: they are copies of the template, and planned items replace them.
-- The Summary tab is used for **verification** (and its real balances as balance assertions), not as a source of transactions.
-
-### Opening balances
-
-The sheet has two constants for the money held before it started:
-
-| Sheet constant | Amount | Demain |
-| --- | ---: | --- |
-| Base_compte | 56.27 | Opening balance of the checking account. |
-| Base_epargne | 1 476.84 | Opening balance of the Livret Jeune. The Livret A starts at 0. |
-
-Check: 56.27 + 2.98 (January cumulative account) = 59.25, which is the "real account" value of January in the sheet.
-
-### Savings destination
-
-The sheet does not record which savings account received each deposit. The owner's rule was: fill the Livret Jeune up to its ceiling of 1 600.00 EUR, then put the rest on the Livret A. The importer applies it with the account-level overflow described above: the Livret Jeune has a ceiling of 1 600.00 EUR and the Livret A as overflow account, and a savings row that crosses the ceiling is split along that chain.
-
-Example: the January savings row of 573.16 becomes a transfer of 123.16 to the Livret Jeune (1 476.84 + 123.16 = 1 600.00) and a transfer of 450.00 to the Livret A. All later rows go to the Livret A. A preview of every split is shown before the import is committed, and each destination can be corrected by hand.
-
-### Column mapping
-
-| Sheet column | Demain field | Notes |
-| --- | --- | --- |
-| Date | transaction.date | Parsed with the sheet's date format; the year comes from the tab when absent. |
-| Category | transaction.category_id | Categories are created from the distinct values. Each (label, category) pair helps bootstrap categorization rules. |
-| Description | transaction.label | Kept as label; it is the text rules will match on. |
-| Type = Expense | kind `expense`, negative amount | |
-| Type = Income | kind `income`, positive amount | |
-| Type = Savings | kind `transfer` from checking to a savings account | Destination given by the Livret Jeune and its overflow account (see above). |
-| Payment mode (Card / Transfer / Direct debit) | transaction.payment_mode | Informational. |
-| Amount | transaction.amount | Converted to integer minor units by string parsing; the sign comes from Type. |
-
-| Summary tab column | Demain usage |
-| --- | --- |
-| Savings, Final balance, cumulative savings, cumulative account | Verification only: recomputed by Demain and compared month by month. |
-| Real account balance | Balance assertion on the checking account, last day of the month (see Balance assertion for the refusals). The month-by-month comparison with the computed figures stays. |
-| Real savings balance | The total of the two savings accounts. It is shown as a verification figure against the sum of the Livret Jeune and the Livret A, and is not split into per-account assertions. Going forward, balance assertions are recorded per account, as the bank shows them. |
-
-### Verification
-
-After import, Demain shows a month-by-month comparison between its computed figures and the Summary tab. The migration is accepted when all months match to the cent, or when each difference is explained (for example, a row mistyped in the sheet).
-
-### How the files are read and recorded
-
-- **Any CSV.** The separator, the header row, the date format, the number format and the columns that hold the type (expense, income, savings), the category, the payment mode and the description are detected from the file, in French and in English (see Reading any CSV file). Without a type column, the type follows the direction of the amounts (see Guessing the type of an imported row), and a file where no amount is negative reads as expenses. A date written without a year takes the year given by the user, or the only year in the file name (shown to confirm); without either, no row is read and the year is asked for.
-- **What is not a movement.** The blocks beside the table, the total rows and the lines above the header are ignored and reported with their lines. A row with no description takes its category as label and is reported to be read.
-- **Nothing is dropped silently.** A column that is not found, a value that is not recognized, a row that cannot be read, a month missing on one side of the comparison: each is reported with its file and line. What would lose or misread a row of a monthly tab, and everything the ledger refuses, stops the migration. The rest (a guessed date format, an optional column missing, an existing rule, a difference with the Summary) is shown to be read, and the user ticks a box before migrating.
-- **Savings.** A savings row is split along the overflow chain of the savings accounts, in date order, from the balances the migration sets. A part that fits nowhere along the chain stops the migration.
-- **Rules.** One global `equals` rule is created for each distinct (label, category) pair, in order of appearance. A label seen with several categories gets no rule and is reported, and a label that already has a rule is left alone.
-- **Verification scope.** The Summary months compared are those from the first to the last month of the imported rows. The others (months still to come, left empty in the sheet) are named as ignored. The months before the first row hold only the opening balances and are not compared.
-- **One time, all or nothing.** This rule belongs to the initial migration only; the import of files (see Importing files) has none of it (ADR-016). The migration is refused when one of the accounts already has transactions, and everything is recorded in one transaction: the opening balances, the categories, the transactions, the split transfers, the balance assertions and the rules.
+- The monthly tabs are read like any other CSV file by the import (see Importing files and Reading any CSV file). Savings rows are split along the overflow chain of the savings accounts (see Overflow chains); the owner's rule was to fill the Livret Jeune up to its ceiling of 1 600.00 EUR, then the Livret A, so that the January row of 573.16 gives 123.16 and 450.00.
+- The opening balances are set when an account is created. The sheet's constants were `Base_compte` (56.27, checking) and `Base_epargne` (1 476.84, Livret Jeune; the Livret A starts at 0), and 56.27 + 2.98 (January cumulative account) = 59.25 is the "real account" value of January in the sheet.
+- The Summary tab is not a source of transactions. Its real account balances become balance assertions through `/balances/summary`, and its other figures are compared month by month with the stored history there (see Balance assertion).
+- The 2027 tabs are ignored: they are copies of the template, and planned items replace them.
+- Repeating an import is harmless: the rows are deduplicated against the account (ADR-016).

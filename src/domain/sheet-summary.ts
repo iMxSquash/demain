@@ -1,10 +1,11 @@
 /**
  * Reads the sheet's Summary tab, exported as CSV, into the monthly figures
- * that the migration checks against. Pure functions: no database, no clock.
+ * and the real account balances that `/balances/summary` checks against. Pure
+ * functions: no database, no clock.
  * Whatever cannot be read is reported in `issues`, never dropped. Amounts are
  * stored as integer minor units and months as "YYYY-MM"; showing them as
- * "1 234,56 €" or "01/2026" is the front end's job. See DOMAIN, section
- * Migration from the sheet.
+ * "1 234,56 €" or "01/2026" is the front end's job. See DOMAIN, entity
+ * Balance assertion.
  */
 
 import {
@@ -13,11 +14,9 @@ import {
   type CsvDelimiter,
   type CsvFileIssue,
 } from "./import-csv";
-import { isCalendarDate } from "./account";
 import { MoneyParseError, parseAmount } from "./money";
-import type { SheetRow } from "./sheet-import";
 import type { SheetMonth, VerifiedFigure } from "./sheet-verification";
-import { monthOf, type Month } from "./synthesis";
+import type { Month } from "./synthesis";
 
 /** A Summary row. The real account balance becomes a balance assertion, not a compared figure. */
 export type SummaryMonth = SheetMonth & { realAccountBalance: number | null };
@@ -268,38 +267,4 @@ export function readSummaryBalances(
     balances.push({ month, amount: realAccountBalance });
   }
   return { balances, issues };
-}
-
-export interface SummaryScope {
-  inScope: SummaryMonth[];
-  /** Left out because they fall outside the period of the rows, and named so. */
-  ignored: Month[];
-}
-
-/**
- * Keeps the Summary months from the first to the last month of the imported
- * rows: the months still to come, empty in the sheet, are not part of the
- * history. A row with an impossible date does not set the period.
- */
-export function scopeSummary(
-  months: readonly SummaryMonth[],
-  rows: readonly SheetRow[],
-): SummaryScope {
-  // "YYYY-MM" strings sort chronologically.
-  const rowMonths = rows
-    .filter((row) => isCalendarDate(row.date))
-    .map((row) => monthOf(row.date))
-    .sort();
-  const first = rowMonths[0];
-  const last = rowMonths[rowMonths.length - 1];
-  if (first === undefined || last === undefined) {
-    return { inScope: [], ignored: months.map((entry) => entry.month) };
-  }
-
-  const isInScope = (entry: SummaryMonth) =>
-    entry.month >= first && entry.month <= last;
-  return {
-    inScope: months.filter(isInScope),
-    ignored: months.filter((entry) => !isInScope(entry)).map((entry) => entry.month),
-  };
 }

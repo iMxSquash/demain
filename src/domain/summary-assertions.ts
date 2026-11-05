@@ -2,7 +2,7 @@
  * Turns the real account balances of the sheet's Summary tab into balance
  * assertions at the last day of each month. Pure functions: "today" is an
  * input, there is no clock and no database. See DOMAIN, entity Balance
- * assertion and section Migration from the sheet.
+ * assertion.
  */
 
 import type { BalanceAssertionInput } from "./balance-assertion";

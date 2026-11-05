@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { SheetRow } from "../../src/domain/sheet-import";
 import {
   readSheetSummary,
   readSummaryBalances,
-  scopeSummary,
-  type SummaryMonth,
 } from "../../src/domain/sheet-summary";
 
 // Headers as named in DOMAIN; the figures are synthetic.
@@ -195,58 +192,6 @@ describe("readSheetSummary", () => {
       realAccountBalance: null,
     });
     expect(result.issues).toEqual([]);
-  });
-});
-
-describe("scopeSummary", () => {
-  const month = (name: string): SummaryMonth => ({
-    month: name,
-    net: null,
-    savings: null,
-    cumulativeSavings: null,
-    cumulativeAccount: null,
-    savingsBalance: null,
-    realAccountBalance: null,
-  });
-  const row = (date: string): SheetRow => ({
-    source: "tab.csv",
-    line: 2,
-    date,
-    label: "Shop",
-    amount: 100,
-    type: "expense",
-    category: null,
-    paymentMode: null,
-  });
-  const summary = ["2025-12", "2026-01", "2026-02", "2026-03", "2026-11"].map(month);
-
-  it("keeps the months from the first to the last month of the rows", () => {
-    const scope = scopeSummary(summary, [row("2026-01-15"), row("2026-03-02")]);
-
-    expect(scope.inScope.map((entry) => entry.month)).toEqual([
-      "2026-01",
-      "2026-02",
-      "2026-03",
-    ]);
-  });
-
-  it("names the months it leaves out instead of dropping them silently", () => {
-    const scope = scopeSummary(summary, [row("2026-01-15"), row("2026-03-02")]);
-
-    expect(scope.ignored).toEqual(["2025-12", "2026-11"]);
-  });
-
-  it("leaves everything out, and says so, when there are no rows", () => {
-    const scope = scopeSummary(summary, []);
-
-    expect(scope.inScope).toEqual([]);
-    expect(scope.ignored).toHaveLength(5);
-  });
-
-  it("does not let a row with an impossible date set the period", () => {
-    const scope = scopeSummary(summary, [row("2026-02-10"), row("2099-13-45")]);
-
-    expect(scope.inScope.map((entry) => entry.month)).toEqual(["2026-02"]);
   });
 });
 
