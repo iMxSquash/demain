@@ -12,6 +12,7 @@ import { createJsonExport } from "../../src/export/json-export";
 import { createAccount } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
 import { commitImport } from "../../src/ledger/imports";
+import { setVocabularyWord } from "../../src/ledger/type-vocabulary";
 import { createTransaction, createTransfer } from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { balanceAssertions, exchangeRates, settings } from "../../src/storage/schema";
@@ -112,6 +113,17 @@ describe("JSON export", () => {
       format: "demain-export",
       schemaVersion: 1,
       exportedAt: "2026-10-30T09:15:00.000Z",
+    });
+  });
+
+  it("carries the vocabulary words of the user with the settings", async () => {
+    setVocabularyWord(db, { word: "bonus", type: "income" });
+
+    const exported = exportSchema.parse(await exportAsObject());
+
+    expect(exported.settings).toContainEqual({
+      key: "type_vocabulary_overrides",
+      value: '{"bonus":"income"}',
     });
   });
 

@@ -885,7 +885,9 @@
     "balanceAssertionReplaced": "Balance check saved. It replaced the one already recorded on {date}.",
     "balanceAssertionAccountRequired": "Choose the account the balance belongs to",
     "summaryBalancesSaved": "Balances recorded from the Summary: {count}.",
-    "summaryBalancesNotSaved": "Something went wrong, no balance was recorded from the Summary."
+    "summaryBalancesNotSaved": "Something went wrong, no balance was recorded from the Summary.",
+    "vocabularyWordInvalid": "The word must be a single word of 40 characters at most.",
+    "vocabularyTypeInvalid": "Choose a type: expense, income or savings."
   },
   "auth": {
     "signOut": "Sign out",

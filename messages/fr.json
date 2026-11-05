@@ -885,7 +885,9 @@
     "balanceAssertionReplaced": "Contrôle de solde enregistré. Il remplace celui déjà enregistré le {date}.",
     "balanceAssertionAccountRequired": "Choisissez le compte auquel appartient le solde",
     "summaryBalancesSaved": "Soldes enregistrés depuis le Summary : {count}.",
-    "summaryBalancesNotSaved": "Une erreur est survenue, aucun solde du Summary n'a été enregistré."
+    "summaryBalancesNotSaved": "Une erreur est survenue, aucun solde du Summary n'a été enregistré.",
+    "vocabularyWordInvalid": "Le mot doit tenir en un seul mot de 40 caractères au plus.",
+    "vocabularyTypeInvalid": "Choisissez un type : dépense, revenu ou épargne."
   },
   "auth": {
     "signOut": "Se déconnecter",
