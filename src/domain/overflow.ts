@@ -53,17 +53,22 @@ export function depositRoom(
 /**
  * The accounts visited along the overflow chain from `startId`, in order. The
  * chain comes from user input, so the walk stops before an account is visited
- * twice and reports it as `loops`. Empty when `startId` is unknown.
+ * twice and reports it as `hasLoop`. Empty when `startId` is unknown.
+ *
+ * When `hasLoop` is true, `accounts` holds only the accounts visited up to
+ * (excluding) the repeated one, not the full chain. Callers that only need
+ * membership (assertOverflowTargetAllowed) rely on that: every account on the
+ * path is still listed, and the walk is guaranteed to terminate.
  */
 function walkOverflowChain<T extends Pick<OverflowAccount, "id" | "overflowAccountId">>(
   startId: number,
   byId: ReadonlyMap<number, T>,
-): { accounts: T[]; loops: boolean } {
+): { accounts: T[]; hasLoop: boolean } {
   const accounts: T[] = [];
   const visited = new Set<number>();
   let current = byId.get(startId);
   while (current !== undefined) {
-    if (visited.has(current.id)) return { accounts, loops: true };
+    if (visited.has(current.id)) return { accounts, hasLoop: true };
     visited.add(current.id);
     accounts.push(current);
     current =
@@ -71,7 +76,7 @@ function walkOverflowChain<T extends Pick<OverflowAccount, "id" | "overflowAccou
         ? undefined
         : byId.get(current.overflowAccountId);
   }
-  return { accounts, loops: false };
+  return { accounts, hasLoop: false };
 }
 
 export function routeAlongOverflowChain(
@@ -88,8 +93,8 @@ export function routeAlongOverflowChain(
   }
   // The whole chain is walked even once everything is placed: a loop further
   // down is a corrupted configuration and must be reported, not hidden.
-  const { accounts: chain, loops } = walkOverflowChain(destinationId, byId);
-  if (loops) return { status: "invalid", reason: "cycle" };
+  const { accounts: chain, hasLoop } = walkOverflowChain(destinationId, byId);
+  if (hasLoop) return { status: "invalid", reason: "cycle" };
 
   const placements: Placement[] = [];
   let remaining = amount;
@@ -174,7 +179,7 @@ export function overflowChainTail(
   startId: number,
   byId: ReadonlyMap<number, Pick<OverflowAccount, "id" | "overflowAccountId">>,
 ): number | null {
-  const { accounts, loops } = walkOverflowChain(startId, byId);
-  if (loops) return null;
+  const { accounts, hasLoop } = walkOverflowChain(startId, byId);
+  if (hasLoop) return null;
   return accounts.at(-1)?.id ?? null;
 }
