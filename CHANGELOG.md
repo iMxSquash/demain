@@ -50,7 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Repository structure: license (AGPL-3.0), `.github/` templates and CI skeleton, contribution and security policies.
 - Import: once a file is recorded, the (label, category) pairs of its categorized rows are proposed as `equals` rules for its account. Nothing is created without selection, and pairs already covered by a rule are not proposed.
 - Undo of an imported file from its card on `/imports`: every movement of the batch (both legs of a transfer included) is removed in one operation, only while nothing in it changed since it was recorded. A changed batch, or one recorded before undo existed, is refused with the reason. The rules, balance assertions and overflow accounts created with the file stay.
-- Domain of the Summary balances: the real account balances of the sheet's Summary tab are read (separator detected per file, months without a balance reported as such) and planned as balance assertions at the last day of each month, refusing an archived account, a month before the account opened and a month not over yet. No screen yet.
+- Domain of the Summary balances: the real account balances of the sheet's Summary tab are read (separator detected per file, months without a balance reported as such) and planned as balance assertions at the last day of each month, refusing an archived account, a month before the account opened and a month not over yet. A preview lists what would be created, replaced and refused, and the save records everything in one transaction, all or nothing. No screen yet.
 
 ### Changed
 
