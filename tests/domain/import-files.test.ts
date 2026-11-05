@@ -4,7 +4,6 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { readMovementFile } from "../../src/domain/import-movements";
-import { readSheetTab } from "../../src/domain/sheet-tab";
 
 const FIXTURES = path.join(process.cwd(), "tests", "fixtures");
 
@@ -46,23 +45,6 @@ describe("a monthly tab of the sheet, with a summary beside it", () => {
       { kind: "rowsIgnored", reason: "total", lines: [7] },
     ]);
     expect(reading.analysis.typeColumn).toBe(3);
-  });
-
-  it("is read by the migration with its strict policy and the same types", () => {
-    const reading = readSheetTab(text, options);
-
-    expect(reading.rows.map((row) => [row.line, row.type, row.amount, row.category])).toEqual([
-      [2, "expense", 1_250, "Courses"],
-      [3, "income", 150_000, "Salaire"],
-      [4, "expense", 70_000, "Logement"],
-      [5, "expense", 2_490, "Courses"],
-      [6, "savings", 57_316, null],
-    ]);
-    expect(reading.issues).toContainEqual({
-      kind: "labelFromCategory",
-      line: 5,
-      category: "Courses",
-    });
   });
 });
 

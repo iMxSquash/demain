@@ -374,7 +374,7 @@ describe("importing savings rows", () => {
     ]);
   });
 
-  it("imports onto an account that already holds transactions, unlike the sheet migration", () => {
+  it("imports onto an account that already holds transactions", () => {
     importRows([expenseRow()]);
 
     const result = importRows([savingsRow()], "next.csv");

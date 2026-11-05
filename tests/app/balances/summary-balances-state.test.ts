@@ -1,28 +1,17 @@
-import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
 
-import en from "../../../messages/en.json";
-import fr from "../../../messages/fr.json";
 import {
   buildSummaryBalancesState,
   type SummaryBalancesContext,
   type SummaryBalancesReading,
 } from "../../../src/app/balances/summary/summary-balances-state";
-import { sayIn } from "../migration/say";
+import { sayIn } from "./say";
 
 function contextIn(
   locale: "en" | "fr",
   phase: SummaryBalancesContext["phase"] = "preview",
 ): SummaryBalancesContext {
-  const t = createTranslator({
-    locale,
-    messages: locale === "en" ? en : fr,
-    namespace: "summaryBalances",
-    onError: (error) => {
-      throw error;
-    },
-  });
-  return { t: (key, values) => t(key, values), say: sayIn(locale), phase };
+  return { say: sayIn(locale), phase };
 }
 
 const NO_COMPARISON = {

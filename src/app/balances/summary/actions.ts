@@ -44,9 +44,8 @@ export async function summaryBalancesAction(
   formData: FormData,
 ): Promise<SummaryBalancesState> {
   await requireSession();
-  const [t, migration, translate, locale, timeZone] = await Promise.all([
+  const [t, translate, locale, timeZone] = await Promise.all([
     getTranslations("summaryBalances"),
-    getTranslations("migration"),
     getTranslator(),
     getLocale(),
     getTimeZone(),
@@ -74,13 +73,11 @@ export async function summaryBalancesAction(
   if (account === undefined) return fail(t("errors.accountRequired"), "accountId");
 
   const context: SummaryBalancesContext = {
-    t: (key, values) => t(key, values),
     say: {
-      t: (key, values) => migration(key, values),
+      t: (key, values) => t(key, values),
       translate,
       locale,
       currency: account.currency,
-      accountName: () => account.name,
     },
     phase: "preview",
   };

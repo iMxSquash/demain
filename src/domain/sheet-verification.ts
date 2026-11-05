@@ -1,19 +1,10 @@
 /**
- * Month-by-month comparison between what Demain computes from the imported
+ * Month-by-month comparison between what Demain computes from the stored
  * history and the figures of the sheet's Summary tab. Pure functions: no
- * database, no clock. See DOMAIN, section Migration from the sheet.
+ * database, no clock.
  */
 
-import { isCalendarDate } from "./account";
-import type { SavingsSplit } from "./sheet-import";
-import {
-  computeMonthlySynthesis,
-  monthOf,
-  type Month,
-  type MonthlySynthesis,
-  type SynthesisAccount,
-  type SynthesisTransaction,
-} from "./synthesis";
+import type { Month, MonthlySynthesis } from "./synthesis";
 
 export const VERIFIED_FIGURES = [
   "net",
@@ -59,8 +50,7 @@ export interface SummaryVerification {
 /**
  * Compares the figures of each month, in date order. A difference needs the
  * user's explanation (a row mistyped in the sheet, for example); an issue is
- * something that could not be compared at all. The migration is accepted when
- * both lists are empty or every entry is explained.
+ * something that could not be compared at all.
  */
 export function verifyAgainstSummary(
   computed: readonly ComputedMonth[],
@@ -115,90 +105,6 @@ export function verifyAgainstSummary(
     issues,
     isMatching: differences.length === 0 && issues.length === 0,
   };
-}
-
-/** The history the migration would create, as the synthesis needs to read it. */
-export interface MigratedLedger {
-  checkingId: number;
-  /** The accounts that hold the savings: the Summary adds their balances up. */
-  savingsAccountIds: readonly number[];
-  /** The checking account and the savings chain, with the opening balances to be set. */
-  accounts: readonly SynthesisAccount[];
-  referenceCurrency: string;
-  movements: readonly {
-    date: string;
-    /** Signed integer in minor units. */
-    amount: number;
-    kind: "expense" | "income";
-  }[];
-  splits: readonly SavingsSplit[];
-}
-
-function toSynthesisTransactions(ledger: MigratedLedger): SynthesisTransaction[] {
-  const transactions: SynthesisTransaction[] = [];
-  let nextId = 1;
-  for (const movement of ledger.movements) {
-    if (!isCalendarDate(movement.date)) continue;
-    transactions.push({
-      id: nextId++,
-      accountId: ledger.checkingId,
-      date: movement.date,
-      amount: movement.amount,
-      kind: movement.kind,
-      transferCounterpartId: null,
-    });
-  }
-  for (const { row, placements } of ledger.splits) {
-    if (!isCalendarDate(row.date)) continue;
-    for (const placement of placements) {
-      const outgoingId = nextId++;
-      const incomingId = nextId++;
-      transactions.push(
-        {
-          id: outgoingId,
-          accountId: ledger.checkingId,
-          date: row.date,
-          amount: -placement.amount,
-          kind: "transfer",
-          transferCounterpartId: incomingId,
-        },
-        {
-          id: incomingId,
-          accountId: placement.accountId,
-          date: row.date,
-          amount: placement.amount,
-          kind: "transfer",
-          transferCounterpartId: outgoingId,
-        },
-      );
-    }
-  }
-  return transactions;
-}
-
-/**
- * The figures of the Summary, recomputed from the history that the migration
- * would create. The months before the first movement hold only the opening
- * balances and have no line in the sheet: they are left out.
- */
-export function computeMigratedMonths(ledger: MigratedLedger): ComputedMonth[] {
-  const transactions = toSynthesisTransactions(ledger);
-  if (transactions.length === 0) return [];
-
-  // "YYYY-MM" strings sort chronologically.
-  const months = transactions.map((transaction) => monthOf(transaction.date));
-  const firstMonth = months.reduce((a, b) => (a < b ? a : b));
-  const lastMonth = months.reduce((a, b) => (a > b ? a : b));
-  const savingsIds = new Set(ledger.savingsAccountIds);
-
-  return computeMonthlySynthesis({
-    accounts: ledger.accounts,
-    transactions,
-    referenceCurrency: ledger.referenceCurrency,
-    throughMonth: lastMonth,
-  })
-    .filter((synthesis) => synthesis.month >= firstMonth)
-    .map((synthesis) => toComputedMonth(synthesis, savingsIds));
 }
 
 function toComputedMonth(
