@@ -12,11 +12,14 @@ import {
 
 import { CSV_DELIMITERS } from "../../domain/import-csv";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import {
+  BYTES_PER_KILOBYTE,
+  MAX_FILE_BYTES,
+  withoutEmptyFilePlaceholders,
+} from "../form-files";
 import { migrationAction } from "./actions";
 import {
-  MAX_FILE_BYTES,
   MAX_TAB_FILES,
-  withoutEmptyFilePlaceholders,
   type MigrationFormState,
 } from "./migration-form-data";
 
@@ -28,7 +31,6 @@ export interface AccountOption {
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
 const BUTTON_CLASS =
   "min-h-11 rounded border border-neutral-900 px-4 font-medium disabled:opacity-60";
-const BYTES_PER_KILOBYTE = 1024;
 // Ticking the confirmation box is not a change to what was previewed.
 const CONFIRMATION_FIELD = "confirmReview";
 
