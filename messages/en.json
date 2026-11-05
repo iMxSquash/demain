@@ -36,7 +36,8 @@
     "rules": "Categorization rules",
     "migration": "Sheet migration",
     "currencies": "Currencies",
-    "backup": "Backup and export"
+    "backup": "Backup and export",
+    "balances": "Balance checks"
   },
   "realChart": {
     "heading": "Month-end balances",
@@ -122,7 +123,17 @@
     "delete": "Delete",
     "deleteTitle": "Delete the balance of {date}?",
     "deleteMessage": "Only the recorded balance is deleted. Your transactions are not touched.",
-    "deleteConfirm": "Delete balance"
+    "deleteConfirm": "Delete balance",
+    "archivedAccount": "Archived account",
+    "archivedNote": "This account is archived: its recorded balances are kept as they are and can no longer be replaced or deleted.",
+    "allMetaTitle": "Balance assertions of all accounts | Demain",
+    "allTitle": "Balance assertions of all accounts",
+    "allIntro": "Every balance recorded for your accounts, archived accounts included. To record a balance or replace one, open the balances of the account.",
+    "allEmpty": "No balance recorded yet. Open an account to record one.",
+    "allCaption": "Balances recorded for all accounts, most recent first",
+    "accountColumn": "Account",
+    "accountBalancesLink": "Balances of the account",
+    "accountsLink": "Go to the accounts to record a balance"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -757,7 +768,7 @@
     "balanceAssertionDateInvalid": "Invalid date \"{date}\", expected YYYY-MM-DD",
     "balanceAssertionBeforeOpening": "The date cannot be before the opening of the account ({openingDate})",
     "balanceAssertionAmountInvalid": "The balance must be an integer in minor units",
-    "balanceAssertionOnArchivedAccount": "This account is archived: no balance can be recorded on it",
+    "balanceAssertionOnArchivedAccount": "This account is archived: its balances can no longer be changed",
     "overflowAccountMissing": "The overflow account does not exist",
     "overflowAccountArchived": "The overflow account is archived",
     "overflowAccountCurrencyMismatch": "The overflow account must have the same currency",
@@ -901,7 +912,8 @@
     "backupRestored": "The backup is restored. Sign in with the credentials it holds.",
     "totpDisabled": "The second factor is turned off.",
     "signedOut": "You are signed out.",
-    "setupDone": "Your account is ready."
+    "setupDone": "Your account is ready.",
+    "balanceAssertionReplaced": "Balance check saved. It replaced the one already recorded on {date}."
   },
   "auth": {
     "signOut": "Sign out",

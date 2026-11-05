@@ -10,6 +10,7 @@ import {
   BalanceAssertionOnArchivedAccountError,
   deleteBalanceAssertion,
   saveBalanceAssertion,
+  type SavedBalanceAssertion,
 } from "../../../../ledger/balance-assertions";
 import { withDatabase } from "../../../../storage/with-database";
 import { requireSession } from "../../../auth/session";
@@ -21,7 +22,13 @@ import {
   type BalanceAssertionFormState,
 } from "./balance-assertion-form-data";
 
+const ALL_BALANCES_PATH = "/balances";
 const balancesPath = (accountId: number) => `/accounts/${accountId}/balances`;
+
+function revalidateBalances(accountId: number): void {
+  revalidatePath(balancesPath(accountId));
+  revalidatePath(ALL_BALANCES_PATH);
+}
 
 /** A failure that no field explains is told in a toast. */
 async function toFormState(
@@ -56,8 +63,9 @@ export async function saveBalanceAssertionAction(
   await requireSession();
   const translate = await getTranslator();
 
+  let saved: SavedBalanceAssertion;
   try {
-    const failure = withDatabase((db) => {
+    const outcome = withDatabase((db) => {
       // The amount is read in the currency of the account, so it is loaded first.
       const { currency } = getAccount(db, accountId);
       const parsed = parseBalanceAssertionForm(
@@ -66,21 +74,29 @@ export async function saveBalanceAssertionAction(
         currency,
         translate,
       );
-      if (!parsed.ok) return parsed.error;
-      saveBalanceAssertion(db, parsed.input);
-      return null;
+      if (!parsed.ok) return parsed;
+      return { ok: true as const, saved: saveBalanceAssertion(db, parsed.input) };
     });
-    if (failure !== null) return failure;
+    if (!outcome.ok) return outcome.error;
+    saved = outcome.saved;
   } catch (error) {
     return await toFormState(error, formData, translate);
   }
 
-  revalidatePath(balancesPath(accountId));
-  await flashSuccess("balanceAssertionSaved");
+  revalidateBalances(accountId);
+  // Replacing a balance is told, so that nobody believes a second one was added.
+  if (saved.replaced) {
+    await flashSuccess("balanceAssertionReplaced", { date: saved.date });
+  } else {
+    await flashSuccess("balanceAssertionSaved");
+  }
   return null;
 }
 
 function describeDeleteFailure(error: unknown): MessageRef {
+  if (error instanceof BalanceAssertionOnArchivedAccountError) {
+    return messageRef("balanceAssertionOnArchivedAccount");
+  }
   console.error("Balance assertion delete failed", error);
   return messageRef("balanceAssertionNotDeleted");
 }
@@ -101,5 +117,5 @@ export async function deleteBalanceAssertionAction(
     },
     { success: "balanceAssertionDeleted", describeFailure: describeDeleteFailure },
   );
-  revalidatePath(balancesPath(accountId));
+  revalidateBalances(accountId);
 }
