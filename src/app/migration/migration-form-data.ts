@@ -1,16 +1,11 @@
 import { isCalendarDate } from "../../domain/account";
 import { CSV_DELIMITERS, type CsvDelimiter } from "../../domain/import-csv";
 import { MoneyParseError, parseAmount } from "../../domain/money";
+import { BYTES_PER_KILOBYTE, isChosenFile, MAX_FILE_BYTES } from "../form-files";
 import type { MigrationKey } from "./describe-issues";
 
 /** Monthly tabs accepted at once. */
 export const MAX_TAB_FILES = 24;
-/**
- * Largest file accepted: a tab is a few kilobytes. With the tab limit this stays
- * under `serverActions.bodySizeLimit` in next.config.ts, which must stay above it.
- */
-export const MAX_FILE_BYTES = 512 * 1024;
-const BYTES_PER_KILOBYTE = 1024;
 
 const YEAR_PATTERN = /^\d{4}$/;
 const ACCOUNT_ID_PATTERN = /^\d{1,9}$/;
@@ -51,22 +46,6 @@ const refuse = (
   error: values === undefined ? { key } : { key, values },
 });
 
-/**
- * A browser sends one nameless empty file for a file input left empty, and the
- * transport of server actions turns its name into the text "undefined": it is
- * removed before the form leaves, so that "nothing chosen" is never read as
- * "an empty file chosen". A real empty file keeps its name and is reported.
- */
-export function withoutEmptyFilePlaceholders(formData: FormData): FormData {
-  const cleaned = new FormData();
-  for (const [name, value] of formData.entries()) {
-    const isPlaceholder =
-      typeof value !== "string" && value.name === "" && value.size === 0;
-    if (!isPlaceholder) cleaned.append(name, value);
-  }
-  return cleaned;
-}
-
 function textOf(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
@@ -82,10 +61,6 @@ function readAccountId(
   const id = Number(text);
   return accounts.some((account) => account.id === id) ? id : null;
 }
-
-// A browser sends one nameless file when nothing was chosen in a file input.
-const isChosen = (value: FormDataEntryValue): value is File =>
-  value instanceof File && value.name !== "";
 
 function checkFile(file: File): { error: FormError } | null {
   if (file.size === 0) return refuse("errors.fileEmpty", { name: file.name });
@@ -134,13 +109,13 @@ export function readMigrationForm(
   }
   if (checkingId === savingsId) return refuse("errors.sameAccount");
 
-  const tabs = formData.getAll("tabs").filter(isChosen);
+  const tabs = formData.getAll("tabs").filter(isChosenFile);
   if (tabs.length === 0) return refuse("errors.filesRequired");
   if (tabs.length > MAX_TAB_FILES) {
     return refuse("errors.tooManyFiles", { max: MAX_TAB_FILES });
   }
   const summaryEntry = formData.get("summary");
-  const summary = summaryEntry !== null && isChosen(summaryEntry) ? summaryEntry : null;
+  const summary = summaryEntry !== null && isChosenFile(summaryEntry) ? summaryEntry : null;
   const files = summary === null ? tabs : [...tabs, summary];
   for (const file of files) {
     const problem = checkFile(file);
