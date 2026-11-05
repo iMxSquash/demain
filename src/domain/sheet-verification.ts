@@ -10,6 +10,7 @@ import {
   computeMonthlySynthesis,
   monthOf,
   type Month,
+  type MonthlySynthesis,
   type SynthesisAccount,
   type SynthesisTransaction,
 } from "./synthesis";
@@ -197,14 +198,56 @@ export function computeMigratedMonths(ledger: MigratedLedger): ComputedMonth[] {
     throughMonth: lastMonth,
   })
     .filter((synthesis) => synthesis.month >= firstMonth)
-    .map((synthesis) => ({
-      month: synthesis.month,
-      net: synthesis.net,
-      savings: synthesis.savings,
-      cumulativeSavings: synthesis.cumulativeSavings,
-      cumulativeAccount: synthesis.cumulativeAccount,
-      savingsBalance: synthesis.balances
-        .filter((balance) => savingsIds.has(balance.accountId))
-        .reduce((sum, balance) => sum + balance.balance, 0),
-    }));
+    .map((synthesis) => toComputedMonth(synthesis, savingsIds));
+}
+
+function toComputedMonth(
+  synthesis: MonthlySynthesis,
+  savingsIds: ReadonlySet<number>,
+): ComputedMonth {
+  return {
+    month: synthesis.month,
+    net: synthesis.net,
+    savings: synthesis.savings,
+    cumulativeSavings: synthesis.cumulativeSavings,
+    cumulativeAccount: synthesis.cumulativeAccount,
+    savingsBalance: synthesis.balances
+      .filter((balance) => savingsIds.has(balance.accountId))
+      .reduce((sum, balance) => sum + balance.balance, 0),
+  };
+}
+
+export interface LedgerComparison extends SummaryVerification {
+  /** Summary months after the last complete month: not compared, and named. */
+  futureMonths: Month[];
+}
+
+/**
+ * Compares the Summary with the history already stored. Only the months from
+ * the first to the last Summary month that is over are compared: the months
+ * still to come are named, not compared, and the ledger months outside that
+ * span are not the Summary's business.
+ */
+export function compareLedgerWithSummary(
+  synthesis: readonly MonthlySynthesis[],
+  savingsAccountIds: readonly number[],
+  sheet: readonly SheetMonth[],
+  lastCompleteMonth: Month,
+): LedgerComparison {
+  // "YYYY-MM" strings sort chronologically.
+  const past = sheet.filter((entry) => entry.month <= lastCompleteMonth);
+  const futureMonths = sheet
+    .filter((entry) => entry.month > lastCompleteMonth)
+    .map((entry) => entry.month);
+  const months = past.map((entry) => entry.month).sort();
+  const first = months[0];
+  const last = months[months.length - 1];
+  if (first === undefined || last === undefined) {
+    return { differences: [], issues: [], isMatching: false, futureMonths };
+  }
+  const savingsIds = new Set(savingsAccountIds);
+  const computed = synthesis
+    .filter((entry) => entry.month >= first && entry.month <= last)
+    .map((entry) => toComputedMonth(entry, savingsIds));
+  return { ...verifyAgainstSummary(computed, past), futureMonths };
 }
