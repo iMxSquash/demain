@@ -4,6 +4,7 @@
  * Deposit ceiling and overflow, and ADR-013.
  */
 
+import { isSelectableSavingsAccount, type SavingsAccountChoice } from "./import-savings";
 import type { OverflowAccount } from "./overflow";
 
 /** The part of one savings row that fits nowhere, and the account at the end of its chain. */
@@ -94,4 +95,24 @@ export function withOverflowAccount(
   return known.map((account) =>
     account.id === accountId ? { ...account, overflowAccountId } : { ...account },
   );
+}
+
+/**
+ * The accounts the review offers to take the surplus of `demandAccountId`:
+ * active savings accounts of its currency (ADR-013), other than the account
+ * that overflows and the account that receives the file.
+ */
+export function overflowTargetChoices(
+  accounts: readonly SavingsAccountChoice[],
+  demandAccountId: number,
+  receivingAccountId: number,
+  currency: string,
+): number[] {
+  return accounts
+    .filter(
+      (candidate) =>
+        candidate.id !== demandAccountId &&
+        isSelectableSavingsAccount({ id: receivingAccountId, currency }, candidate),
+    )
+    .map(({ id }) => id);
 }

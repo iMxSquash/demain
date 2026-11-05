@@ -10,13 +10,16 @@ const LIVRET_A_ID = 1;
 const LIVRET_JEUNE_ID = 2;
 const CHECKING_ID = 3;
 
-function account(overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount {
+function account(
+  overrides: Partial<OverflowAccount> & { id: number; kind?: string },
+): OverflowAccount & { kind: string } {
   return {
     currency: "EUR",
     balance: 0,
     ceiling: null,
     overflowAccountId: null,
     archived: false,
+    kind: "savings",
     ...overrides,
   };
 }
@@ -190,6 +193,28 @@ describe("assertOverflowTargetAllowed", () => {
     const accounts = [
       account({ id: LIVRET_JEUNE_ID }),
       account({ id: LIVRET_A_ID, archived: true }),
+    ];
+
+    expectRefused(() =>
+      assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), LIVRET_A_ID, accounts),
+    );
+  });
+
+  it("refuses a checking account as target", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID }),
+      account({ id: CHECKING_ID, kind: "checking" }),
+    ];
+
+    expectRefused(() =>
+      assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), CHECKING_ID, accounts),
+    );
+  });
+
+  it("refuses an archived savings account as target", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_A_ID, kind: "savings", archived: true }),
     ];
 
     expectRefused(() =>

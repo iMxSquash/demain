@@ -779,6 +779,7 @@
     "balanceAssertionOnArchivedAccount": "Ce compte est archivé : ses soldes ne peuvent plus être modifiés",
     "overflowAccountMissing": "Le compte de débordement n'existe pas",
     "overflowAccountArchived": "Le compte de débordement est archivé",
+    "overflowAccountNotSavings": "Le compte de débordement doit être un compte d'épargne",
     "overflowAccountCurrencyMismatch": "Le compte de débordement doit avoir la même devise",
     "overflowChainLoop": "La chaîne de débordement reviendrait sur ce compte",
     "overflowAccountUnknown": "Compte de débordement inconnu",

@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useRef, useState, type FormEvent } from "react";
 
-import type { OverflowDemand, OverflowTarget } from "../../domain/import-overflow";
+import { overflowTargetChoices, type OverflowDemand, type OverflowTarget } from "../../domain/import-overflow";
 import { formatAmount } from "../../domain/money";
 import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
 import type { ImportAccountOption } from "./import-form-data";
@@ -40,13 +40,11 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
   const currency = account?.currency ?? "";
   const accountName = account?.name ?? "";
   // The account that receives the file cannot take the surplus back: the transfer would go to itself.
+  const targetIds = new Set(
+    overflowTargetChoices(accounts, demand.accountId, receivingAccountId, currency),
+  );
   const options = accounts
-    .filter(
-      (candidate) =>
-        candidate.id !== demand.accountId &&
-        candidate.id !== receivingAccountId &&
-        candidate.currency === currency,
-    )
+    .filter(({ id }) => targetIds.has(id))
     .map(({ id, name: label }) => ({ id, label }));
 
   function choose() {

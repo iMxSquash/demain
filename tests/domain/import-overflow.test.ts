@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   choicesForShortfalls,
+  overflowTargetChoices,
   overflowDemands,
   pendingAccountNames,
   placeholderAccountId,
   withOverflowAccount,
   type PendingOverflow,
 } from "../../src/domain/import-overflow";
+import type { SavingsAccountChoice } from "../../src/domain/import-savings";
 import type { OverflowAccount } from "../../src/domain/overflow";
 
 const account = (overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount => ({
@@ -99,5 +101,37 @@ describe("pendingAccountNames", () => {
     ];
 
     expect(pendingAccountNames(choices)).toEqual(new Map([[placeholderAccountId(1), "Spare"]]));
+  });
+});
+
+describe("overflowTargetChoices", () => {
+  const DEMAND_ID = 2;
+  const RECEIVING_ID = 3;
+  const choice = (overrides: Partial<SavingsAccountChoice> & { id: number }): SavingsAccountChoice => ({
+    kind: "savings",
+    currency: "EUR",
+    archived: false,
+    overflowAccountId: null,
+    ...overrides,
+  });
+
+  it("offers only active savings accounts of the currency of the demand", () => {
+    const accounts = [
+      choice({ id: DEMAND_ID }),
+      choice({ id: RECEIVING_ID, kind: "checking" }),
+      choice({ id: 4 }),
+      choice({ id: 5, kind: "checking" }),
+      choice({ id: 6, kind: "other" }),
+      choice({ id: 7, archived: true }),
+      choice({ id: 8, currency: "USD" }),
+    ];
+
+    expect(overflowTargetChoices(accounts, DEMAND_ID, RECEIVING_ID, "EUR")).toEqual([4]);
+  });
+
+  it("leaves out the account that overflows and the account that receives the file", () => {
+    const accounts = [choice({ id: DEMAND_ID }), choice({ id: RECEIVING_ID }), choice({ id: 4 })];
+
+    expect(overflowTargetChoices(accounts, DEMAND_ID, RECEIVING_ID, "EUR")).toEqual([4]);
   });
 });
