@@ -50,6 +50,30 @@ export function depositRoom(
   return Math.max(0, account.ceiling - account.balance);
 }
 
+/**
+ * The accounts visited along the overflow chain from `startId`, in order. The
+ * chain comes from user input, so the walk stops before an account is visited
+ * twice and reports it as `loops`. Empty when `startId` is unknown.
+ */
+function walkOverflowChain<T extends Pick<OverflowAccount, "id" | "overflowAccountId">>(
+  startId: number,
+  byId: ReadonlyMap<number, T>,
+): { accounts: T[]; loops: boolean } {
+  const accounts: T[] = [];
+  const visited = new Set<number>();
+  let current = byId.get(startId);
+  while (current !== undefined) {
+    if (visited.has(current.id)) return { accounts, loops: true };
+    visited.add(current.id);
+    accounts.push(current);
+    current =
+      current.overflowAccountId === null
+        ? undefined
+        : byId.get(current.overflowAccountId);
+  }
+  return { accounts, loops: false };
+}
+
 export function routeAlongOverflowChain(
   amount: number,
   destinationId: number,
@@ -62,28 +86,19 @@ export function routeAlongOverflowChain(
   if (!byId.has(destinationId)) {
     throw new Error(`Unknown account ${destinationId}`);
   }
-  const placements: Placement[] = [];
-  // The chain comes from user input: stop at the first account seen twice.
-  const visited = new Set<number>();
-  let remaining = amount;
-  let current = byId.get(destinationId);
+  // The whole chain is walked even once everything is placed: a loop further
+  // down is a corrupted configuration and must be reported, not hidden.
+  const { accounts: chain, loops } = walkOverflowChain(destinationId, byId);
+  if (loops) return { status: "invalid", reason: "cycle" };
 
-  // The walk continues once everything is placed: a loop further down the
-  // chain is a corrupted configuration and must be reported, not hidden.
-  while (current !== undefined) {
-    if (visited.has(current.id)) {
-      return { status: "invalid", reason: "cycle" };
-    }
-    visited.add(current.id);
+  const placements: Placement[] = [];
+  let remaining = amount;
+  for (const current of chain) {
     const placed = Math.min(remaining, depositRoom(current));
     if (placed > 0) {
       placements.push({ accountId: current.id, amount: placed });
       remaining -= placed;
     }
-    current =
-      current.overflowAccountId === null
-        ? undefined
-        : byId.get(current.overflowAccountId);
   }
 
   return { status: "ok", placements, unplaced: remaining };
@@ -140,22 +155,14 @@ export function assertOverflowTargetAllowed(
   }
 
   // Stored data may already contain a loop that does not involve this
-  // account: the visited set guarantees the walk ends.
-  const visited = new Set<number>();
-  let current: OverflowLink | undefined = target;
-  while (current !== undefined && !visited.has(current.id)) {
-    if (current.id === candidate.id) {
-      throw new AccountValidationError(
-        "overflowAccountId",
-        "The overflow chain would loop back to this account",
-        messageRef("overflowChainLoop"),
-      );
-    }
-    visited.add(current.id);
-    current =
-      current.overflowAccountId === null
-        ? undefined
-        : byId.get(current.overflowAccountId);
+  // account: the walk stops on it instead of reporting it.
+  const { accounts: chain } = walkOverflowChain(targetId, byId);
+  if (chain.some(({ id }) => id === candidate.id)) {
+    throw new AccountValidationError(
+      "overflowAccountId",
+      "The overflow chain would loop back to this account",
+      messageRef("overflowChainLoop"),
+    );
   }
 }
 
@@ -167,17 +174,7 @@ export function overflowChainTail(
   startId: number,
   byId: ReadonlyMap<number, Pick<OverflowAccount, "id" | "overflowAccountId">>,
 ): number | null {
-  const visited = new Set<number>();
-  let current = byId.get(startId);
-  let tail: number | null = null;
-  while (current !== undefined) {
-    if (visited.has(current.id)) return null;
-    visited.add(current.id);
-    tail = current.id;
-    current =
-      current.overflowAccountId === null
-        ? undefined
-        : byId.get(current.overflowAccountId);
-  }
-  return tail;
+  const { accounts, loops } = walkOverflowChain(startId, byId);
+  if (loops) return null;
+  return accounts.at(-1)?.id ?? null;
 }

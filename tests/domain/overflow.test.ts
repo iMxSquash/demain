@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertOverflowTargetAllowed,
+  overflowChainTail,
   overflowTargetsOf,
   routeAlongOverflowChain,
   type OverflowAccount,
@@ -241,6 +242,50 @@ describe("assertOverflowTargetAllowed", () => {
     expect(() =>
       assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), LIVRET_A_ID, accounts),
     ).not.toThrow();
+  });
+});
+
+describe("overflowChainTail", () => {
+  const byId = (accounts: OverflowAccount[]) =>
+    new Map(accounts.map((item) => [item.id, item]));
+
+  it("returns the last account of the chain", () => {
+    const accounts = byId([
+      account({ id: CHECKING_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID }),
+    ]);
+
+    expect(overflowChainTail(CHECKING_ID, accounts)).toBe(LIVRET_A_ID);
+  });
+
+  it("returns the account itself when it has no overflow account", () => {
+    expect(overflowChainTail(LIVRET_A_ID, byId([account({ id: LIVRET_A_ID })]))).toBe(
+      LIVRET_A_ID,
+    );
+  });
+
+  it("returns null when the chain starts nowhere", () => {
+    expect(overflowChainTail(99, byId([account({ id: LIVRET_A_ID })]))).toBeNull();
+  });
+
+  it("returns null when the chain loops", () => {
+    const accounts = byId([
+      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+    ]);
+
+    expect(overflowChainTail(LIVRET_A_ID, accounts)).toBeNull();
+  });
+
+  it("returns null when the chain enters a loop it is not part of", () => {
+    const accounts = byId([
+      account({ id: CHECKING_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+    ]);
+
+    expect(overflowChainTail(CHECKING_ID, accounts)).toBeNull();
   });
 });
 
