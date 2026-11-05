@@ -37,6 +37,8 @@ export interface FilePeriod {
  * new row, and both sides of every part of a savings row, as `plan` splits it.
  * The rows the account already holds, the rows that cannot be read, the part of
  * a deposit that fits nowhere and a file that is cancelled or failed give none.
+ * A file already imported still gives its movements, as in `planReview`: the
+ * caller passes transactions read before that import, or leaves the file out.
  */
 export function fileMovements(
   file: ReviewedFile,
