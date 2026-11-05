@@ -216,6 +216,13 @@ export function firstMovementDate(dates: readonly string[]): string | null {
   return valid.reduce((first, date) => (compareDates(date, first) < 0 ? date : first));
 }
 
+/** The latest date of the rows of a file; null when none is a calendar date. */
+export function lastMovementDate(dates: readonly string[]): string | null {
+  const valid = dates.filter(isCalendarDate);
+  if (valid.length === 0) return null;
+  return valid.reduce((last, date) => (compareDates(date, last) > 0 ? date : last));
+}
+
 export interface DatedFile {
   /** Date of the first movement of the file; null when it has none. */
   firstDate: string | null;

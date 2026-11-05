@@ -1,0 +1,9 @@
+[
+  { "category": "Prime", "type": "income" },
+  { "category": "Salaire", "type": "expense" },
+  { "category": "Courses", "type": "expense" },
+  { "category": "Remboursement", "type": "income" },
+  { "category": "Remboursement", "type": "expense" },
+  { "category": "Frais de santé", "type": "expense" },
+  { "category": "Café", "type": "expense" }
+]

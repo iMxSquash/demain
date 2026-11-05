@@ -11,8 +11,16 @@ export type Direction = "in" | "out";
 
 export type Confidence = "high" | "medium" | "low";
 
+/** Where a word of the vocabulary comes from, for the user to understand a guess. */
+export type VocabularyOrigin = "fixed" | "history" | "user";
+
+export interface VocabularyEntry {
+  type: MovementType;
+  origin: VocabularyOrigin;
+}
+
 /** Keys are accent-free lowercase tokens. A Map: file text must not reach Object.prototype. */
-export type TypeVocabulary = ReadonlyMap<string, MovementType>;
+export type TypeVocabulary = ReadonlyMap<string, VocabularyEntry>;
 
 /** Key: `normalizeLabel(label)` of earlier imports of the account. */
 export type LabelHistory = ReadonlyMap<string, MovementType>;
@@ -51,16 +59,28 @@ const SAVINGS_WORDS = [
 ];
 
 // No expense word: an outgoing amount is an expense unless something says otherwise.
-export const DEFAULT_TYPE_VOCABULARY: TypeVocabulary = new Map<string, MovementType>([
-  ...INCOME_WORDS.map((word): [string, MovementType] => [word, "income"]),
-  ...SAVINGS_WORDS.map((word): [string, MovementType] => [word, "savings"]),
+export const DEFAULT_TYPE_VOCABULARY: TypeVocabulary = new Map<string, VocabularyEntry>([
+  ...INCOME_WORDS.map((word): [string, VocabularyEntry] => [
+    word,
+    { type: "income", origin: "fixed" },
+  ]),
+  ...SAVINGS_WORDS.map((word): [string, VocabularyEntry] => [
+    word,
+    { type: "savings", origin: "fixed" },
+  ]),
 ]);
 
 export type TypeEvidence =
   | { kind: "typeCell"; value: string }
   | { kind: "debitCredit"; direction: Direction }
   | { kind: "sign"; direction: Direction }
-  | { kind: "categoryWord"; category: string; word: string; type: MovementType }
+  | {
+      kind: "categoryWord";
+      category: string;
+      word: string;
+      type: MovementType;
+      origin: VocabularyOrigin;
+    }
   | { kind: "history"; type: MovementType }
   | { kind: "none" };
 
@@ -93,7 +113,7 @@ export interface TypeGuess {
 }
 
 // Lowercase, without accents, cut on anything that is not a letter or a digit.
-function tokenize(text: string): string[] {
+export function tokenize(text: string): string[] {
   return text
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
@@ -106,10 +126,10 @@ function tokenize(text: string): string[] {
 export function findTypeWord(
   text: string,
   vocabulary: TypeVocabulary,
-): { word: string; type: MovementType } | null {
+): ({ word: string } & VocabularyEntry) | null {
   for (const word of tokenize(text)) {
-    const type = vocabulary.get(word);
-    if (type !== undefined) return { word, type };
+    const entry = vocabulary.get(word);
+    if (entry !== undefined) return { word, ...entry };
   }
   return null;
 }
@@ -148,6 +168,7 @@ function findHint(signals: TypeSignals, context: GuessContext): Hint | null {
           category: signals.category,
           word: found.word,
           type: found.type,
+          origin: found.origin,
         },
       };
     }

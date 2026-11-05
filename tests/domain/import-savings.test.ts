@@ -5,6 +5,7 @@ import {
   defaultSavingsAccountId,
   firstMovementDate,
   isSelectableSavingsAccount,
+  lastMovementDate,
   orderFilesByDate,
   planFilesInDateOrder,
   planSavingsTransfers,
@@ -240,6 +241,33 @@ describe("files in date order", () => {
     ]);
   });
 
+  it("leaves a single file where it is", () => {
+    expect(orderFilesByDate([february])).toEqual([february]);
+    expect(planFilesInDateOrder([february], chain()).map(({ file }) => file.name)).toEqual([
+      "february.csv",
+    ]);
+  });
+
+  it("plans a file with no movement without touching the balances", () => {
+    const empty = { name: "empty.csv", firstDate: null, movements: [] };
+
+    const planned = planFilesInDateOrder([empty, january], chain());
+
+    expect(planned.map(({ file }) => file.name)).toEqual(["january.csv", "empty.csv"]);
+    expect(planned[1]?.plan.accounts).toEqual(planned[0]?.plan.accounts);
+  });
+
+  it("gives the ceiling to the file that is first in time, whatever the order chosen", () => {
+    const earlier = { name: "earlier.csv", firstDate: "2026-03-02", movements: [movement({ date: "2026-03-02", amount: -10_000 })] };
+    const later = { name: "later.csv", firstDate: "2026-03-10", movements: [movement({ date: "2026-03-10", amount: -10_000 })] };
+
+    const [first, second] = planFilesInDateOrder([later, earlier], chain());
+
+    expect(first?.file.name).toBe("earlier.csv");
+    expect(first?.plan.transfers[0]).toMatchObject({ placements: [{ accountId: A_ID, amount: 10_000 }] });
+    expect(second?.plan.transfers[0]).toMatchObject({ placements: [{ accountId: B_ID, amount: 10_000 }] });
+  });
+
   it("plans each file on the balances left by the previous one", () => {
     const planned = planFilesInDateOrder([february, january], chain());
 
@@ -417,5 +445,17 @@ describe("firstMovementDate", () => {
   it("is null when no date is valid", () => {
     expect(firstMovementDate([])).toBeNull();
     expect(firstMovementDate([""])).toBeNull();
+  });
+});
+
+describe("lastMovementDate", () => {
+  it("is the latest calendar date", () => {
+    expect(lastMovementDate(["2026-03-10", "2026-03-27", "2026-03-01"])).toBe("2026-03-27");
+  });
+
+  it("skips what is not a calendar date, and is null when none is left", () => {
+    expect(lastMovementDate(["", "2026-02-30", "2026-03-01"])).toBe("2026-03-01");
+    expect(lastMovementDate([""])).toBeNull();
+    expect(lastMovementDate([])).toBeNull();
   });
 });

@@ -14,6 +14,7 @@ describe("findTypeWord", () => {
     expect(findTypeWord("Salaire ACME", DEFAULT_TYPE_VOCABULARY)).toEqual({
       word: "salaire",
       type: "income",
+      origin: "fixed",
     });
   });
 
@@ -21,6 +22,7 @@ describe("findTypeWord", () => {
     expect(findTypeWord(" Épargne ", DEFAULT_TYPE_VOCABULARY)).toEqual({
       word: "epargne",
       type: "savings",
+      origin: "fixed",
     });
   });
 
@@ -40,6 +42,7 @@ describe("findTypeWord", () => {
     expect(findTypeWord("Pelouse caf", DEFAULT_TYPE_VOCABULARY)).toEqual({
       word: "caf",
       type: "income",
+      origin: "fixed",
     });
   });
 
@@ -169,7 +172,13 @@ describe("guessMovementType from the category word", () => {
     expect(guess).toMatchObject({
       type: "savings",
       confidence: "medium",
-      evidence: { kind: "categoryWord", category: "Épargne", word: "epargne", type: "savings" },
+      evidence: {
+        kind: "categoryWord",
+        category: "Épargne",
+        word: "epargne",
+        type: "savings",
+        origin: "fixed",
+      },
       conflict: null,
     });
   });
@@ -180,7 +189,13 @@ describe("guessMovementType from the category word", () => {
     expect(guess).toMatchObject({
       type: "income",
       confidence: "low",
-      evidence: { kind: "categoryWord", category: "Salaire", word: "salaire", type: "income" },
+      evidence: {
+        kind: "categoryWord",
+        category: "Salaire",
+        word: "salaire",
+        type: "income",
+        origin: "fixed",
+      },
       conflict: null,
     });
   });
@@ -195,7 +210,13 @@ describe("guessMovementType from the category word", () => {
       type: "expense",
       confidence: "low",
       evidence: { kind: "sign", direction: "out" },
-      conflict: { kind: "categoryWord", category: "Salaire", word: "salaire", type: "income" },
+      conflict: {
+        kind: "categoryWord",
+        category: "Salaire",
+        word: "salaire",
+        type: "income",
+        origin: "fixed",
+      },
     });
   });
 });
@@ -315,7 +336,7 @@ describe("guessMovementType without any clue", () => {
 
   it("reads the vocabulary of the context instead of the default one", () => {
     const custom: GuessContext = {
-      vocabulary: new Map([["prime", "income"]]),
+      vocabulary: new Map([["prime", { type: "income" as const, origin: "user" as const }]]),
       history: new Map(),
     };
 
@@ -326,7 +347,11 @@ describe("guessMovementType without any clue", () => {
     );
 
     expect(guess.type).toBe("income");
-    expect(guess.evidence).toMatchObject({ kind: "categoryWord", word: "prime" });
+    expect(guess.evidence).toMatchObject({
+      kind: "categoryWord",
+      word: "prime",
+      origin: "user",
+    });
     expect(defaultGuess.evidence).toEqual({ kind: "none" });
   });
 });

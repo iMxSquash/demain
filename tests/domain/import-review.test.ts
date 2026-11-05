@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import type { RowDetails } from "../../src/domain/import-draft";
@@ -5,6 +8,7 @@ import type { TypeGuess } from "../../src/domain/import-guess";
 import {
   confirmReasons,
   nextFileToSettle,
+  processingOrder,
   rowConfirmReasons,
   planReview,
   reviewRowProblem,
@@ -14,7 +18,8 @@ import {
   type ReviewedFile,
   type ReviewedRow,
 } from "../../src/domain/import-review";
-import type { SavingsTransfer } from "../../src/domain/import-savings";
+import { stageMovementFile } from "../../src/domain/import-staging";
+import { firstMovementDate, type SavingsTransfer } from "../../src/domain/import-savings";
 import type { OverflowAccount } from "../../src/domain/overflow";
 
 function guess(overrides: Partial<TypeGuess>): TypeGuess {
@@ -54,10 +59,11 @@ describe("confirmReasons", () => {
             category: "Salaire",
             word: "salaire",
             type: "income",
+            origin: "history",
           },
         }),
       ),
-    ).toEqual([{ kind: "categoryWord", category: "Salaire" }]);
+    ).toEqual([{ kind: "categoryWord", category: "Salaire", origin: "history" }]);
   });
 
   it("says that the sign won over a category that disagreed", () => {
@@ -70,10 +76,11 @@ describe("confirmReasons", () => {
             category: "Salaire",
             word: "salaire",
             type: "income",
+            origin: "history",
           },
         }),
       ),
-    ).toEqual([{ kind: "categoryOverruled", category: "Salaire" }]);
+    ).toEqual([{ kind: "categoryOverruled", category: "Salaire", origin: "history" }]);
   });
 
   it("says that the sign won over the history of the label", () => {
@@ -327,6 +334,28 @@ describe("planReview", () => {
     ]);
   });
 
+  it("gives the room under the ceiling to the file that starts first, for files read from CSV that overlap", () => {
+    const read = (name: string): ReviewedFile => {
+      const text = readFileSync(path.join(process.cwd(), "tests", "fixtures", name), "utf8");
+      const rows = stageMovementFile(text, { currency: "EUR", source: name }, []).rows;
+      return {
+        firstDate: firstMovementDate(rows.map((row) => row.draft.date)),
+        phase: "reviewing",
+        rows: rows.map(({ draft, details }) => ({ draft, details, isDuplicate: false })),
+      };
+    };
+    const early = read("import-overlap-march-fr.csv");
+    const late = read("import-overlap-march-late-fr.csv");
+
+    const [latePlan, earlyPlan] = planReview([late, early], context);
+
+    expect(earlyPlan?.splits.get(0)).toEqual([{ direction: "to", accountId: A_ID, amount: 8_000 }]);
+    expect(latePlan?.splits.get(0)).toEqual([
+      { direction: "to", accountId: A_ID, amount: 2_000 },
+      { direction: "to", accountId: B_ID, amount: 3_000 },
+    ]);
+  });
+
   it.each(["cancelled", "failed"] as const)(
     "plans from the balances as they are when the previous file is %s",
     (phase) => {
@@ -549,5 +578,76 @@ describe("planReview shortfalls", () => {
     const b = account({ id: OTHER_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: SAVINGS_ID });
 
     expect(plan([deposit("-30,00")], [a, b])?.shortfalls).toEqual([]);
+  });
+});
+
+describe("processingOrder", () => {
+  const dated = (sourceIndex: number, first: string | null, last: string | null = first) => ({
+    sourceIndex,
+    firstDate: first,
+    lastDate: last,
+  });
+
+  it("is not reordered when the files come in date order", () => {
+    const order = processingOrder([dated(0, "2026-01-01"), dated(1, "2026-02-01")]);
+
+    expect(order).toEqual({ isReordered: false, overlapping: [] });
+  });
+
+  it("is reordered when the order chosen differs from the date order", () => {
+    const order = processingOrder([dated(1, "2026-01-01"), dated(0, "2026-02-01")]);
+
+    expect(order.isReordered).toBe(true);
+  });
+
+  it("is neither reordered nor overlapping for a single file or none", () => {
+    expect(processingOrder([dated(0, "2026-01-01", "2026-01-31")])).toEqual({
+      isReordered: false,
+      overlapping: [],
+    });
+    expect(processingOrder([])).toEqual({ isReordered: false, overlapping: [] });
+  });
+
+  it("flags a file that starts before an earlier file ends", () => {
+    const order = processingOrder([
+      dated(0, "2026-03-02", "2026-03-18"),
+      dated(1, "2026-03-10", "2026-03-28"),
+    ]);
+
+    expect(order.overlapping).toEqual([1]);
+  });
+
+  it("does not flag files that follow each other", () => {
+    const order = processingOrder([
+      dated(0, "2026-03-01", "2026-03-31"),
+      dated(1, "2026-04-01", "2026-04-30"),
+    ]);
+
+    expect(order.overlapping).toEqual([]);
+  });
+
+  it("flags a file that starts the day an earlier file ends", () => {
+    const order = processingOrder([
+      dated(0, "2026-03-01", "2026-03-31"),
+      dated(1, "2026-03-31", "2026-04-30"),
+    ]);
+
+    expect(order.overlapping).toEqual([1]);
+  });
+
+  it("compares with every earlier file, not only the previous one", () => {
+    const order = processingOrder([
+      dated(0, "2026-01-01", "2026-03-31"),
+      dated(1, "2026-01-05", "2026-01-10"),
+      dated(2, "2026-02-01", "2026-02-10"),
+    ]);
+
+    expect(order.overlapping).toEqual([1, 2]);
+  });
+
+  it("ignores a file with no movement", () => {
+    const order = processingOrder([dated(0, "2026-03-01", "2026-03-31"), dated(1, null)]);
+
+    expect(order.overlapping).toEqual([]);
   });
 });

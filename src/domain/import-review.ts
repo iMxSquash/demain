@@ -14,8 +14,9 @@ import {
   type RowDetails,
   type RowProblem,
 } from "./import-draft";
-import type { TypeEvidence, TypeGuess } from "./import-guess";
+import type { TypeEvidence, TypeGuess, VocabularyOrigin } from "./import-guess";
 import {
+  compareDates,
   planFilesInDateOrder,
   type SavingsMovement,
   type SavingsTransfer,
@@ -26,8 +27,8 @@ import { overflowChainTail, type OverflowAccount } from "./overflow";
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
   | { kind: "typeCellConflict"; value: string; against: "sign" | "debitCredit" }
-  | { kind: "categoryWord"; category: string }
-  | { kind: "categoryOverruled"; category: string }
+  | { kind: "categoryWord"; category: string; origin: VocabularyOrigin }
+  | { kind: "categoryOverruled"; category: string; origin: VocabularyOrigin }
   | { kind: "history"; type: MovementType }
   | { kind: "historyOverruled"; type: MovementType }
   | { kind: "sign"; type: MovementType }
@@ -50,13 +51,17 @@ function reasonOfEvidence(
         against: conflict?.kind === "debitCredit" ? "debitCredit" : "sign",
       };
     case "categoryWord":
-      return { kind: "categoryWord", category: evidence.category };
+      return { kind: "categoryWord", category: evidence.category, origin: evidence.origin };
     case "history":
       return { kind: "history", type: evidence.type };
     case "sign":
     case "debitCredit":
       if (conflict?.kind === "categoryWord") {
-        return { kind: "categoryOverruled", category: conflict.category };
+        return {
+          kind: "categoryOverruled",
+          category: conflict.category,
+          origin: conflict.origin,
+        };
       }
       if (conflict?.kind === "history") {
         return { kind: "historyOverruled", type: conflict.type };
@@ -157,6 +162,39 @@ export function nextFileToSettle(
 ): number | null {
   const found = phases.slice(0, index).findIndex((phase) => !SETTLED_PHASES.includes(phase));
   return found === -1 ? null : found;
+}
+
+export interface OrderedFile {
+  /** Place of the file among those the user chose. */
+  sourceIndex: number;
+  firstDate: string | null;
+  lastDate: string | null;
+}
+
+export interface ProcessingOrder {
+  /** The files are not taken in the order the user chose them. */
+  isReordered: boolean;
+  /** Positions of the files that start before an earlier file ends. */
+  overlapping: number[];
+}
+
+/**
+ * What to tell the user about the order the files are processed in. `files` are
+ * already in processing order (by first date, ties in the order chosen). Files
+ * are recorded whole, one after the other: when dates overlap, the movements of
+ * the later file are planned after all those of the earlier one, not interleaved.
+ */
+export function processingOrder(files: readonly OrderedFile[]): ProcessingOrder {
+  // Source indexes are a permutation of the positions: any other value is a move.
+  const isReordered = files.some((file, position) => file.sourceIndex !== position);
+  const overlapping: number[] = [];
+  let latestEnd: string | null = null;
+  files.forEach(({ firstDate, lastDate }, position) => {
+    if (firstDate === null || lastDate === null) return;
+    if (latestEnd !== null && compareDates(firstDate, latestEnd) <= 0) overlapping.push(position);
+    if (latestEnd === null || compareDates(lastDate, latestEnd) > 0) latestEnd = lastDate;
+  });
+  return { isReordered, overlapping };
 }
 
 /** What is wrong with a row as the user left it, or null; the server reads it again on import. */

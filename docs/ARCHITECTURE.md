@@ -288,6 +288,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Alternatives rejected.**
 
+- *Interleaving the movements of overlapping files by day.* It would need all the files in one plan and one transaction, which contradicts one batch per file. Files are ordered by first date (ties keep the order chosen) and processed whole, and the review warns when their dates overlap.
 - *All files in a single transaction.* One wrong file would block every other one, and the files are independent once they are deduplicated.
 - *Refusing a non-empty account in the import.* It would make the monthly import impossible, which is its main use.
 - *Migrating file by file with the one-time migration.* It set the opening balances and the assertions on the whole history, and a resumed run would have recorded the history twice. The deduplication of the import removes that risk.
@@ -321,6 +322,22 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *Keeping the all-or-nothing transaction for the history.* One wrong file would block the others, and ADR-016 already records one batch per file, with an undo (ADR-017).
 
 **Consequences.** No data is deleted and no database migration is needed: the transactions, assertions, rules and categories created earlier by the migration are ordinary rows. Only the screen, its messages (`migration.*`, `home.migration`, `feedback.migrationDone`, `feedback.migrationFailed`) and its domain code are gone; the Summary issue messages now live in the `summaryBalances` namespace. Creating the rules from the (label, category) pairs of the sheet is no longer automatic: rules come from the suggestions of the import and from the rules screen.
+
+### ADR-019: The type vocabulary has three levels; the fixed one wins over the history
+
+**Context.** The type of an imported row is guessed from the words of its category (DOMAIN, Guessing the type of an imported row). A fixed list of French and English words cannot cover every user's categories, so it has to be enriched from what the owner already confirmed, and corrected when it is wrong for them, without a guess ever becoming impossible to explain.
+
+**Decision.** The effective vocabulary is built by a pure function (`buildTypeVocabulary`) from three inputs, with the priority user, then fixed, then history. The history is read from what the storage already keeps: the categories given to the rows of earlier imports, with the kind of those rows (income or expense). No new tracking is added. Only a category made of one word teaches a word, and a word seen with two types teaches nothing. The history only adds words the fixed vocabulary does not know: when the two disagree, the fixed word wins and the disagreement is ignored. The user's changes (add, change the type, remove) win over both. They are stored as one JSON object in the `settings` table, validated with Zod on every write and on every read, so there is no database migration and they travel with the JSON export and the snapshot like the other settings. Each word carries its origin (fixed, history, user), which the reason of a guess and the list on the categorization rules screen say in text. The screen is a section of `/rules`, not a page of its own.
+
+**Alternatives rejected.**
+
+- *The history wins over the fixed vocabulary.* A few mistaken imports would silently rewrite what `salaire` means for every later file, and the reason shown for a guess could not be trusted. The fixed words are curated; the history is only a hint.
+- *A dedicated vocabulary screen and navigation entry.* The words are another kind of rule that turns a category into a type, and the rules screen is where the owner already looks to teach the import. A second place would split the explanation.
+- *A table of overrides.* A migration and a join for a few dozen words, when the settings already hold small owner choices and are exported.
+- *Learning from the words of multi-word categories.* Small words (`de`, `la`) would become types and make every category containing them wrong.
+- *A confidence score per word.* The guess has three confidence levels and no number (DOMAIN); a score per word would be a second scale to explain.
+
+**Consequences.** Reading the vocabulary costs one query on the imported rows per file staged. An expense word learned from the history only matters for an incoming amount, which is then flagged to confirm in text. Removing a fixed or learned word is recorded as a removal, so it stays removed until restored from the same screen, even if the history would teach it again. The history of labels (`LabelHistory`) remains an input that nothing fills yet.
 
 ## Tooling
 

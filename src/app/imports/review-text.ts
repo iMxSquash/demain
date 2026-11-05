@@ -19,7 +19,7 @@ function describeConfirmReason(reason: ConfirmReason, t: StagedT): string {
       return t(`confirm.${reason.kind}`, { value: reason.value });
     case "categoryWord":
     case "categoryOverruled":
-      return t(`confirm.${reason.kind}`, { category: reason.category });
+      return t(`confirm.${reason.kind}.${reason.origin}`, { category: reason.category });
     case "history":
     case "historyOverruled":
     case "sign":
