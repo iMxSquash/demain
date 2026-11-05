@@ -23,7 +23,7 @@ interface AccountFormProps {
     formData: FormData,
   ) => Promise<AccountFormState | null>;
   initialValues: AccountFormValues;
-  /** Active accounts the user may pick as overflow account (never the account itself). */
+  /** Active savings accounts the user may pick as overflow account (never the account itself). */
   overflowOptions: OverflowOption[];
   submitLabel: string;
 }

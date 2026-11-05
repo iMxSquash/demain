@@ -80,5 +80,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- An overflow account must now be an active savings account: saving an account or restoring a backup refuses a checking account (or any account that is not of kind savings) as target, and the choice list of the import review only offers active savings accounts of the currency.
+- An overflow account must now be an active savings account: saving an account or restoring a backup refuses a checking account (or any account that is not of kind savings) as target, and the overflow account selectors of the account screens and the choice list of the import review only offer active savings accounts.
 - The deposit ceiling check of an import now counts the incoming transfers of the account that receives the file, as DOMAIN says: a withdrawal from savings that brings the balance above the ceiling is reported as a warning, and a deposit to savings earlier in the file frees room.

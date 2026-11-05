@@ -5,6 +5,7 @@ import { connection } from "next/server";
 
 import type { AccountKind } from "../../domain/account";
 import { formatAmount } from "../../domain/money";
+import { overflowTargetsOf } from "../../domain/overflow";
 import {
   listAccounts,
   listOverflowAccounts,
@@ -67,7 +68,7 @@ export default async function AccountsPage() {
         <AccountForm
           action={createAccountAction}
           initialValues={NEW_ACCOUNT_DEFAULTS}
-          overflowOptions={active}
+          overflowOptions={overflowTargetsOf(active)}
           submitLabel={t("addSubmit")}
         />
       </section>

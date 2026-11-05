@@ -89,6 +89,13 @@ export function routeAlongOverflowChain(
   return { status: "ok", placements, unplaced: remaining };
 }
 
+/** The accounts that may take a surplus: active savings accounts (ADR-013). */
+export function overflowTargetsOf<T extends { kind: string; archived: boolean }>(
+  accounts: readonly T[],
+): T[] {
+  return accounts.filter(({ kind, archived }) => kind === SAVINGS_KIND && !archived);
+}
+
 /**
  * Refuses an overflow target that would create a cycle, cross currencies,
  * point to an unknown or archived account, or is not a savings account. Runs on every save, since the

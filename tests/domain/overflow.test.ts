@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertOverflowTargetAllowed,
+  overflowTargetsOf,
   routeAlongOverflowChain,
   type OverflowAccount,
 } from "../../src/domain/overflow";
@@ -240,5 +241,18 @@ describe("assertOverflowTargetAllowed", () => {
     expect(() =>
       assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), LIVRET_A_ID, accounts),
     ).not.toThrow();
+  });
+});
+
+describe("overflowTargetsOf", () => {
+  it("keeps only the active savings accounts", () => {
+    const accounts = [
+      account({ id: 1 }),
+      account({ id: 2, kind: "checking" }),
+      account({ id: 3, kind: "other" }),
+      account({ id: 4, archived: true }),
+    ];
+
+    expect(overflowTargetsOf(accounts).map(({ id }) => id)).toEqual([1]);
   });
 });
