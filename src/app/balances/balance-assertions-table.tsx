@@ -42,7 +42,7 @@ export async function BalanceAssertionsTable({
       role="region"
       aria-label={t("regionLabel")}
       tabIndex={0}
-      className="overflow-x-auto"
+      className="relative overflow-x-auto"
     >
       <table className="w-full border-collapse text-left">
         <caption className="sr-only">{caption}</caption>
