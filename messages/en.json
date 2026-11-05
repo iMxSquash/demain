@@ -494,6 +494,22 @@
         "gapLess": "On {date}, Demain holds {amount} less than the bank.",
         "gapMatch": "On {date}, the balances match."
       },
+      "assertionLinks": {
+        "heading": "Balance assertions within the dates of this file",
+        "summary": "{matching} of {checked} assertions match",
+        "summaryOne": "{matching} of {checked} assertion matches",
+        "empty": "No balance assertion falls within the dates of this file: nothing to compare.",
+        "regionLabel": "Balance assertions within the dates of {name}, scrollable table",
+        "caption": "Balance assertions within the dates of {name}: the bank balance, the balance Demain computes once this file is recorded, and the gap. Zero tolerance: any difference is a gap.",
+        "columnAccount": "Account",
+        "columnDate": "Date (end of day)",
+        "columnReal": "Bank balance",
+        "columnComputed": "Computed balance",
+        "columnGap": "Gap",
+        "gapNone": "No gap",
+        "gapDemainHigher": "{amount}: Demain holds more than the bank",
+        "gapBankHigher": "{amount}: the bank shows more than Demain"
+      },
       "undo": {
         "heading": "Undo this import",
         "open": "Undo this import",
