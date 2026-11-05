@@ -1,6 +1,7 @@
 import type { ColumnChoices } from "../../domain/import-columns";
 import type { CsvMapping } from "../../domain/import-csv";
 import { draftOfRow } from "../../domain/import-draft";
+import type { TypeVocabulary } from "../../domain/import-guess";
 import {
   stageCsvRows,
   stageMovementFile,
@@ -32,6 +33,8 @@ export interface StatementContext {
   accountId: number;
   currency: string;
   categories: readonly StagedCategory[];
+  /** The words of a category that give the type. */
+  vocabulary: TypeVocabulary;
   /** The columns the user assigned to the roles, over the detected ones. */
   columns?: ColumnChoices;
 }
@@ -88,7 +91,12 @@ export function stageStatement(
 
   const staged = stageMovementFile(
     text,
-    { currency: context.currency, source: context.fileName, columns: context.columns },
+    {
+      currency: context.currency,
+      source: context.fileName,
+      columns: context.columns,
+      vocabulary: context.vocabulary,
+    },
     context.categories,
   );
   const { analysis } = staged.reading;

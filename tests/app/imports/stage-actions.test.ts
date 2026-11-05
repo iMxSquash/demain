@@ -19,6 +19,7 @@ import {
 import { createCategory } from "../../../src/ledger/categories";
 import { commitImport, listImportBatches } from "../../../src/ledger/imports";
 import { listTransactions } from "../../../src/ledger/transactions";
+import { removeVocabularyWord, setVocabularyWord } from "../../../src/ledger/type-vocabulary";
 import {
   type AppDatabase,
   migrateDatabase,
@@ -438,6 +439,61 @@ VERSION:102
       ["Carrefour", "-12.50", "expense", groceries.id, "expense"],
       ["Salary ACME", "1500.00", "income", salary.id, "income"],
     ]);
+  });
+
+  describe("vocabulary of the category", () => {
+    const BONUS_CSV = [
+      "Date;Label;Amount;Category",
+      "05/03/2026;Transfer;1 500,00;Bonus",
+      "06/03/2026;Transfer;90,00;Salaire",
+      "07/03/2026;Shop;-5,00;Courses",
+    ].join("\n");
+
+    it("reads the words the user taught and says where they come from", async () => {
+      setVocabularyWord(db, { word: "bonus", type: "savings" });
+
+      const file = await stage(BONUS_CSV);
+
+      expect(file.rows[0]?.guess).toMatchObject({
+        type: "savings",
+        evidence: { kind: "categoryWord", word: "bonus", origin: "user" },
+      });
+    });
+
+    it("no longer recognizes a fixed word the user removed", async () => {
+      removeVocabularyWord(db, "salaire");
+
+      const file = await stage(BONUS_CSV);
+
+      expect(file.rows[1]?.guess?.evidence).toEqual({ kind: "sign", direction: "in" });
+    });
+
+    it("learns a word from an earlier import", async () => {
+      const bonus = createCategory(db, { name: "Bonus" });
+      commitImport(db, {
+        accountId: CHECKING_ID,
+        rows: [
+          {
+            date: "2026-02-05",
+            amount: 100_000,
+            label: "Earlier",
+            externalId: null,
+            details: { ...EXPENSE_DETAILS, type: "income", categoryId: bonus.id },
+          },
+        ],
+        format: "csv",
+        fileName: "2026-02.csv",
+        mapping: null,
+        now: new Date("2026-03-01T00:00:00Z"),
+      });
+
+      const file = await stage(BONUS_CSV);
+
+      expect(file.rows[0]?.guess).toMatchObject({
+        type: "income",
+        evidence: { kind: "categoryWord", word: "bonus", origin: "history" },
+      });
+    });
   });
 
   describe("columns", () => {
