@@ -13,7 +13,7 @@ import type {
   MigrationNotice,
 } from "../../ledger/sheet-migration";
 
-type Flatten<T, Prefix extends string = ""> = {
+export type Flatten<T, Prefix extends string = ""> = {
   [Key in keyof T & string]: T[Key] extends string
     ? `${Prefix}${Key}`
     : Flatten<T[Key], `${Prefix}${Key}.`>;

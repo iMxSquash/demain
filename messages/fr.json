@@ -135,7 +135,74 @@
     "accountColumn": "Compte",
     "accountBalancesLink": "Soldes du compte",
     "accountsLink": "Pour enregistrer un solde, ajoutez d'abord un compte.",
-    "chooseAccount": "Choisir un compte"
+    "chooseAccount": "Choisir un compte",
+    "summaryLink": "Enregistrer les soldes de l'onglet Summary"
+  },
+  "summaryBalances": {
+    "metaTitle": "Soldes du Summary | Demain",
+    "title": "Enregistrer les soldes de l'onglet Summary",
+    "intro": "Le solde réel du compte de chaque mois de l'onglet Summary, exporté en CSV, devient un solde constaté au dernier jour du mois. Le fichier est lu sur ce serveur et ne va nulle part ailleurs. Rien n'est écrit tant que vous n'avez pas confirmé l'aperçu.",
+    "backToBalances": "Retour aux soldes constatés",
+    "noAccount": "Aucun compte actif. Créez d'abord le compte.",
+    "fileLabel": "Onglet Summary (CSV)",
+    "fileHint": "Un seul fichier, {size} Ko au plus. Le séparateur est détecté.",
+    "accountLabel": "Compte qui porte ces soldes",
+    "chooseAccount": "Choisir un compte",
+    "yearLabel": "Année des mois (facultatif)",
+    "yearHint": "Utile seulement quand les mois sont écrits sans année. Laissez vide si le fichier la donne.",
+    "previewSubmit": "Aperçu",
+    "commitSubmit": "Enregistrer les soldes",
+    "replaceWarning": "Un jour qui a déjà un solde constaté est remplacé par le montant du Summary.",
+    "noteHeading": "À lire",
+    "balancesHeading": "Soldes constatés",
+    "balancesCaption": "Soldes de fin de mois du Summary et ce qu'il advient de chacun",
+    "balancesColumns": {
+      "month": "Mois",
+      "date": "Date",
+      "balance": "Solde réel",
+      "status": "Résultat"
+    },
+    "noBalance": "Aucun",
+    "status": {
+      "willCreate": "Sera créé",
+      "created": "Créé",
+      "willReplace": "Remplacera le solde {previous}",
+      "replaced": "A remplacé le solde {previous}",
+      "noBalance": "Rien à enregistrer : le Summary n'a pas de solde pour ce mois",
+      "refused": {
+        "accountArchived": "Refusé : le compte est archivé",
+        "beforeOpening": "Refusé : le mois s'est terminé avant l'ouverture du compte",
+        "afterToday": "Refusé : le mois n'est pas terminé"
+      }
+    },
+    "comparisonHeading": "Comparaison avec l'historique enregistré dans Demain",
+    "comparisonCaption": "Chiffres du Summary qui diffèrent de ceux calculés par Demain, mois par mois",
+    "comparisonColumns": {
+      "month": "Mois",
+      "figure": "Chiffre",
+      "sheet": "Summary",
+      "demain": "Demain",
+      "difference": "Écart (Demain moins Summary)"
+    },
+    "comparisonMatches": "Chaque mois comparé correspond au Summary au centime près.",
+    "comparisonNone": "Aucun mois du Summary n'a pu être comparé.",
+    "errors": {
+      "fileRequired": "Choisissez le fichier du Summary.",
+      "fileTooLarge": "{name} dépasse {max} Ko.",
+      "fileEmpty": "{name} est vide.",
+      "accountRequired": "Choisissez un compte actif.",
+      "yearInvalid": "L'année doit avoir quatre chiffres, par exemple 2026.",
+      "accountGone": "Le compte n'existe plus. Rechargez la page."
+    },
+    "messages": {
+      "previewReady": "Prêt à enregistrer : {created} à créer, {replaced} à remplacer, {refused} refusés.",
+      "nothingToRecord": "Rien ne peut être enregistré depuis ce fichier.",
+      "done": "Soldes enregistrés : {count}."
+    },
+    "issues": {
+      "monthDuplicated": "{month} apparaît plusieurs fois dans le Summary : la première ligne est utilisée.",
+      "futureMonths": "Les mois du Summary non terminés ne sont pas comparés : {months}."
+    }
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -916,7 +983,9 @@
     "signedOut": "Vous êtes déconnecté.",
     "setupDone": "Votre compte est prêt.",
     "balanceAssertionReplaced": "Contrôle de solde enregistré. Il remplace celui déjà enregistré le {date}.",
-    "balanceAssertionAccountRequired": "Choisissez le compte auquel appartient le solde"
+    "balanceAssertionAccountRequired": "Choisissez le compte auquel appartient le solde",
+    "summaryBalancesSaved": "Soldes enregistrés depuis le Summary : {count}.",
+    "summaryBalancesNotSaved": "Une erreur est survenue, aucun solde du Summary n'a été enregistré."
   },
   "auth": {
     "signOut": "Se déconnecter",

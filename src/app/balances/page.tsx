@@ -38,6 +38,11 @@ export default async function AllBalanceAssertionsPage() {
       </Link>
       <h1 className="text-2xl font-semibold">{t("allTitle")}</h1>
       <p>{t("allIntro")}</p>
+      <p>
+        <Link href="/balances/summary" className="underline">
+          {t("summaryLink")}
+        </Link>
+      </p>
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
         <h2 id="new-heading" className="text-xl font-semibold">

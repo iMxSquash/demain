@@ -135,7 +135,74 @@
     "accountColumn": "Account",
     "accountBalancesLink": "Balances of the account",
     "accountsLink": "To record a balance, add an account first.",
-    "chooseAccount": "Choose an account"
+    "chooseAccount": "Choose an account",
+    "summaryLink": "Record the balances of the Summary tab"
+  },
+  "summaryBalances": {
+    "metaTitle": "Balances from the Summary | Demain",
+    "title": "Record the balances of the Summary tab",
+    "intro": "The real account balance of each month of the Summary tab, exported as CSV, becomes a balance check at the last day of the month. The file is read on this server and goes nowhere else. Nothing is written until you confirm the preview.",
+    "backToBalances": "Back to balance checks",
+    "noAccount": "No active account yet. Create the account first.",
+    "fileLabel": "Summary tab (CSV)",
+    "fileHint": "One file, {size} KB at most. The separator is detected.",
+    "accountLabel": "Account that holds these balances",
+    "chooseAccount": "Choose an account",
+    "yearLabel": "Year of the months (optional)",
+    "yearHint": "Only needed when the months are written without a year. Leave empty if the file gives it.",
+    "previewSubmit": "Preview",
+    "commitSubmit": "Record the balances",
+    "replaceWarning": "A day that already has a balance check is replaced by the amount of the Summary.",
+    "noteHeading": "To read",
+    "balancesHeading": "Balance checks",
+    "balancesCaption": "Month-end balances of the Summary and what happens to each one",
+    "balancesColumns": {
+      "month": "Month",
+      "date": "Date",
+      "balance": "Real balance",
+      "status": "Outcome"
+    },
+    "noBalance": "None",
+    "status": {
+      "willCreate": "Will be created",
+      "created": "Created",
+      "willReplace": "Will replace the balance {previous}",
+      "replaced": "Replaced the balance {previous}",
+      "noBalance": "Nothing to record: the Summary has no balance for this month",
+      "refused": {
+        "accountArchived": "Refused: the account is archived",
+        "beforeOpening": "Refused: the month ended before the account opened",
+        "afterToday": "Refused: the month is not over yet"
+      }
+    },
+    "comparisonHeading": "Comparison with the history stored in Demain",
+    "comparisonCaption": "Figures of the Summary that differ from the ones computed by Demain, month by month",
+    "comparisonColumns": {
+      "month": "Month",
+      "figure": "Figure",
+      "sheet": "Summary",
+      "demain": "Demain",
+      "difference": "Difference (Demain minus Summary)"
+    },
+    "comparisonMatches": "Every compared month matches the Summary to the cent.",
+    "comparisonNone": "No month of the Summary could be compared.",
+    "errors": {
+      "fileRequired": "Choose the Summary file.",
+      "fileTooLarge": "{name} is larger than {max} KB.",
+      "fileEmpty": "{name} is empty.",
+      "accountRequired": "Choose an active account.",
+      "yearInvalid": "The year must be four digits, for example 2026.",
+      "accountGone": "The account no longer exists. Reload the page."
+    },
+    "messages": {
+      "previewReady": "Ready to record: {created} to create, {replaced} to replace, {refused} refused.",
+      "nothingToRecord": "Nothing can be recorded from this file.",
+      "done": "Balances recorded: {count}."
+    },
+    "issues": {
+      "monthDuplicated": "{month} appears several times in the Summary: the first row is used.",
+      "futureMonths": "Summary months that are not over are not compared: {months}."
+    }
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -916,7 +983,9 @@
     "signedOut": "You are signed out.",
     "setupDone": "Your account is ready.",
     "balanceAssertionReplaced": "Balance check saved. It replaced the one already recorded on {date}.",
-    "balanceAssertionAccountRequired": "Choose the account the balance belongs to"
+    "balanceAssertionAccountRequired": "Choose the account the balance belongs to",
+    "summaryBalancesSaved": "Balances recorded from the Summary: {count}.",
+    "summaryBalancesNotSaved": "Something went wrong, no balance was recorded from the Summary."
   },
   "auth": {
     "signOut": "Sign out",
