@@ -126,14 +126,18 @@ export function listAllBalanceAssertions(
       account,
     ]),
   );
-  const movements = db
-    .select({
-      accountId: transactions.accountId,
-      date: transactions.date,
-      amount: transactions.amount,
-    })
-    .from(transactions)
-    .all();
+  // Grouped once, so that each gap only walks the movements of its own account.
+  const movementsByAccount = Map.groupBy(
+    db
+      .select({
+        accountId: transactions.accountId,
+        date: transactions.date,
+        amount: transactions.amount,
+      })
+      .from(transactions)
+      .all(),
+    (movement) => movement.accountId,
+  );
   return db
     .select()
     .from(balanceAssertions)
@@ -144,7 +148,11 @@ export function listAllBalanceAssertions(
       const account = accounts.get(assertion.accountId)!;
       return {
         ...assertion,
-        ...computeUnexplainedGap(account, movements, assertion),
+        ...computeUnexplainedGap(
+          account,
+          movementsByAccount.get(account.id) ?? [],
+          assertion,
+        ),
         accountName: account.name,
         accountCurrency: account.currency,
         accountArchived: account.archived,
