@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { SheetRow } from "../../src/domain/sheet-import";
 import {
   readSheetSummary,
-  scopeSummary,
-  type SummaryMonth,
+  readSummaryBalances,
 } from "../../src/domain/sheet-summary";
 
 // Headers as named in DOMAIN; the figures are synthetic.
@@ -197,54 +195,89 @@ describe("readSheetSummary", () => {
   });
 });
 
-describe("scopeSummary", () => {
-  const month = (name: string): SummaryMonth => ({
-    month: name,
-    net: null,
-    savings: null,
-    cumulativeSavings: null,
-    cumulativeAccount: null,
-    savingsBalance: null,
-    realAccountBalance: null,
-  });
-  const row = (date: string): SheetRow => ({
-    source: "tab.csv",
-    line: 2,
-    date,
-    label: "Shop",
-    amount: 100,
-    type: "expense",
-    category: null,
-    paymentMode: null,
-  });
-  const summary = ["2025-12", "2026-01", "2026-02", "2026-03", "2026-11"].map(month);
+describe("readSummaryBalances", () => {
+  it("reads the real account balance of each month", () => {
+    const text = `${HEADER}\nJanuary;100,00;50,00;50,00;50,00;75,00;1 500,00\nFebruary;1,00;0,00;50,00;51,00;-20,50;1 500,00`;
 
-  it("keeps the months from the first to the last month of the rows", () => {
-    const scope = scopeSummary(summary, [row("2026-01-15"), row("2026-03-02")]);
+    expect(readSummaryBalances(text, OPTIONS)).toEqual({
+      balances: [
+        { month: "2026-01", amount: 7_500 },
+        { month: "2026-02", amount: -2_050 },
+      ],
+      issues: [],
+    });
+  });
 
-    expect(scope.inScope.map((entry) => entry.month)).toEqual([
-      "2026-01",
-      "2026-02",
-      "2026-03",
+  it("detects a comma separator and a tab separator per file", () => {
+    const comma =
+      "Month,Final balance,Savings,Cumulative savings,Cumulative account,Real account balance,Real savings balance\n" +
+      'January,1.00,0.00,0.00,1.00,"1,234.56",10.00';
+    const tab = HEADER.replaceAll(";", "\t") + "\nJanuary\t1,00\t0\t0\t1,00\t12,34\t10,00";
+
+    expect(readSummaryBalances(comma, OPTIONS).balances).toEqual([
+      { month: "2026-01", amount: 123_456 },
+    ]);
+    expect(readSummaryBalances(tab, OPTIONS).balances).toEqual([
+      { month: "2026-01", amount: 1_234 },
     ]);
   });
 
-  it("names the months it leaves out instead of dropping them silently", () => {
-    const scope = scopeSummary(summary, [row("2026-01-15"), row("2026-03-02")]);
+  it("reports a month with no balance as such, without an issue", () => {
+    const text = `${HEADER}\nJanuary;1,00;0;0;1,00;;10,00\nFebruary;;;;;;`;
 
-    expect(scope.ignored).toEqual(["2025-12", "2026-11"]);
+    expect(readSummaryBalances(text, OPTIONS)).toEqual({
+      balances: [
+        { month: "2026-01", amount: null },
+        { month: "2026-02", amount: null },
+      ],
+      issues: [],
+    });
   });
 
-  it("leaves everything out, and says so, when there are no rows", () => {
-    const scope = scopeSummary(summary, []);
+  it("keeps a month whose balance cannot be read, with its issue", () => {
+    const text = `${HEADER}\nJanuary;1,00;0;0;1,00;abc;10,00`;
 
-    expect(scope.inScope).toEqual([]);
-    expect(scope.ignored).toHaveLength(5);
+    expect(readSummaryBalances(text, OPTIONS)).toEqual({
+      balances: [{ month: "2026-01", amount: null }],
+      issues: [
+        { kind: "amountUnreadable", line: 2, column: "realAccountBalance", text: "abc" },
+      ],
+    });
   });
 
-  it("does not let a row with an impossible date set the period", () => {
-    const scope = scopeSummary(summary, [row("2026-02-10"), row("2099-13-45")]);
+  it("ignores the other columns, even unreadable or missing", () => {
+    const text = "Month;Real account balance;Notes\nJanuary;75,00;hello";
 
-    expect(scope.inScope.map((entry) => entry.month)).toEqual(["2026-02"]);
+    expect(readSummaryBalances(text, OPTIONS)).toEqual({
+      balances: [{ month: "2026-01", amount: 7_500 }],
+      issues: [{ kind: "unrecognizedColumn", column: 2, header: "Notes" }],
+    });
+  });
+
+  it("reports a missing balance column and a month it cannot read", () => {
+    expect(readSummaryBalances("Month;Savings\nJanuary;1,00", OPTIONS)).toEqual({
+      balances: [{ month: "2026-01", amount: null }],
+      issues: [{ kind: "columnNotFound", column: "realAccountBalance" }],
+    });
+    const text = `${HEADER}\nsoon;1,00;0;0;1,00;5,00;10,00`;
+    expect(readSummaryBalances(text, OPTIONS).issues).toEqual([
+      { kind: "monthUnreadable", line: 2, text: "soon" },
+    ]);
+  });
+
+  it("keeps the first of two rows for the same month and says so", () => {
+    const text = `${HEADER}\nJanuary;1;0;0;1;5,00;1\n01/2026;1;0;0;1;6,00;1`;
+
+    expect(readSummaryBalances(text, OPTIONS)).toEqual({
+      balances: [{ month: "2026-01", amount: 500 }],
+      issues: [{ kind: "monthDuplicated", month: "2026-01" }],
+    });
+  });
+
+  it("reports a file it cannot read", () => {
+    expect(readSummaryBalances("", OPTIONS)).toEqual({
+      balances: [],
+      issues: [{ kind: "emptyFile" }],
+    });
   });
 });

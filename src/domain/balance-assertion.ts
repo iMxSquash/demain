@@ -28,10 +28,38 @@ export interface AssertionPoint {
   amount: number;
 }
 
+/** A stored balance assertion as the comparisons read it. */
+export interface AssertionSnapshot extends AssertionPoint {
+  id: number;
+  accountId: number;
+}
+
 export interface UnexplainedGap {
   computedBalance: number;
   /** Computed balance minus asserted amount: positive when Demain holds more than the bank. */
   gap: number;
+}
+
+/**
+ * The computed balance of each given account at the end of a day: its opening
+ * balance plus every movement dated on or before that day.
+ */
+export function computedBalancesAt(
+  accounts: readonly AssertedAccount[],
+  movements: readonly AssertionMovement[],
+  date: string,
+): Map<number, number> {
+  const balances = new Map(
+    accounts.map((account) => [account.id, account.openingBalance]),
+  );
+  for (const movement of movements) {
+    const balance = balances.get(movement.accountId);
+    // "YYYY-MM-DD" strings sort chronologically, and the day itself is included.
+    if (balance !== undefined && movement.date <= date) {
+      balances.set(movement.accountId, balance + movement.amount);
+    }
+  }
+  return balances;
 }
 
 export function computeUnexplainedGap(
@@ -39,14 +67,21 @@ export function computeUnexplainedGap(
   movements: readonly AssertionMovement[],
   assertion: AssertionPoint,
 ): UnexplainedGap {
-  // "YYYY-MM-DD" strings sort chronologically, and the asserted day is included.
-  const computedBalance = movements
-    .filter(
-      (movement) =>
-        movement.accountId === account.id && movement.date <= assertion.date,
-    )
-    .reduce((total, movement) => total + movement.amount, account.openingBalance);
+  const computedBalance =
+    computedBalancesAt([account], movements, assertion.date).get(account.id) ??
+    account.openingBalance;
   return { computedBalance, gap: computedBalance - assertion.amount };
+}
+
+export type GapDirection = "realAbove" | "realBelow" | "equal";
+
+/** Where the real balance stands against the computed one, to write the gap in text. */
+export function gapDirection(
+  computedBalance: number,
+  realBalance: number,
+): GapDirection {
+  if (realBalance === computedBalance) return "equal";
+  return realBalance > computedBalance ? "realAbove" : "realBelow";
 }
 
 export interface BalanceAssertionInput {

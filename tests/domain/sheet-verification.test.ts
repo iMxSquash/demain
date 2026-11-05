@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { MonthlySynthesis } from "../../src/domain/synthesis";
 import {
+  compareLedgerWithSummary,
   verifyAgainstSummary,
   type ComputedMonth,
   type SheetMonth,
@@ -119,5 +121,98 @@ describe("verifyAgainstSummary", () => {
     ]);
     expect(result.differences).toEqual([]);
     expect(result.isMatching).toBe(false);
+  });
+});
+
+const synthesis = (
+  month: string,
+  overrides: Partial<MonthlySynthesis> = {},
+): MonthlySynthesis => ({
+  month,
+  net: 10_000,
+  savings: 5_000,
+  cumulativeSavings: 5_000,
+  cumulativeAccount: 5_000,
+  balances: [
+    { accountId: 1, currency: "EUR", balance: 20_000 },
+    { accountId: 2, currency: "EUR", balance: 60_000 },
+    { accountId: 3, currency: "EUR", balance: 45_000 },
+  ],
+  total: 125_000,
+  totalByKind: { checking: 20_000, savings: 105_000, other: 0 },
+  unconvertedCurrencies: [],
+  ...overrides,
+});
+
+describe("compareLedgerWithSummary", () => {
+  it("adds up the balances of the savings accounts for the savings balance", () => {
+    const result = compareLedgerWithSummary(
+      [synthesis("2026-01")],
+      [2, 3],
+      [sheet("2026-01")],
+      "2026-03",
+    );
+
+    expect(result.isMatching).toBe(true);
+  });
+
+  it("reports a figure that differs from the stored history", () => {
+    const result = compareLedgerWithSummary(
+      [synthesis("2026-01", { net: 9_900 })],
+      [2, 3],
+      [sheet("2026-01")],
+      "2026-03",
+    );
+
+    expect(result.differences).toEqual([
+      { month: "2026-01", figure: "net", sheet: 10_000, demain: 9_900 },
+    ]);
+  });
+
+  it("names the Summary months that are not over instead of comparing them", () => {
+    const result = compareLedgerWithSummary(
+      [synthesis("2026-01"), synthesis("2026-02")],
+      [2, 3],
+      [sheet("2026-01"), sheet("2026-02")],
+      "2026-01",
+    );
+
+    expect(result.futureMonths).toEqual(["2026-02"]);
+    expect(result.issues).toEqual([]);
+    expect(result.isMatching).toBe(true);
+  });
+
+  it("leaves out the ledger months outside the span of the Summary", () => {
+    const result = compareLedgerWithSummary(
+      [synthesis("2025-12"), synthesis("2026-01"), synthesis("2026-02")],
+      [2, 3],
+      [sheet("2026-01")],
+      "2026-02",
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.isMatching).toBe(true);
+  });
+
+  it("reports a Summary month with no month in the stored history", () => {
+    const result = compareLedgerWithSummary(
+      [synthesis("2026-02")],
+      [2, 3],
+      [sheet("2026-01"), sheet("2026-02")],
+      "2026-03",
+    );
+
+    expect(result.issues).toEqual([{ kind: "monthMissingInDemain", month: "2026-01" }]);
+  });
+
+  it("is not a match when the Summary has no month to compare", () => {
+    const result = compareLedgerWithSummary([synthesis("2026-01")], [2], [], "2026-03");
+
+    expect(result).toEqual({
+      differences: [],
+      issues: [],
+      isMatching: false,
+      futureMonths: [],
+    });
   });
 });

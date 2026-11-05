@@ -6,13 +6,17 @@ import type { Translate } from "../../../../domain/message";
 import { MoneyParseError, parseAmount } from "../../../../domain/money";
 
 export interface BalanceAssertionFormValues {
+  /** Only filled by the form that lets the user choose the account. */
+  accountId: string;
   date: string;
   amount: string;
   note: string;
 }
 
+export type BalanceAssertionFormField = BalanceAssertionField | "accountId";
+
 export interface BalanceAssertionFormState {
-  field?: BalanceAssertionField;
+  field?: BalanceAssertionFormField;
   message: string;
   /** What the user typed: React resets the form after an action, so it is sent back. */
   values: BalanceAssertionFormValues;
@@ -31,10 +35,19 @@ export function readSubmittedValues(
   formData: FormData,
 ): BalanceAssertionFormValues {
   return {
+    accountId: readText(formData, "accountId"),
     date: readText(formData, "date"),
     amount: readText(formData, "amount"),
     note: readText(formData, "note"),
   };
+}
+
+/** The account chosen in the selector, or null when none was chosen. */
+export function parseAccountId(formData: FormData): number | null {
+  const text = readText(formData, "accountId");
+  if (!/^\d+$/.test(text)) return null;
+  const id = Number(text);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 /** Converts submitted text to a typed input. Amounts never go through a float. */

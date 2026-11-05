@@ -40,7 +40,7 @@ The application is split into modules with explicit responsibilities. The projec
 | --- | --- | --- |
 | **auth** | Single-user account, first-run setup token, password hashing, sessions, optional TOTP with backup codes, offline password recovery, login rate limiting. | storage |
 | **ledger** | Accounts (with deposit ceilings), transactions, transfers, categories, balance assertions, monthly synthesis, real chart data. | storage, currency |
-| **import** | CSV and OFX parsing, column mappings, deduplication, categorization rules, the to-categorize queue, sheet migration. Later hosts the aggregator adapter interface (M4). | ledger, planning (for matching) |
+| **import** | CSV and OFX parsing, column mappings, deduplication, categorization rules, the to-categorize queue. Later hosts the aggregator adapter interface (M4). | ledger, planning (for matching) |
 | **planning** | Planned items and their versions, occurrence generation, overrides, business-day rules, rolling-average amounts, provisions, planned vs actual matching, calendar data. | ledger, currency |
 | **scenarios** | Constant-pace simulation, estimated variable spending, scenarios, modifications, the cash flow transformation engine, indicators, comparison, validation into planned items. | planning, currency |
 | **currency** | Minor unit arithmetic, parsing and formatting of amounts, exchange rates, conversion to the reference currency, optional ECB fetcher. | storage |
@@ -208,7 +208,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 - *Learned models or external categorization services.* Opaque results, and external services would send data off the server.
 
-**Consequences.** Categorization is predictable and explainable ("this rule matched"). It needs some setup at first, which the migration bootstrap reduces.
+**Consequences.** Categorization is predictable and explainable ("this rule matched"). It needs some setup at first, which the suggestions of the import reduce.
 
 ### ADR-011: Estimation only inside simulations
 
@@ -249,7 +249,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *A warning only, resolved by hand each time.* It is what the sheet required, and it is the manual work Demain exists to remove.
 - *A single level of overflow.* Does not cover an account that overflows to a second capped account.
 
-**Consequences.** The account screen must validate a graph, not just a field. The routing logic is a pure function shared by manual entry, planned items, simulations and the sheet migration, and it needs thorough tests for cycles and partial fits. The import of files uses the same pure routing, fed with running balances (ADR-016).
+**Consequences.** The account screen must validate a graph, not just a field. The routing logic is a pure function shared by manual entry, planned items, simulations and the import of files, and it needs thorough tests for cycles and partial fits. The import of files uses the same pure routing, fed with running balances (ADR-016).
 
 ### ADR-014: Language from a cookie, translation files discovered on disk, domain messages as keys
 
@@ -280,19 +280,19 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** A new action tells its outcome with one `flash` call and a key in both translation files. The cookie is readable by scripts on purpose, which is harmless since it only holds a key. Setting a cookie in a server action refreshes the page, so an action whose screen must not refresh (the TOTP enrollment, which shows the backup codes once) tells nothing in a toast. Every page already renders on demand (the content security policy nonce, see Security), so reading the cookie in the layout costs nothing more.
 
-### ADR-016: Imports are recorded file by file; the sheet migration stays one time, all or nothing
+### ADR-016: Imports are recorded file by file, deduplicated against the account
 
-**Context.** The sheet migration refuses an account that already has transactions and records everything in one transaction: opening balances, history, split transfers, assertions and rules. The import of bank files serves another need: files arrive month after month, several at once, on accounts that are already fed, and some rows are savings that must be split along an overflow chain.
+**Context.** The sheet migration (retired by ADR-018) refused an account that already has transactions and recorded everything in one transaction. The import of bank files serves another need: files arrive month after month, several at once, on accounts that are already fed, and some rows are savings that must be split along an overflow chain.
 
-**Decision.** An import records one batch per file, in one transaction. The rows are deduplicated against the account that receives them, and a non-empty account is not refused. When several files are sent, they are processed in date order. A savings row is split along the overflow chain from the current balances, a deposit leaving the account and a withdrawal entering it, each part being a linked pair of transfers; the duplicate keys sit on the leg of the receiving account (the first one when the row is split). What fits nowhere, a loop in the chain or a row the ledger refuses blocks the file, and nothing of it is written. The initial migration is unchanged: first run only, all or nothing.
+**Decision.** An import records one batch per file, in one transaction. The rows are deduplicated against the account that receives them, and a non-empty account is not refused. When several files are sent, they are processed in date order. A savings row is split along the overflow chain from the current balances, a deposit leaving the account and a withdrawal entering it, each part being a linked pair of transfers; the duplicate keys sit on the leg of the receiving account (the first one when the row is split). What fits nowhere, a loop in the chain or a row the ledger refuses blocks the file, and nothing of it is written.
 
 **Alternatives rejected.**
 
 - *All files in a single transaction.* One wrong file would block every other one, and the files are independent once they are deduplicated.
 - *Refusing a non-empty account in the import.* It would make the monthly import impossible, which is its main use.
-- *Migrating file by file.* The opening balances and the assertions are set on the whole history, and a resumed run would record the history twice.
+- *Migrating file by file with the one-time migration.* It set the opening balances and the assertions on the whole history, and a resumed run would have recorded the history twice. The deduplication of the import removes that risk.
 
-**Consequences.** The order of the imports matters for the ceilings: the same file imported earlier or later may be split differently. The screen that replaces `/migration` must keep the first-run rule. A file blocked for a part that fits nowhere stays blocked until the user chooses an overflow account for the account at the end of the chain, in the review. That choice is kept in the dialog and saved for good together with the file, in the same transaction, through the same save as the account screen, so the rules of ADR-013 apply to it unchanged and a file that is not recorded leaves no link and no account behind.
+**Consequences.** The order of the imports matters for the ceilings: the same file imported earlier or later may be split differently. A file blocked for a part that fits nowhere stays blocked until the user chooses an overflow account for the account at the end of the chain, in the review. That choice is kept in the dialog and saved for good together with the file, in the same transaction, through the same save as the account screen, so the rules of ADR-013 apply to it unchanged and a file that is not recorded leaves no link and no account behind. The movements a file would record, for the comparison with the balance assertions of its period, are derived from the plan of the review (`planReview`) by a pure function and never recomputed another way, so that the figures shown agree with what the import records. The page reads the assertions and the transactions of the accounts that hold an assertion once, hands them to the browser with the other balances, and the review keeps them as it keeps the balances (the page refreshes after each import, the comparison must not), then compares each file in the browser with the same pure functions; no extra request is made while the user edits rows.
 
 ### ADR-017: An imported file is undone by deleting its rows, guarded by a digest recorded at import
 
@@ -308,6 +308,19 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *A last-changed timestamp.* It needs a clock in the write path and misses deletions.
 
 **Consequences.** Any change to a movement of the batch makes the undo impossible for good, which is intended: the file is then part of the owner's ledger. Batches recorded before the digest existed cannot be undone. A new field on transactions that the owner can edit must be added to the digest, or its edits would go unnoticed. Because the fingerprints are deleted with the rows, the same file can be imported again afterwards.
+
+### ADR-018: The sheet migration is retired; the import covers the history
+
+**Context.** M1 first shipped a one-time migration (`/migration`) that read the monthly tabs and the Summary tab together and recorded everything in one transaction: opening balances, history, split transfers, balance assertions and rules. It refused any account that already had transactions. Since then, the file import (ADR-016) reads the same monthly tabs, splits savings rows along the overflow chain, deduplicates against the account and compares each file with the balance assertions of its period, and `/balances/summary` records the real account balances of the Summary tab as assertions. The migration had become a second, stricter path to the same result.
+
+**Decision.** `/migration` and its code are removed. The monthly tabs go through the import, file by file. The Summary tab goes through `/balances/summary`, which also compares its figures with the stored history. Opening balances are set only when an account is created. The first-run rule (refuse a non-empty account) is replaced by the deduplication of the import, which makes a repeated or resumed run harmless. The chain validation of ADR-013 is unchanged: it applies to every save and every load, whatever the entry point.
+
+**Alternatives rejected.**
+
+- *Keeping `/migration` as a wizard step.* It would keep a second reader policy, a second set of messages and a one-time guard that the import does not need, for a flow that runs once.
+- *Keeping the all-or-nothing transaction for the history.* One wrong file would block the others, and ADR-016 already records one batch per file, with an undo (ADR-017).
+
+**Consequences.** No data is deleted and no database migration is needed: the transactions, assertions, rules and categories created earlier by the migration are ordinary rows. Only the screen, its messages (`migration.*`, `home.migration`, `feedback.migrationDone`, `feedback.migrationFailed`) and its domain code are gone; the Summary issue messages now live in the `summaryBalances` namespace. Creating the rules from the (label, category) pairs of the sheet is no longer automatic: rules come from the suggestions of the import and from the rules screen.
 
 ## Tooling
 
@@ -397,7 +410,7 @@ Target: WCAG 2.2 level AA.
 | Level | Scope | Why |
 | --- | --- | --- |
 | **Unit (most tests)** | Occurrence generation (month ends, leap years, business-day rules, versions, overrides), rolling average (window, restart, exclusions, rounding), provisions, deposit ceilings and overflow chains (splits, cycles, currencies, corrupted data), projection, scenario transformations and indicators, minor unit arithmetic, rounding and text parsing of amounts, currency conversion, monthly synthesis (including the [worked example](DOMAIN.md#worked-example-from-the-sheet)). | The projection and recurrence engine is the risky core; errors there silently produce wrong futures. |
-| **Integration** | CSV and OFX import, deduplication, categorization rules, planned vs actual matching (unique, ambiguous, none, provisions), sheet migration with the overflow rule, encrypted snapshot and JSON export, migrations on a real SQLite file. | These cross module and storage boundaries. |
+| **Integration** | CSV and OFX import, deduplication, categorization rules, planned vs actual matching (unique, ambiguous, none, provisions), the sheet history read by the import with the overflow rule, encrypted snapshot and JSON export, migrations on a real SQLite file. | These cross module and storage boundaries. |
 | **End-to-end (manual, few)** | First-run setup and login, monthly import routine, creating a planned item and seeing it in the calendar, moving a single occurrence, comparing scenarios. | Critical user journeys from [PRODUCT.md](PRODUCT.md#user-journeys). |
 
 Rules:

@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 
+import { linkReviewAssertions, type AssertionLinkSnapshot } from "../../domain/import-assertions";
 import {
   choicesForShortfalls,
   overflowDemands,
@@ -53,6 +54,8 @@ interface ReviewBodyProps {
   overflowAccounts: OverflowAccount[];
   /** The balances as stored: what each file needs is read from them, not from the choices made. */
   storedOverflowAccounts: OverflowAccount[];
+  /** The assertions and movements as they were when the files were read: what each file is compared with. */
+  assertionSnapshot: AssertionLinkSnapshot;
   isReading: boolean;
   accountSelectRef: RefObject<HTMLSelectElement | null>;
   onAccountChange: (accountId: number) => void;
@@ -72,6 +75,7 @@ function ReviewBody({
   categories,
   overflowAccounts,
   storedOverflowAccounts,
+  assertionSnapshot,
   isReading,
   accountSelectRef,
   onAccountChange,
@@ -138,6 +142,11 @@ function ReviewBody({
         accounts: overflowAccounts,
       }),
     [state.files, currency, savingsAccountId, overflowAccounts],
+  );
+  // Computed from the plans of the review, so that the figures agree with what the import records.
+  const assertionLinks = useMemo(
+    () => linkReviewAssertions(state.files, plans, assertionSnapshot, { accountId, currency }),
+    [state.files, plans, assertionSnapshot, accountId, currency],
   );
   const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
   // Read on the stored balances: a choice already made would hide the need it answers.
@@ -246,6 +255,7 @@ function ReviewBody({
             file={file}
             fileIndex={index}
             plan={plans[index] ?? emptyFilePlan()}
+            assertionLinks={assertionLinks[index] ?? null}
             waitFor={waitIndex === null ? null : (state.files[waitIndex]?.fileName ?? null)}
             accountId={accountId}
             defaultSavingsAccountId={savingsAccountId}

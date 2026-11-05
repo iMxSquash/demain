@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBalanceAssertionForm as parse } from "../../../src/app/accounts/[id]/balances/balance-assertion-form-data";
+import {
+  parseAccountId,
+  parseBalanceAssertionForm as parse,
+} from "../../../src/app/accounts/[id]/balances/balance-assertion-form-data";
 import { translateKey } from "../translate-key";
 
 const ACCOUNT_ID = 3;
@@ -67,5 +70,28 @@ describe("parseBalanceAssertionForm", () => {
       ok: true,
       input: { note: "" },
     });
+  });
+});
+
+describe("parseAccountId", () => {
+  it("reads the account chosen in the selector", () => {
+    expect(parseAccountId(formOf({ accountId: "12" }))).toBe(12);
+  });
+
+  it("is null when nothing is chosen", () => {
+    expect(parseAccountId(formOf())).toBeNull();
+    expect(parseAccountId(formOf({ accountId: "" }))).toBeNull();
+  });
+
+  it("is null for anything but a positive integer", () => {
+    for (const accountId of ["abc", "1.5", "-2", "0", "1e3"]) {
+      expect(parseAccountId(formOf({ accountId }))).toBeNull();
+    }
+  });
+
+  it("sends the chosen account back with the typed values", () => {
+    expect(
+      parseBalanceAssertionForm(formOf({ accountId: "4", amount: "abc" })),
+    ).toMatchObject({ ok: false, error: { values: { accountId: "4" } } });
   });
 });

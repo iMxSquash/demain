@@ -1,10 +1,11 @@
 /**
  * Reads the sheet's Summary tab, exported as CSV, into the monthly figures
- * that the migration checks against. Pure functions: no database, no clock.
+ * and the real account balances that `/balances/summary` checks against. Pure
+ * functions: no database, no clock.
  * Whatever cannot be read is reported in `issues`, never dropped. Amounts are
  * stored as integer minor units and months as "YYYY-MM"; showing them as
- * "1 234,56 €" or "01/2026" is the front end's job. See DOMAIN, section
- * Migration from the sheet.
+ * "1 234,56 €" or "01/2026" is the front end's job. See DOMAIN, entity
+ * Balance assertion.
  */
 
 import {
@@ -13,11 +14,9 @@ import {
   type CsvDelimiter,
   type CsvFileIssue,
 } from "./import-csv";
-import { isCalendarDate } from "./account";
 import { MoneyParseError, parseAmount } from "./money";
-import type { SheetRow } from "./sheet-import";
 import type { SheetMonth, VerifiedFigure } from "./sheet-verification";
-import { monthOf, type Month } from "./synthesis";
+import type { Month } from "./synthesis";
 
 /** A Summary row. The real account balance becomes a balance assertion, not a compared figure. */
 export type SummaryMonth = SheetMonth & { realAccountBalance: number | null };
@@ -222,36 +221,50 @@ export function readSheetSummary(
   return { months, issues };
 }
 
-export interface SummaryScope {
-  inScope: SummaryMonth[];
-  /** Left out because they fall outside the period of the rows, and named so. */
-  ignored: Month[];
+/** The real account balance of a Summary month; null when the sheet reports none. */
+export interface SummaryBalance {
+  month: Month;
+  /** Signed integer in minor units. */
+  amount: number | null;
+}
+
+export type SummaryBalancesIssue =
+  | SummaryIssue
+  /** Only the first row of the month is kept. */
+  | { kind: "monthDuplicated"; month: Month };
+
+export interface SummaryBalancesReading {
+  balances: SummaryBalance[];
+  issues: SummaryBalancesIssue[];
+}
+
+// The other figures of the tab are the verification's business, not the balances'.
+function concernsBalances(issue: SummaryIssue): boolean {
+  if (!("column" in issue) || typeof issue.column !== "string") return true;
+  return issue.column === "month" || issue.column === "realAccountBalance";
 }
 
 /**
- * Keeps the Summary months from the first to the last month of the imported
- * rows: the months still to come, empty in the sheet, are not part of the
- * history. A row with an impossible date does not set the period.
+ * The monthly real account balances of the Summary tab, to become balance
+ * assertions. A month the sheet leaves without a balance stays in the list
+ * with a null amount: it is not an error, and it is not dropped. The
+ * separator is detected from the file unless the caller gives it.
  */
-export function scopeSummary(
-  months: readonly SummaryMonth[],
-  rows: readonly SheetRow[],
-): SummaryScope {
-  // "YYYY-MM" strings sort chronologically.
-  const rowMonths = rows
-    .filter((row) => isCalendarDate(row.date))
-    .map((row) => monthOf(row.date))
-    .sort();
-  const first = rowMonths[0];
-  const last = rowMonths[rowMonths.length - 1];
-  if (first === undefined || last === undefined) {
-    return { inScope: [], ignored: months.map((entry) => entry.month) };
+export function readSummaryBalances(
+  text: string,
+  options: SummaryOptions,
+): SummaryBalancesReading {
+  const reading = readSheetSummary(text, options);
+  const issues: SummaryBalancesIssue[] = reading.issues.filter(concernsBalances);
+  const balances: SummaryBalance[] = [];
+  const seen = new Set<Month>();
+  for (const { month, realAccountBalance } of reading.months) {
+    if (seen.has(month)) {
+      issues.push({ kind: "monthDuplicated", month });
+      continue;
+    }
+    seen.add(month);
+    balances.push({ month, amount: realAccountBalance });
   }
-
-  const isInScope = (entry: SummaryMonth) =>
-    entry.month >= first && entry.month <= last;
-  return {
-    inScope: months.filter(isInScope),
-    ignored: months.filter((entry) => !isInScope(entry)).map((entry) => entry.month),
-  };
+  return { balances, issues };
 }

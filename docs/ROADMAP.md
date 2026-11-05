@@ -25,7 +25,7 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 - The real chart: month-end checking and savings curves, real values only, with its data table.
 - Balance assertions with the unexplained gap.
 - CSV import with column mapping, OFX import, deduplication, categorization rules with rule suggestions.
-- One-time import of the sheet history (January to October 2026), with opening balances and the overflow rule for savings.
+- The sheet history (January to October 2026) read through the file import, with the overflow rule for savings, opening balances set at account creation and the Summary balances recorded as assertions on `/balances/summary` (ADR-018).
 - Authentication: single user, argon2id, secure session cookie, login rate limiting, optional TOTP with backup codes, first-run setup token, offline password recovery command.
 - i18n foundations with French and English.
 - Multi-currency foundations: currency per account, reference currency, manual exchange rates, optional ECB fetch disabled by default.

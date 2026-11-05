@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
+import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
 import {
   placeholderAccountId,
@@ -208,6 +209,8 @@ interface Review {
   overflowAccounts: OverflowAccount[];
   /** The same balances without the choices made so far: what a file needs is read from them. */
   storedOverflowAccounts: OverflowAccount[];
+  /** The balance assertions and the movements when the files were read: the page refreshes after each import, the comparison must not. */
+  assertionSnapshot: AssertionLinkSnapshot;
   /** The overflow accounts chosen so far: written with the first file imported, never before. */
   overflowChoices: PendingOverflow[];
   /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */
@@ -216,7 +219,12 @@ interface Review {
   batch: number;
 }
 
-export function ImportForm({ accounts, categories, overflowAccounts }: ImportView) {
+export function ImportForm({
+  accounts,
+  categories,
+  overflowAccounts,
+  assertionSnapshot,
+}: ImportView & { assertionSnapshot: AssertionLinkSnapshot }) {
   const t = useTranslations("imports");
   const common = useTranslations("common");
   const [state, setState] = useState<ImportFormState | null>(null);
@@ -274,6 +282,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
             files,
             overflowAccounts,
             storedOverflowAccounts: overflowAccounts,
+            assertionSnapshot,
             // The balances are back to the stored ones: the choices go with them.
             overflowChoices: [],
             batch: current.batch + 1,
@@ -348,6 +357,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
       files: staged,
       overflowAccounts,
       storedOverflowAccounts: overflowAccounts,
+      assertionSnapshot,
       overflowChoices: [],
       columnChoices: {},
       batch: 1,
@@ -541,6 +551,7 @@ export function ImportForm({ accounts, categories, overflowAccounts }: ImportVie
           categories={categories}
           overflowAccounts={review.overflowAccounts}
           storedOverflowAccounts={review.storedOverflowAccounts}
+          assertionSnapshot={review.assertionSnapshot}
           overflowChoices={review.overflowChoices}
           readingText={
             staging === null ? null : t("staged.reading", { ...staging })

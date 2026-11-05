@@ -34,9 +34,9 @@
     "synthesis": "Synthèse mensuelle",
     "imports": "Import",
     "rules": "Règles de catégorisation",
-    "migration": "Migration de la feuille",
     "currencies": "Devises",
-    "backup": "Sauvegarde et export"
+    "backup": "Sauvegarde et export",
+    "balances": "Soldes constatés"
   },
   "realChart": {
     "heading": "Soldes de fin de mois",
@@ -106,7 +106,8 @@
     "form": {
       "date": "Date (fin de journée)",
       "amount": "Solde affiché par la banque",
-      "note": "Note (facultatif)"
+      "note": "Note (facultatif)",
+      "account": "Compte"
     },
     "columns": {
       "date": "Date",
@@ -122,7 +123,124 @@
     "delete": "Supprimer",
     "deleteTitle": "Supprimer le solde du {date} ?",
     "deleteMessage": "Seul le solde enregistré est supprimé. Vos transactions ne sont pas modifiées.",
-    "deleteConfirm": "Supprimer le solde"
+    "deleteConfirm": "Supprimer le solde",
+    "archivedAccount": "Compte archivé",
+    "archivedNote": "Ce compte est archivé : ses soldes enregistrés sont conservés tels quels et ne peuvent plus être remplacés ni supprimés.",
+    "allMetaTitle": "Soldes constatés de tous les comptes | Demain",
+    "allTitle": "Soldes constatés de tous les comptes",
+    "allIntro": "Tous les soldes enregistrés pour vos comptes, comptes archivés compris. Enregistrez-en un nouveau ci-dessous ; enregistrer un jour qui a déjà un solde le remplace.",
+    "allEmpty": "Aucun solde enregistré pour l'instant. Utilisez le formulaire ci-dessus pour en enregistrer un.",
+    "allCaption": "Soldes enregistrés pour tous les comptes, du plus récent au plus ancien",
+    "accountColumn": "Compte",
+    "accountBalancesLink": "Soldes du compte",
+    "accountsLink": "Pour enregistrer un solde, ajoutez d'abord un compte.",
+    "chooseAccount": "Choisir un compte",
+    "summaryLink": "Enregistrer les soldes de l'onglet Summary"
+  },
+  "summaryBalances": {
+    "metaTitle": "Soldes du Summary | Demain",
+    "title": "Enregistrer les soldes de l'onglet Summary",
+    "intro": "Le solde réel du compte de chaque mois de l'onglet Summary, exporté en CSV, devient un solde constaté au dernier jour du mois. Le fichier est lu sur ce serveur et ne va nulle part ailleurs. Rien n'est écrit tant que vous n'avez pas confirmé l'aperçu.",
+    "backToBalances": "Retour aux soldes constatés",
+    "noAccount": "Aucun compte actif. Créez d'abord le compte.",
+    "fileLabel": "Onglet Summary (CSV)",
+    "fileHint": "Un seul fichier, {size} Ko au plus. Le séparateur est détecté.",
+    "accountLabel": "Compte qui porte ces soldes",
+    "chooseAccount": "Choisir un compte",
+    "yearLabel": "Année des mois (facultatif)",
+    "yearHint": "Utile seulement quand les mois sont écrits sans année. Laissez vide si le fichier la donne.",
+    "previewSubmit": "Aperçu",
+    "commitSubmit": "Enregistrer les soldes",
+    "replaceWarning": "Un jour qui a déjà un solde constaté est remplacé par le montant du Summary.",
+    "noteHeading": "À lire",
+    "balancesHeading": "Soldes constatés",
+    "balancesCaption": "Soldes de fin de mois du Summary et ce qu'il advient de chacun",
+    "balancesColumns": {
+      "month": "Mois",
+      "date": "Date",
+      "balance": "Solde réel",
+      "status": "Résultat"
+    },
+    "noBalance": "Aucun",
+    "status": {
+      "willCreate": "Sera créé",
+      "created": "Créé",
+      "willReplace": "Remplacera le solde {previous}",
+      "replaced": "A remplacé le solde {previous}",
+      "noBalance": "Rien à enregistrer : le Summary n'a pas de solde pour ce mois",
+      "refused": {
+        "accountArchived": "Refusé : le compte est archivé",
+        "beforeOpening": "Refusé : le mois s'est terminé avant l'ouverture du compte",
+        "afterToday": "Refusé : le mois n'est pas terminé"
+      }
+    },
+    "comparisonHeading": "Comparaison avec l'historique enregistré dans Demain",
+    "comparisonCaption": "Chiffres du Summary qui diffèrent de ceux calculés par Demain, mois par mois",
+    "comparisonColumns": {
+      "month": "Mois",
+      "figure": "Chiffre",
+      "sheet": "Summary",
+      "demain": "Demain",
+      "difference": "Écart (Demain moins Summary)"
+    },
+    "comparisonMatches": "Chaque mois comparé correspond au Summary au centime près.",
+    "comparisonNone": "Aucun mois du Summary n'a pu être comparé.",
+    "errors": {
+      "fileRequired": "Choisissez le fichier du Summary.",
+      "fileTooLarge": "{name} dépasse {max} Ko.",
+      "fileEmpty": "{name} est vide.",
+      "accountRequired": "Choisissez un compte actif.",
+      "yearInvalid": "L'année doit avoir quatre chiffres, par exemple 2026.",
+      "accountGone": "Le compte n'existe plus. Rechargez la page."
+    },
+    "messages": {
+      "previewReady": "Prêt à enregistrer : {created} à créer, {replaced} à remplacer, {refused} refusés.",
+      "nothingToRecord": "Rien ne peut être enregistré depuis ce fichier.",
+      "done": "Soldes enregistrés : {count}."
+    },
+    "issues": {
+      "monthDuplicated": "{month} apparaît plusieurs fois dans le Summary : la première ligne est utilisée.",
+      "futureMonths": "Les mois du Summary non terminés ne sont pas comparés : {months}.",
+      "emptyFile": "Le fichier est vide.",
+      "delimiterNotFound": "Aucun séparateur trouvé dans le fichier : choisissez le séparateur ci-dessus.",
+      "unreadableFile": "Le fichier ne peut pas être lu : {message}",
+      "columnNotFound": {
+        "month": "Aucune colonne du mois dans le Summary.",
+        "net": "Aucune colonne du solde final dans le Summary.",
+        "savings": "Aucune colonne de l'épargne dans le Summary.",
+        "cumulativeSavings": "Aucune colonne de l'épargne cumulée dans le Summary.",
+        "cumulativeAccount": "Aucune colonne du compte cumulé dans le Summary.",
+        "savingsBalance": "Aucune colonne de l'épargne réelle dans le Summary.",
+        "realAccountBalance": "Aucune colonne du compte réel dans le Summary."
+      },
+      "columnUnrecognized": "La colonne {column} du Summary (« {header} ») n'est pas reconnue et est ignorée.",
+      "columnAmbiguous": {
+        "month": "Plusieurs colonnes du Summary ressemblent au mois : la colonne {first} est utilisée, pas {others}.",
+        "net": "Plusieurs colonnes du Summary ressemblent au solde final : la colonne {first} est utilisée, pas {others}.",
+        "savings": "Plusieurs colonnes du Summary ressemblent à l'épargne : la colonne {first} est utilisée, pas {others}.",
+        "cumulativeSavings": "Plusieurs colonnes du Summary ressemblent à l'épargne cumulée : la colonne {first} est utilisée, pas {others}.",
+        "cumulativeAccount": "Plusieurs colonnes du Summary ressemblent au compte cumulé : la colonne {first} est utilisée, pas {others}.",
+        "savingsBalance": "Plusieurs colonnes du Summary ressemblent à l'épargne réelle : la colonne {first} est utilisée, pas {others}.",
+        "realAccountBalance": "Plusieurs colonnes du Summary ressemblent au compte réel : la colonne {first} est utilisée, pas {others}."
+      },
+      "monthUnreadable": "Ligne du Summary ignorée : « {text} » n'est pas un mois.",
+      "monthYearMissing": "Ligne du Summary ignorée : « {text} » n'a pas d'année. Saisissez l'année ci-dessus.",
+      "amountUnreadable": "Le montant « {text} » du Summary est illisible : le chiffre reste vide.",
+      "monthMissingInSheet": "{month} est dans le nouvel historique mais pas dans le Summary.",
+      "monthMissingInDemain": "{month} est dans le Summary mais n'a aucune ligne dans les onglets mensuels.",
+      "duplicateSheetMonth": "{month} apparaît plusieurs fois dans le Summary : la première ligne est comparée.",
+      "figureMissingInSheet": "{month} : le Summary n'a pas de valeur pour {figure}."
+    },
+    "figures": {
+      "net": "Solde final",
+      "savings": "Épargne",
+      "cumulativeSavings": "Épargne cumulée",
+      "cumulativeAccount": "Compte cumulé",
+      "savingsBalance": "Épargne réelle"
+    },
+    "location": "{source}, ligne {line}",
+    "locationFile": "{source}",
+    "withLocation": "{location} : {text}"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -414,6 +532,22 @@
         "gapLess": "Au {date}, Demain détient {amount} de moins que la banque.",
         "gapMatch": "Au {date}, les soldes concordent."
       },
+      "assertionLinks": {
+        "heading": "Soldes constatés dans les dates de ce fichier",
+        "summary": "{matching} sur {checked} soldes constatés concordent",
+        "summaryOne": "{matching} sur {checked} solde constaté concorde",
+        "empty": "Aucun solde constaté ne tombe dans les dates de ce fichier : rien à comparer.",
+        "regionLabel": "Soldes constatés dans les dates de {name}, tableau défilable",
+        "caption": "Soldes constatés dans les dates de {name} : le solde de la banque, le solde que Demain calcule une fois ce fichier enregistré, et l'écart. Tolérance zéro : toute différence est un écart.",
+        "columnAccount": "Compte",
+        "columnDate": "Date (fin de journée)",
+        "columnReal": "Solde de la banque",
+        "columnComputed": "Solde calculé",
+        "columnGap": "Écart",
+        "gapNone": "Aucun écart",
+        "gapDemainHigher": "{amount} : Demain compte plus que la banque",
+        "gapBankHigher": "{amount} : la banque affiche plus que Demain"
+      },
       "undo": {
         "heading": "Annuler cet import",
         "open": "Annuler cet import",
@@ -579,172 +713,6 @@
     "restoreConfirm": "Tout remplacer",
     "failed": "Le fichier n'a pas pu être préparé. Vérifiez votre connexion et réessayez."
   },
-  "migration": {
-    "metaTitle": "Migration de la feuille | Demain",
-    "title": "Migrer l'historique de la feuille",
-    "intro": "Importez une fois vos onglets mensuels exportés en CSV. Les fichiers sont lus sur ce serveur et ne vont nulle part ailleurs. Rien n'est écrit tant que vous n'avez pas confirmé, et un problème dans un fichier est affiché, jamais ignoré en silence.",
-    "noAccount": "Aucun compte actif. Créez le compte courant et les comptes d'épargne avant de migrer.",
-    "tabsLabel": "Onglets mensuels (CSV)",
-    "tabsHint": "Choisissez tous les onglets mensuels d'un coup : {max} fichiers au plus, {size} Ko chacun.",
-    "summaryLabel": "Onglet Summary (CSV, facultatif)",
-    "summaryHint": "Sert à vérifier les chiffres mois par mois et à enregistrer les soldes réels du compte.",
-    "yearLabel": "Année des dates",
-    "yearHint": "Nécessaire seulement si les dates n'ont pas d'année. Laissez vide si les fichiers l'indiquent.",
-    "delimiterLabel": "Séparateur",
-    "delimiterAuto": "Le détecter",
-    "delimiters": {
-      "semicolon": "Point-virgule (;)",
-      "comma": "Virgule (,)",
-      "tab": "Tabulation"
-    },
-    "checkingLabel": "Compte courant",
-    "savingsLabel": "Premier compte d'épargne",
-    "savingsHint": "L'épargne y va jusqu'à son plafond de dépôt, puis le long de sa chaîne de débordement.",
-    "chooseAccount": "Choisir un compte",
-    "openingDateLabel": "Date d'ouverture",
-    "openingDateHint": "Les soldes ci-dessous comptent à partir de ce jour, avant la première ligne.",
-    "openingBalancesHeading": "Soldes d'ouverture",
-    "openingBalancesHint": "Laissez un champ vide pour garder le solde que le compte a déjà.",
-    "previewSubmit": "Aperçu",
-    "commitSubmit": "Migrer",
-    "confirmReview": "J'ai lu les points à vérifier et les écarts ci-dessous",
-    "blockingHeading": "À corriger avant de migrer",
-    "reviewHeading": "À vérifier",
-    "planHeading": "Ce que la migration va enregistrer",
-    "planTransactions": "Transactions : {count}",
-    "planTransfers": "Virements d'épargne : {count}",
-    "planCategories": "Catégories à créer : {count}",
-    "planRules": "Règles de catégorisation à créer : {count}",
-    "planAssertions": "Soldes réels à enregistrer : {count}",
-    "splitsHeading": "Répartition de l'épargne",
-    "splitsColumns": {
-      "location": "Ligne",
-      "date": "Date",
-      "amount": "Montant",
-      "parts": "Va sur"
-    },
-    "verificationHeading": "Comparaison avec le Summary",
-    "verificationColumns": {
-      "month": "Mois",
-      "figure": "Chiffre",
-      "sheet": "Summary",
-      "demain": "Demain",
-      "difference": "Écart"
-    },
-    "figures": {
-      "net": "Solde final",
-      "savings": "Épargne",
-      "cumulativeSavings": "Épargne cumulée",
-      "cumulativeAccount": "Compte cumulé",
-      "savingsBalance": "Épargne réelle"
-    },
-    "verificationMatches": "Chaque mois correspond au Summary au centime près.",
-    "location": "{source}, ligne {line}",
-    "locationFile": "{source}",
-    "withLocation": "{location} : {text}",
-    "errors": {
-      "accountRequired": "Choisissez le compte courant et le premier compte d'épargne.",
-      "sameAccount": "Le compte courant et le compte d'épargne doivent être différents.",
-      "filesRequired": "Choisissez au moins un onglet mensuel.",
-      "tooManyFiles": "Trop de fichiers : {max} onglets mensuels au plus.",
-      "fileTooLarge": "{name} dépasse {max} Ko.",
-      "fileEmpty": "{name} est vide.",
-      "yearInvalid": "L'année doit avoir quatre chiffres, par exemple 2026.",
-      "openingDateInvalid": "Saisissez la date d'ouverture comme une date du calendrier.",
-      "balanceInvalid": "Le solde d'ouverture de {account} n'est pas un montant valide.",
-      "accountGone": "Un compte n'existe plus. Rechargez la page.",
-      "confirmRequired": "Cochez la case pour confirmer que vous avez lu les points à vérifier.",
-      "duplicateFileName": "Deux fichiers portent le même nom ({name}) : renommez-en un pour distinguer leurs lignes."
-    },
-    "messages": {
-      "noRows": "Aucune ligne n'a pu être lue dans les onglets mensuels.",
-      "blocked": "La migration ne peut pas démarrer : corrigez les points ci-dessous, puis relancez l'aperçu.",
-      "previewReady": "Prêt à migrer. Vérifiez les points ci-dessous, puis confirmez.",
-      "done": "Migration terminée : {count} transactions enregistrées."
-    },
-    "toCategorize": "Catégoriser les transactions",
-    "issues": {
-      "emptyFile": "Le fichier est vide.",
-      "delimiterNotFound": "Aucun séparateur trouvé dans le fichier : choisissez le séparateur ci-dessus.",
-      "unreadableFile": "Le fichier ne peut pas être lu : {message}",
-      "mappingColumnNotFound": {
-        "date": "Aucune colonne de date trouvée : le fichier n'est pas lu.",
-        "label": "Aucune colonne de libellé trouvée : le fichier n'est pas lu.",
-        "amount": "Aucune colonne de montant trouvée : le fichier n'est pas lu."
-      },
-      "dateFormatNotFound": "Aucun format de date ne lit toutes les dates du fichier.",
-      "dateFormatAmbiguous": {
-        "dmy": "Les dates peuvent se lire de plusieurs façons. Lues comme jour/mois/année : vérifiez.",
-        "mdy": "Les dates peuvent se lire de plusieurs façons. Lues comme mois/jour/année : vérifiez.",
-        "ymd": "Les dates peuvent se lire de plusieurs façons. Lues comme année/mois/jour : vérifiez."
-      },
-      "dateYearMissing": "Les dates n'ont pas d'année et aucune n'a été donnée : saisissez l'année ci-dessus. Aucune ligne n'est lue.",
-      "dateYearAssumed": "Les dates n'ont pas d'année : {year} a été prise dans le nom du fichier. Vérifiez, ou saisissez l'année ci-dessus.",
-      "columnNotFound": {
-        "type": "Aucune colonne de type trouvée.",
-        "paymentMode": "Aucune colonne de mode de paiement trouvée.",
-        "category": "Aucune colonne de catégorie trouvée."
-      },
-      "ambiguousColumn": {
-        "type": "Plusieurs colonnes ressemblent à la colonne de type : la colonne {column} est utilisée, pas {others}.",
-        "paymentMode": "Plusieurs colonnes ressemblent à la colonne de mode de paiement : la colonne {column} est utilisée, pas {others}."
-      },
-      "unrecognizedValue": {
-        "type": "« {value} » n'est pas un type connu (lignes {lines}).",
-        "paymentMode": "« {value} » n'est pas un mode de paiement connu (lignes {lines})."
-      },
-      "columnsIgnored": "Les colonnes {columns} ressemblent à un autre tableau à côté des mouvements et sont ignorées.",
-      "rowsIgnored": {
-        "beforeHeader": "Les lignes {lines} sont au-dessus de l'en-tête et sont ignorées.",
-        "total": "Les lignes {lines} ressemblent à des totaux et sont ignorées."
-      },
-      "numberFormatAmbiguous": "Les montants n'utilisent pas tous le même format de nombre. Lus comme {example} : vérifiez.",
-      "rowUnreadable": "Ligne ignorée : {message}",
-      "typeUnrecognized": "Ligne ignorée : le type « {value} » n'est pas reconnu.",
-      "typeMissing": "Ligne ignorée : son type est vide.",
-      "labelFromCategory": "Le libellé est vide : la catégorie « {category} » est utilisée comme libellé.",
-      "summaryColumnNotFound": {
-        "month": "Aucune colonne du mois dans le Summary.",
-        "net": "Aucune colonne du solde final dans le Summary.",
-        "savings": "Aucune colonne de l'épargne dans le Summary.",
-        "cumulativeSavings": "Aucune colonne de l'épargne cumulée dans le Summary.",
-        "cumulativeAccount": "Aucune colonne du compte cumulé dans le Summary.",
-        "savingsBalance": "Aucune colonne de l'épargne réelle dans le Summary.",
-        "realAccountBalance": "Aucune colonne du compte réel dans le Summary."
-      },
-      "summaryColumnUnrecognized": "La colonne {column} du Summary (« {header} ») n'est pas reconnue et est ignorée.",
-      "summaryColumnAmbiguous": {
-        "month": "Plusieurs colonnes du Summary ressemblent au mois : la colonne {first} est utilisée, pas {others}.",
-        "net": "Plusieurs colonnes du Summary ressemblent au solde final : la colonne {first} est utilisée, pas {others}.",
-        "savings": "Plusieurs colonnes du Summary ressemblent à l'épargne : la colonne {first} est utilisée, pas {others}.",
-        "cumulativeSavings": "Plusieurs colonnes du Summary ressemblent à l'épargne cumulée : la colonne {first} est utilisée, pas {others}.",
-        "cumulativeAccount": "Plusieurs colonnes du Summary ressemblent au compte cumulé : la colonne {first} est utilisée, pas {others}.",
-        "savingsBalance": "Plusieurs colonnes du Summary ressemblent à l'épargne réelle : la colonne {first} est utilisée, pas {others}.",
-        "realAccountBalance": "Plusieurs colonnes du Summary ressemblent au compte réel : la colonne {first} est utilisée, pas {others}."
-      },
-      "summaryMonthUnreadable": "Ligne du Summary ignorée : « {text} » n'est pas un mois.",
-      "summaryMonthYearMissing": "Ligne du Summary ignorée : « {text} » n'a pas d'année. Saisissez l'année ci-dessus.",
-      "summaryAmountUnreadable": "Le montant « {text} » du Summary est illisible : le chiffre reste vide.",
-      "savingsAmountInvalid": "Ligne d'épargne ignorée : le montant doit être un nombre positif.",
-      "savingsUnplaced": "{amount} de cette ligne d'épargne ne tient dans aucun compte de la chaîne.",
-      "overflowChainCycle": "La chaîne de débordement des comptes d'épargne boucle sur elle-même.",
-      "accountArchived": "Le compte courant est archivé.",
-      "ledgerNotEmpty": "{account} a déjà des transactions : cette migration ne se fait qu'une fois.",
-      "categoryArchived": "La catégorie « {name} » est archivée et ne peut pas être utilisée ({rows}).",
-      "rowInvalid": "Ligne non valide : {message}",
-      "assertionInvalid": "Le solde réel de {month} ne peut pas être enregistré : {message}",
-      "assertionSkipped": "Pas de solde réel du compte pour {month} : aucune assertion de solde pour ce mois.",
-      "ruleConflict": "« {label} » a plusieurs catégories ({categories}) : aucune règle créée pour ce libellé.",
-      "ruleExists": "Une règle existe déjà pour « {label} » : elle est laissée telle quelle.",
-      "summaryNotProvided": "Aucun mois du Summary à comparer : rien n'est vérifié contre le Summary.",
-      "summaryMonthsIgnored": "Les mois du Summary hors de la période importée sont ignorés : {months}.",
-      "monthMissingInSheet": "{month} est dans le nouvel historique mais pas dans le Summary.",
-      "monthMissingInDemain": "{month} est dans le Summary mais n'a aucune ligne dans les onglets mensuels.",
-      "duplicateSheetMonth": "{month} apparaît plusieurs fois dans le Summary : la première ligne est comparée.",
-      "figureMissingInSheet": "{month} : le Summary n'a pas de valeur pour {figure}."
-    },
-    "moreIssues": "Et {count} autres."
-  },
   "feedback": {
     "accountNameRequired": "Le nom du compte est obligatoire",
     "accountKindUnknown": "Type de compte inconnu « {kind} »",
@@ -757,7 +725,7 @@
     "balanceAssertionDateInvalid": "Date invalide « {date} », format AAAA-MM-JJ attendu",
     "balanceAssertionBeforeOpening": "La date ne peut pas précéder l'ouverture du compte ({openingDate})",
     "balanceAssertionAmountInvalid": "Le solde doit être un entier en unités mineures",
-    "balanceAssertionOnArchivedAccount": "Ce compte est archivé : aucun solde ne peut y être enregistré",
+    "balanceAssertionOnArchivedAccount": "Ce compte est archivé : ses soldes ne peuvent plus être modifiés",
     "overflowAccountMissing": "Le compte de débordement n'existe pas",
     "overflowAccountArchived": "Le compte de débordement est archivé",
     "overflowAccountCurrencyMismatch": "Le compte de débordement doit avoir la même devise",
@@ -896,12 +864,14 @@
     "balanceAssertionNotDeleted": "Une erreur est survenue, le contrôle de solde n'a pas été supprimé.",
     "importDone": "Transactions importées : {imported}. Doublons ignorés : {duplicates}.",
     "importFailed": "Une erreur est survenue, rien n'a été importé.",
-    "migrationDone": "Transactions migrées : {count}.",
-    "migrationFailed": "Une erreur est survenue, rien n'a été migré.",
     "backupRestored": "La sauvegarde est restaurée. Connectez-vous avec les identifiants qu'elle contient.",
     "totpDisabled": "Le second facteur est désactivé.",
     "signedOut": "Vous êtes déconnecté.",
-    "setupDone": "Votre compte est prêt."
+    "setupDone": "Votre compte est prêt.",
+    "balanceAssertionReplaced": "Contrôle de solde enregistré. Il remplace celui déjà enregistré le {date}.",
+    "balanceAssertionAccountRequired": "Choisissez le compte auquel appartient le solde",
+    "summaryBalancesSaved": "Soldes enregistrés depuis le Summary : {count}.",
+    "summaryBalancesNotSaved": "Une erreur est survenue, aucun solde du Summary n'a été enregistré."
   },
   "auth": {
     "signOut": "Se déconnecter",
