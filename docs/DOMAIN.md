@@ -191,6 +191,8 @@ An import can record one at the end date of the file (the date of its last movem
 
 There is at most one assertion per account and date: recording the same day again replaces the earlier amount and note. The date cannot be before the opening date of the account, since the computed balance starts there. Recording a day that already has an assertion is announced to the user as a replacement. An assertion can be deleted while its account is active. The computed balance at a date is the opening balance plus every transaction of the account dated on or before that day.
 
+The real account balances of the sheet's Summary tab become balance assertions through the same rules (a day that already has one is replaced, and announced as such). A Summary month gives one assertion, dated the **last day of the month** (leap years included), on the account chosen by the user. A month the sheet leaves without a balance creates nothing and is named, it is not an error. A month is **refused** when the account is archived, when the month ended before the opening date of the account, or when its last day is after today (the current month is not over, so its real balance is not known yet). Everything accepted is recorded in one transaction, all or nothing, after a preview that lists what would be created, replaced and refused. When two rows name the same month, the first is kept and the other is reported.
+
 ### Scenario and modification
 
 | Scenario field | Description |
@@ -573,7 +575,7 @@ Example: the January savings row of 573.16 becomes a transfer of 123.16 to the L
 | Summary tab column | Demain usage |
 | --- | --- |
 | Savings, Final balance, cumulative savings, cumulative account | Verification only: recomputed by Demain and compared month by month. |
-| Real account balance | Balance assertion on the checking account, last day of the month. |
+| Real account balance | Balance assertion on the checking account, last day of the month (see Balance assertion for the refusals). The month-by-month comparison with the computed figures stays. |
 | Real savings balance | The total of the two savings accounts. It is shown as a verification figure against the sum of the Livret Jeune and the Livret A, and is not split into per-account assertions. Going forward, balance assertions are recorded per account, as the bank shows them. |
 
 ### Verification

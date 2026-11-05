@@ -5,6 +5,7 @@ import {
   type AssertionMovement,
   validateBalanceAssertionInput,
   type BalanceAssertionInput,
+  type ValidBalanceAssertionInput,
   type UnexplainedGap,
 } from "../domain/balance-assertion";
 import type { AppDatabase } from "../storage/database";
@@ -54,28 +55,34 @@ export function saveBalanceAssertion(
     throw new BalanceAssertionOnArchivedAccountError(account.id);
   }
   const valid = validateBalanceAssertionInput(input, account);
-  return db.transaction((tx) => {
-    const existing = tx
-      .select({ id: balanceAssertions.id })
-      .from(balanceAssertions)
-      .where(
-        and(
-          eq(balanceAssertions.accountId, valid.accountId),
-          eq(balanceAssertions.date, valid.date),
-        ),
-      )
-      .get();
-    const saved = tx
-      .insert(balanceAssertions)
-      .values(valid)
-      .onConflictDoUpdate({
-        target: [balanceAssertions.accountId, balanceAssertions.date],
-        set: { amount: valid.amount, note: valid.note },
-      })
-      .returning()
-      .get();
-    return { ...saved, replaced: existing !== undefined };
-  });
+  return db.transaction((tx) => recordValidAssertion(tx, valid));
+}
+
+/** Upserts an assertion that already went through the validation, inside the caller's transaction. */
+export function recordValidAssertion(
+  tx: Pick<AppDatabase, "select" | "insert">,
+  valid: ValidBalanceAssertionInput,
+): SavedBalanceAssertion {
+  const existing = tx
+    .select({ id: balanceAssertions.id })
+    .from(balanceAssertions)
+    .where(
+      and(
+        eq(balanceAssertions.accountId, valid.accountId),
+        eq(balanceAssertions.date, valid.date),
+      ),
+    )
+    .get();
+  const saved = tx
+    .insert(balanceAssertions)
+    .values(valid)
+    .onConflictDoUpdate({
+      target: [balanceAssertions.accountId, balanceAssertions.date],
+      set: { amount: valid.amount, note: valid.note },
+    })
+    .returning()
+    .get();
+  return { ...saved, replaced: existing !== undefined };
 }
 
 /** Every movement of an account, the input of the computed balance. */
