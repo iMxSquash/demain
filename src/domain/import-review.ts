@@ -14,7 +14,7 @@ import {
   type RowDetails,
   type RowProblem,
 } from "./import-draft";
-import type { TypeEvidence, TypeGuess } from "./import-guess";
+import type { TypeEvidence, TypeGuess, VocabularyOrigin } from "./import-guess";
 import {
   compareDates,
   planFilesInDateOrder,
@@ -27,8 +27,8 @@ import { overflowChainTail, type OverflowAccount } from "./overflow";
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
   | { kind: "typeCellConflict"; value: string; against: "sign" | "debitCredit" }
-  | { kind: "categoryWord"; category: string }
-  | { kind: "categoryOverruled"; category: string }
+  | { kind: "categoryWord"; category: string; origin: VocabularyOrigin }
+  | { kind: "categoryOverruled"; category: string; origin: VocabularyOrigin }
   | { kind: "history"; type: MovementType }
   | { kind: "historyOverruled"; type: MovementType }
   | { kind: "sign"; type: MovementType }
@@ -51,13 +51,17 @@ function reasonOfEvidence(
         against: conflict?.kind === "debitCredit" ? "debitCredit" : "sign",
       };
     case "categoryWord":
-      return { kind: "categoryWord", category: evidence.category };
+      return { kind: "categoryWord", category: evidence.category, origin: evidence.origin };
     case "history":
       return { kind: "history", type: evidence.type };
     case "sign":
     case "debitCredit":
       if (conflict?.kind === "categoryWord") {
-        return { kind: "categoryOverruled", category: conflict.category };
+        return {
+          kind: "categoryOverruled",
+          category: conflict.category,
+          origin: conflict.origin,
+        };
       }
       if (conflict?.kind === "history") {
         return { kind: "historyOverruled", type: conflict.type };

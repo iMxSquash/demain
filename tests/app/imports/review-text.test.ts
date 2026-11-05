@@ -27,8 +27,12 @@ const REASONS: ConfirmReason[] = [
   { kind: "typeCellConflict", value: "Revenu", against: "sign" },
   { kind: "typeCellConflict", value: "Revenu", against: "debitCredit" },
   { kind: "typeCellUnknown", value: "misc" },
-  { kind: "categoryWord", category: "Salaire" },
-  { kind: "categoryOverruled", category: "Salaire" },
+  { kind: "categoryWord", category: "Salaire", origin: "fixed" },
+  { kind: "categoryWord", category: "Salaire", origin: "history" },
+  { kind: "categoryWord", category: "Salaire", origin: "user" },
+  { kind: "categoryOverruled", category: "Salaire", origin: "fixed" },
+  { kind: "categoryOverruled", category: "Salaire", origin: "history" },
+  { kind: "categoryOverruled", category: "Salaire", origin: "user" },
   { kind: "history", type: "savings" },
   { kind: "historyOverruled", type: "income" },
   { kind: "sign", type: "expense" },
@@ -49,10 +53,13 @@ describe.each(["en", "fr"] as const)("describing the rows to confirm in %s", (lo
 });
 
 describe("describeConfirmReasons", () => {
-  it("names the category that gave the type", () => {
-    expect(
-      describeConfirmReasons([{ kind: "categoryWord", category: "salaire" }], stagedIn("fr")),
-    ).toBe("deviné : la catégorie est salaire");
+  it("names the category that gave the type and where its word comes from", () => {
+    const say = (origin: "fixed" | "history" | "user") =>
+      describeConfirmReasons([{ kind: "categoryWord", category: "salaire", origin }], stagedIn("fr"));
+
+    expect(say("fixed")).toBe("deviné : la catégorie est salaire (mot du vocabulaire fixe)");
+    expect(say("history")).toBe("deviné : la catégorie est salaire (mot appris de l'historique)");
+    expect(say("user")).toBe("deviné : la catégorie est salaire (mot de votre vocabulaire)");
   });
 
   it("names the columns a type cell contradicts", () => {

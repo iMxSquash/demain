@@ -476,14 +476,19 @@ When the file has a type column but a cell is empty or names no known type, the 
 
 ### Vocabulary
 
-The default vocabulary is fixed, in French and in English, without accents and in lowercase:
+The words of the vocabulary have three origins, shown in text next to each word and in the reason of a guess ("guessed, the category is salaire (word of the fixed vocabulary)"). From the highest priority to the lowest:
 
-- Income: `salaire`, `salaires`, `salary`, `salaries`, `paie`, `paye`, `payroll`, `revenu`, `revenus`, `income`, `allocation`, `allocations`, `caf`, `dividende`, `dividendes`, `dividend`, `dividends`.
-- Savings: `epargne`, `epargnes`, `savings`, `saving`, `livret`, `livrets`, `ldds`, `lep`, `pel`, `cel`.
+1. **The user's vocabulary.** The user can add a word, change the type of a word or remove a word (it is then no longer recognized), from the categorization rules screen. A change wins over the two other origins. Removing a word the user added forgets it; removing a fixed or learned word records the removal, which can be undone from the same screen.
+2. **The fixed vocabulary.** French and English words, without accents and in lowercase:
+   - Income: `salaire`, `salaires`, `salary`, `salaries`, `paie`, `paye`, `payroll`, `revenu`, `revenus`, `income`, `allocation`, `allocations`, `caf`, `dividende`, `dividendes`, `dividend`, `dividends`.
+   - Savings: `epargne`, `epargnes`, `savings`, `saving`, `livret`, `livrets`, `ldds`, `lep`, `pel`, `cel`.
+3. **The history.** The categories already confirmed by earlier imports: a category given to the movements of an imported file, with the type of those movements (income or expense). A category made of one word teaches that word. A category made of several words teaches nothing, because its small words (`de`, `la`) would be taken for types. A word recorded with two types teaches nothing. The history only adds words the fixed vocabulary does not know: when it disagrees with a fixed word, the fixed word wins and the disagreement is ignored. It never brings back a fixed word the user removed.
 
-There is no expense word: an outgoing amount is an expense unless something says otherwise. Ambiguous words (a bonus, a pension, a grant) are left out on purpose.
+There is no expense word in the fixed vocabulary: an outgoing amount is an expense unless something says otherwise. Ambiguous words (a bonus, a pension, a grant) are left out on purpose; the user can add them, and an expense word learned from the history only matters for an incoming amount, which is then flagged to confirm.
 
-The vocabulary and the history are inputs of the function, like the rest of the data. The default vocabulary is what is used today; enriching it from the history, letting the user edit it and reading the history of the account are wired in later changes.
+A word is one word, compared after removing accents and case, at most 40 characters. The effective vocabulary is built by a pure function (`buildTypeVocabulary`) from the fixed vocabulary, the history and the user's changes, all received as inputs like the rest of the data.
+
+The history of labels, a `LabelHistory` read from the earlier imports of the account, is still an input that nothing fills yet.
 
 ## Reading any CSV file
 

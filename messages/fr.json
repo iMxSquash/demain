@@ -648,8 +648,16 @@
           "debitCredit": "la colonne type indique « {value} », ce qui contredit les colonnes débit et crédit"
         },
         "typeCellUnknown": "la colonne type indique « {value} », qui n'est pas un type connu",
-        "categoryWord": "deviné : la catégorie est {category}",
-        "categoryOverruled": "la catégorie est {category}, mais le signe du montant dit le contraire et l'emporte",
+        "categoryWord": {
+          "fixed": "deviné : la catégorie est {category} (mot du vocabulaire fixe)",
+          "history": "deviné : la catégorie est {category} (mot appris de l'historique)",
+          "user": "deviné : la catégorie est {category} (mot de votre vocabulaire)"
+        },
+        "categoryOverruled": {
+          "fixed": "la catégorie est {category} (mot du vocabulaire fixe), mais le signe du montant dit le contraire et l'emporte",
+          "history": "la catégorie est {category} (mot appris de l'historique), mais le signe du montant dit le contraire et l'emporte",
+          "user": "la catégorie est {category} (mot de votre vocabulaire), mais le signe du montant dit le contraire et l'emporte"
+        },
         "history": "deviné : un import précédent a enregistré ce libellé comme {type}",
         "historyOverruled": "un import précédent a enregistré ce libellé comme {type}, mais le signe du montant dit le contraire et l'emporte",
         "sign": "deviné d'après le signe du montant : {type}",

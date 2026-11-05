@@ -205,6 +205,7 @@ describe("readMovementFile", () => {
             category: "Salaire",
             word: "salaire",
             type: "income",
+            origin: "fixed",
           },
           conflict: null,
           ignoredTypeCell: null,
@@ -270,9 +271,12 @@ describe("readMovementFile", () => {
       expect(
         readMovementFile(file, {
           ...OPTIONS,
-          vocabulary: new Map([["courses", "savings"]]),
+          vocabulary: new Map([["courses", { type: "savings", origin: "history" }]]),
         }).rows[0]?.type,
-      ).toMatchObject({ type: "savings" });
+      ).toMatchObject({
+        type: "savings",
+        evidence: { kind: "categoryWord", origin: "history" },
+      });
       expect(readMovementFile(file, OPTIONS).rows[0]?.type.type).toBe("expense");
     });
 

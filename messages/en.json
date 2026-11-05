@@ -648,8 +648,16 @@
           "debitCredit": "the type column says \"{value}\", which contradicts the debit and credit columns"
         },
         "typeCellUnknown": "the type column says \"{value}\", which is not a known type",
-        "categoryWord": "guessed, the category is {category}",
-        "categoryOverruled": "the category is {category}, but the sign of the amount says otherwise and wins",
+        "categoryWord": {
+          "fixed": "guessed, the category is {category} (word of the fixed vocabulary)",
+          "history": "guessed, the category is {category} (word learned from the history)",
+          "user": "guessed, the category is {category} (word of your vocabulary)"
+        },
+        "categoryOverruled": {
+          "fixed": "the category is {category} (word of the fixed vocabulary), but the sign of the amount says otherwise and wins",
+          "history": "the category is {category} (word learned from the history), but the sign of the amount says otherwise and wins",
+          "user": "the category is {category} (word of your vocabulary), but the sign of the amount says otherwise and wins"
+        },
         "history": "guessed, an earlier import recorded this label as {type}",
         "historyOverruled": "an earlier import recorded this label as {type}, but the sign of the amount says otherwise and wins",
         "sign": "guessed from the sign of the amount: {type}",
