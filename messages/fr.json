@@ -375,7 +375,44 @@
     "delete": "Supprimer",
     "deleteTitle": "Supprimer cette règle ?",
     "deleteMessage": "La règle est supprimée. Les transactions déjà catégorisées gardent leur catégorie.",
-    "deleteConfirm": "Supprimer la règle"
+    "deleteConfirm": "Supprimer la règle",
+    "vocabulary": {
+      "heading": "Mots qui donnent le type d'une ligne importée",
+      "intro": "Quand un fichier a une colonne de catégorie, l'import cherche un mot dans la catégorie pour distinguer un revenu ou une épargne d'une dépense. Vos modifications l'emportent sur les mots fixes et sur ce que l'historique a appris.",
+      "origins": {
+        "user": "Votre vocabulaire",
+        "fixed": "Vocabulaire fixe",
+        "history": "Historique"
+      },
+      "originHelp": {
+        "user": "les mots que vous avez ajoutés ou modifiés.",
+        "fixed": "les mots français et anglais fournis avec Demain.",
+        "history": "les mots appris des catégories données lors des imports précédents, seulement si le vocabulaire fixe ne les connaît pas."
+      },
+      "caption": "Mots du vocabulaire, leur type et leur origine",
+      "columns": {
+        "word": "Mot",
+        "type": "Type",
+        "origin": "Origine",
+        "actions": "Actions"
+      },
+      "types": {
+        "expense": "Dépense",
+        "income": "Revenu",
+        "savings": "Épargne"
+      },
+      "changeTypeOf": "Type du mot {word}",
+      "change": "Changer le type",
+      "remove": "Retirer",
+      "removedHeading": "Mots retirés",
+      "removedIntro": "Ces mots ne sont plus reconnus. Restaurer un mot redonne le mot fixe ou appris, s'il y en a un.",
+      "restore": "Restaurer",
+      "addHeading": "Ajouter ou modifier un mot",
+      "word": "Mot",
+      "wordHint": "Un seul mot, sans espace, 40 caractères au plus. Les accents et les majuscules ne comptent pas. Ajouter un mot qui existe déjà change son type.",
+      "type": "Type",
+      "addSubmit": "Enregistrer le mot"
+    }
   },
   "synthesis": {
     "metaTitle": "Synthèse mensuelle | Demain",
@@ -887,7 +924,11 @@
     "summaryBalancesSaved": "Soldes enregistrés depuis le Summary : {count}.",
     "summaryBalancesNotSaved": "Une erreur est survenue, aucun solde du Summary n'a été enregistré.",
     "vocabularyWordInvalid": "Le mot doit tenir en un seul mot de 40 caractères au plus.",
-    "vocabularyTypeInvalid": "Choisissez un type : dépense, revenu ou épargne."
+    "vocabularyTypeInvalid": "Choisissez un type : dépense, revenu ou épargne.",
+    "vocabularyWordSaved": "Mot enregistré.",
+    "vocabularyWordRemoved": "Mot retiré.",
+    "vocabularyWordRestored": "Mot restauré.",
+    "vocabularyNotChanged": "Une erreur est survenue, le vocabulaire n'a pas été modifié."
   },
   "auth": {
     "signOut": "Se déconnecter",
