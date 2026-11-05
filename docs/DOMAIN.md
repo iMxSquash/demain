@@ -70,6 +70,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 
 - **Zero balance.** An account can be archived only when its computed balance is exactly zero. A negative balance blocks the archiving as well. The user empties the account first, typically with a transfer to another account.
 - **No more entered movements.** No transaction can be entered on an archived account, and account pickers do not offer it. Its existing transactions can be neither edited nor deleted, since that would move its balance away from zero. A planned item cannot target it, and an account targeted by a planned item that is not over cannot be archived until the item is changed.
+- **Balance assertions are frozen.** No balance assertion can be added, replaced or deleted on an archived account. The ones it already has stay visible, on its own page and on the page listing the assertions of every account, where they are shown as archived with the account. This state is derived from the account: an assertion has no archived field of its own.
 - **Imports are the exception.** A transaction imported from the bank has already happened, so it is accepted on an archived account and flagged with a visible warning.
 - **History stays.** Past transactions, balances and statistics of an archived account remain in the views that cover their period.
 
@@ -188,7 +189,7 @@ The app displays `computed balance at date - asserted amount` as the **unexplain
 
 An import can record one at the end date of the file (the date of its last movement), and it replaces an assertion of the same day as any other assertion.
 
-There is at most one assertion per account and date: recording the same day again replaces the earlier amount and note. The date cannot be before the opening date of the account, since the computed balance starts there. No assertion can be recorded on an archived account, which is no longer used (see [Archiving an account](#archiving-an-account)); the ones it already has stay listed. The computed balance at a date is the opening balance plus every transaction of the account dated on or before that day.
+There is at most one assertion per account and date: recording the same day again replaces the earlier amount and note. The date cannot be before the opening date of the account, since the computed balance starts there. Recording a day that already has an assertion is announced to the user as a replacement. An assertion can be deleted while its account is active. The computed balance at a date is the opening balance plus every transaction of the account dated on or before that day.
 
 ### Scenario and modification
 

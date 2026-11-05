@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  computedBalancesAt,
   computeUnexplainedGap,
+  gapDirection,
   validateBalanceAssertionInput,
 } from "../../src/domain/balance-assertion";
 
@@ -143,4 +145,51 @@ describe("validateBalanceAssertionInput", () => {
       ).toThrow(expect.objectContaining({ field: "amount" }));
     },
   );
+});
+
+describe("computedBalancesAt", () => {
+  const savings = { id: OTHER_ACCOUNT_ID, openingDate: "2026-01-01", openingBalance: 1000 };
+
+  it("gives the computed balance of each account at the end of the day", () => {
+    const movements = [
+      movement(ACCOUNT_ID, "2026-01-10", -1000),
+      movement(ACCOUNT_ID, "2026-02-01", 300),
+      movement(OTHER_ACCOUNT_ID, "2026-01-31", 50),
+    ];
+
+    const balances = computedBalancesAt([account, savings], movements, "2026-01-31");
+
+    expect(balances.get(ACCOUNT_ID)).toBe(4627);
+    expect(balances.get(OTHER_ACCOUNT_ID)).toBe(1050);
+  });
+
+  it("is the opening balance when nothing happened yet", () => {
+    const balances = computedBalancesAt([account], [movement(ACCOUNT_ID, "2026-03-01", 5)], "2026-01-31");
+
+    expect(balances.get(ACCOUNT_ID)).toBe(5627);
+  });
+
+  it("has no entry for an account that was not given", () => {
+    const balances = computedBalancesAt([], [movement(ACCOUNT_ID, "2026-01-10", 1)], "2026-01-31");
+
+    expect(balances.size).toBe(0);
+  });
+});
+
+describe("gapDirection", () => {
+  it("is equal when the balances match", () => {
+    expect(gapDirection(4627, 4627)).toBe("equal");
+  });
+
+  it("says the real balance is above when Demain holds less", () => {
+    expect(gapDirection(4627, 4827)).toBe("realAbove");
+  });
+
+  it("says the real balance is below when Demain holds more", () => {
+    expect(gapDirection(4627, 4427)).toBe("realBelow");
+  });
+
+  it("holds for negative balances", () => {
+    expect(gapDirection(-500, -100)).toBe("realAbove");
+  });
 });

@@ -36,7 +36,8 @@
     "rules": "Règles de catégorisation",
     "migration": "Migration de la feuille",
     "currencies": "Devises",
-    "backup": "Sauvegarde et export"
+    "backup": "Sauvegarde et export",
+    "balances": "Soldes constatés"
   },
   "realChart": {
     "heading": "Soldes de fin de mois",
@@ -106,7 +107,8 @@
     "form": {
       "date": "Date (fin de journée)",
       "amount": "Solde affiché par la banque",
-      "note": "Note (facultatif)"
+      "note": "Note (facultatif)",
+      "account": "Compte"
     },
     "columns": {
       "date": "Date",
@@ -122,7 +124,18 @@
     "delete": "Supprimer",
     "deleteTitle": "Supprimer le solde du {date} ?",
     "deleteMessage": "Seul le solde enregistré est supprimé. Vos transactions ne sont pas modifiées.",
-    "deleteConfirm": "Supprimer le solde"
+    "deleteConfirm": "Supprimer le solde",
+    "archivedAccount": "Compte archivé",
+    "archivedNote": "Ce compte est archivé : ses soldes enregistrés sont conservés tels quels et ne peuvent plus être remplacés ni supprimés.",
+    "allMetaTitle": "Soldes constatés de tous les comptes | Demain",
+    "allTitle": "Soldes constatés de tous les comptes",
+    "allIntro": "Tous les soldes enregistrés pour vos comptes, comptes archivés compris. Enregistrez-en un nouveau ci-dessous ; enregistrer un jour qui a déjà un solde le remplace.",
+    "allEmpty": "Aucun solde enregistré pour l'instant. Ouvrez un compte pour en enregistrer un.",
+    "allCaption": "Soldes enregistrés pour tous les comptes, du plus récent au plus ancien",
+    "accountColumn": "Compte",
+    "accountBalancesLink": "Soldes du compte",
+    "accountsLink": "Pour enregistrer un solde, ajoutez d'abord un compte.",
+    "chooseAccount": "Choisir un compte"
   },
   "transactions": {
     "metaTitle": "Transactions | Demain",
@@ -757,7 +770,7 @@
     "balanceAssertionDateInvalid": "Date invalide « {date} », format AAAA-MM-JJ attendu",
     "balanceAssertionBeforeOpening": "La date ne peut pas précéder l'ouverture du compte ({openingDate})",
     "balanceAssertionAmountInvalid": "Le solde doit être un entier en unités mineures",
-    "balanceAssertionOnArchivedAccount": "Ce compte est archivé : aucun solde ne peut y être enregistré",
+    "balanceAssertionOnArchivedAccount": "Ce compte est archivé : ses soldes ne peuvent plus être modifiés",
     "overflowAccountMissing": "Le compte de débordement n'existe pas",
     "overflowAccountArchived": "Le compte de débordement est archivé",
     "overflowAccountCurrencyMismatch": "Le compte de débordement doit avoir la même devise",
@@ -901,7 +914,9 @@
     "backupRestored": "La sauvegarde est restaurée. Connectez-vous avec les identifiants qu'elle contient.",
     "totpDisabled": "Le second facteur est désactivé.",
     "signedOut": "Vous êtes déconnecté.",
-    "setupDone": "Votre compte est prêt."
+    "setupDone": "Votre compte est prêt.",
+    "balanceAssertionReplaced": "Contrôle de solde enregistré. Il remplace celui déjà enregistré le {date}.",
+    "balanceAssertionAccountRequired": "Choisissez le compte auquel appartient le solde"
   },
   "auth": {
     "signOut": "Se déconnecter",
