@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
+import type { VocabularyField } from "../../ledger/type-vocabulary";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { VocabularyFormState } from "./vocabulary-form-data";
@@ -20,9 +21,9 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const values = state?.values;
-  const errorOf = (field: "word" | "type") =>
+  const errorOf = (field: VocabularyField) =>
     state?.field === field ? state.message : undefined;
-  const describedBy = (field: "word" | "type") =>
+  const describedBy = (field: VocabularyField) =>
     errorOf(field) ? `vocabulary-${field}-error` : undefined;
 
   return (

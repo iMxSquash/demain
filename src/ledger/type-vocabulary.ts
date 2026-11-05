@@ -1,7 +1,7 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { MOVEMENT_TYPES } from "../domain/import-columns";
+import { MOVEMENT_TYPES, type MovementType } from "../domain/import-columns";
 import {
   DEFAULT_TYPE_VOCABULARY,
   type TypeVocabulary,
@@ -12,7 +12,6 @@ import {
   buildTypeVocabulary,
   normalizeVocabularyWord,
   type HistoryCategory,
-  type VocabularyOverride,
 } from "../domain/type-vocabulary";
 import type { AppDatabase } from "../storage/database";
 import { categories, settings, transactions } from "../storage/schema";
@@ -60,7 +59,7 @@ function invalid(field: VocabularyField): VocabularyValidationError {
 }
 
 /** Whatever comes from the browser: nothing is trusted until it has been through here. */
-function parseWordInput(input: unknown): { word: string; type: (typeof MOVEMENT_TYPES)[number] } {
+function parseWordInput(input: unknown): { word: string; type: MovementType } {
   const parsed = wordInputSchema.safeParse(input);
   if (parsed.success) return parsed.data;
   const field = parsed.error.issues.some((issue) => issue.path[0] === "word") ? "word" : "type";
@@ -75,7 +74,7 @@ function parseWord(input: unknown): string {
 
 type Reader = Pick<AppDatabase, "select" | "selectDistinct">;
 
-type OverrideMap = Map<string, VocabularyOverride["type"]>;
+type OverrideMap = Map<string, MovementType | null>;
 
 function readOverrides(db: Pick<AppDatabase, "select">): OverrideMap {
   const stored = db.select().from(settings).where(eq(settings.key, OVERRIDES_KEY)).get();
@@ -106,29 +105,24 @@ function readHistory(db: Reader): HistoryCategory[] {
     .selectDistinct({ category: categories.name, kind: transactions.kind })
     .from(transactions)
     .innerJoin(categories, eq(categories.id, transactions.categoryId))
-    .where(
-      and(
-        isNotNull(transactions.importBatchId),
-        inArray(transactions.kind, ["expense", "income"]),
-      ),
-    )
+    .where(isNotNull(transactions.importBatchId))
     .all()
     .flatMap(({ category, kind }) =>
       kind === "expense" || kind === "income" ? [{ category, type: kind }] : [],
     );
 }
 
-function toList(overrides: OverrideMap): VocabularyOverride[] {
-  return [...overrides].map(([word, type]) => ({ word, type }));
+function buildFrom(db: Reader, overrides: OverrideMap): TypeVocabulary {
+  return buildTypeVocabulary({
+    fixed: DEFAULT_TYPE_VOCABULARY,
+    history: readHistory(db),
+    overrides: [...overrides].map(([word, type]) => ({ word, type })),
+  });
 }
 
 /** The vocabulary an import reads: the fixed words, the history and the choices of the user. */
 export function getTypeVocabulary(db: Reader): TypeVocabulary {
-  return buildTypeVocabulary({
-    fixed: DEFAULT_TYPE_VOCABULARY,
-    history: readHistory(db),
-    overrides: toList(readOverrides(db)),
-  });
+  return buildFrom(db, readOverrides(db));
 }
 
 export interface VocabularyWord extends VocabularyEntry {
@@ -144,13 +138,8 @@ export interface VocabularyOverview {
 
 export function getVocabularyOverview(db: Reader): VocabularyOverview {
   const overrides = readOverrides(db);
-  const vocabulary = buildTypeVocabulary({
-    fixed: DEFAULT_TYPE_VOCABULARY,
-    history: readHistory(db),
-    overrides: toList(overrides),
-  });
   return {
-    words: [...vocabulary]
+    words: [...buildFrom(db, overrides)]
       .map(([word, entry]) => ({ word, ...entry }))
       .sort((a, b) => a.word.localeCompare(b.word)),
     removed: [...overrides]
@@ -180,12 +169,7 @@ export function removeVocabularyWord(db: AppDatabase, rawWord: unknown): void {
     const overrides = readOverrides(tx);
     const withoutUser = new Map(overrides);
     withoutUser.delete(word);
-    const isBaseWord = buildTypeVocabulary({
-      fixed: DEFAULT_TYPE_VOCABULARY,
-      history: readHistory(tx),
-      overrides: toList(withoutUser),
-    }).has(word);
-    if (isBaseWord) withoutUser.set(word, null);
+    if (buildFrom(tx, withoutUser).has(word)) withoutUser.set(word, null);
     writeOverrides(tx, withoutUser);
   });
 }
