@@ -52,7 +52,10 @@ describe("import overflow account", () => {
   });
 
   const choose = (overflowAccountId: number, accountId = capped) =>
-    setImportOverflowAccount(db, { receivingAccountId: checkingId, accountId, overflowAccountId });
+    setImportOverflowAccount(db, getAccount(db, accountId), {
+      receivingAccountId: checkingId,
+      overflowAccountId,
+    });
 
   it("makes the chosen account the overflow account for good, keeping the other fields", () => {
     const next = make({ name: "Next" });
@@ -102,8 +105,7 @@ describe("import overflow account", () => {
   it("creates a savings account in the currency of the account it will receive from", () => {
     const dollars = make({ name: "Dollars", currency: "USD", depositCeiling: 1_000 });
 
-    const created = createOverflowCandidate(db, {
-      likeAccountId: dollars.id,
+    const created = createOverflowCandidate(db, dollars, {
       name: "  Overflow  ",
       openingDate: "2026-03-01",
     });
@@ -125,8 +127,7 @@ describe("import overflow account", () => {
       target: { kind: "new", name: "Spare" },
     }).find(({ id }) => isPendingAccount(id));
 
-    const created = createOverflowCandidate(db, {
-      likeAccountId: dollars.id,
+    const created = createOverflowCandidate(db, dollars, {
       name: "Spare",
       openingDate: "2026-03-01",
     });
@@ -138,7 +139,7 @@ describe("import overflow account", () => {
 
   it("refuses a new account without a name", () => {
     expect(
-      refusal(() => createOverflowCandidate(db, { likeAccountId: capped, name: " ", openingDate: "2026-03-01" })).ref.key,
+      refusal(() => createOverflowCandidate(db, getAccount(db, capped), { name: " ", openingDate: "2026-03-01" })).ref.key,
     ).toBe("accountNameRequired");
   });
 });
