@@ -4,15 +4,16 @@ import {
   choicesForShortfalls,
   overflowTargetChoices,
   overflowDemands,
-  pendingAccountNames,
-  placeholderAccountId,
-  withOverflowAccount,
+  isPendingAccount,
+  pendingAccountName,
+  pendingAccountRef,
+  withOverflowChoice,
   type PendingOverflow,
 } from "../../src/domain/import-overflow";
-import type { SavingsAccountChoice } from "../../src/domain/import-savings";
-import type { OverflowAccount } from "../../src/domain/overflow";
+import { planSavingsTransfers, type SavingsAccountChoice } from "../../src/domain/import-savings";
+import type { AccountRef, OverflowAccount } from "../../src/domain/overflow";
 
-const account = (overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount => ({
+const account = (overrides: Partial<OverflowAccount> & { id: number | string }): OverflowAccount => ({
   currency: "EUR",
   archived: false,
   balance: 0,
@@ -67,40 +68,90 @@ describe("choicesForShortfalls", () => {
   });
 });
 
-describe("withOverflowAccount", () => {
-  it("sets the overflow account of one account and leaves the input untouched", () => {
+describe("withOverflowChoice", () => {
+  it("links the account to an existing one and leaves the input untouched", () => {
     const accounts = [account({ id: 2 }), account({ id: 3 })];
 
-    const result = withOverflowAccount(accounts, 2, 3);
+    const result = withOverflowChoice(accounts, { accountId: 2, target: { kind: "existing", id: 3 } });
 
     expect(result.find(({ id }) => id === 2)?.overflowAccountId).toBe(3);
     expect(accounts[0]?.overflowAccountId).toBeNull();
   });
 
-  it("adds an account created meanwhile when it is not known yet", () => {
-    const created = account({ id: 9 });
+  it("adds an account to create under its own reference, in the currency of the account that overflows", () => {
+    const accounts = [account({ id: 2, currency: "USD" })];
 
-    expect(withOverflowAccount([account({ id: 2 })], 2, 9, created).map(({ id }) => id)).toEqual([2, 9]);
+    const result = withOverflowChoice(accounts, { accountId: 2, target: { kind: "new", name: "Spare" } });
+
+    const ref = result.find(({ id }) => id === 2)?.overflowAccountId;
+    expect(isPendingAccount(ref as AccountRef)).toBe(true);
+    expect(result.find(({ id }) => id === ref)).toEqual({
+      id: ref,
+      currency: "USD",
+      archived: false,
+      balance: 0,
+      ceiling: null,
+      overflowAccountId: null,
+    });
   });
-});
 
-describe("placeholderAccountId", () => {
-  it("gives the choices of a review distinct ids that no stored account can have", () => {
-    const ids = [0, 1, 2].map(placeholderAccountId);
-
-    expect(new Set(ids).size).toBe(3);
-    expect(ids.every((id) => id < 0)).toBe(true);
-  });
-});
-
-describe("pendingAccountNames", () => {
-  it("names the accounts the review will create by the placeholder of their choice", () => {
-    const choices: PendingOverflow[] = [
-      { accountId: 2, target: { kind: "existing", id: 3 } },
-      { accountId: 4, target: { kind: "new", name: "Spare" } },
+  it("keeps one account to create per choice, even when two choices share a name", () => {
+    const target = { kind: "new", name: "Spare" } as const;
+    const accounts = [
+      account({ id: 2, currency: "EUR" }),
+      account({ id: 3, currency: "USD" }),
     ];
 
-    expect(pendingAccountNames(choices)).toEqual(new Map([[placeholderAccountId(1), "Spare"]]));
+    const result = withOverflowChoice(
+      withOverflowChoice(accounts, { accountId: 2, target }),
+      { accountId: 3, target },
+    );
+
+    const refOf = (accountId: number) =>
+      result.find(({ id }) => id === accountId)?.overflowAccountId;
+    expect(refOf(2)).not.toBe(refOf(3));
+    expect(result.filter(({ id }) => isPendingAccount(id))).toEqual([
+      expect.objectContaining({ id: refOf(2), currency: "EUR" }),
+      expect.objectContaining({ id: refOf(3), currency: "USD" }),
+    ]);
+  });
+
+  it("gives the name of an account to create back from its reference", () => {
+    const accounts = withOverflowChoice(
+      [account({ id: 2 })],
+      { accountId: 2, target: { kind: "new", name: "Spare: 2" } },
+    );
+
+    const ref = accounts.find(({ id }) => id === 2)?.overflowAccountId;
+
+    expect(ref).toBeDefined();
+    expect(pendingAccountName(ref as string)).toBe("Spare: 2");
+  });
+
+  it("lets a deposit overflow into an account to create", () => {
+    const accounts = withOverflowChoice(
+      [account({ id: 2, ceiling: 1_000 })],
+      { accountId: 2, target: { kind: "new", name: "Spare" } },
+    );
+
+    const plan = planSavingsTransfers(
+      [{ index: 0, date: "2026-01-05", amount: -1_500, savingsAccountId: 2 }],
+      accounts,
+    );
+
+    expect(plan.issues).toEqual([]);
+    expect(plan.transfers).toEqual([
+      {
+        kind: "deposit",
+        index: 0,
+        date: "2026-01-05",
+        placements: [
+          { accountId: 2, amount: 1_000 },
+          { accountId: pendingAccountRef(2, "Spare"), amount: 500 },
+        ],
+        unplaced: 0,
+      },
+    ]);
   });
 });
 

@@ -8,7 +8,13 @@ import {
   describeSplit,
   type StagedT,
 } from "../../../src/app/imports/review-text";
+import {
+  isPendingAccount,
+  pendingAccountName,
+  pendingAccountRef,
+} from "../../../src/domain/import-overflow";
 import type { ConfirmReason, SplitSegment } from "../../../src/domain/import-review";
+import type { AccountRef } from "../../../src/domain/overflow";
 
 /** A translator in the given language that fails on a missing key or a badly formed value. */
 function stagedIn(locale: "en" | "fr"): StagedT {
@@ -100,7 +106,7 @@ describe("describeSplit", () => {
     t: stagedIn(locale),
     currency: "EUR",
     locale,
-    nameOf: (id: number) => names.get(id) ?? "?",
+    nameOf: (ref: AccountRef) => (isPendingAccount(ref) ? pendingAccountName(ref) : (names.get(ref) ?? "?")),
   });
 
   it("writes each part of a deposit with the account that receives it", () => {
@@ -112,6 +118,15 @@ describe("describeSplit", () => {
     expect(describeSplit(segments, say("en"))).toBe(
       "€100.00 to Account A, €200.00 to Account B",
     );
+  });
+
+  it("names an account to create by the name the user gave it", () => {
+    const segments: SplitSegment[] = [
+      { direction: "to", accountId: 2, amount: 10_000 },
+      { direction: "to", accountId: pendingAccountRef(2, "Spare"), amount: 5_000 },
+    ];
+
+    expect(describeSplit(segments, say("en"))).toBe("€100.00 to Account A, €50.00 to Spare");
   });
 
   it("writes a withdrawal in French with the account it comes from", () => {

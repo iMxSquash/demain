@@ -7,8 +7,9 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 
 import type { AssertionLinks } from "../../domain/import-assertions";
 import type { RowDetails } from "../../domain/import-draft";
-import type { PendingOverflow } from "../../domain/import-overflow";
+import { isPendingAccount, pendingAccountName, type PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
+import type { AccountRef } from "../../domain/overflow";
 import { BUTTON_CLASS } from "../form-field";
 import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
 import { columnChoicesOf } from "./reread-file";
@@ -263,7 +264,8 @@ export function FileCard({
       t,
       currency: file.currency,
       locale,
-      nameOf: (id: number) => accountNames.get(id) ?? t("unknownAccount"),
+      nameOf: (ref: AccountRef) =>
+        isPendingAccount(ref) ? pendingAccountName(ref) : (accountNames.get(ref) ?? t("unknownAccount")),
     };
     return new Map(
       [...plan.splits].map(([rowIndex, segments]) => [

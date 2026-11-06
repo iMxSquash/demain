@@ -7,12 +7,11 @@ import { useState, useTransition, type FormEvent } from "react";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
 import {
-  placeholderAccountId,
-  withOverflowAccount,
+  withOverflowChoice,
   type OverflowTarget,
   type PendingOverflow,
 } from "../../domain/import-overflow";
-import type { OverflowAccount } from "../../domain/overflow";
+import type { AccountRef, OverflowAccount } from "../../domain/overflow";
 import { BUTTON_CLASS, CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
 import {
@@ -206,9 +205,9 @@ interface Review {
   sources: File[];
   files: StagedFile[];
   /** The balances when the files were read: the page refreshes after each import, the plan must not. */
-  overflowAccounts: OverflowAccount[];
+  overflowAccounts: OverflowAccount<AccountRef>[];
   /** The same balances without the choices made so far: what a file needs is read from them. */
-  storedOverflowAccounts: OverflowAccount[];
+  storedOverflowAccounts: OverflowAccount<AccountRef>[];
   /** The balance assertions and the movements when the files were read: the page refreshes after each import, the comparison must not. */
   assertionSnapshot: AssertionLinkSnapshot;
   /** The overflow accounts chosen so far: written with the first file imported, never before. */
@@ -291,33 +290,15 @@ export function ImportForm({
   }
 
   // The choice is only remembered: the plan of the review follows it, and it is
-  // saved with the first file imported (an account to create is stood for by a placeholder).
+  // saved with the first file imported (an account to create is referred to by `pendingAccountRef`).
   function chooseOverflow(accountId: number, target: OverflowTarget) {
     setReview((current) => {
       if (current === null) return null;
-      const placeholderId = placeholderAccountId(current.overflowChoices.length);
-      const overflowAccountId = target.kind === "existing" ? target.id : placeholderId;
-      const currency = current.overflowAccounts.find(({ id }) => id === accountId)?.currency;
-      const created: OverflowAccount | undefined =
-        target.kind === "new" && currency !== undefined
-          ? {
-              id: placeholderId,
-              currency,
-              archived: false,
-              balance: 0,
-              ceiling: null,
-              overflowAccountId: null,
-            }
-          : undefined;
+      const choice = { accountId, target };
       return {
         ...current,
-        overflowAccounts: withOverflowAccount(
-          current.overflowAccounts,
-          accountId,
-          overflowAccountId,
-          created,
-        ),
-        overflowChoices: [...current.overflowChoices, { accountId, target }],
+        overflowAccounts: withOverflowChoice(current.overflowAccounts, choice),
+        overflowChoices: [...current.overflowChoices, choice],
       };
     });
   }

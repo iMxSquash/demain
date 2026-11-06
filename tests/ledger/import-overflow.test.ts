@@ -5,7 +5,8 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AccountValidationError, type AccountInput } from "../../src/domain/account";
-import { createAccount, getAccount } from "../../src/ledger/accounts";
+import { isPendingAccount, withOverflowChoice } from "../../src/domain/import-overflow";
+import { createAccount, getAccount, listOverflowAccounts } from "../../src/ledger/accounts";
 import {
   createOverflowCandidate,
   setImportOverflowAccount,
@@ -115,6 +116,24 @@ describe("import overflow account", () => {
       depositCeiling: null,
       overflowAccountId: null,
     });
+  });
+
+  it("gives an account to create the same defaults as the review plans with", () => {
+    const dollars = make({ name: "Dollars", currency: "USD", depositCeiling: 1_000 });
+    const planned = withOverflowChoice(listOverflowAccounts(db), {
+      accountId: dollars.id,
+      target: { kind: "new", name: "Spare" },
+    }).find(({ id }) => isPendingAccount(id));
+
+    const created = createOverflowCandidate(db, {
+      likeAccountId: dollars.id,
+      name: "Spare",
+      openingDate: "2026-03-01",
+    });
+
+    const saved = listOverflowAccounts(db).find(({ id }) => id === created.id);
+    expect(planned).toBeDefined();
+    expect({ ...saved, id: null }).toEqual({ ...planned, id: null });
   });
 
   it("refuses a new account without a name", () => {
