@@ -150,6 +150,7 @@ describe("withOverflowChoice", () => {
           { accountId: pendingAccountRef(2, "Spare"), amount: 500 },
         ],
         unplaced: 0,
+        stoppedAt: pendingAccountRef(2, "Spare"),
       },
     ]);
   });

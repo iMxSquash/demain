@@ -42,6 +42,8 @@ export type OverflowRouting<Id extends AccountRef = number> =
       placements: Placement<Id>[];
       /** Part that fits nowhere along the chain: it stays in the source account. */
       unplaced: number;
+      /** Last account of the chain: where the unplaced part stops, having nowhere to go. */
+      stoppedAt: Id;
     }
   | { status: "invalid"; reason: "cycle" };
 
@@ -115,7 +117,9 @@ export function routeAlongOverflowChain<Id extends AccountRef = number>(
     }
   }
 
-  return { status: "ok", placements, unplaced: remaining };
+  // `chain` starts at the destination, which is known, so it is never empty.
+  const stoppedAt = chain[chain.length - 1]!.id;
+  return { status: "ok", placements, unplaced: remaining, stoppedAt };
 }
 
 /** The accounts that may take a surplus: active savings accounts (ADR-013). */
@@ -178,17 +182,4 @@ export function assertOverflowTargetAllowed(
       messageRef("overflowChainLoop"),
     );
   }
-}
-
-/**
- * The last account of the chain that starts at `startId`: the one whose
- * surplus has nowhere to go. Null when the chain loops or starts nowhere.
- */
-export function overflowChainTail<Id extends AccountRef>(
-  startId: Id,
-  byId: ReadonlyMap<Id, Pick<OverflowAccount<Id>, "id" | "overflowAccountId">>,
-): Id | null {
-  const { accounts, hasLoop } = walkOverflowChain(startId, byId);
-  if (hasLoop) return null;
-  return accounts.at(-1)?.id ?? null;
 }
