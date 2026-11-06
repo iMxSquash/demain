@@ -21,7 +21,7 @@ import {
   type SavingsMovement,
   type SavingsTransfer,
 } from "./import-savings";
-import type { OverflowShortfall } from "./import-overflow";
+import { isPendingAccount, type OverflowShortfall } from "./import-overflow";
 import { overflowChainTail, type AccountRef, type OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
@@ -296,7 +296,7 @@ export function planReview(
       if (tail === null) continue;
       // The end of a chain that falls short has a ceiling: an account to create has none,
       // so a surplus there would otherwise vanish without a trace.
-      if (typeof tail === "string") {
+      if (isPendingAccount(tail)) {
         throw new Error(
           `A surplus of ${transfer.unplaced} cannot be placed at the account to create ${tail}, which must have no ceiling`,
         );

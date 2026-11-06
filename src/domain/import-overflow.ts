@@ -69,6 +69,11 @@ export function pendingAccountRef(accountId: number, name: string): string {
   return `${accountId}:${name}`;
 }
 
+/** Whether a reference stands for an account to create rather than a stored account id. */
+export function isPendingAccount(ref: AccountRef): ref is string {
+  return typeof ref === "string";
+}
+
 /** The name the user gave to the account that `pendingAccountRef` stands for. */
 export function pendingAccountName(ref: string): string {
   return ref.slice(ref.indexOf(":") + 1);

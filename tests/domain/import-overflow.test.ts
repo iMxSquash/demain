@@ -4,13 +4,14 @@ import {
   choicesForShortfalls,
   overflowTargetChoices,
   overflowDemands,
+  isPendingAccount,
   pendingAccountName,
   pendingAccountRef,
   withOverflowChoice,
   type PendingOverflow,
 } from "../../src/domain/import-overflow";
 import { planSavingsTransfers, type SavingsAccountChoice } from "../../src/domain/import-savings";
-import type { OverflowAccount } from "../../src/domain/overflow";
+import type { AccountRef, OverflowAccount } from "../../src/domain/overflow";
 
 const account = (overrides: Partial<OverflowAccount> & { id: number | string }): OverflowAccount => ({
   currency: "EUR",
@@ -83,7 +84,7 @@ describe("withOverflowChoice", () => {
     const result = withOverflowChoice(accounts, { accountId: 2, target: { kind: "new", name: "Spare" } });
 
     const ref = result.find(({ id }) => id === 2)?.overflowAccountId;
-    expect(typeof ref).toBe("string");
+    expect(isPendingAccount(ref as AccountRef)).toBe(true);
     expect(result.find(({ id }) => id === ref)).toEqual({
       id: ref,
       currency: "USD",
@@ -109,7 +110,7 @@ describe("withOverflowChoice", () => {
     const refOf = (accountId: number) =>
       result.find(({ id }) => id === accountId)?.overflowAccountId;
     expect(refOf(2)).not.toBe(refOf(3));
-    expect(result.filter(({ id }) => typeof id === "string")).toEqual([
+    expect(result.filter(({ id }) => isPendingAccount(id))).toEqual([
       expect.objectContaining({ id: refOf(2), currency: "EUR" }),
       expect.objectContaining({ id: refOf(3), currency: "USD" }),
     ]);

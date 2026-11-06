@@ -8,6 +8,11 @@ import {
   describeSplit,
   type StagedT,
 } from "../../../src/app/imports/review-text";
+import {
+  isPendingAccount,
+  pendingAccountName,
+  pendingAccountRef,
+} from "../../../src/domain/import-overflow";
 import type { ConfirmReason, SplitSegment } from "../../../src/domain/import-review";
 import type { AccountRef } from "../../../src/domain/overflow";
 
@@ -101,7 +106,7 @@ describe("describeSplit", () => {
     t: stagedIn(locale),
     currency: "EUR",
     locale,
-    nameOf: (ref: AccountRef) => (typeof ref === "string" ? ref : (names.get(ref) ?? "?")),
+    nameOf: (ref: AccountRef) => (isPendingAccount(ref) ? pendingAccountName(ref) : (names.get(ref) ?? "?")),
   });
 
   it("writes each part of a deposit with the account that receives it", () => {
@@ -118,7 +123,7 @@ describe("describeSplit", () => {
   it("names an account to create by the name the user gave it", () => {
     const segments: SplitSegment[] = [
       { direction: "to", accountId: 2, amount: 10_000 },
-      { direction: "to", accountId: "Spare", amount: 5_000 },
+      { direction: "to", accountId: pendingAccountRef(2, "Spare"), amount: 5_000 },
     ];
 
     expect(describeSplit(segments, say("en"))).toBe("€100.00 to Account A, €50.00 to Spare");

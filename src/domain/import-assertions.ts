@@ -16,6 +16,7 @@ import {
 } from "./balance-assertion";
 import { readImportDraft, signedAmountForType } from "./import-draft";
 import { lastMovementDate } from "./batch-balance";
+import { isPendingAccount } from "./import-overflow";
 import { isFileRecorded, type FilePlan, type ReviewedFile } from "./import-review";
 import { compareDates, firstMovementDate } from "./import-savings";
 
@@ -56,7 +57,7 @@ export function fileMovements(
     }
     return (plan.splits.get(index) ?? []).flatMap(({ direction, accountId: otherId, amount: part }) => {
       // An account to create has no balance assertion to check the movement against.
-      if (direction === "unplaced" || typeof otherId !== "number") return [];
+      if (direction === "unplaced" || otherId === null || isPendingAccount(otherId)) return [];
       const sign = direction === "to" ? -1 : 1;
       return [
         { accountId, date, amount: sign * part },
