@@ -42,6 +42,13 @@ describe("commitRequestSchema", () => {
     expect(result.data?.drafts[0]?.details).toEqual(DETAILS);
   });
 
+  it("defaults the overflow choices to an empty list when the request has none", () => {
+    const result = parse(request());
+
+    expect(result.success).toBe(true);
+    expect(result.data?.overflowChoices).toEqual([]);
+  });
+
   it("accepts drafts with no details, and no savings account", () => {
     expect(parse(request({ drafts: [DRAFT] })).success).toBe(true);
     expect(parse(request({ savingsAccountId: null })).success).toBe(true);

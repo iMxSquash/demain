@@ -48,7 +48,7 @@ export const commitRequestSchema = z.strictObject({
   savingsAccountId: id.nullable().optional(),
   drafts: z.array(draftSchema).max(MAX_ROWS),
   /** The overflow accounts chosen in the review: saved with the file, or not at all. */
-  overflowChoices: z.array(overflowChoiceSchema).max(MAX_OVERFLOW_CHOICES).optional(),
+  overflowChoices: z.array(overflowChoiceSchema).max(MAX_OVERFLOW_CHOICES).default([]),
 });
 
 export type CommitStagedRequest = z.input<typeof commitRequestSchema>;
