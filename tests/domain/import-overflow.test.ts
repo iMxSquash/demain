@@ -4,6 +4,8 @@ import {
   choicesForShortfalls,
   overflowTargetChoices,
   overflowDemands,
+  pendingAccountName,
+  pendingAccountRef,
   withOverflowChoice,
   type PendingOverflow,
 } from "../../src/domain/import-overflow";
@@ -75,14 +77,15 @@ describe("withOverflowChoice", () => {
     expect(accounts[0]?.overflowAccountId).toBeNull();
   });
 
-  it("refers to an account to create by its name, in the currency of the account that overflows", () => {
+  it("adds an account to create under its own reference, in the currency of the account that overflows", () => {
     const accounts = [account({ id: 2, currency: "USD" })];
 
     const result = withOverflowChoice(accounts, { accountId: 2, target: { kind: "new", name: "Spare" } });
 
-    expect(result.find(({ id }) => id === 2)?.overflowAccountId).toBe("Spare");
-    expect(result.find(({ id }) => id === "Spare")).toEqual({
-      id: "Spare",
+    const ref = result.find(({ id }) => id === 2)?.overflowAccountId;
+    expect(typeof ref).toBe("string");
+    expect(result.find(({ id }) => id === ref)).toEqual({
+      id: ref,
       currency: "USD",
       archived: false,
       balance: 0,
@@ -91,16 +94,37 @@ describe("withOverflowChoice", () => {
     });
   });
 
-  it("adds an account to create once when two choices name it", () => {
+  it("keeps one account to create per choice, even when two choices share a name", () => {
     const target = { kind: "new", name: "Spare" } as const;
-    const accounts = [account({ id: 2 }), account({ id: 3 })];
+    const accounts = [
+      account({ id: 2, currency: "EUR" }),
+      account({ id: 3, currency: "USD" }),
+    ];
 
     const result = withOverflowChoice(
       withOverflowChoice(accounts, { accountId: 2, target }),
       { accountId: 3, target },
     );
 
-    expect(result.filter(({ id }) => id === "Spare")).toHaveLength(1);
+    const refOf = (accountId: number) =>
+      result.find(({ id }) => id === accountId)?.overflowAccountId;
+    expect(refOf(2)).not.toBe(refOf(3));
+    expect(result.filter(({ id }) => typeof id === "string")).toEqual([
+      expect.objectContaining({ id: refOf(2), currency: "EUR" }),
+      expect.objectContaining({ id: refOf(3), currency: "USD" }),
+    ]);
+  });
+
+  it("gives the name of an account to create back from its reference", () => {
+    const accounts = withOverflowChoice(
+      [account({ id: 2 })],
+      { accountId: 2, target: { kind: "new", name: "Spare: 2" } },
+    );
+
+    const ref = accounts.find(({ id }) => id === 2)?.overflowAccountId;
+
+    expect(ref).toBeDefined();
+    expect(pendingAccountName(ref as string)).toBe("Spare: 2");
   });
 
   it("lets a deposit overflow into an account to create", () => {
@@ -122,7 +146,7 @@ describe("withOverflowChoice", () => {
         date: "2026-01-05",
         placements: [
           { accountId: 2, amount: 1_000 },
-          { accountId: "Spare", amount: 500 },
+          { accountId: pendingAccountRef(2, "Spare"), amount: 500 },
         ],
         unplaced: 0,
       },

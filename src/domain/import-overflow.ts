@@ -61,16 +61,31 @@ export function overflowDemands(
 }
 
 /**
+ * The reference of an account to create. It is keyed by the account that
+ * overflows and the name, like the server does when it saves the choices: two
+ * choices on different accounts give two accounts, even under the same name.
+ */
+export function pendingAccountRef(accountId: number, name: string): string {
+  return `${accountId}:${name}`;
+}
+
+/** The name the user gave to the account that `pendingAccountRef` stands for. */
+export function pendingAccountName(ref: string): string {
+  return ref.slice(ref.indexOf(":") + 1);
+}
+
+/**
  * The accounts once the user's choice is recorded. An account to create is
- * referred to by its name and added with the defaults the server gives it (see
- * `createOverflowCandidate`): a savings account in the currency of the account
- * that overflows, with no balance, no ceiling and no overflow account.
+ * added with the defaults the server gives it (see `createOverflowCandidate`):
+ * a savings account in the currency of the account that overflows, with no
+ * balance, no ceiling and no overflow account.
  */
 export function withOverflowChoice(
   accounts: readonly OverflowAccount<AccountRef>[],
   { accountId, target }: PendingOverflow,
 ): OverflowAccount<AccountRef>[] {
-  const overflowAccountId = target.kind === "existing" ? target.id : target.name;
+  const overflowAccountId =
+    target.kind === "existing" ? target.id : pendingAccountRef(accountId, target.name);
   const currency = accounts.find(({ id }) => id === accountId)?.currency;
   const isToAdd =
     target.kind === "new" &&

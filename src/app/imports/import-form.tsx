@@ -290,7 +290,7 @@ export function ImportForm({
   }
 
   // The choice is only remembered: the plan of the review follows it, and it is
-  // saved with the first file imported (an account to create is referred to by its name).
+  // saved with the first file imported (an account to create is referred to by `pendingAccountRef`).
   function chooseOverflow(accountId: number, target: OverflowTarget) {
     setReview((current) => {
       if (current === null) return null;

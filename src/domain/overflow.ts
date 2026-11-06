@@ -9,8 +9,8 @@ import { messageRef } from "./message";
 const SAVINGS_KIND: AccountKind = "savings";
 
 /**
- * Which account a chain refers to: the id of a stored account, or the name of
- * an account the import will create, which has no id yet.
+ * Which account a chain refers to: the id of a stored account, or the key of
+ * an account the import will create, which has no id yet (see `pendingAccountRef`).
  */
 export type AccountRef = number | string;
 

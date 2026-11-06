@@ -7,7 +7,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 
 import type { AssertionLinks } from "../../domain/import-assertions";
 import type { RowDetails } from "../../domain/import-draft";
-import type { PendingOverflow } from "../../domain/import-overflow";
+import { pendingAccountName, type PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
 import type { AccountRef } from "../../domain/overflow";
 import { BUTTON_CLASS } from "../form-field";
@@ -264,9 +264,8 @@ export function FileCard({
       t,
       currency: file.currency,
       locale,
-      // An account to create is referred to by its name.
       nameOf: (ref: AccountRef) =>
-        typeof ref === "string" ? ref : (accountNames.get(ref) ?? t("unknownAccount")),
+        typeof ref === "string" ? pendingAccountName(ref) : (accountNames.get(ref) ?? t("unknownAccount")),
     };
     return new Map(
       [...plan.splits].map(([rowIndex, segments]) => [
