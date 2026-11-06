@@ -13,8 +13,8 @@ interface DemandCardProps {
   accounts: readonly ImportAccountOption[];
   receivingAccountId: number;
   isBusy: boolean;
-  /** Called with the choice and the name to announce it by; nothing is saved at this point. */
-  onChosen: (target: OverflowTarget, targetName: string) => void;
+  /** Called with the choice and the message that announces it; nothing is saved at this point. */
+  onChosen: (target: OverflowTarget, notice: string) => void;
 }
 
 /**
@@ -63,9 +63,11 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
   const targetIds = new Set(
     overflowTargetChoices(accounts, demand.accountId, receivingAccountId, currency),
   );
-  const options = accounts
-    .filter(({ id }) => targetIds.has(id))
-    .map(({ id, name: label }) => ({ id, label }));
+  const options = accounts.filter(({ id }) => targetIds.has(id));
+
+  function announce(overflowName: string) {
+    return t("chosen", { account: accountName, overflow: overflowName });
+  }
 
   function choose() {
     const selected = options.find(({ id }) => String(id) === chosen);
@@ -74,7 +76,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
       selectRef.current?.focus();
       return;
     }
-    onChosen({ kind: "existing", id: selected.id }, selected.label);
+    onChosen({ kind: "existing", id: selected.id }, announce(selected.name));
   }
 
   function create(event: FormEvent<HTMLFormElement>) {
@@ -85,7 +87,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
       nameRef.current?.focus();
       return;
     }
-    onChosen({ kind: "new", name: trimmed }, trimmed);
+    onChosen({ kind: "new", name: trimmed }, announce(trimmed));
   }
 
   return (
@@ -115,9 +117,9 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           className={CONTROL_CLASS}
         >
           <option value="">{tImports("chooseAccount")}</option>
-          {options.map(({ id, label }) => (
+          {options.map(({ id, name: optionName }) => (
             <option key={id} value={id}>
-              {label}
+              {optionName}
             </option>
           ))}
         </select>
@@ -178,10 +180,8 @@ export function OverflowPrompt({
   isBusy,
   onChosen,
 }: OverflowPromptProps) {
-  const t = useTranslations("imports.staged.overflow");
   const noticeRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const nameOf = (id: number) => accounts.find((account) => account.id === id)?.name ?? "";
 
   return (
     <>
@@ -196,8 +196,8 @@ export function OverflowPrompt({
           accounts={accounts}
           receivingAccountId={receivingAccountId}
           isBusy={isBusy}
-          onChosen={(target, targetName) => {
-            setNotice(t("chosen", { account: nameOf(demand.accountId), overflow: targetName }));
+          onChosen={(target, chosenNotice) => {
+            setNotice(chosenNotice);
             onChosen(demand.accountId, target);
             noticeRef.current?.focus();
           }}
