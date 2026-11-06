@@ -433,6 +433,26 @@ describe("planReview", () => {
     ]);
   });
 
+  it("fails loudly when a surplus ends at an account to create, which must have no ceiling", () => {
+    const pendingRef = "pending:2:new-savings";
+    const withDefaults = {
+      currency: "EUR",
+      archived: false,
+      balance: 0,
+      ceiling: null,
+      overflowAccountId: null,
+    };
+    // 10,00 fits in A, 5,00 in the account to create, 5,00 fits nowhere.
+    const accountsWithCappedPending: OverflowAccount<number | string>[] = [
+      { ...withDefaults, id: A_ID, balance: 90_000, ceiling: 100_000, overflowAccountId: pendingRef },
+      { ...withDefaults, id: pendingRef, ceiling: 5_000 },
+    ];
+
+    expect(() =>
+      planReview([file([deposit("-200,00")])], { ...context, accounts: accountsWithCappedPending }),
+    ).toThrow(/account to create/);
+  });
+
   it("reports a loop in the chain and splits nothing", () => {
     const [plan] = planReview([file([deposit("-10,00")])], {
       ...context,

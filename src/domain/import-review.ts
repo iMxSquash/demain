@@ -293,10 +293,15 @@ export function planReview(
       const start = movementsByIndex.get(transfer.index);
       const tail =
         start === undefined ? null : overflowChainTail(start.savingsAccountId, accountsById);
-      // The end of a chain that falls short has a ceiling: an account to create has none.
-      if (typeof tail === "number") {
-        target.shortfalls.push({ accountId: tail, amount: transfer.unplaced });
+      if (tail === null) continue;
+      // The end of a chain that falls short has a ceiling: an account to create has none,
+      // so a surplus there would otherwise vanish without a trace.
+      if (typeof tail === "string") {
+        throw new Error(
+          `A surplus of ${transfer.unplaced} cannot be placed at the account to create ${tail}, which must have no ceiling`,
+        );
       }
+      target.shortfalls.push({ accountId: tail, amount: transfer.unplaced });
     }
   }
   return plans;
