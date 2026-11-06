@@ -15,6 +15,10 @@ The repository carries its full `.github/` structure from its initialization, an
 
 Demain replaces a personal Google Sheet used to track a budget month by month. The sheet had one tab per month, a template that went stale as subscriptions were added or changed price, dates edited by hand, and simulations done by hand. The full problem statement is in [PRODUCT.md](docs/PRODUCT.md).
 
+## Alternatives
+
+[Actual Budget](https://actualbudget.org) and [Firefly III](https://www.firefly-iii.org) are mature, self-hosted budget apps that already cover budgeting, bank file import and categorization. Neither offers a comparative scenario engine, several possible futures side by side on the same real history, which is the core of Demain. If you do not need simulations, they are the more mature choice. The reasoning is in [ADR-001](docs/ARCHITECTURE.md#adr-001-build-from-scratch).
+
 ## The three ideas
 
 | Idea | What it means |

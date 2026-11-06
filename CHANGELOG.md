@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- README section pointing to Actual Budget and Firefly III as more mature alternatives for users who do not need simulations.
 - CodeQL analysis workflow for JavaScript and TypeScript, run on pull requests and pushes to `main` and every week.
 - Code of conduct: the Contributor Covenant 2.1, with `contact@elwen.dev` as the address for reports.
 - Founding documentation: product, domain model, architecture decisions and roadmap.
