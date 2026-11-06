@@ -55,7 +55,10 @@ export interface OverflowCandidateRequest {
   openingDate: string;
 }
 
-/** A savings account with no ceiling and no balance, in the currency of `likeAccount`, the account that will overflow to it. */
+/**
+ * A savings account with no ceiling and no balance, in the currency of
+ * `likeAccount`, the account that will overflow to it.
+ */
 export function createOverflowCandidate(
   db: AppDatabase,
   likeAccount: Account,
