@@ -190,7 +190,7 @@ export async function commitStagedFileAction(
         ...file,
         savingsAccountId: savingsAccountId ?? undefined,
         now,
-        overflow: { choices: overflowChoices ?? [], openingDate },
+        overflow: { choices: overflowChoices, openingDate },
       });
       return {
         currency: getAccount(db, file.accountId).currency,

@@ -56,7 +56,7 @@ export function commitDrafts(
   request: CommitDraftsRequest,
 ): CommitDraftsResult {
   const { overflow, ...file } = request;
-  if (overflow === undefined || overflow.choices.length === 0) {
+  if (overflow === undefined) {
     return commitReviewedDrafts(db, file);
   }
   // The native transaction nests the one of `commitImport` as a savepoint.
