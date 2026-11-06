@@ -17,24 +17,44 @@ interface DemandCardProps {
   onChosen: (target: OverflowTarget, targetName: string) => void;
 }
 
+/**
+ * The accessibility wiring shared by the fields of a card: the hint first, then
+ * the error, and the error paragraph the screen reader announces.
+ */
+function useFieldError(hintId: string, error: string | null) {
+  const common = useTranslations("common");
+  const errorId = useId();
+  return {
+    fieldProps: {
+      "aria-invalid": error === null ? undefined : true,
+      "aria-describedby": error === null ? hintId : `${hintId} ${errorId}`,
+    },
+    errorParagraph:
+      error === null ? null : (
+        <p id={errorId} role="alert" className="font-medium text-red-800">
+          {common("error", { message: error })}
+        </p>
+      ),
+  };
+}
+
 function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: DemandCardProps) {
   const t = useTranslations("imports.staged.overflow");
   const tImports = useTranslations("imports");
-  const common = useTranslations("common");
   const locale = useLocale();
   const headingId = useId();
   const selectId = useId();
   const hintId = useId();
-  const errorId = useId();
   const nameId = useId();
   const nameHintId = useId();
-  const createErrorId = useId();
   const selectRef = useRef<HTMLSelectElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const [chosen, setChosen] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
+  const selectError = useFieldError(hintId, error);
+  const nameError = useFieldError(nameHintId, createError);
 
   const account = accounts.find(({ id }) => id === demand.accountId);
   const currency = account?.currency ?? "";
@@ -87,8 +107,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           ref={selectRef}
           value={chosen}
           disabled={isBusy}
-          aria-invalid={error === null ? undefined : true}
-          aria-describedby={error === null ? hintId : `${hintId} ${errorId}`}
+          {...selectError.fieldProps}
           onChange={(event) => {
             setChosen(event.currentTarget.value);
             setError(null);
@@ -105,11 +124,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
         <p id={hintId} className="text-sm">
           {t("permanent", { account: accountName })}
         </p>
-        {error === null ? null : (
-          <p id={errorId} role="alert" className="font-medium text-red-800">
-            {common("error", { message: error })}
-          </p>
-        )}
+        {selectError.errorParagraph}
       </div>
       <button type="button" disabled={isBusy} onClick={choose} className={`${BUTTON_CLASS} self-start`}>
         {t("choose")}
@@ -123,8 +138,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
             ref={nameRef}
             value={name}
             disabled={isBusy}
-            aria-invalid={createError === null ? undefined : true}
-            aria-describedby={createError === null ? nameHintId : `${nameHintId} ${createErrorId}`}
+            {...nameError.fieldProps}
             onChange={(event) => {
               setName(event.currentTarget.value);
               setCreateError(null);
@@ -134,11 +148,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
           <p id={nameHintId} className="text-sm">
             {t("createHint", { currency })}
           </p>
-          {createError === null ? null : (
-            <p id={createErrorId} role="alert" className="font-medium text-red-800">
-              {common("error", { message: createError })}
-            </p>
-          )}
+          {nameError.errorParagraph}
           <button type="submit" disabled={isBusy} className={`${BUTTON_CLASS} self-start`}>
             {t("create")}
           </button>
