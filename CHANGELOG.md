@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Code of conduct: the Contributor Covenant 2.1, with `contact@elwen.dev` as the address for reports.
 - Founding documentation: product, domain model, architecture decisions and roadmap.
 - Application scaffold: Next.js (App Router), strict TypeScript, Tailwind CSS v4, ESLint, Vitest and the `lint`, `typecheck` and `test` npm scripts run by the CI.
 - Storage layer: SQLite through Drizzle ORM, a first migration applied at startup, a configurable data directory (`DEMAIN_DATA_DIR`) and environment validation that stops the server when a required variable is missing.

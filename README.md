@@ -153,6 +153,7 @@ demain/
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── SECURITY.md
+├── CODE_OF_CONDUCT.md        Contributor Covenant 2.1
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile                One image for linux/amd64 and linux/arm64
