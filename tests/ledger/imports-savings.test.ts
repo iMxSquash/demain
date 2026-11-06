@@ -354,6 +354,7 @@ describe("importing savings rows", () => {
           { accountId: A_ID, amount: 10_000 },
           { accountId: B_ID, amount: 20_000 },
         ],
+        stoppedAt: B_ID,
         unplaced: 0,
       },
     ]);

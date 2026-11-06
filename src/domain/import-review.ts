@@ -22,7 +22,7 @@ import {
   type SavingsTransfer,
 } from "./import-savings";
 import { isPendingAccount, type OverflowShortfall } from "./import-overflow";
-import { overflowChainTail, type AccountRef, type OverflowAccount } from "./overflow";
+import type { AccountRef, OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
@@ -281,27 +281,21 @@ export function planReview(
     movements: isFileRecorded({ phase }) ? savingsMovementsOf(rows, context) : [],
   }));
 
-  const accountsById = new Map(context.accounts.map((account) => [account.id, account]));
   for (const { file, plan } of planFilesInDateOrder(planned, context.accounts)) {
     const target = plans[file.position];
     if (target === undefined) continue;
     target.isChainLooping = plan.issues.some((issue) => issue.kind === "overflowChainCycle");
-    const movementsByIndex = new Map(file.movements.map((movement) => [movement.index, movement]));
     for (const transfer of plan.transfers) {
       target.splits.set(transfer.index, splitSegments(transfer));
       if (transfer.kind !== "deposit" || transfer.unplaced === 0) continue;
-      const start = movementsByIndex.get(transfer.index);
-      const tail =
-        start === undefined ? null : overflowChainTail(start.savingsAccountId, accountsById);
-      if (tail === null) continue;
       // The end of a chain that falls short has a ceiling: an account to create has none,
       // so a surplus there would otherwise vanish without a trace.
-      if (isPendingAccount(tail)) {
+      if (isPendingAccount(transfer.stoppedAt)) {
         throw new Error(
-          `A surplus of ${transfer.unplaced} cannot be placed at the account to create ${tail}, which must have no ceiling`,
+          `A surplus of ${transfer.unplaced} cannot be placed at the account to create ${transfer.stoppedAt}, which must have no ceiling`,
         );
       }
-      target.shortfalls.push({ accountId: tail, amount: transfer.unplaced });
+      target.shortfalls.push({ accountId: transfer.stoppedAt, amount: transfer.unplaced });
     }
   }
   return plans;

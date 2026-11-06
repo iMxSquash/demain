@@ -167,6 +167,7 @@ describe("splitSegments", () => {
         { accountId: 3, amount: 20_000 },
       ],
       unplaced: 0,
+      stoppedAt: 3,
     };
 
     expect(splitSegments(transfer)).toEqual([
@@ -182,6 +183,7 @@ describe("splitSegments", () => {
       date: "2026-03-10",
       placements: [{ accountId: 2, amount: 10_000 }],
       unplaced: 3_000,
+      stoppedAt: 2,
     };
 
     expect(splitSegments(transfer)).toEqual([

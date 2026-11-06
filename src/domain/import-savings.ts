@@ -36,6 +36,8 @@ export type SavingsTransfer<Id extends AccountRef = number> =
       placements: Placement<Id>[];
       /** Part that fits nowhere along the chain; also reported in `issues`. */
       unplaced: number;
+      /** Last account of the chain, where `unplaced` stops. */
+      stoppedAt: Id;
     }
   | {
       kind: "withdrawal";
@@ -198,6 +200,7 @@ export function planSavingsTransfers<Id extends AccountRef = number>(
       date,
       placements: routing.placements,
       unplaced: routing.unplaced,
+      stoppedAt: routing.stoppedAt,
     });
     if (routing.unplaced > 0) {
       issues.push({ kind: "savingsUnplaced", index, amount: routing.unplaced });

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertOverflowTargetAllowed,
-  overflowChainTail,
   overflowTargetsOf,
   routeAlongOverflowChain,
   type OverflowAccount,
@@ -47,6 +46,7 @@ describe("routeAlongOverflowChain", () => {
         { accountId: LIVRET_A_ID, amount: 15_000 },
       ],
       unplaced: 0,
+      stoppedAt: LIVRET_A_ID,
     });
   });
 
@@ -70,7 +70,26 @@ describe("routeAlongOverflowChain", () => {
         { accountId: LIVRET_A_ID, amount: 5_000 },
       ],
       unplaced: 10_000,
+      stoppedAt: LIVRET_A_ID,
     });
+  });
+
+  it("stops at the last account of a chain of three, even when a ceiling is hit earlier", () => {
+    const accounts = [
+      account({ id: CHECKING_ID, balance: 0, ceiling: 1_000, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, balance: 0, ceiling: 1_000, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID, balance: 0, ceiling: 1_000 }),
+    ];
+
+    const result = routeAlongOverflowChain(3_500, CHECKING_ID, accounts);
+
+    expect(result).toMatchObject({ status: "ok", unplaced: 500, stoppedAt: LIVRET_A_ID });
+  });
+
+  it("stops at the destination when it has no overflow account", () => {
+    const result = routeAlongOverflowChain(100, LIVRET_A_ID, [account({ id: LIVRET_A_ID })]);
+
+    expect(result).toMatchObject({ status: "ok", stoppedAt: LIVRET_A_ID });
   });
 
   it("reports a corrupted chain that loops and places nothing", () => {
@@ -104,6 +123,7 @@ describe("routeAlongOverflowChain input", () => {
       status: "ok",
       placements: [],
       unplaced: 0,
+      stoppedAt: LIVRET_A_ID,
     });
   });
 
@@ -242,50 +262,6 @@ describe("assertOverflowTargetAllowed", () => {
     expect(() =>
       assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), LIVRET_A_ID, accounts),
     ).not.toThrow();
-  });
-});
-
-describe("overflowChainTail", () => {
-  const byId = (accounts: OverflowAccount[]) =>
-    new Map(accounts.map((item) => [item.id, item]));
-
-  it("returns the last account of the chain", () => {
-    const accounts = byId([
-      account({ id: CHECKING_ID, overflowAccountId: LIVRET_JEUNE_ID }),
-      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
-      account({ id: LIVRET_A_ID }),
-    ]);
-
-    expect(overflowChainTail(CHECKING_ID, accounts)).toBe(LIVRET_A_ID);
-  });
-
-  it("returns the account itself when it has no overflow account", () => {
-    expect(overflowChainTail(LIVRET_A_ID, byId([account({ id: LIVRET_A_ID })]))).toBe(
-      LIVRET_A_ID,
-    );
-  });
-
-  it("returns null when the chain starts nowhere", () => {
-    expect(overflowChainTail(99, byId([account({ id: LIVRET_A_ID })]))).toBeNull();
-  });
-
-  it("returns null when the chain loops", () => {
-    const accounts = byId([
-      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
-      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
-    ]);
-
-    expect(overflowChainTail(LIVRET_A_ID, accounts)).toBeNull();
-  });
-
-  it("returns null when the chain enters a loop it is not part of", () => {
-    const accounts = byId([
-      account({ id: CHECKING_ID, overflowAccountId: LIVRET_A_ID }),
-      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
-      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
-    ]);
-
-    expect(overflowChainTail(CHECKING_ID, accounts)).toBeNull();
   });
 });
 

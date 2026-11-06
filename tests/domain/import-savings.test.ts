@@ -66,6 +66,7 @@ describe("planSavingsTransfers", () => {
           { accountId: B_ID, amount: 20_000 },
         ],
         unplaced: 0,
+        stoppedAt: B_ID,
       },
     ]);
     expect(plan.issues).toEqual([]);
@@ -89,6 +90,7 @@ describe("planSavingsTransfers", () => {
         date: "2026-03-20",
         placements: [{ accountId: A_ID, amount: 15_000 }],
         unplaced: 0,
+        stoppedAt: B_ID,
       },
     ]);
     expect(balancesOf(plan.accounts)[A_ID]).toBe(100_000);
@@ -127,6 +129,7 @@ describe("planSavingsTransfers", () => {
         date: "2026-03-10",
         placements: [{ accountId: A_ID, amount: 1_000 }],
         unplaced: 0,
+        stoppedAt: B_ID,
       },
     ]);
   });
@@ -151,6 +154,7 @@ describe("planSavingsTransfers", () => {
         date: "2026-03-10",
         placements: [{ accountId: B_ID, amount: 500_000 }],
         unplaced: 0,
+        stoppedAt: B_ID,
       },
     ]);
   });
@@ -170,6 +174,7 @@ describe("planSavingsTransfers", () => {
         date: "2026-03-10",
         placements: [{ accountId: A_ID, amount: 10_000 }],
         unplaced: 20_000,
+        stoppedAt: A_ID,
       },
     ]);
     expect(plan.issues).toEqual([{ kind: "savingsUnplaced", index: 0, amount: 20_000 }]);
@@ -280,6 +285,7 @@ describe("files in date order", () => {
           date: "2026-01-02",
           placements: [{ accountId: A_ID, amount: 10_000 }],
           unplaced: 0,
+          stoppedAt: B_ID,
         },
       ],
       [
@@ -289,6 +295,7 @@ describe("files in date order", () => {
           date: "2026-02-01",
           placements: [{ accountId: B_ID, amount: 10_000 }],
           unplaced: 0,
+          stoppedAt: B_ID,
         },
       ],
     ]);
