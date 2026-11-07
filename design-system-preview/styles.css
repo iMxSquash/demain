@@ -27,6 +27,15 @@
   --color-error: #a31f35;
   --color-error-tint: #fbe4e7;
 
+  /* Dark ladders, measured on the inspiration screenshots (see
+     docs/DESIGN-SYSTEM-PREVIEW.md, "Extraction from the references") */
+  --color-night-surface: #10111d;
+  --color-night-inset: #161827;
+  --color-night-control: #21222e;
+  --color-grey-200: #bbbdce;
+  --color-grey-400: #8c8c9a;
+  --color-grey-500: #6e6e7c;
+
   /* Proposed vivid extensions (glow and data colours). Indigo comes from the brief. */
   --color-indigo: #494fdf;
   --color-indigo-bright: #8e92ff;
@@ -54,9 +63,12 @@
   --surface-page: var(--color-paper);
   --surface-raised: var(--color-white);
   --surface-sunken: var(--color-mist);
+  --surface-control: var(--color-mist);
   --surface-inverse: var(--color-night);
   --text: var(--color-night);
   --text-muted: var(--color-slate);
+  --text-subtle: var(--color-slate);
+  --text-on-accent: var(--color-night-deep);
   --border: var(--color-line);
   --border-strong: var(--color-border-strong);
   --accent: var(--color-dawn);
@@ -91,18 +103,19 @@
   --radius-device: 40px;
   --radius-pill: 999px;
 
-  /* Spacing, 4 px base */
+  /* Spacing: one scale, 4 px base. Steps 1 to 4 are fixed control spacing;
+     steps 5 to 10 grow linearly from a 360 px to a 1440 px viewport. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
-  --space-8: 64px;
-  --space-9: 96px;
-  --space-10: 128px;
-  --gutter: 16px;
+  --space-5: clamp(1.25rem, 1.1667rem + 0.3704vw, 1.5rem);
+  --space-6: clamp(1.5rem, 1.3333rem + 0.7407vw, 2rem);
+  --space-7: clamp(2rem, 1.6667rem + 1.4815vw, 3rem);
+  --space-8: clamp(2.5rem, 2rem + 2.2222vw, 4rem);
+  --space-9: clamp(3.5rem, 2.6667rem + 3.7037vw, 6rem);
+  --space-10: clamp(4.5rem, 3.3333rem + 5.1852vw, 8rem);
+  --gutter: clamp(1rem, 0.5rem + 2.2222vw, 2.5rem);
   --container-max: 1280px;
 
   /* Elevation, soft and offset */
@@ -113,28 +126,33 @@
     0 2px 4px color-mix(in srgb, var(--color-night) 5%, transparent),
     0 18px 36px -18px color-mix(in srgb, var(--color-night) 22%, transparent);
   --shadow-device: 0 36px 72px -32px color-mix(in srgb, var(--color-night-deep) 70%, transparent);
+  /* Light top edge of the accent button, as on the onboarding reference */
+  --edge-accent: inset 0 1px 0 color-mix(in srgb, var(--color-paper) 32%, transparent);
 
-  /* Typography */
-  --font-display: "General Sans", "Manrope", system-ui, sans-serif;
-  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Typography: the system stack of brand/README.md, so no font file is
+     downloaded and nothing leaves the server. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --text-display: clamp(2.75rem, 1.2rem + 6vw, 6rem);
-  --text-title-1: clamp(2.25rem, 1.4rem + 3.4vw, 4rem);
-  --text-title-2: clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem);
-  --text-title-3: 1.5rem;
-  --text-body-lg: 1.25rem;
-  --text-body: 1rem;
-  --text-small: 0.875rem;
-  --text-caption: 0.75rem;
+  /* Fluid type scale, linear from a 360 px to a 1440 px viewport */
+  --text-display: clamp(2.5rem, 1.5833rem + 4.0741vw, 5.25rem);
+  --text-title-1: clamp(2rem, 1.5rem + 2.2222vw, 3.5rem);
+  --text-title-2: clamp(1.625rem, 1.3333rem + 1.2963vw, 2.5rem);
+  --text-title-3: clamp(1.25rem, 1.125rem + 0.5556vw, 1.625rem);
+  --text-body-lg: clamp(1.0625rem, 1rem + 0.2778vw, 1.25rem);
+  --text-body: clamp(1rem, 0.9792rem + 0.0926vw, 1.0625rem);
+  --text-small: clamp(0.8125rem, 0.7917rem + 0.0926vw, 0.875rem);
+  --text-caption: clamp(0.75rem, 0.7292rem + 0.0926vw, 0.8125rem);
 
-  --leading-display: 0.98;
-  --leading-title: 1.08;
+  --leading-display: 1.02;
+  --leading-title: 1.1;
   --leading-body: 1.55;
 
-  --tracking-display: -0.04em;
-  --tracking-title: -0.03em;
-  --tracking-snug: -0.015em;
+  --tracking-display: -0.035em;
+  --tracking-title: -0.025em;
+  --tracking-snug: -0.01em;
 
   --weight-regular: 400;
   --weight-medium: 500;
@@ -146,21 +164,32 @@
   --control-height: 52px;
   --field-height: 56px;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Planned values are drawn as dots (ADR-011). One rhythm for every dotted
+     line, whether an SVG stroke with a round cap or a CSS gradient. */
+  --planned-dot: 2px;
+  --planned-period: 7px;
+  --dash-planned: 0 var(--planned-period);
   --duration-fast: 150ms;
   --duration-base: 260ms;
   --duration-slow: 800ms;
 }
 
-/* Dark product theme: the same roles, remapped. Applied on <body>. */
+/* Dark product theme: the same roles, remapped. Applied on <body>.
+   Surface and text ladders come from the inspiration extraction recorded in
+   docs/DESIGN-SYSTEM-PREVIEW.md: step sizes from the neutral dashboard,
+   hue and grey values from the navy dashboard, base from the brand Night. */
 .theme-night {
   color-scheme: dark;
   --surface-page: var(--color-night-deep);
-  --surface-raised: color-mix(in srgb, var(--color-night-raised) 55%, var(--color-night-deep));
-  --surface-sunken: color-mix(in srgb, var(--color-night-raised) 80%, var(--color-night-deep));
+  --surface-raised: var(--color-night-surface);
+  --surface-sunken: var(--color-night-inset);
+  --surface-control: var(--color-night-control);
   --text: var(--color-paper);
-  --text-muted: var(--color-night-muted);
-  --border: color-mix(in srgb, var(--color-paper) 10%, transparent);
-  --border-strong: color-mix(in srgb, var(--color-paper) 38%, transparent);
+  --text-muted: var(--color-grey-200);
+  --text-subtle: var(--color-grey-400);
+  --border: color-mix(in srgb, var(--color-paper) 9%, transparent);
+  --border-strong: var(--color-grey-500);
   --accent-text: #f08a5a;
   --accent-tint: color-mix(in srgb, var(--color-dawn) 18%, var(--color-night-deep));
   --success: #5fd38d;
@@ -170,17 +199,6 @@
   --focus: var(--color-paper);
   --shadow-sm: 0 1px 0 color-mix(in srgb, var(--color-paper) 5%, transparent) inset;
   --shadow-md: 0 24px 48px -24px color-mix(in srgb, #000 70%, transparent);
-}
-
-@media (min-width: 768px) {
-  :root {
-    --gutter: 32px;
-  }
-}
-@media (min-width: 1200px) {
-  :root {
-    --gutter: 40px;
-  }
 }
 
 /* Base */
@@ -327,7 +345,7 @@ input {
 .title-1 {
   font-family: var(--font-display);
   font-size: var(--text-title-1);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-title);
   letter-spacing: var(--tracking-title);
   text-wrap: balance;
@@ -350,7 +368,7 @@ input {
 .display {
   font-family: var(--font-display);
   font-size: var(--text-display);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   line-height: var(--leading-display);
   letter-spacing: var(--tracking-display);
   text-wrap: balance;
@@ -444,7 +462,7 @@ input {
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--text-body);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
@@ -833,7 +851,7 @@ input {
 .chart__line--planned {
   stroke: var(--accent);
   stroke-width: 2.5;
-  stroke-dasharray: 2 6;
+  stroke-dasharray: var(--dash-planned);
 }
 .chart__today {
   position: absolute;
@@ -880,7 +898,7 @@ input {
   stroke-linecap: round;
 }
 .legend-line--planned line {
-  stroke-dasharray: 1 6;
+  stroke-dasharray: var(--dash-planned);
 }
 
 /* Transactions */
