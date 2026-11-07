@@ -1763,3 +1763,624 @@ html {
 .theme-night .card.tile--vivid-indigo {
   background-origin: border-box;
 }
+
+/* Landing page (landing.html).
+   Reuses the base classes (.display, .title-1, .title-3, .lead, .btn,
+   .panel, .chart__line, .chart__legend, .legend-line, .hero__copy) and
+   only adds what they lack. It never uses .btn--primary, .card, .chip or the
+   .chart__line--* modifiers, which the glass and glow layer above restyles.
+   Every element is justified in docs/DESIGN-SYSTEM-PREVIEW.md. */
+.lp-root {
+  --header-height: 4rem;
+  scroll-padding-block-start: calc(var(--header-height) + var(--space-4));
+}
+
+/* Header: opaque, so the text scrolling under it never shows through the
+   links, and no backdrop blur to repaint while scrolling */
+.lp-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 10;
+  border-block-end: 1px solid var(--border);
+  background: var(--surface-page);
+}
+.lp-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: var(--header-height);
+}
+.lp-header__logo {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  margin-inline-end: auto;
+}
+.lp-header__logo img {
+  width: 120px;
+  height: auto;
+}
+.lp-nav {
+  display: flex;
+  gap: var(--space-1);
+}
+.lp-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+.lp-nav a:hover {
+  color: var(--text);
+  background: var(--surface-control);
+}
+@media (max-width: 52rem) {
+  .lp-nav {
+    display: none;
+  }
+}
+
+/* Landing variants of the base .btn (named apart from .btn--primary, which the
+   glass layer restyles): accent primary as in the references, light top edge
+   from the onboarding screens */
+.btn--accent {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow: var(--edge-accent);
+}
+.btn--accent:hover {
+  background: color-mix(in srgb, var(--accent) 88%, var(--color-paper));
+}
+.btn--quiet {
+  background: var(--surface-control);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.btn--quiet:hover {
+  background: color-mix(in srgb, var(--surface-control) 86%, var(--color-paper));
+}
+.btn--small {
+  min-height: var(--target-min);
+  padding-inline: var(--space-5);
+  font-size: var(--text-small);
+}
+
+/* Type that the base classes do not cover */
+.lp-kicker,
+.lp-label {
+  font-size: var(--text-small);
+  color: var(--text-subtle);
+}
+.lp-kicker {
+  font-weight: var(--weight-semibold);
+}
+.lp-figure {
+  font-size: var(--text-title-2);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-title);
+  letter-spacing: var(--tracking-snug);
+}
+.lp-figure--xl {
+  font-size: var(--text-title-1);
+}
+
+/* Layout: one container, one gutter, sections separated by a hairline */
+.lp-hero {
+  padding-block: var(--space-9) var(--space-10);
+}
+.lp-hero__copy {
+  max-width: 46rem;
+}
+/* Actions share one line when they fit and take the full width when stacked */
+.lp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  max-width: 28rem;
+  margin-block-start: var(--space-2);
+}
+.lp-actions > .btn {
+  flex: 1 0 auto;
+}
+.lp-hero .lp-frame {
+  margin-block-start: var(--space-8);
+}
+.lp-section {
+  padding-block: var(--space-10);
+  border-block-start: 1px solid var(--border);
+}
+/* One 12-column grid: copy on columns 1 to 4, product UI on 6 to 12, so
+   every frame starts on the same line. Below 60rem they stack; spacing and
+   type keep growing fluidly on both sides of that point. */
+.lp-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-8) var(--gutter);
+}
+.lp-copy {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 34rem;
+}
+@media (min-width: 60rem) {
+  .lp-split {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .lp-copy {
+    grid-column: 1 / span 4;
+  }
+  .lp-split > .lp-frame {
+    grid-column: 6 / span 7;
+  }
+}
+.lp-copy > p:not(.lp-kicker) {
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+.lp-copy .title-1 {
+  margin-block-end: var(--space-2);
+}
+.lp-copy .lp-actions {
+  margin-block-start: var(--space-4);
+}
+
+/* Product frame on the base .panel: elevation by one surface step, a
+   hairline and a light top edge, no drop shadow. Figures align in columns. */
+.lp-frame {
+  box-shadow: var(--shadow-sm);
+  font-variant-numeric: tabular-nums;
+}
+.lp-frame__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-block-end: var(--space-5);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--border);
+  font-size: var(--text-small);
+  color: var(--text-subtle);
+}
+.lp-frame__head strong {
+  color: var(--text);
+  font-weight: var(--weight-semibold);
+}
+
+/* Hero: monthly overview with the daily balance */
+.lp-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-7) var(--space-8);
+}
+.lp-kpis {
+  display: grid;
+  align-content: start;
+  gap: var(--space-6);
+  flex: 0 1 16rem;
+}
+.lp-kpis div {
+  display: grid;
+  gap: var(--space-2);
+}
+.lp-chart-wrap {
+  display: grid;
+  gap: var(--space-3);
+  flex: 4 1 22rem;
+  min-width: 0;
+}
+.lp-chart-area {
+  position: relative;
+}
+.lp-chart {
+  width: 100%;
+  height: clamp(9rem, 7rem + 9vw, 15rem);
+  overflow: visible;
+}
+.lp-chart__area {
+  fill: url(#lp-area);
+}
+.lp-chart__stop {
+  stop-color: var(--text);
+}
+.lp-chart .lp-chart__real {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+.lp-chart .lp-chart__planned {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-dasharray: var(--dash-planned);
+}
+/* --today is set next to the SVG in the HTML, from the same x coordinate */
+.lp-today {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--today);
+  border-inline-start: 1px solid var(--border-strong);
+}
+.lp-today span {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: var(--space-2);
+  font-size: var(--text-caption);
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+.lp-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-caption);
+  color: var(--text-subtle);
+}
+
+/* Monthly view table */
+.lp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+.lp-table th,
+.lp-table td {
+  padding-block: var(--space-3);
+  vertical-align: top;
+  text-align: start;
+}
+.lp-table tbody tr + tr {
+  border-block-start: 1px solid var(--border);
+}
+.lp-table__date {
+  width: 4.5rem;
+  padding-inline-end: var(--space-3);
+  color: var(--text-subtle);
+}
+.lp-table .lp-table__amount {
+  padding-inline-start: var(--space-3);
+  text-align: end;
+}
+.lp-table .lp-table__today,
+.lp-table tfoot tr {
+  border-block-start: 1px solid var(--border-strong);
+}
+.lp-table__balance th,
+.lp-table__balance td,
+.lp-table__today th,
+.lp-table__today td,
+.lp-table tfoot th,
+.lp-table tfoot td {
+  font-weight: var(--weight-semibold);
+}
+.lp-table tfoot td {
+  font-size: var(--text-body);
+}
+/* Real and planned are told apart by a word and a shape, not by colour alone */
+.lp-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-1);
+  font-size: var(--text-caption);
+  color: var(--text-subtle);
+}
+.lp-status::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text);
+}
+.lp-status--planned {
+  color: var(--accent);
+}
+.lp-status--planned::before {
+  width: 10px;
+  height: 10px;
+  border: 2px dotted var(--accent);
+  background: transparent;
+}
+
+/* Planned item with versions */
+.lp-item {
+  display: grid;
+  gap: var(--space-6);
+}
+.lp-props {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--space-4) var(--space-5);
+  font-size: var(--text-small);
+}
+.lp-props div,
+.lp-occurrences li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+}
+.lp-occurrences {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+  gap: var(--space-5) var(--space-3);
+  font-size: var(--text-small);
+}
+.lp-occurrences li {
+  padding-block-start: var(--space-3);
+  border-block-start: 2px dotted var(--accent);
+}
+.lp-occurrences__new {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+}
+
+/* Overflow chain: every offset derives from the node size */
+.lp-chain {
+  --node: 12px;
+  --node-top: calc(var(--space-4) + 0.3em);
+}
+.lp-chain > li {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  padding-inline-start: var(--space-6);
+}
+.lp-chain > li::before {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--node-top);
+  inset-inline-start: 0;
+  width: var(--node);
+  height: var(--node);
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface-raised);
+}
+/* The planned flow between two accounts: dotted, like every planned value */
+.lp-chain > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset-block: calc(var(--node-top) + var(--node) + 2px) calc(2px - var(--node-top));
+  inset-inline-start: calc(var(--node) / 2 - 1px);
+  width: 2px;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--accent) 0 var(--planned-dot),
+    transparent var(--planned-dot) var(--planned-period)
+  );
+  transform-origin: top;
+}
+.lp-chain__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+.lp-chain__name {
+  font-weight: var(--weight-semibold);
+}
+/* Deposit ceiling as tick marks. The counts come from the HTML
+   (--ticks, --filled, --planned) so the figures and the drawing match.
+   Each layer draws the same 2 px tick pattern in its own colour and pitch. */
+.lp-meter,
+.lp-meter__real,
+.lp-meter__planned::before {
+  background: repeating-linear-gradient(90deg, var(--tick-color) 0 2px, transparent 2px var(--tick-pitch));
+}
+.lp-meter {
+  --tick-color: var(--border-strong);
+  --tick-pitch: calc(100% / var(--ticks));
+  position: relative;
+  height: 2rem;
+}
+.lp-meter__real {
+  --tick-color: var(--text);
+  --tick-pitch: calc(100% / var(--filled));
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: calc(100% * var(--filled) / var(--ticks));
+}
+/* Covers the empty ticks it replaces, so their grey does not show between the dots */
+.lp-meter__planned {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(100% * var(--filled) / var(--ticks));
+  width: calc(100% * var(--planned) / var(--ticks));
+  background: var(--surface-raised);
+  transform-origin: bottom;
+}
+.lp-meter__planned::before {
+  --tick-color: var(--accent);
+  --tick-pitch: calc(100% / var(--planned));
+  content: "";
+  position: absolute;
+  inset: 0;
+  -webkit-mask: repeating-linear-gradient(
+    180deg,
+    #000 0 var(--planned-dot),
+    transparent var(--planned-dot) var(--planned-period)
+  );
+  mask: repeating-linear-gradient(
+    180deg,
+    #000 0 var(--planned-dot),
+    transparent var(--planned-dot) var(--planned-period)
+  );
+}
+
+/* Scenario comparison */
+.lp-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+}
+/* Three scenarios side by side only when all three fit, never two plus one */
+.lp-frame--scenarios {
+  container-type: inline-size;
+}
+.lp-scenarios {
+  display: grid;
+  gap: var(--space-3);
+}
+@container (min-width: 34rem) {
+  .lp-scenarios {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.lp-scenarios > div {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+.lp-scenarios h3 {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+}
+.lp-scenarios dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: var(--space-4);
+}
+.lp-scenarios dt {
+  font-size: var(--text-small);
+}
+.lp-scenarios dd {
+  font-size: var(--text-title-3);
+  line-height: 1.25;
+}
+/* One caption style under a name or a figure */
+.lp-chain__name small,
+.lp-scenarios h3 small,
+.lp-scenarios dd small {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: var(--weight-regular);
+  color: var(--text-subtle);
+}
+.lp-props dt,
+.lp-occurrences time,
+.lp-scenarios dt,
+.lp-facts dt {
+  color: var(--text-subtle);
+}
+.lp-note {
+  margin-block-start: var(--space-5);
+  font-size: var(--text-small);
+  color: var(--text-muted);
+}
+
+/* Installation */
+.lp-facts {
+  margin-block-start: var(--space-3);
+  font-size: var(--text-small);
+}
+.lp-facts div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-block-start: 1px solid var(--border);
+}
+.lp-code {
+  margin: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.lp-code__comment {
+  color: var(--text-subtle);
+}
+
+/* Footer */
+.lp-footer {
+  padding-block: var(--space-7);
+  border-block-start: 1px solid var(--border);
+}
+.lp-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+  font-size: var(--text-small);
+  color: var(--text-subtle);
+}
+.lp-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: var(--text-muted);
+  text-underline-offset: 0.2em;
+}
+
+/* Motion explains the product only: the real balance is drawn up to today,
+   then the planned dates follow; the planned transfer fills the ceiling and
+   overflows. Without JavaScript or with reduced motion, the final state shows.
+   The base .btn transition is already switched off by the reduced-motion block. */
+@media (prefers-reduced-motion: no-preference) {
+  .lp-nav a {
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  /* inset() to inset(): clip-path does not interpolate from or to none */
+  .lp-chart .lp-chart__area,
+  .lp-chart .lp-chart__real,
+  .lp-chart .lp-chart__planned {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path var(--duration-slow) var(--ease-out);
+  }
+  .lp-chart .lp-chart__planned {
+    transition-delay: var(--duration-slow);
+  }
+  .js [data-animate]:not(.is-in) .lp-chart__area,
+  .js [data-animate]:not(.is-in) .lp-chart__real,
+  .js [data-animate]:not(.is-in) .lp-chart__planned {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  .lp-chain > li:not(:last-child)::after,
+  .lp-meter__planned,
+  .lp-chain__gain {
+    transition:
+      transform var(--duration-base) var(--ease-out),
+      opacity var(--duration-base) var(--ease-out);
+  }
+  .lp-meter__planned {
+    transition-delay: var(--duration-base);
+  }
+  .lp-chain > li:nth-child(2)::after {
+    transition-delay: calc(var(--duration-base) * 2);
+  }
+  .lp-chain__gain {
+    transition-delay: calc(var(--duration-base) * 3);
+  }
+  .js [data-animate]:not(.is-in) .lp-chain > li:not(:last-child)::after,
+  .js [data-animate]:not(.is-in) .lp-meter__planned {
+    transform: scaleY(0);
+  }
+  .js [data-animate]:not(.is-in) .lp-chain__gain {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+}

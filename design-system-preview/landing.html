@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="fr" class="lp-root">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Demain : votre budget, réel et prévu, chez vous</title>
+    <meta
+      name="description"
+      content="Demain remplace le tableur de budget : comptes, transactions réelles et dépenses prévues et datées, sans estimation dans les vues principales. Auto-hébergé, libre."
+    />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="assets/demain-icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+  </head>
+  <body class="theme-night">
+    <a class="skip-link" href="#main">Aller au contenu</a>
+
+    <header class="lp-header">
+      <div class="container lp-header__inner">
+        <a class="lp-header__logo" href="#main">
+          <img src="assets/demain-horizontal-reversed.svg" alt="Demain" width="120" height="24" />
+        </a>
+        <nav aria-label="Sections">
+          <ul class="lp-nav">
+            <li><a href="#mois">Le mois</a></li>
+            <li><a href="#recurrences">Récurrences</a></li>
+            <li><a href="#plafonds">Plafonds</a></li>
+            <li><a href="#simulations">Simulations</a></li>
+          </ul>
+        </nav>
+        <a class="btn btn--accent btn--small" href="#installer">Installer</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero: the promise, then the monthly overview that proves it -->
+      <section class="lp-hero" aria-labelledby="hero-title">
+        <div class="container">
+          <div class="hero__copy lp-hero__copy">
+            <p class="lp-kicker">Budget personnel, libre et auto-hébergé</p>
+            <h1 class="display" id="hero-title">Voir demain sans deviner.</h1>
+            <p class="lead">
+              Demain remplace le tableur de budget. Il montre vos comptes, vos transactions réelles
+              et ce que vous avez prévu et daté, sans rien estimer d’autre. Les données restent sur
+              votre serveur.
+            </p>
+            <div class="lp-actions">
+              <a class="btn btn--accent" href="#installer">Installer Demain</a>
+              <a class="btn btn--quiet" href="https://github.com/iMxSquash/demain">Voir le code source</a>
+            </div>
+          </div>
+
+          <figure class="panel lp-frame" data-animate>
+            <figcaption class="lp-frame__head">
+              <strong>Compte courant</strong>
+              <span>Novembre 2026</span>
+            </figcaption>
+            <div class="lp-overview">
+              <dl class="lp-kpis">
+                <div>
+                  <dt class="lp-label">Solde au 7&nbsp;nov.</dt>
+                  <dd class="lp-figure lp-figure--xl">1&#8239;056,90&nbsp;€</dd>
+                </div>
+                <div>
+                  <dt class="lp-label">Fin du mois, réel et prévu</dt>
+                  <dd class="lp-figure">2&#8239;676,41&nbsp;€</dd>
+                </div>
+              </dl>
+              <div class="lp-chart-wrap">
+                <!-- The today position (20.69%) mirrors x = 124.14 of the 600 wide viewBox: 7 November -->
+                <div class="lp-chart-area" style="--today: 20.69%">
+                  <svg
+                    class="lp-chart"
+                    viewBox="0 0 600 200"
+                    preserveAspectRatio="none"
+                    role="img"
+                    aria-labelledby="chart-desc"
+                  >
+                    <defs>
+                      <linearGradient id="lp-area" x1="0" y1="0" x2="0" y2="1">
+                        <stop class="lp-chart__stop" offset="0" stop-opacity="0.14" />
+                        <stop class="lp-chart__stop" offset="1" stop-opacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      class="lp-chart__area"
+                      d="M0 98.73H20.69V103.41H62.07V104.34H82.76V156.71H103.45V157.32H124.14V200H0Z"
+                    />
+                    <path
+                      class="chart__line lp-chart__real"
+                      d="M0 98.73H20.69V103.41H62.07V104.34H82.76V156.71H103.45V157.32H124.14"
+                    />
+                    <path
+                      class="chart__line lp-chart__planned"
+                      d="M124.14 157.32H227.59V158.19H393.1V159.53H537.93V24.99H558.62V39.53H600"
+                    />
+                  </svg>
+                  <div class="lp-today" aria-hidden="true"><span>Aujourd’hui</span></div>
+                </div>
+                <p class="sr-only" id="chart-desc">
+                  Solde quotidien du compte courant en novembre 2026, réel jusqu’au 7, puis prévu aux seules
+                  dates saisies. Entre deux dates prévues, la courbe reste plate. Le tableau suivant donne
+                  chaque point.
+                </p>
+                <!-- A table keeps its content width, so the visually hidden box wraps it -->
+                <div class="sr-only">
+                  <table>
+                    <caption>Solde du compte courant après chaque mouvement, novembre 2026</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Solde</th>
+                        <th scope="col">Nature</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>1er&nbsp;nov.</td><td>1&#8239;862,40&nbsp;€</td><td>Réel</td></tr>
+                      <tr><td>2&nbsp;nov.</td><td>1&#8239;798,10&nbsp;€</td><td>Réel</td></tr>
+                      <tr><td>4&nbsp;nov.</td><td>1&#8239;785,30&nbsp;€</td><td>Réel</td></tr>
+                      <tr><td>5&nbsp;nov.</td><td>1&#8239;065,30&nbsp;€</td><td>Réel</td></tr>
+                      <tr><td>6&nbsp;nov.</td><td>1&#8239;056,90&nbsp;€</td><td>Réel</td></tr>
+                      <tr><td>12&nbsp;nov.</td><td>1&#8239;044,91&nbsp;€</td><td>Prévu</td></tr>
+                      <tr><td>20&nbsp;nov.</td><td>1&#8239;026,41&nbsp;€</td><td>Prévu</td></tr>
+                      <tr><td>27&nbsp;nov.</td><td>2&#8239;876,41&nbsp;€</td><td>Prévu</td></tr>
+                      <tr><td>28&nbsp;nov.</td><td>2&#8239;676,41&nbsp;€</td><td>Prévu</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="lp-axis" aria-hidden="true">
+                  <span>1&nbsp;nov.</span>
+                  <span>30&nbsp;nov.</span>
+                </div>
+                <p class="chart__legend">
+                  <span>
+                    <svg class="legend-line legend-line--real" viewBox="0 0 28 4" aria-hidden="true">
+                      <line x1="2" y1="2" x2="26" y2="2" />
+                    </svg>
+                    Réel, trait plein
+                  </span>
+                  <span>
+                    <svg class="legend-line legend-line--planned" viewBox="0 0 28 4" aria-hidden="true">
+                      <line x1="2" y1="2" x2="26" y2="2" />
+                    </svg>
+                    Prévu, pointillés
+                  </span>
+                </p>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Idea 1: real and planned are never mixed, nothing is guessed -->
+      <section class="lp-section" id="mois" aria-labelledby="mois-title">
+        <div class="container lp-split">
+          <div class="lp-copy">
+            <p class="lp-kicker">Le mois</p>
+            <h2 class="title-1" id="mois-title">Le prévu reste du prévu.</h2>
+            <p>
+              Un loyer, un salaire, une assurance&nbsp;: ce que vous avez daté apparaît sur le mois, à
+              côté de ce qui s’est réellement passé, sans jamais s’y mélanger.
+            </p>
+            <p>
+              Entre deux dates prévues, rien ne bouge&nbsp;: Demain n’invente pas de dépenses. Le solde
+              de fin de mois se vérifie à la main.
+            </p>
+          </div>
+          <figure class="panel lp-frame">
+            <figcaption class="lp-frame__head">
+              <strong>Novembre 2026</strong>
+              <span>Compte courant, vue du mois</span>
+            </figcaption>
+            <table class="lp-table">
+              <thead class="sr-only">
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Libellé et nature</th>
+                  <th scope="col">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="lp-table__balance">
+                  <th scope="row" colspan="2">Solde au 1er&nbsp;nov.</th>
+                  <td class="lp-table__amount">1&#8239;862,40&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">2&nbsp;nov.</td>
+                  <td>Courses<span class="lp-status">Réel</span></td>
+                  <td class="lp-table__amount">&minus;64,30&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">4&nbsp;nov.</td>
+                  <td>Pharmacie<span class="lp-status">Réel</span></td>
+                  <td class="lp-table__amount">&minus;12,80&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">5&nbsp;nov.</td>
+                  <td>Loyer<span class="lp-status">Réel</span></td>
+                  <td class="lp-table__amount">&minus;720,00&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">6&nbsp;nov.</td>
+                  <td>Boulangerie<span class="lp-status">Réel</span></td>
+                  <td class="lp-table__amount">&minus;8,40&nbsp;€</td>
+                </tr>
+                <tr class="lp-table__today">
+                  <th scope="row" colspan="2">Aujourd’hui, solde au 7&nbsp;nov.</th>
+                  <td class="lp-table__amount">1&#8239;056,90&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">12&nbsp;nov.</td>
+                  <td>Streaming musical<span class="lp-status lp-status--planned">Prévu</span></td>
+                  <td class="lp-table__amount">&minus;11,99&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">20&nbsp;nov.</td>
+                  <td>Assurance habitation<span class="lp-status lp-status--planned">Prévu</span></td>
+                  <td class="lp-table__amount">&minus;18,50&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">27&nbsp;nov.</td>
+                  <td>Salaire<span class="lp-status lp-status--planned">Prévu</span></td>
+                  <td class="lp-table__amount">+1&#8239;850,00&nbsp;€</td>
+                </tr>
+                <tr>
+                  <td class="lp-table__date">28&nbsp;nov.</td>
+                  <td>Virement vers le Livret Jeune<span class="lp-status lp-status--planned">Prévu</span></td>
+                  <td class="lp-table__amount">&minus;200,00&nbsp;€</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row" colspan="2">Fin du mois, réel et prévu</th>
+                  <td class="lp-table__amount">2&#8239;676,41&nbsp;€</td>
+                </tr>
+              </tfoot>
+            </table>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Idea 2: no template to maintain, a price change is a dated version -->
+      <section class="lp-section" id="recurrences" aria-labelledby="recurrences-title">
+        <div class="container lp-split">
+          <div class="lp-copy">
+            <p class="lp-kicker">Récurrences</p>
+            <h2 class="title-1" id="recurrences-title">Un abonnement se saisit une fois.</h2>
+            <p>Il apparaît sur chaque mois à venir, à la bonne date, sans modèle à recopier.</p>
+            <p>
+              Quand le prix change, vous ajoutez une version datée. Les mois passés gardent l’ancien
+              montant, les suivants prennent le nouveau.
+            </p>
+          </div>
+          <figure class="panel lp-frame">
+            <figcaption class="lp-frame__head">
+              <strong>Élément prévu</strong>
+              <span>Compte courant</span>
+            </figcaption>
+            <div class="lp-item">
+              <p class="title-3">Assurance habitation</p>
+              <dl class="lp-props">
+                <div>
+                  <dt>Montant</dt>
+                  <dd>18,50&nbsp;€, puis 19,20&nbsp;€ à partir du 1er&nbsp;janvier&nbsp;2027</dd>
+                </div>
+                <div>
+                  <dt>Rythme</dt>
+                  <dd>Le 20 de chaque mois</dd>
+                </div>
+              </dl>
+              <ol class="lp-occurrences" aria-label="Prochaines échéances, toutes prévues">
+                <li><time datetime="2026-11-20">20&nbsp;nov.</time><span>18,50&nbsp;€</span></li>
+                <li><time datetime="2026-12-20">20&nbsp;déc.</time><span>18,50&nbsp;€</span></li>
+                <li>
+                  <time datetime="2027-01-20">20&nbsp;janv.</time><span>19,20&nbsp;€</span>
+                  <span class="lp-occurrences__new">Nouvelle version</span>
+                </li>
+                <li><time datetime="2027-02-20">20&nbsp;févr.</time><span>19,20&nbsp;€</span></li>
+                <li><time datetime="2027-03-20">20&nbsp;mars</time><span>19,20&nbsp;€</span></li>
+              </ol>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Idea 3: a deposit ceiling and its overflow chain -->
+      <section class="lp-section" id="plafonds" aria-labelledby="plafonds-title">
+        <div class="container lp-split">
+          <div class="lp-copy">
+            <p class="lp-kicker">Plafonds</p>
+            <h2 class="title-1" id="plafonds-title">Un plafond, et le surplus sait où aller.</h2>
+            <p>
+              Le Livret Jeune est plafonné à 1&#8239;600&nbsp;€ et déborde sur le Livret A. Le virement
+              prévu du 28 suit cette chaîne&nbsp;: 50&nbsp;€ complètent le Livret Jeune, 150&nbsp;€ partent
+              sur le Livret A.
+            </p>
+            <p>
+              Deux comptes qui débordent l’un dans l’autre, directement ou par d’autres comptes, sont
+              refusés, avec l’explication.
+            </p>
+          </div>
+          <figure class="panel lp-frame" data-animate>
+            <figcaption class="lp-frame__head">
+              <strong>Virement prévu le 28&nbsp;nov.</strong>
+              <span>200,00&nbsp;€</span>
+            </figcaption>
+            <ol class="lp-chain">
+              <li>
+                <div class="lp-chain__row">
+                  <p class="lp-chain__name">Compte courant<small>Source</small></p>
+                  <p>&minus;200,00&nbsp;€</p>
+                </div>
+              </li>
+              <li>
+                <div class="lp-chain__row">
+                  <p class="lp-chain__name">Livret Jeune<small>Plafond 1&#8239;600,00&nbsp;€</small></p>
+                  <p>+50,00&nbsp;€</p>
+                </div>
+                <div
+                  class="lp-meter"
+                  style="--ticks: 64; --filled: 62; --planned: 2"
+                  role="img"
+                  aria-label="Livret Jeune : 1 550,00 euros réels et 50,00 euros prévus, plafond de 1 600,00 euros atteint"
+                >
+                  <span class="lp-meter__real"></span>
+                  <span class="lp-meter__planned"></span>
+                </div>
+                <p class="lp-label">
+                  Un trait pour 25&nbsp;€. 1&#8239;550,00&nbsp;€ réels, 50,00&nbsp;€ prévus en pointillés&nbsp;:
+                  plafond atteint.
+                </p>
+              </li>
+              <li>
+                <div class="lp-chain__row">
+                  <p class="lp-chain__name">Livret A<small>Compte de débordement</small></p>
+                  <p class="lp-chain__gain">+150,00&nbsp;€</p>
+                </div>
+                <p class="lp-label">4&#8239;210,00&nbsp;€ avant, 4&#8239;360,00&nbsp;€ après le 28.</p>
+              </li>
+            </ol>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Idea 4: compare possible futures; the only place with estimation -->
+      <section class="lp-section" id="simulations" aria-labelledby="simulations-title">
+        <div class="container lp-split">
+          <div class="lp-copy">
+            <p class="lp-kicker">Simulations</p>
+            <h2 class="title-1" id="simulations-title">Comparer avant de décider.</h2>
+            <p>
+              Mensuel, annuel ou pas d’abonnement&nbsp;: chaque scénario part du même historique réel et
+              diverge à partir d’aujourd’hui.
+            </p>
+            <p>
+              C’est le seul endroit où Demain estime vos dépenses habituelles. Les vues principales n’en
+              contiennent jamais.
+            </p>
+          </div>
+          <figure class="panel lp-frame lp-frame--scenarios">
+            <figcaption class="lp-frame__head">
+              <strong>Streaming musical, 24&nbsp;mois à rythme constant</strong>
+              <span class="lp-tag">Simulation, dépenses estimées</span>
+            </figcaption>
+            <div class="lp-scenarios">
+              <div>
+                <h3>Mensuel<small>11,99&nbsp;€ chaque mois</small></h3>
+                <dl>
+                  <div>
+                    <dt>Coût total</dt>
+                    <dd>287,76&nbsp;€</dd>
+                  </div>
+                  <div>
+                    <dt>Solde le plus bas</dt>
+                    <dd>376,33&nbsp;€<small>le 5&nbsp;mars 2027</small></dd>
+                  </div>
+                  <div>
+                    <dt>Solde fin octobre 2028</dt>
+                    <dd>5&#8239;924,64&nbsp;€</dd>
+                  </div>
+                </dl>
+              </div>
+              <div>
+                <h3>Annuel<small>119,90&nbsp;€ chaque 1er&nbsp;mars</small></h3>
+                <dl>
+                  <div>
+                    <dt>Coût total</dt>
+                    <dd>239,80&nbsp;€</dd>
+                  </div>
+                  <div>
+                    <dt>Solde le plus bas</dt>
+                    <dd>304,39&nbsp;€<small>le 5&nbsp;mars 2027</small></dd>
+                  </div>
+                  <div>
+                    <dt>Solde fin octobre 2028</dt>
+                    <dd>5&#8239;972,60&nbsp;€</dd>
+                  </div>
+                </dl>
+              </div>
+              <div>
+                <h3>Aucun<small>Abonnement arrêté</small></h3>
+                <dl>
+                  <div>
+                    <dt>Coût total</dt>
+                    <dd>0,00&nbsp;€</dd>
+                  </div>
+                  <div>
+                    <dt>Solde le plus bas</dt>
+                    <dd>424,29&nbsp;€<small>le 5&nbsp;mars 2027</small></dd>
+                  </div>
+                  <div>
+                    <dt>Solde fin octobre 2028</dt>
+                    <dd>6&#8239;212,40&nbsp;€</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+            <p class="lp-note">L’annuel coûte moins cher au total, mais creuse davantage le solde en mars.</p>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Idea 5: stay at home -->
+      <section class="lp-section" id="installer" aria-labelledby="installer-title">
+        <div class="container lp-split">
+          <div class="lp-copy">
+            <p class="lp-kicker">Installer</p>
+            <h2 class="title-1" id="installer-title">Chez vous, dans un seul conteneur.</h2>
+            <p>
+              Demain tourne sur votre machine&nbsp;: un PC, un VPS ou une carte de type Raspberry. Avec
+              les réglages par défaut, il ne fait aucun appel réseau sortant.
+            </p>
+            <dl class="lp-facts">
+              <div>
+                <dt>Données</dt>
+                <dd>Une base SQLite dans un volume&nbsp;Docker</dd>
+              </div>
+              <div>
+                <dt>Réseau</dt>
+                <dd>Aucun appel sortant par défaut</dd>
+              </div>
+              <div>
+                <dt>Licence</dt>
+                <dd>AGPL-3.0</dd>
+              </div>
+              <div>
+                <dt>Langues</dt>
+                <dd>Français et anglais</dd>
+              </div>
+            </dl>
+            <div class="lp-actions">
+              <a class="btn btn--accent" href="https://github.com/iMxSquash/demain#installation"
+                >Lire le guide d’installation</a
+              >
+            </div>
+          </div>
+          <figure class="panel lp-frame">
+            <figcaption class="lp-frame__head">
+              <strong>Terminal</strong>
+              <span>Depuis un dossier vide</span>
+            </figcaption>
+            <pre class="lp-code"><code><span class="lp-code__comment"># 1. Copier compose.yaml et .env.example, renommé en .env</span>
+<span class="lp-code__comment"># 2. Dans .env, définir DEMAIN_SETUP_TOKEN, par exemple avec :</span>
+openssl rand -base64 32
+<span class="lp-code__comment"># 3. Dans compose.yaml, indiquer le réseau de votre reverse proxy</span>
+<span class="lp-code__comment"># 4. Lancer le conteneur</span>
+docker compose up -d</code></pre>
+          </figure>
+        </div>
+      </section>
+    </main>
+
+    <footer class="lp-footer">
+      <div class="container lp-footer__inner">
+        <p>
+          Demain est un logiciel libre sous licence AGPL-3.0. Les éléments prévus, les récurrences et les
+          simulations arrivent avec les prochaines versions. Les montants et les noms de cette page sont
+          fictifs.
+        </p>
+        <a href="https://github.com/iMxSquash/demain">Code source sur GitHub</a>
+      </div>
+    </footer>
+
+    <script>
+      // The animations explain the product, so they run when their frame is seen,
+      // not at load; without this script the final state is shown.
+      (() => {
+        const frames = document.querySelectorAll("[data-animate]");
+        if (!("IntersectionObserver" in window)) {
+          frames.forEach((frame) => frame.classList.add("is-in"));
+          return;
+        }
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.add("is-in");
+              observer.unobserve(entry.target);
+            }
+          },
+          { threshold: 0.4 },
+        );
+        frames.forEach((frame) => observer.observe(frame));
+      })();
+    </script>
+  </body>
+</html>
