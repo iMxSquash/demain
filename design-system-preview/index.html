@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demain : aperçu du design system</title>
+    <meta
+      name="description"
+      content="Page de démonstration du design system de Demain : typographie, palette, boutons, cartes, graphique, liste de transactions et navigation mobile. Données fictives."
+    />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://api.fontshare.com/v2/css?f[]=general-sans@600,700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="theme-night">
+    <!-- Icon sprite (Phosphor Icons, MIT, https://phosphoricons.com) and chart gradient, defined once -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop class="chart__stop chart__stop--top" offset="0" />
+          <stop class="chart__stop chart__stop--bottom" offset="1" />
+        </linearGradient>
+        <symbol id="i-home" viewBox="0 0 256 256"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/></symbol>
+        <symbol id="i-home-duo" viewBox="0 0 256 256"><path d="M216,120v96H152V152H104v64H40V120a8,8,0,0,1,2.34-5.66l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,216,120Z" opacity="0.2"/><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/></symbol>
+        <symbol id="i-wallet" viewBox="0 0 256 256"><path d="M216,64H56a8,8,0,0,1,0-16H192a8,8,0,0,0,0-16H56A24,24,0,0,0,32,56V184a24,24,0,0,0,24,24H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64Zm0,128H56a8,8,0,0,1-8-8V78.63A23.84,23.84,0,0,0,56,80H216Zm-48-60a12,12,0,1,1,12,12A12,12,0,0,1,168,132Z"/></symbol>
+        <symbol id="i-wallet-duo" viewBox="0 0 256 256"><path d="M224,80V192a8,8,0,0,1-8,8H56a16,16,0,0,1-16-16V56A16,16,0,0,0,56,72H216A8,8,0,0,1,224,80Z" opacity="0.2"/><path d="M216,64H56a8,8,0,0,1,0-16H192a8,8,0,0,0,0-16H56A24,24,0,0,0,32,56V184a24,24,0,0,0,24,24H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64Zm0,128H56a8,8,0,0,1-8-8V78.63A23.84,23.84,0,0,0,56,80H216Zm-48-60a12,12,0,1,1,12,12A12,12,0,0,1,168,132Z"/></symbol>
+        <symbol id="i-trend" viewBox="0 0 256 256"><path d="M240,56v64a8,8,0,0,1-16,0V75.31l-82.34,82.35a8,8,0,0,1-11.32,0L96,123.31,29.66,189.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0L136,140.69,212.69,64H168a8,8,0,0,1,0-16h64A8,8,0,0,1,240,56Z"/></symbol>
+        <symbol id="i-trend-duo" viewBox="0 0 256 256"><path d="M232,56v64L168,56Z" opacity="0.2"/><path d="M232,48H168a8,8,0,0,0-5.66,13.66L188.69,88,136,140.69l-34.34-34.35a8,8,0,0,0-11.32,0l-72,72a8,8,0,0,0,11.32,11.32L96,123.31l34.34,34.35a8,8,0,0,0,11.32,0L200,99.31l26.34,26.35A8,8,0,0,0,240,120V56A8,8,0,0,0,232,48Zm-8,52.69L187.31,64H224Z"/></symbol>
+        <symbol id="i-user" viewBox="0 0 256 256"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></symbol>
+        <symbol id="i-user-duo" viewBox="0 0 256 256"><path d="M192,96a64,64,0,1,1-64-64A64,64,0,0,1,192,96Z" opacity="0.2"/><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></symbol>
+        <symbol id="i-bag" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a48,48,0,0,1-96,0,8,8,0,0,1,16,0,32,32,0,0,0,64,0,8,8,0,0,1,16,0Z"/></symbol>
+        <symbol id="i-income" viewBox="0 0 256 256"><path d="M197.66,69.66,83.31,184H168a8,8,0,0,1,0,16H64a8,8,0,0,1-8-8V88a8,8,0,0,1,16,0v84.69L186.34,58.34a8,8,0,0,1,11.32,11.32Z"/></symbol>
+        <symbol id="i-key" viewBox="0 0 256 256"><path d="M216.57,39.43A80,80,0,0,0,83.91,120.78L28.69,176A15.86,15.86,0,0,0,24,187.31V216a16,16,0,0,0,16,16H72a8,8,0,0,0,8-8V208H96a8,8,0,0,0,8-8V184h16a8,8,0,0,0,5.66-2.34l9.56-9.57A79.73,79.73,0,0,0,160,176h.1A80,80,0,0,0,216.57,39.43ZM224,98.1c-1.09,34.09-29.75,61.86-63.89,61.9H160a63.7,63.7,0,0,1-23.65-4.51,8,8,0,0,0-8.84,1.68L116.69,168H96a8,8,0,0,0-8,8v16H72a8,8,0,0,0-8,8v16H40V187.31l58.83-58.82a8,8,0,0,0,1.68-8.84A63.72,63.72,0,0,1,96,95.92c0-34.14,27.81-62.8,61.9-63.89A64,64,0,0,1,224,98.1ZM192,76a12,12,0,1,1-12-12A12,12,0,0,1,192,76Z"/></symbol>
+        <symbol id="i-music" viewBox="0 0 256 256"><path d="M212.92,17.69a8,8,0,0,0-6.86-1.45l-128,32A8,8,0,0,0,72,56V166.08A36,36,0,1,0,88,196V110.25l112-28v51.83A36,36,0,1,0,216,164V24A8,8,0,0,0,212.92,17.69ZM52,216a20,20,0,1,1,20-20A20,20,0,0,1,52,216ZM88,93.75V62.25l112-28v31.5ZM180,184a20,20,0,1,1,20-20A20,20,0,0,1,180,184Z"/></symbol>
+        <symbol id="i-check" viewBox="0 0 256 256"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></symbol>
+        <symbol id="i-x" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 256 256"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm-12-80V80a12,12,0,0,1,24,0v52a12,12,0,0,1-24,0Zm28,40a16,16,0,1,1-16-16A16,16,0,0,1,144,172Z"/></symbol>
+        <symbol id="i-calendar" viewBox="0 0 256 256"><path d="M208,28H188V24a12,12,0,0,0-24,0v4H92V24a12,12,0,0,0-24,0v4H48A20,20,0,0,0,28,48V208a20,20,0,0,0,20,20H208a20,20,0,0,0,20-20V48A20,20,0,0,0,208,28ZM68,52a12,12,0,0,0,24,0h72a12,12,0,0,0,24,0h16V76H52V52ZM52,204V100H204V204Z"/></symbol>
+        <symbol id="i-arrow-up-right" viewBox="0 0 256 256"><path d="M204,64V168a12,12,0,0,1-24,0V93L72.49,200.49a12,12,0,0,1-17-17L163,76H88a12,12,0,0,1,0-24H192A12,12,0,0,1,204,64Z"/></symbol>
+        <symbol id="i-contactless" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM97.07,100.26a59.33,59.33,0,0,1,0,55.48,8,8,0,1,1-14.14-7.48,42.79,42.79,0,0,0,0-40.52,8,8,0,0,1,14.14-7.48Zm56-32a126.67,126.67,0,0,1,0,119.54A8,8,0,0,1,139,180.23a110.62,110.62,0,0,0,0-104.46,8,8,0,0,1,14.12-7.54Zm-28,16a93,93,0,0,1,0,87.52,8,8,0,1,1-14.12-7.52,77,77,0,0,0,0-72.48,8,8,0,1,1,14.12-7.52Z"/></symbol>
+      </defs>
+    </svg>
+
+    <a class="skip-link" href="#main">Aller au contenu</a>
+
+    <main id="main">
+      <!-- Hero with the app mockup -->
+      <header class="hero theme-night">
+        <div class="container">
+          <div class="hero__bar">
+            <img class="hero__logo" src="assets/demain-horizontal-reversed.svg" alt="Demain" width="140" height="28" />
+          </div>
+          <div class="hero__grid">
+            <div class="hero__copy">
+              <h1 class="display rise">Voir demain sans deviner.</h1>
+              <p class="lead rise rise--late">
+                Aperçu du design system de Demain : typographie, couleurs et composants, sur une
+                vue desktop et une vue mobile. Tous les montants et noms sont fictifs.
+              </p>
+              <div class="hero__actions rise rise--late">
+                <a class="btn btn--primary" href="#typographie">Voir les composants</a>
+                <a class="btn btn--secondary" href="#couleurs">Palette</a>
+              </div>
+            </div>
+
+            <p class="sr-only">Aperçu d'un écran d'application mobile : solde, graphique et trois transactions.</p>
+            <div class="device rise rise--late" aria-hidden="true" inert>
+              <div class="device__screen">
+                <div class="device__status"><span>9:41</span><span>Demain</span></div>
+                <div class="device__body">
+                  <div class="device__greeting">
+                    <div>
+                      <p class="small muted">Bonjour Alex</p>
+                      <p class="device__balance">12&#8239;480,32&nbsp;€</p>
+                    </div>
+                    <span class="device__avatar">A</span>
+                  </div>
+                  <div class="card">
+                    <div class="chart chart--mini">
+                      <div class="chart__plot">
+                        <svg class="chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <path class="chart__area" d="M0 72 C6 70 10 76 16 68 S26 58 32 60 S42 46 48 48 S58 38 64 38 S70 28 72 26 L72 100 L0 100Z" />
+                          <path class="chart__line chart__line--real" d="M0 72 C6 70 10 76 16 68 S26 58 32 60 S42 46 48 48 S58 38 64 38 S70 28 72 26" />
+                          <path class="chart__line chart__line--planned" d="M72 26 C77 24 80 28 85 22 S94 14 100 10" />
+                        </svg>
+                        <span class="chart__today"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <ul class="tx-list">
+                    <li class="tx">
+                      <span class="tx__avatar"><svg class="icon"><use href="#i-income" /></svg></span>
+                      <span class="tx__main"><span class="tx__name">Salaire</span><span class="tx__meta">Revenus</span></span>
+                      <span class="tx__amount tx__amount--in">+2&#8239;150,00&nbsp;€</span>
+                    </li>
+                    <li class="tx">
+                      <span class="tx__avatar"><svg class="icon"><use href="#i-bag" /></svg></span>
+                      <span class="tx__main"><span class="tx__name">Boulangerie Lumière</span><span class="tx__meta">Alimentation</span></span>
+                      <span class="tx__amount">−4,60&nbsp;€</span>
+                    </li>
+                    <li class="tx">
+                      <span class="tx__avatar tx__avatar--planned"><svg class="icon"><use href="#i-key" /></svg></span>
+                      <span class="tx__main"><span class="tx__name">Loyer</span><span class="tx__meta">Prévu le 5 déc.</span></span>
+                      <span class="tx__amount">−720,00&nbsp;€</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="bottom-nav">
+                  <a href="#main" tabindex="-1" aria-current="page"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-home-duo" /></svg></span>Accueil</a>
+                  <a href="#main" tabindex="-1"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-wallet" /></svg></span>Comptes</a>
+                  <a href="#main" tabindex="-1"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-trend" /></svg></span>Prévisions</a>
+                  <a href="#main" tabindex="-1"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-user" /></svg></span>Profil</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Desktop view -->
+      <section class="section section--tight" id="bureau" aria-labelledby="h-desktop">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-desktop">Vue desktop</h2>
+            <p class="lead">Le même système, en tableau de bord à 1440 px : navigation, indicateurs, trajectoire et mouvements.</p>
+          </div>
+          <p class="sr-only">Aperçu d'un tableau de bord : trois indicateurs, la trajectoire du solde, la répartition du budget et les dernières transactions.</p>
+          <div class="dash" aria-hidden="true" inert>
+            <header class="dash__bar">
+              <span class="dash__brand"><img src="assets/demain-horizontal-reversed.svg" alt="" width="112" height="22" /></span>
+              <nav class="dash__nav">
+                <span class="dash__link" aria-current="page"><svg class="icon icon--sm"><use href="#i-home-duo" /></svg>Tableau de bord</span>
+                <span class="dash__link"><svg class="icon icon--sm"><use href="#i-wallet" /></svg>Comptes</span>
+                <span class="dash__link"><svg class="icon icon--sm"><use href="#i-calendar" /></svg>Calendrier</span>
+                <span class="dash__link"><svg class="icon icon--sm"><use href="#i-trend" /></svg>Prévisions</span>
+              </nav>
+              <span class="device__avatar">A</span>
+            </header>
+            <div class="dash__body">
+              <div class="bento">
+                <article class="card tile tile--vivid-dawn bento__balance">
+                  <p class="small semibold">Solde total</p>
+                  <p class="dash__figure">12&#8239;480,32&nbsp;€</p>
+                  <span class="badge"><svg class="icon icon--sm"><use href="#i-arrow-up-right" /></svg>+3,2 % ce mois</span>
+                </article>
+                <article class="card tile bento__chart">
+                  <div class="card__title-row">
+                    <h3 class="title-3">Trajectoire du solde</h3>
+                    <span class="badge badge--planned">Prévu en pointillés</span>
+                  </div>
+                  <div class="chart chart--wide">
+                    <div class="chart__y"><span>14 k€</span><span>12 k€</span><span>10 k€</span><span>8 k€</span></div>
+                    <div class="chart__plot">
+                      <svg class="chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <line class="chart__grid" x1="0" y1="0" x2="100" y2="0" />
+                        <line class="chart__grid" x1="0" y1="33.3" x2="100" y2="33.3" />
+                        <line class="chart__grid" x1="0" y1="66.6" x2="100" y2="66.6" />
+                        <line class="chart__grid" x1="0" y1="100" x2="100" y2="100" />
+                        <path class="chart__area" d="M0 72 C6 70 10 76 16 68 S26 58 32 60 S42 46 48 48 S58 38 64 38 S70 28 72 26 L72 100 L0 100Z" />
+                        <path class="chart__line chart__line--real" d="M0 72 C6 70 10 76 16 68 S26 58 32 60 S42 46 48 48 S58 38 64 38 S70 28 72 26" />
+                        <path class="chart__line chart__line--planned" d="M72 26 C77 24 80 28 85 22 S94 14 100 10" />
+                      </svg>
+                      <span class="chart__today"></span>
+                    </div>
+                    <div class="chart__x"><span>Août</span><span>Sept.</span><span>Oct.</span><span>Nov.</span><span>Déc.</span><span>Janv.</span></div>
+                  </div>
+                </article>
+                <article class="card tile bento__budget">
+                  <h3 class="title-3">Budget du mois</h3>
+                  <p class="dash__figure">1&#8239;284 <span class="muted text-lg">/ 1&#8239;900 €</span></p>
+                  <div class="cat-bars">
+                    <div class="cat-bar"><div class="cat-bar__head"><span>Logement</span><span>720,00&nbsp;€</span></div><div class="cat-bar__track"><div class="cat-bar__fill" style="--fill: 70%; --fill-color: var(--color-dawn-bright)"></div></div></div>
+                    <div class="cat-bar"><div class="cat-bar__head"><span>Alimentation</span><span>412,30&nbsp;€</span></div><div class="cat-bar__track"><div class="cat-bar__fill" style="--fill: 42%; --fill-color: var(--color-indigo-bright)"></div></div></div>
+                    <div class="cat-bar"><div class="cat-bar__head"><span>Loisirs</span><span>152,20&nbsp;€</span></div><div class="cat-bar__track"><div class="cat-bar__fill" style="--fill: 18%; --fill-color: var(--success)"></div></div></div>
+                  </div>
+                </article>
+                <article class="card tile tile--vivid-indigo bento__saving">
+                  <p class="small semibold">Épargne du mois</p>
+                  <p class="dash__figure">640&nbsp;€</p>
+                  <span class="badge"><svg class="icon icon--sm"><use href="#i-arrow-up-right" /></svg>+8 %</span>
+                </article>
+                <article class="card tile tile--planned bento__planned">
+                  <span class="badge badge--planned">Prévu</span>
+                  <p class="title-3">Loyer</p>
+                  <p class="dash__figure">−720,00&nbsp;€</p>
+                  <p class="small muted">Le 5 décembre, compte courant</p>
+                </article>
+                <article class="card tile bento__tx">
+                  <div class="card__title-row">
+                    <h3 class="title-3">Dernières transactions</h3>
+                  </div>
+                  <table class="dash__table">
+                    <thead><tr><th scope="col">Libellé</th><th scope="col">Catégorie</th><th scope="col">Date</th><th scope="col" class="num">Montant</th></tr></thead>
+                    <tbody>
+                      <tr><th scope="row">Salaire, Atelier Nova</th><td>Revenus</td><td>1 déc.</td><td class="num tx__amount--in">+2&#8239;150,00&nbsp;€</td></tr>
+                      <tr><th scope="row">Boulangerie Lumière</th><td>Alimentation</td><td>Aujourd'hui</td><td class="num">−4,60&nbsp;€</td></tr>
+                      <tr><th scope="row">Marché Saint-Roch</th><td>Alimentation</td><td>Hier</td><td class="num">−32,40&nbsp;€</td></tr>
+                      <tr><th scope="row">Loyer <span class="badge badge--planned">Prévu</span></th><td>Logement</td><td>5 déc.</td><td class="num">−720,00&nbsp;€</td></tr>
+                    </tbody>
+                  </table>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Typography -->
+      <section class="section" id="typographie" aria-labelledby="h-typo">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-typo">Titres serrés, texte lisible</h2>
+            <p class="lead">
+              General Sans pour les titres, en 600 et 700 avec un interlettrage de −0,03 à −0,04 em.
+              Manrope pour le texte. Les montants des listes utilisent ses chiffres tabulaires.
+            </p>
+          </div>
+          <div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Display</strong>General Sans 700, 44 à 96 px, −0,04 em</p>
+              <p class="specimen__sample display">Voir demain</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Titre 1</strong>General Sans 700, 36 à 64 px, −0,03 em</p>
+              <p class="specimen__sample title-1">Un solde clair</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Titre 2</strong>General Sans 600, 28 à 40 px, −0,03 em</p>
+              <p class="specimen__sample title-2">Vos comptes, en un coup d'œil</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Titre 3</strong>General Sans 600, 24 px, −0,015 em</p>
+              <p class="specimen__sample title-3">Transactions récentes</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Texte large</strong>Manrope 400, 20 px</p>
+              <p class="specimen__sample text-lg">Chaque montant est réel ou explicitement planifié, jamais deviné.</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Texte</strong>Manrope 400, 16 px, interligne 1,55</p>
+              <p class="specimen__sample">Demain importe vos relevés, catégorise ce qu'il reconnaît et vous montre le mois qui vient.</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Petit</strong>Manrope 600, 14 px</p>
+              <p class="specimen__sample small semibold">Dernière importation il y a 2 heures</p>
+            </div>
+            <div class="specimen">
+              <p class="specimen__meta"><strong>Légende</strong>Manrope 600, 12 px</p>
+              <p class="specimen__sample caption semibold">Données fictives, à titre d'exemple</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Palette -->
+      <section class="section" id="couleurs" aria-labelledby="h-colors">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-colors">Une palette, des rôles</h2>
+            <p class="lead">
+              Night et Paper portent l'interface, Dawn signale ce qui est prévu, jamais un gain ou une
+              perte. Succès, erreur et blanc sont des extensions proposées : la palette de marque ne
+              les définit pas.
+            </p>
+          </div>
+          <div class="palette">
+            <div class="palette__group">
+              <h3 class="title-3">Surface</h3>
+              <ul class="swatches">
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--surface-page)"></div><p class="swatch__name">Paper</p><p class="swatch__code">--surface-page #F7F4EE</p><p class="swatch__role">Fond de page. Night dessus : 14,8:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--surface-raised)"></div><p class="swatch__name">Blanc</p><p class="swatch__code">--surface-raised #FFFFFF</p><p class="swatch__role">Cartes et champs. Night dessus : 16,2:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--surface-sunken)"></div><p class="swatch__name">Brume</p><p class="swatch__code">--surface-sunken #ECEDF5</p><p class="swatch__role">Bouton secondaire, fond en creux. Night dessus : 13,9:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--surface-inverse)"></div><p class="swatch__name">Night</p><p class="swatch__code">--surface-inverse #1C1E3A</p><p class="swatch__role">Surface inversée. Paper dessus : 14,8:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--color-night-raised)"></div><p class="swatch__name">Night relevé</p><p class="swatch__code">--color-night-raised #232650</p><p class="swatch__role">Carte sur surface inversée. Paper dessus : 13,1:1</p></li>
+              </ul>
+            </div>
+            <div class="palette__group">
+              <h3 class="title-3">Texte</h3>
+              <ul class="swatches">
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--text)"></div><p class="swatch__name">Texte</p><p class="swatch__code">--text #1C1E3A</p><p class="swatch__role">Sur Paper : 14,8:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--text-muted)"></div><p class="swatch__name">Texte secondaire</p><p class="swatch__code">--text-muted #5A5F78</p><p class="swatch__role">Sur Paper : 5,7:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--color-night-muted)"></div><p class="swatch__name">Secondaire inversé</p><p class="swatch__code">--color-night-muted #A9ACC4</p><p class="swatch__role">Sur Night : 7,2:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--border-strong)"></div><p class="swatch__name">Bordure de champ</p><p class="swatch__code">--border-strong #767A91</p><p class="swatch__role">Sur blanc : 4,2:1, seuil de 3:1 pour les composants</p></li>
+              </ul>
+            </div>
+            <div class="palette__group">
+              <h3 class="title-3">Accent</h3>
+              <ul class="swatches">
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--accent)"></div><p class="swatch__name">Dawn</p><p class="swatch__code">--accent #DB6430</p><p class="swatch__role">Prévu, graphiques. Sur Night : 4,5:1, sur Paper : 3,3:1 (graphiques seulement)</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--color-dawn-deep)"></div><p class="swatch__name">Dawn profond</p><p class="swatch__code">--color-dawn-deep #B3501F</p><p class="swatch__role">Texte et liens accent. Sur Paper : 4,7:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--accent-tint)"></div><p class="swatch__name">Dawn clair</p><p class="swatch__code">--accent-tint #FBE3D6</p><p class="swatch__role">Fond des éléments prévus. Night dessus : 13,2:1</p></li>
+              </ul>
+            </div>
+            <div class="palette__group">
+              <h3 class="title-3">Succès</h3>
+              <ul class="swatches">
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--success)"></div><p class="swatch__name">Succès</p><p class="swatch__code">--success #17653E</p><p class="swatch__role">Texte et icônes. Sur blanc : 7,1:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--success-tint)"></div><p class="swatch__name">Succès clair</p><p class="swatch__code">--success-tint #DDEFE4</p><p class="swatch__role">Fond de badge. Succès dessus : 5,9:1</p></li>
+              </ul>
+            </div>
+            <div class="palette__group">
+              <h3 class="title-3">Erreur</h3>
+              <ul class="swatches">
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--error)"></div><p class="swatch__name">Erreur</p><p class="swatch__code">--error #A31F35</p><p class="swatch__role">Texte et bordure. Sur blanc : 7,5:1</p></li>
+                <li class="swatch"><div class="swatch__chip" style="--swatch: var(--error-tint)"></div><p class="swatch__name">Erreur clair</p><p class="swatch__code">--error-tint #FBE4E7</p><p class="swatch__role">Fond de badge. Erreur dessus : 6,2:1</p></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Buttons -->
+      <section class="section" id="boutons" aria-labelledby="h-buttons">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-buttons">Boutons pill</h2>
+            <p class="lead">Hauteur de 52 px, cible tactile d'au moins 44 px, survol et focus actifs sur chaque bouton.</p>
+          </div>
+          <div class="row row--specimen">
+            <div class="stack stack--tight"><button class="btn btn--primary" type="button">Virer 250&nbsp;€</button><span class="caption muted">Primaire</span></div>
+            <div class="stack stack--tight"><button class="btn btn--secondary" type="button">Voir le détail</button><span class="caption muted">Secondaire</span></div>
+            <div class="stack stack--tight"><button class="btn btn--ghost" type="button">Annuler</button><span class="caption muted">Ghost</span></div>
+            <div class="stack stack--tight"><button class="btn btn--primary" type="button" disabled>Virer 250&nbsp;€</button><span class="caption muted">Désactivé</span></div>
+            <div class="stack stack--tight">
+              <button class="btn btn--primary" type="button" aria-busy="true" aria-disabled="true">
+                <svg class="spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="40 60" /></svg>
+                Envoi en cours
+              </button>
+              <span class="caption muted">Chargement</span>
+            </div>
+          </div>
+          <div class="panel panel--night theme-night">
+            <div class="row">
+              <button class="btn btn--primary" type="button">Virer 250&nbsp;€</button>
+              <button class="btn btn--secondary" type="button">Voir le détail</button>
+              <button class="btn btn--ghost" type="button">Annuler</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cards and bank card -->
+      <section class="section" id="cartes" aria-labelledby="h-cards">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-cards">Cartes arrondies</h2>
+            <p class="lead">Rayons de 12, 16 et 20 px. Ombres douces, jamais lourdes. Les éléments prévus portent un bord en pointillés.</p>
+          </div>
+          <div class="cards-layout">
+            <div class="cards-stack">
+              <article class="card card--xl">
+                <div class="card__stack">
+                  <p class="small muted">Livret d'épargne, rayon 20 px</p>
+                  <p class="card__figure amount">8&#8239;400,00&nbsp;€</p>
+                  <div class="meter" role="meter" aria-label="Plafond utilisé" aria-valuemin="0" aria-valuemax="22950" aria-valuenow="8400"><div class="meter__fill"></div></div>
+                  <p class="small muted">37 % du plafond de 22&#8239;950&nbsp;€</p>
+                </div>
+              </article>
+              <article class="card card--planned">
+                <div class="card__stack">
+                  <span class="badge badge--planned"><svg class="icon icon--sm"><use href="#i-calendar" /></svg>Prévu</span>
+                  <p class="title-3">Loyer</p>
+                  <p class="small">Le 5 décembre, 720,00&nbsp;€. Rayon 16 px.</p>
+                </div>
+              </article>
+              <article class="card card--md card--inverse">
+                <div class="card__stack">
+                  <p class="small card__note">Objectif voyage, rayon 12 px</p>
+                  <p class="title-3 amount">1&#8239;200,00&nbsp;€</p>
+                </div>
+              </article>
+            </div>
+            <div class="stack">
+              <h3 class="title-3">Carte bancaire</h3>
+              <div class="bank-card" role="img" aria-label="Carte bancaire Demain se terminant par 4821, au nom d'Alex Martin, expire en août 2029">
+                <div class="bank-card__top">
+                  <svg class="bank-card__symbol" viewBox="0 0 256 256" aria-hidden="true"><g transform="translate(-4 -3)"><path class="symbol-stroke" d="M49 204V52A15 15 0 0 1 64 37H124A91 91 0 0 1 215 128A15 15 0 0 1 185 128A61 61 0 0 0 124 67H79V204A15 15 0 0 1 49 204Z" /><path class="symbol-dots" d="M162.74 181.74A15 15 0 1 0 192.74 181.74A15 15 0 1 0 162.74 181.74ZM109 204A15 15 0 1 0 139 204A15 15 0 1 0 109 204Z" /></g></svg>
+                  <svg class="icon" aria-hidden="true"><use href="#i-contactless" /></svg>
+                </div>
+                <div class="bank-card__mid">
+                  <span class="bank-card__chip" aria-hidden="true"></span>
+                  <p class="bank-card__number">•••• 4821</p>
+                </div>
+                <div class="bank-card__bottom">
+                  <div><span class="bank-card__label">Titulaire</span><span class="bank-card__value">ALEX MARTIN</span></div>
+                  <div><span class="bank-card__label">Expire</span><span class="bank-card__value">08/29</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Balance, chart, transactions -->
+      <section class="section" id="solde" aria-labelledby="h-balance">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-balance">Solde et transactions</h2>
+            <p class="lead">Trait plein pour le réel, pointillés pour le prévu : la forme du trait porte le sens, pas seulement la couleur.</p>
+          </div>
+          <div class="balance-layout">
+            <article class="card card--xl" aria-labelledby="h-balance-card">
+              <div class="balance__head">
+                <div>
+                  <h3 class="small muted semibold" id="h-balance-card">Solde disponible</h3>
+                  <p class="balance__amount">12&#8239;480,32&nbsp;€</p>
+                  <span class="badge badge--success"><svg class="icon icon--sm"><use href="#i-arrow-up-right" /></svg>+3,2 % ce mois</span>
+                </div>
+                <div class="row row--tight" role="group" aria-label="Période du graphique">
+                  <button class="chip" type="button" aria-pressed="false"><svg class="icon icon--sm"><use href="#i-check" /></svg>1 mois</button>
+                  <button class="chip" type="button" aria-pressed="true"><svg class="icon icon--sm"><use href="#i-check" /></svg>6 mois</button>
+                </div>
+              </div>
+              <figure>
+                <div class="chart" role="img" aria-labelledby="chart-summary">
+                  <div class="chart__y" aria-hidden="true"><span>14 k€</span><span>12 k€</span><span>10 k€</span><span>8 k€</span></div>
+                  <div class="chart__plot">
+                    <svg class="chart__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                      <line class="chart__grid" x1="0" y1="0" x2="100" y2="0" />
+                      <line class="chart__grid" x1="0" y1="33.3" x2="100" y2="33.3" />
+                      <line class="chart__grid" x1="0" y1="66.6" x2="100" y2="66.6" />
+                      <line class="chart__grid" x1="0" y1="100" x2="100" y2="100" />
+                      <path class="chart__area" d="M0 72 C6 70 10 76 16 68 S26 58 32 60 S42 46 48 48 S58 38 64 38 S70 28 72 26 L72 100 L0 100Z" />
+                      <path class="chart__line chart__line--real" d="M0 72 C6 70 10 76 16 68 S26 58 32 60 S42 46 48 48 S58 38 64 38 S70 28 72 26" />
+                      <path class="chart__line chart__line--planned" d="M72 26 C77 24 80 28 85 22 S94 14 100 10" />
+                    </svg>
+                    <span class="chart__today"></span>
+                  </div>
+                  <div class="chart__x" aria-hidden="true"><span>Août</span><span>Sept.</span><span>Oct.</span><span>Nov.</span><span>Déc.</span><span>Janv.</span></div>
+                </div>
+                <figcaption class="chart__legend">
+                  <span><svg class="legend-line legend-line--real" viewBox="0 0 28 4" aria-hidden="true"><line x1="2" y1="2" x2="26" y2="2" /></svg>Réel</span>
+                  <span><svg class="legend-line legend-line--planned" viewBox="0 0 28 4" aria-hidden="true"><line x1="2" y1="2" x2="26" y2="2" /></svg>Prévu</span>
+                </figcaption>
+                <p class="sr-only" id="chart-summary">Solde de 9 100 € en août à 12 480 € aujourd'hui, prévu à 13 900 € en janvier.</p>
+                <table class="sr-only">
+                  <caption>Solde par mois, en euros</caption>
+                  <thead><tr><th scope="col">Mois</th><th scope="col">Solde</th><th scope="col">Statut</th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row">Août</th><td>9 100</td><td>Réel</td></tr>
+                    <tr><th scope="row">Septembre</th><td>10 200</td><td>Réel</td></tr>
+                    <tr><th scope="row">Octobre</th><td>11 300</td><td>Réel</td></tr>
+                    <tr><th scope="row">Novembre</th><td>12 480</td><td>Réel</td></tr>
+                    <tr><th scope="row">Décembre</th><td>13 100</td><td>Prévu</td></tr>
+                    <tr><th scope="row">Janvier</th><td>13 900</td><td>Prévu</td></tr>
+                  </tbody>
+                </table>
+              </figure>
+            </article>
+
+            <article class="card card--xl" aria-labelledby="h-tx">
+              <div class="card__title-row">
+                <h3 class="title-3" id="h-tx">Transactions récentes</h3>
+                <button class="btn btn--ghost btn--compact" type="button">Tout voir</button>
+              </div>
+              <ul class="tx-list">
+                <li class="tx">
+                  <span class="tx__avatar" aria-hidden="true"><svg class="icon"><use href="#i-income" /></svg></span>
+                  <span class="tx__main"><span class="tx__name">Salaire, Atelier Nova</span><span class="tx__meta">Revenus · 1 déc.</span></span>
+                  <span class="tx__amount tx__amount--in">+2&#8239;150,00&nbsp;€</span>
+                </li>
+                <li class="tx">
+                  <span class="tx__avatar" aria-hidden="true"><svg class="icon"><use href="#i-bag" /></svg></span>
+                  <span class="tx__main"><span class="tx__name">Boulangerie Lumière</span><span class="tx__meta">Alimentation · Aujourd'hui</span></span>
+                  <span class="tx__amount">−4,60&nbsp;€</span>
+                </li>
+                <li class="tx">
+                  <span class="tx__avatar" aria-hidden="true"><svg class="icon"><use href="#i-bag" /></svg></span>
+                  <span class="tx__main"><span class="tx__name">Marché Saint-Roch</span><span class="tx__meta">Alimentation · Hier</span></span>
+                  <span class="tx__amount">−32,40&nbsp;€</span>
+                </li>
+                <li class="tx">
+                  <span class="tx__avatar" aria-hidden="true"><svg class="icon"><use href="#i-music" /></svg></span>
+                  <span class="tx__main"><span class="tx__name">Abonnement musique</span><span class="tx__meta">Loisirs · 12 nov.</span></span>
+                  <span class="tx__amount">−10,99&nbsp;€</span>
+                </li>
+                <li class="tx">
+                  <span class="tx__avatar tx__avatar--planned" aria-hidden="true"><svg class="icon"><use href="#i-key" /></svg></span>
+                  <span class="tx__main"><span class="tx__name">Loyer</span><span class="tx__meta"><span class="badge badge--planned">Prévu</span> 5 déc.</span></span>
+                  <span class="tx__amount">−720,00&nbsp;€</span>
+                </li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Form field -->
+      <section class="section" id="formulaire" aria-labelledby="h-form">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-form">Champ de formulaire</h2>
+            <p class="lead">Libellé visible, aide persistante, erreur annoncée par un texte et une icône, liée au champ.</p>
+          </div>
+          <div class="fields">
+            <div class="field">
+              <label class="field__label" for="f-default">Montant du virement</label>
+              <div class="field__control">
+                <input class="input amount" id="f-default" type="text" inputmode="decimal" placeholder="0,00" aria-describedby="f-default-hint" />
+                <span class="field__suffix" aria-hidden="true">€</span>
+              </div>
+              <p class="field__hint" id="f-default-hint">Par défaut. Jusqu'à 2 000 € par jour.</p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="f-focus">Montant du virement</label>
+              <div class="field__control">
+                <input class="input amount is-focus" id="f-focus" type="text" inputmode="decimal" value="250,00" aria-describedby="f-focus-hint" />
+                <span class="field__suffix" aria-hidden="true">€</span>
+              </div>
+              <p class="field__hint" id="f-focus-hint">Focus. Anneau visible de 2 px.</p>
+            </div>
+            <div class="field">
+              <label class="field__label" for="f-error">Montant du virement</label>
+              <div class="field__control">
+                <input class="input amount" id="f-error" type="text" inputmode="decimal" value="0" aria-invalid="true" aria-describedby="f-error-msg" />
+                <span class="field__suffix" aria-hidden="true">€</span>
+              </div>
+              <p class="field__error" id="f-error-msg"><svg class="icon icon--sm"><use href="#i-alert" /></svg>Entrez un montant supérieur à 0 €.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Badges and chips -->
+      <section class="section" id="badges" aria-labelledby="h-badges">
+        <div class="container">
+          <div class="section__head">
+            <h2 class="title-1" id="h-badges">Badges et puces</h2>
+            <p class="lead">Chaque état porte une icône ou un texte en plus de sa couleur. Les puces sélectionnables font au moins 44 px.</p>
+          </div>
+          <div class="badges-layout">
+            <div class="stack">
+              <h3 class="group-label">Badges</h3>
+              <div class="row">
+                <span class="badge badge--real">Réel</span>
+                <span class="badge badge--planned"><svg class="icon icon--sm"><use href="#i-calendar" /></svg>Prévu</span>
+                <span class="badge badge--success"><svg class="icon icon--sm"><use href="#i-check" /></svg>Reçu</span>
+                <span class="badge badge--error"><svg class="icon icon--sm"><use href="#i-x" /></svg>Refusé</span>
+                <span class="badge"><svg class="icon icon--sm"><use href="#i-alert" /></svg>À catégoriser</span>
+              </div>
+            </div>
+            <div class="stack">
+              <h3 class="group-label" id="chips-label">Puces de filtre</h3>
+              <div class="row" role="group" aria-labelledby="chips-label">
+                <button class="chip" type="button" aria-pressed="true"><svg class="icon icon--sm"><use href="#i-check" /></svg>Tout</button>
+                <button class="chip" type="button" aria-pressed="false"><svg class="icon icon--sm"><use href="#i-check" /></svg>Dépenses</button>
+                <button class="chip" type="button" aria-pressed="false"><svg class="icon icon--sm"><use href="#i-check" /></svg>Revenus</button>
+                <button class="chip" type="button" aria-pressed="false"><svg class="icon icon--sm"><use href="#i-check" /></svg>Prévus</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mobile nav -->
+      <section class="section" id="navigation" aria-labelledby="h-nav">
+        <div class="container">
+          <div class="nav-demo">
+            <div class="section__head section__head--flush">
+              <h2 class="title-1" id="h-nav">Barre de navigation mobile</h2>
+              <p class="lead">Quatre destinations au plus, icône et libellé, page courante marquée par une pastille et un poids de texte.</p>
+            </div>
+            <div class="nav-demo__frame">
+              <div class="nav-demo__space"></div>
+              <nav class="bottom-nav" aria-label="Navigation principale (démonstration)">
+                <a href="#navigation" aria-current="page"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-home-duo" /></svg></span>Accueil</a>
+                <a href="#navigation"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-wallet" /></svg></span>Comptes</a>
+                <a href="#navigation"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-trend" /></svg></span>Prévisions</a>
+                <a href="#navigation"><span class="bottom-nav__icon"><svg class="icon"><use href="#i-user" /></svg></span>Profil</a>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
