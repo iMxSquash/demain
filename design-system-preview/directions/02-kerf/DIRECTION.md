@@ -119,7 +119,7 @@ Snappy and mechanical: short durations, `cubic-bezier(0.2, 0, 0, 1)`, a stiff sp
 | Chart | real line drawn in 700 ms, area fades in, planned line and dots after, today's point springs in, one halo pulse |
 | Spring | stiffness 520, damping 40, mass 1: settles in 466 ms, no overshoot; sampled into a CSS `linear()` easing (`--ease-spring`) |
 
-Micro-interactions: buttons and chips press to the scale above and return on the spring; a trailing arrow nudges 2 px on hover; the primary button's glow rises to the hover opacity; transaction rows (native `details`) lift their avatar 2 px on hover, press slightly, and open their detail with a short fade and rise. Only `transform`, `opacity` and colours are animated (the entrance blur is the one `filter`).
+Micro-interactions (nothing lifts on hover): buttons and chips press to the scale above and return on the spring; a trailing arrow nudges 2 px on hover; the primary button's glow rises to the hover opacity; transaction rows (native `details`) brighten on hover without moving, press slightly, and open their detail with a short fade and rise. Only `transform`, `opacity` and colours are animated (the entrance blur is the one `filter`).
 
 Motion (framer-motion) equivalent, documented only (not installed):
 

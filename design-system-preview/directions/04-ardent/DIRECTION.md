@@ -123,7 +123,7 @@ Energetic: a visible spring (9.5 % overshoot), entrance from 20 px with an easin
 | Chart | real line drawn in 900 ms, area fades in, planned line and dots after, today's point springs in, one halo pulse |
 | Spring | stiffness 340, damping 22, mass 1: settles in 660 ms, 9.5 % overshoot; sampled into a CSS `linear()` easing (`--ease-spring`) |
 
-Micro-interactions: buttons and chips press to the scale above and return on the spring; a trailing arrow nudges 4 px on hover; the primary button's glow rises to the hover opacity; transaction rows (native `details`) lift their avatar 4 px on hover, press slightly, and open their detail with a short fade and rise. Only `transform`, `opacity` and colours are animated (the entrance blur is the one `filter`).
+Micro-interactions (nothing lifts on hover): buttons and chips press to the scale above and return on the spring; a trailing arrow nudges 4 px on hover; the primary button's glow rises to the hover opacity; transaction rows (native `details`) brighten on hover without moving, press slightly, and open their detail with a short fade and rise. Only `transform`, `opacity` and colours are animated (the entrance blur is the one `filter`).
 
 Motion (framer-motion) equivalent, documented only (not installed):
 

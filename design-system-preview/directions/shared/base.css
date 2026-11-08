@@ -1074,11 +1074,6 @@ th.num {
   border: var(--hairline) solid var(--avatar-border);
   background: var(--avatar-background);
   color: var(--avatar-icon);
-  transition: transform var(--motion-spring-duration) var(--ease-spring);
-}
-
-.tx summary:hover .tx__avatar {
-  transform: translateY(calc(-1 * var(--nudge)));
 }
 
 .tx--planned .tx__avatar {
