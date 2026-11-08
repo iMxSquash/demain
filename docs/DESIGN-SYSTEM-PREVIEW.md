@@ -17,6 +17,7 @@ The page is a style demonstration. It is not the future interface of Demain: the
 - [Components](#components)
 - [Icons](#icons)
 - [Landing page](#landing-page)
+- [Five directions](#five-directions)
 - [Accessibility](#accessibility)
 - [Verification](#verification)
 - [Known limits](#known-limits)
@@ -33,7 +34,8 @@ The page is a style demonstration. It is not the future interface of Demain: the
 | `design-system-preview/index.html` | The page: hero, desktop dashboard, then one section per component family. French copy, `lang="fr"`, `noindex`. |
 | `design-system-preview/landing.html` | A landing page test in the current direction (see [Landing page](#landing-page)). French copy, `noindex`. |
 | `design-system-preview/styles.css` | All styles. Every value lives once in `:root`; components only read tokens. The landing styles are the last section, with `lp-` classes. |
-| `design-system-preview/assets/` | `demain-horizontal.svg` and `demain-horizontal-reversed.svg`, copied from `brand/logo/`, and `demain-icon.svg` (the favicon), copied from `brand/web/icon.svg`. |
+| `design-system-preview/assets/` | `demain-horizontal.svg` and `demain-horizontal-reversed.svg`, copied from `brand/logo/`, and `demain-icon.svg` (the favicon), copied from `brand/web/icon.svg`. `fonts/` and `icons/phosphor/` hold the self-hosted files of the five directions, each with its licence. |
+| `design-system-preview/directions/` | Five dark design system proposals and their comparison page (see [Five directions](#five-directions)). |
 | `design-system-preview/inspiration/` | The three reference screenshots supplied by the owner (see [Inspiration](#inspiration)). Kept locally, not committed. |
 | `brand/` | The existing brand identity (logo masters, colours, guidelines). Read, not modified by this work. Local only: not tracked in git yet, so its links in this document only resolve in the owner's working copy. |
 | `.impeccable/config.json` | Design hook configuration created while working (see [Design hook suppressions](#design-hook-suppressions)). Local only, not committed. |
@@ -326,6 +328,32 @@ Observed in the T3 Code integrated browser (Chromium, macOS, device pixel ratio 
 Not verified: other browsers and platforms (the system font and `mask` support differ), a real screen reader, 200% zoom, a real reduced-motion setting, and Lighthouse or axe (not available without installing a tool). The chart is not explorable with the keyboard; the hidden data table is its only equivalent.
 
 Design hook on the landing: the rendered scan (`impeccable detect` on the served page) reports no anti-pattern. It keeps one advisory, "repeating-gradient stripes", which points at the ceiling ticks and the dotted connectors: they encode data (25 € per tick, planned flow), so they stay. `cramped-padding` was suppressed for `landing.html`: only the static scan raises it, on the three scenario panels, whose padding is a `clamp()` it cannot resolve.
+
+## Five directions
+
+Status: exploration, nothing adopted. Five dark, premium proposals with a controlled glow and vivid colour details on a sober ground, after the three references. For these five only, the owner asked for glow and vivid touches; this replaces the "no glow" rule of the landing for them, not elsewhere.
+
+Open `http://127.0.0.1:4173/directions/index.html` (server command in [How to view it](#how-to-view-it)) to compare them side by side. Every direction page shows the same fictional content: hero with balance and bank card, balance chart with its data table, transactions, form with its states, buttons and badges, and a mobile onboarding frame after reference 03.
+
+| Folder | Direction | Hue | Fonts (SIL OFL 1.1) | Icons (Phosphor, MIT) |
+| --- | --- | --- | --- | --- |
+| `01-dawn/` | Dawn, the existing brand | Dawn on Night deep, glow and gradients derived from Dawn only | System stack of the brand file, 0 KB | Regular |
+| `02-kerf/` | Kerf, new brand | Lime on graphite, after 01 | Schibsted Grotesk, Martian Mono for figures, 60 KB | Regular |
+| `03-vitre/` | Vitre, new brand | Cobalt and violet frosted glass on ink, after 02 | Mona Sans variable, 98 KB | Light |
+| `04-ardent/` | Ardent, new brand | Magenta to amber on near-black aubergine, after 03 | Archivo variable, 90 KB | Duotone |
+| `05-serac/` | Serac, new brand | Glacial mint and cyan on cold black, serif figures | Newsreader, Atkinson Hyperlegible Next, 157 KB | Light |
+
+How it is built:
+
+- Each folder holds `tokens.css` (primitives, semantic roles, component tokens, one glow recipe, motion), `index.html` and `DIRECTION.md` (brand, palette with measured contrast, type, icons, glow, motion with its Motion equivalent, what came from which reference, verification).
+- `directions/shared/base.css` holds the component anatomy and reads tokens only; `directions/shared/preview.js` draws the chart from the page's own data table, runs the toggles, filter and form demo, and plays the entrance motion from the motion tokens. The five pages therefore share identical markup.
+- Glow: one tokenised recipe per direction, on three placements per screen at most (hero card, primary action, one data detail), measured in the browser.
+- Fonts and icons are local files copied from the Fontsource and `@phosphor-icons/core` packages (downloaded outside the repository, `package.json` untouched). No CDN, no request to another host.
+- Motion: CSS transitions and the Web Animations API, a spring per direction sampled into a CSS `linear()` easing; `prefers-reduced-motion` (or `?motion=reduce`) shows the final state.
+
+Verified in the T3 browser at 1440 and 375 px: no horizontal overflow, every text at or above its WCAG threshold (text over gradients measured at its worst stop), 44 px targets, visible focus, no console entry, no external request. Not verified: screenshots (the preview tool timed out on every capture because the tab stayed reported as hidden, also on the existing `index.html`), the animations themselves (the hidden tab does not advance timelines), other browsers, a screen reader, axe and Lighthouse. Details per direction are in each `DIRECTION.md`.
+
+Decisions for the owner: which direction to keep, if any; whether the new brand names (coined, trademarks not checked) are worth pursuing; the status colours, which the brand file does not define.
 
 ## Accessibility
 
