@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Serac : proposition 5 du design system Demain</title>
+    <meta name="description" content="Proposition 5 sur 5 du design system de Demain (Serac) : solde, carte, graphique avec tableau de données, opérations, formulaire, boutons et écran d'accueil mobile. Données fictives." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%20-2%2064%2068%22%3E%3Cpath%20d%3D%22M32%204L58%2018L32%2032L6%2018Z%22%20fill%3D%22%2378F0C8%22%2F%3E%3Cpath%20d%3D%22M6%2018L32%2032V62L6%2048Z%22%20fill%3D%22%233FC6EE%22%20fill-opacity%3D%220.9%22%2F%3E%3Cpath%20d%3D%22M58%2018L32%2032V62L58%2048Z%22%20fill%3D%22%23CFEFF6%22%20fill-opacity%3D%220.85%22%2F%3E%3C%2Fsvg%3E" />
+    <link rel="preload" href="../../assets/fonts/newsreader/newsreader-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="../../assets/fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="../shared/base.css" />
+    <link rel="stylesheet" href="tokens.css" />
+    <script type="module" src="../shared/preview.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="wordmark" href="../index.html" aria-label="Serac, retour à la comparaison des directions"><svg viewBox="0 -6 301 74" role="img" aria-label="Serac" focusable="false"><g><path d="M32 4L58 18L32 32L6 18Z" fill="var(--accent)"/><path d="M6 18L32 32V62L6 48Z" fill="#3FC6EE" fill-opacity="0.9"/><path d="M58 18L32 32V62L58 48Z" fill="#CFEFF6" fill-opacity="0.85"/></g><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path transform="translate(84.25 0)" d="M30 26C27 21 21 19 15 19C8 19 3 23 3 29C3 36 10 38 17 40C25 42 31 44 31 51C31 57 25 61 16 61C9 61 3 58 1 53"/><path transform="translate(129.75 0)" d="M0 40H36A18 18 0 1 0 30.7 52.7"/><path transform="translate(179.25 0)" d="M0 20V60M0 38A18 18 0 0 1 18 20H22"/><path transform="translate(214.75 0)" d="M36 40A18 18 0 1 0 0 40A18 18 0 1 0 36 40M36 20V60"/><path transform="translate(264.25 0)" d="M30.7 27.3A18 18 0 1 0 30.7 52.7"/></g><g fill="currentColor"></g></svg></a>
+        <nav class="nav" aria-label="Navigation principale">
+          <ul class="nav__list" role="list">
+            <li><a class="nav__link" href="#main" aria-current="page"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/house.svg)"></span>Tableau de bord</a></li>
+            <li><a class="nav__link" href="#operations"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/wallet.svg)"></span>Opérations</a></li>
+            <li><a class="nav__link" href="#evolution"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/chart-line-up.svg)"></span>Évolution</a></li>
+            <li><a class="nav__link" href="#composants"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/gear-six.svg)"></span>Composants</a></li>
+          </ul>
+        </nav>
+        <div class="site-header__actions">
+          <button class="btn btn--icon" type="button" aria-label="Rechercher"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/magnifying-glass.svg)"></span></button>
+          <button class="btn btn--icon" type="button" aria-label="Notifications"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/bell.svg)"></span></button>
+          <span class="avatar" aria-hidden="true">AM</span>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="section hero container" aria-labelledby="hero-title">
+        <div class="hero__copy" data-reveal>
+          <p class="eyebrow">Proposition 5 sur 5 · Serac</p>
+          <h1 class="display" id="hero-title">La précision, sur la durée.</h1>
+          <p class="lead">Des chiffres nets, une trajectoire claire, mois après mois. Le réel, puis le prévu daté.</p>
+        </div>
+
+        <div class="grid grid--hero">
+          <article class="card card--hero" id="balance" aria-labelledby="balance-title" data-glow="hero" data-reveal>
+            <div class="balance">
+              <div class="card__head">
+                <h2 class="label" id="balance-title">Solde total · 4 comptes</h2>
+                <button class="btn btn--icon" type="button" aria-label="Masquer le solde" aria-pressed="false" aria-controls="balance" data-toggle="is-masked"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/eye.svg)"></span></button>
+              </div>
+              <div class="balance__amount-row">
+                <p class="figure figure--xl"><span class="balance__value">12 480,32 €</span><span class="balance__masked"><span aria-hidden="true">•••••• €</span><span class="sr-only">Solde masqué</span></span></p>
+                <span class="badge badge--success"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/arrow-up.svg)"></span>+3,2&nbsp;%<span class="sr-only"> de hausse</span></span>
+              </div>
+              <p class="small muted">Par rapport au 31 octobre (12 093,10 €).</p>
+            </div>
+            <div class="balance__meta">
+              <div><span class="small subtle">Réel, au 8 novembre</span><span class="figure figure--lg">12 480,32 €</span></div>
+              <div><span class="small subtle">Fin du mois, réel et prévu</span><span class="figure figure--lg planned-value">13 105,90 €</span><span class="badge badge--planned">Prévu</span></div>
+            </div>
+            <div class="actions">
+              <button class="btn btn--primary" type="button" data-glow="action"><span class="icon btn__icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/plus.svg)"></span>Ajouter une opération</button>
+              <button class="btn btn--secondary" type="button"><span class="icon btn__icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/arrows-left-right.svg)"></span>Virement</button>
+            </div>
+          </article>
+
+          <div class="hero__side">
+            <div class="bank-card" id="bank-card" data-reveal>
+              <div class="bank-card__top">
+                <span class="bank-card__brand">Serac</span>
+                <span class="bank-card__status"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/lock-simple.svg)"></span><span data-status-text data-on="Gelée" data-off="Active" aria-live="polite">Active</span></span>
+              </div>
+              <span class="bank-card__chip" aria-hidden="true"></span>
+              <div class="bank-card__bottom">
+                <div>
+                  <p class="bank-card__number"><span aria-hidden="true">••••</span><span class="sr-only">Carte se terminant par</span> 4821</p>
+                  <p class="small">Alex Morin · 09/29</p>
+                </div>
+                <span class="icon icon--lg" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/contactless-payment.svg)"></span>
+              </div>
+            </div>
+
+            <div class="card card-limit" data-reveal>
+              <div class="card-limit__row">
+                <h2 class="label">Plafond de carte, novembre</h2>
+                <p class="figure figure--md"><span>640,00 €</span> <span class="subtle">/ 1 500,00 €</span></p>
+              </div>
+              <div class="ticks" role="img" aria-label="640,00 € utilisés sur 1 500,00 €"><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="card-limit__row">
+                <p class="small subtle">Un trait = 50 €. Reste 860,00 €.</p>
+                <button class="btn btn--secondary" type="button" aria-pressed="false" aria-controls="bank-card" data-toggle="is-frozen"><span class="icon btn__icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/lock-simple.svg)"></span>Geler la carte</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section container" id="evolution" aria-labelledby="chart-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">Évolution</p>
+            <h2 class="title" id="chart-title">Solde, réel puis prévu</h2>
+          </div>
+        </div>
+        <div class="card chart" data-chart data-reveal>
+          <div class="chart__toolbar">
+            <ul class="legend" role="list">
+              <li><span class="legend__line" aria-hidden="true"></span>Réel, trait plein</li>
+              <li><span class="legend__line legend__line--planned" aria-hidden="true"></span>Prévu daté, pointillé</li>
+            </ul>
+            <div class="chips" role="group" aria-label="Période affichée">
+              <button class="chip" type="button" aria-pressed="false" data-range="3">3 mois</button>
+              <button class="chip" type="button" aria-pressed="false" data-range="6">6 mois</button>
+              <button class="chip" type="button" aria-pressed="true" data-range="12">12 mois</button>
+            </div>
+          </div>
+          <p class="small muted" id="chart-summary">De 9 820,15 € fin décembre 2025 à 12 480,32 € le 8 novembre 2026. Deux échéances datées le portent à 13 620,40 € fin décembre 2026.</p>
+          <div class="chart__plot">
+            <svg class="chart__svg" viewBox="0 0 720 280" role="img" aria-labelledby="chart-title chart-summary"><defs><linearGradient id="area-static" x1="0" y1="0" x2="0" y2="1"><stop class="chart__stop chart__stop--top" offset="0"/><stop class="chart__stop chart__stop--bottom" offset="1"/></linearGradient></defs><g class="chart__grid"><line x1="64" x2="700" y1="244" y2="244"/><text x="52" y="248" text-anchor="end">9 000 €</text><line x1="64" x2="700" y1="132" y2="132"/><text x="52" y="136" text-anchor="end">11 500 €</text><line x1="64" x2="700" y1="20" y2="20"/><text x="52" y="24" text-anchor="end">14 000 €</text></g><g class="chart__axis"><text x="607.6" y="270" text-anchor="middle">8 nov.</text><text x="700" y="270" text-anchor="end" class="chart__label--planned">31 déc.</text><text x="64" y="270" text-anchor="start">déc.</text><text x="539.7" y="270" text-anchor="middle">sept.</text><text x="487.4" y="270" text-anchor="middle">août</text><text x="433.4" y="270" text-anchor="middle">juil.</text><text x="379.4" y="270" text-anchor="middle">juin</text><text x="327.1" y="270" text-anchor="middle">mai</text><text x="273.1" y="270" text-anchor="middle">avr.</text><text x="220.8" y="270" text-anchor="middle">mars</text><text x="166.8" y="270" text-anchor="middle">févr.</text><text x="118" y="270" text-anchor="middle">janv.</text></g><path class="chart__area" d="M64 207.3C82 202.5 100 192.9 118 192.9C134.3 192.9 150.5 214.6 166.8 214.6C184.8 214.6 202.8 190.8 220.8 180.8C238.2 171.1 255.7 155.3 273.1 155.3C291.1 155.3 309.1 166.9 327.1 166.9C344.5 166.9 362 138.7 379.4 138.7C397.4 138.7 415.4 158.6 433.4 158.6C451.4 158.6 469.4 156.1 487.4 149C504.8 142.1 522.3 122.2 539.7 116.7C557.7 111.2 575.7 115.3 593.7 105.4C598.4 102.9 603 93.9 607.6 88.1L607.6 244L64 244Z" fill="url(#area-static)"/><path class="chart__real" d="M64 207.3C82 202.5 100 192.9 118 192.9C134.3 192.9 150.5 214.6 166.8 214.6C184.8 214.6 202.8 190.8 220.8 180.8C238.2 171.1 255.7 155.3 273.1 155.3C291.1 155.3 309.1 166.9 327.1 166.9C344.5 166.9 362 138.7 379.4 138.7C397.4 138.7 415.4 158.6 433.4 158.6C451.4 158.6 469.4 156.1 487.4 149C504.8 142.1 522.3 122.2 539.7 116.7C557.7 111.2 575.7 115.3 593.7 105.4C598.4 102.9 603 93.9 607.6 88.1" pathLength="1"/><path class="chart__planned" d="M607.6 88.1C620.4 78.7 633.2 67.5 646 60.1C664 49.6 682 44.7 700 37"/><g class="chart__planned-dots"><circle class="chart__planned-dot" cx="646" cy="60.1" r="5"/><circle class="chart__planned-dot" cx="700" cy="37" r="5"/></g><g class="chart__today" style="transform-origin:607.6px 88.1px"><circle class="chart__today-halo" cx="607.6" cy="88.1" r="9"/><circle class="chart__today-dot" data-glow="data" cx="607.6" cy="88.1" r="6"/></g><g class="chart__tip"><rect x="529.6" y="36.1" width="156" height="30" rx="8"/><text x="607.6" y="56.1" text-anchor="middle">8 nov. · 12 480,32 €</text></g></svg>
+          </div>
+          <details class="data-table">
+            <summary><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/caret-down.svg)"></span>Afficher le tableau de données</summary>
+            <div class="table-scroll">
+              <table data-chart-table>
+                <caption>Solde par date, réel puis prévu</caption>
+                <thead><tr><th scope="col">Date</th><th scope="col" class="num">Solde</th><th scope="col">Statut</th></tr></thead>
+                <tbody>
+                    <tr data-short="déc." data-date="2025-12-31" data-cents="982015" data-status="real"><th scope="row">31 décembre 2025</th><td class="num figure">9 820,15 €</td><td>Réel</td></tr>
+                    <tr data-short="janv." data-date="2026-01-31" data-cents="1014060" data-status="real"><th scope="row">31 janvier 2026</th><td class="num figure">10 140,60 €</td><td>Réel</td></tr>
+                    <tr data-short="févr." data-date="2026-02-28" data-cents="965520" data-status="real"><th scope="row">28 février 2026</th><td class="num figure">9 655,20 €</td><td>Réel</td></tr>
+                    <tr data-short="mars" data-date="2026-03-31" data-cents="1041085" data-status="real"><th scope="row">31 mars 2026</th><td class="num figure">10 410,85 €</td><td>Réel</td></tr>
+                    <tr data-short="avr." data-date="2026-04-30" data-cents="1098040" data-status="real"><th scope="row">30 avril 2026</th><td class="num figure">10 980,40 €</td><td>Réel</td></tr>
+                    <tr data-short="mai" data-date="2026-05-31" data-cents="1072010" data-status="real"><th scope="row">31 mai 2026</th><td class="num figure">10 720,10 €</td><td>Réel</td></tr>
+                    <tr data-short="juin" data-date="2026-06-30" data-cents="1135075" data-status="real"><th scope="row">30 juin 2026</th><td class="num figure">11 350,75 €</td><td>Réel</td></tr>
+                    <tr data-short="juil." data-date="2026-07-31" data-cents="1090530" data-status="real"><th scope="row">31 juillet 2026</th><td class="num figure">10 905,30 €</td><td>Réel</td></tr>
+                    <tr data-short="août" data-date="2026-08-31" data-cents="1112095" data-status="real"><th scope="row">31 août 2026</th><td class="num figure">11 120,95 €</td><td>Réel</td></tr>
+                    <tr data-short="sept." data-date="2026-09-30" data-cents="1184050" data-status="real"><th scope="row">30 septembre 2026</th><td class="num figure">11 840,50 €</td><td>Réel</td></tr>
+                    <tr data-short="oct." data-date="2026-10-31" data-cents="1209310" data-status="real"><th scope="row">31 octobre 2026</th><td class="num figure">12 093,10 €</td><td>Réel</td></tr>
+                    <tr data-short="8 nov." data-date="2026-11-08" data-cents="1248032" data-status="real"><th scope="row">8 novembre 2026</th><td class="num figure">12 480,32 €</td><td>Réel</td></tr>
+                    <tr data-short="30 nov." data-date="2026-11-30" data-cents="1310590" data-status="planned"><th scope="row">30 novembre 2026</th><td class="num figure">13 105,90 €</td><td>Prévu</td></tr>
+                    <tr data-short="31 déc." data-date="2026-12-31" data-cents="1362040" data-status="planned"><th scope="row">31 décembre 2026</th><td class="num figure">13 620,40 €</td><td>Prévu</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section class="section container" id="operations" aria-labelledby="ops-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">Opérations</p>
+            <h2 class="title" id="ops-title">Le mois, ligne à ligne</h2>
+          </div>
+        </div>
+        <div class="grid grid--split">
+          <div class="card" data-reveal>
+            <div class="card__head">
+              <h3 class="subtitle">Dernières opérations</h3>
+              <p class="small subtle" data-filter-count aria-live="polite">6 opérations affichées</p>
+            </div>
+            <div class="chips" role="group" aria-label="Filtrer les opérations" aria-controls="tx-list" data-filter-group>
+              <button class="chip" type="button" aria-pressed="true" data-filter="all">Tout</button>
+              <button class="chip" type="button" aria-pressed="false" data-filter="income">Revenus</button>
+              <button class="chip" type="button" aria-pressed="false" data-filter="expense">Dépenses</button>
+              <button class="chip" type="button" aria-pressed="false" data-filter="planned">Prévu</button>
+            </div>
+            <ul class="tx-list" id="tx-list" role="list">
+                <li data-kind="income">
+                  <details class="tx">
+                    <summary>
+                      <span class="tx__avatar"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/briefcase.svg)"></span></span>
+                      <span class="tx__main"><span class="tx__name">Salaire</span><span class="tx__meta">Revenus · 31 oct.</span></span>
+                      <span class="tx__amount tx__amount--in"><span class="figure">+2 850,00 €</span></span>
+                    </summary>
+                    <div class="tx__more" id="tx-more-1">
+                      <div><span class="subtle">Compte</span><span>Compte courant</span></div>
+                      <div><span class="subtle">Moyen</span><span>Virement reçu</span></div>
+                      <div><span class="subtle">Émetteur</span><span>Employeur Démo</span></div>
+                    </div>
+                  </details>
+                </li>
+                <li data-kind="expense">
+                  <details class="tx">
+                    <summary>
+                      <span class="tx__avatar"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/house.svg)"></span></span>
+                      <span class="tx__main"><span class="tx__name">Loyer</span><span class="tx__meta">Logement · 1 nov.</span></span>
+                      <span class="tx__amount"><span class="figure">−920,00 €</span></span>
+                    </summary>
+                    <div class="tx__more" id="tx-more-2">
+                      <div><span class="subtle">Compte</span><span>Compte courant</span></div>
+                      <div><span class="subtle">Moyen</span><span>Prélèvement</span></div>
+                      <div><span class="subtle">Récurrence</span><span>Le 1er de chaque mois</span></div>
+                    </div>
+                  </details>
+                </li>
+                <li data-kind="expense">
+                  <details class="tx">
+                    <summary>
+                      <span class="tx__avatar"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/shopping-bag.svg)"></span></span>
+                      <span class="tx__main"><span class="tx__name">Courses</span><span class="tx__meta">Alimentation · 4 nov.</span></span>
+                      <span class="tx__amount"><span class="figure">−86,40 €</span></span>
+                    </summary>
+                    <div class="tx__more" id="tx-more-3">
+                      <div><span class="subtle">Compte</span><span>Carte ···· 4821</span></div>
+                      <div><span class="subtle">Moyen</span><span>Paiement sans contact</span></div>
+                      <div><span class="subtle">Commerçant</span><span>Marché Démo</span></div>
+                    </div>
+                  </details>
+                </li>
+                <li data-kind="expense">
+                  <details class="tx">
+                    <summary>
+                      <span class="tx__avatar"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/music-notes.svg)"></span></span>
+                      <span class="tx__main"><span class="tx__name">Abonnement musique</span><span class="tx__meta">Loisirs · 5 nov.</span></span>
+                      <span class="tx__amount"><span class="figure">−11,99 €</span></span>
+                    </summary>
+                    <div class="tx__more" id="tx-more-4">
+                      <div><span class="subtle">Compte</span><span>Carte ···· 4821</span></div>
+                      <div><span class="subtle">Moyen</span><span>Paiement en ligne</span></div>
+                      <div><span class="subtle">Récurrence</span><span>Le 5 de chaque mois</span></div>
+                    </div>
+                  </details>
+                </li>
+                <li data-kind="expense">
+                  <details class="tx">
+                    <summary>
+                      <span class="tx__avatar"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/train.svg)"></span></span>
+                      <span class="tx__main"><span class="tx__name">Pass transport</span><span class="tx__meta">Transport · 6 nov.</span></span>
+                      <span class="tx__amount"><span class="figure">−86,80 €</span></span>
+                    </summary>
+                    <div class="tx__more" id="tx-more-5">
+                      <div><span class="subtle">Compte</span><span>Compte courant</span></div>
+                      <div><span class="subtle">Moyen</span><span>Prélèvement</span></div>
+                      <div><span class="subtle">Récurrence</span><span>Mensuelle</span></div>
+                    </div>
+                  </details>
+                </li>
+                <li data-kind="planned">
+                  <details class="tx tx--planned">
+                    <summary>
+                      <span class="tx__avatar"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/lightning.svg)"></span></span>
+                      <span class="tx__main"><span class="tx__name">Électricité</span><span class="tx__meta">Logement · 12 nov.</span></span>
+                      <span class="tx__amount"><span class="figure">−64,00 €</span><span class="badge badge--planned">Prévu</span></span>
+                    </summary>
+                    <div class="tx__more" id="tx-more-6">
+                      <div><span class="subtle">Compte</span><span>Compte courant</span></div>
+                      <div><span class="subtle">Statut</span><span>Prévu, daté au 12 nov.</span></div>
+                      <div><span class="subtle">Origine</span><span>Échéancier du fournisseur</span></div>
+                    </div>
+                  </details>
+                </li>
+            </ul>
+          </div>
+
+          <div class="card" data-reveal>
+            <form class="form" data-demo-form novalidate aria-labelledby="form-title">
+              <h3 class="subtitle" id="form-title">Nouvelle opération</h3>
+              <div class="field">
+                <div class="field__top"><label class="field__label" for="f-label">Libellé</label><span class="field__state">Rempli</span></div>
+                <input class="input" id="f-label" name="label" type="text" value="Boulangerie" autocomplete="off" />
+              </div>
+              <div class="field">
+                <div class="field__top"><label class="field__label" for="f-amount">Montant</label><span class="field__state">Focus</span></div>
+                <div class="field__control">
+                  <input class="input input--suffix is-focus" id="f-amount" name="amount" type="text" inputmode="decimal" value="4,20" aria-describedby="f-amount-help" autocomplete="off" />
+                  <span class="field__suffix" aria-hidden="true">€</span>
+                </div>
+                <p class="field__help" id="f-amount-help">Une virgule pour les centimes.</p>
+              </div>
+              <div class="field">
+                <div class="field__top"><label class="field__label" for="f-date">Date</label><span class="field__state">Erreur</span></div>
+                <input class="input" id="f-date" name="date" type="text" inputmode="numeric" value="31/11/2026" aria-invalid="true" aria-describedby="f-date-error" autocomplete="off" />
+                <p class="field__error" id="f-date-error"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/warning-circle.svg)"></span>Cette date n'existe pas : novembre compte 30 jours.</p>
+              </div>
+              <div class="field">
+                <div class="field__top"><label class="field__label" for="f-account">Compte</label><span class="field__state">Désactivé</span></div>
+                <div class="field__control">
+                  <select class="input" id="f-account" name="account" disabled aria-describedby="f-account-help"><option>Compte courant</option></select>
+                  <span class="icon icon--sm field__chevron" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/caret-down.svg)"></span>
+                </div>
+                <p class="field__help" id="f-account-help">Un seul compte dans cette démonstration.</p>
+              </div>
+              <fieldset class="segmented">
+                <legend class="field__label">Type</legend>
+                <div class="segmented__options">
+                  <label class="segmented__option"><input type="radio" name="kind" value="expense" checked /><span>Dépense</span></label>
+                  <label class="segmented__option"><input type="radio" name="kind" value="income" /><span>Revenu</span></label>
+                  <label class="segmented__option"><input type="radio" name="kind" value="transfer" /><span>Virement</span></label>
+                </div>
+              </fieldset>
+              <div class="actions">
+                <button class="btn btn--primary" type="submit" data-glow="action"><span class="icon btn__icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/check.svg)"></span>Enregistrer</button>
+                <button class="btn btn--ghost" type="button">Annuler</button>
+              </div>
+              <p class="form__status" role="status" data-form-status></p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="section container" id="composants" aria-labelledby="components-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">Composants</p>
+            <h2 class="title" id="components-title">Boutons, badges et accueil mobile</h2>
+          </div>
+        </div>
+        <div class="grid grid--components">
+          <div class="card specimen" data-reveal>
+            <div class="specimen__group">
+              <h3 class="label">Boutons</h3>
+              <div class="specimen__row">
+                <button class="btn btn--primary" type="button">Principal<span class="icon btn__icon btn__icon--trail" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/arrow-right.svg)"></span></button>
+                <button class="btn btn--secondary" type="button"><span class="icon btn__icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/arrow-up-right.svg)"></span>Secondaire</button>
+                <button class="btn btn--ghost" type="button">Discret</button>
+                <button class="btn btn--icon" type="button" aria-label="Ajouter"><span class="icon" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/plus.svg)"></span></button>
+              </div>
+              <div class="specimen__row">
+                <button class="btn btn--primary" type="button" disabled>Indisponible</button>
+                <button class="btn btn--primary" type="button" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Enregistrement</button>
+              </div>
+            </div>
+            <div class="specimen__group">
+              <h3 class="label">Badges d'état</h3>
+              <div class="specimen__row">
+                <span class="badge badge--real">Réel</span>
+                <span class="badge badge--planned">Prévu</span>
+                <span class="badge badge--success"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/arrow-up.svg)"></span>+3,2&nbsp;%</span>
+                <span class="badge badge--warning"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/warning.svg)"></span>Solde bas</span>
+                <span class="badge badge--error"><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/warning-circle.svg)"></span>Plafond dépassé</span>
+              </div>
+            </div>
+            <div class="specimen__group">
+              <h3 class="label">Système</h3>
+              <ul class="swatches" role="list">
+                <li class="swatch"><span class="swatch__chip" style="background: #06090B"></span><span>Page</span><code>#06090B · 18,00:1 texte</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #0C1114"></span><span>Surface</span><code>#0C1114 · 17,12:1 texte</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #121A1E"></span><span>Encart</span><code>#121A1E · 8,53:1 texte secondaire</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #1B252A"></span><span>Contrôle</span><code>#1B252A · 12,89:1 anneau de focus</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #ECF5F4"></span><span>Texte</span><code>#ECF5F4 · 17,12:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #A7B8B6"></span><span>Texte secondaire</span><code>#A7B8B6 · 9,20:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #7E908E"></span><span>Texte discret</span><code>#7E908E · 5,67:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #78F0C8"></span><span>Accent</span><code>#78F0C8 · 14,36:1 sur page</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #3FC6EE"></span><span>Secondaire</span><code>#3FC6EE · 9,52:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #CFEFF6"></span><span>Tertiaire</span><code>#CFEFF6 · 15,67:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #B4E36A"></span><span>Succès</span><code>#B4E36A · 12,78:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #F2C46B"></span><span>Alerte</span><code>#F2C46B · 11,65:1 sur surface</code></li>
+                <li class="swatch"><span class="swatch__chip" style="background: #FF8A8F"></span><span>Erreur</span><code>#FF8A8F · 8,39:1 sur surface</code></li>
+              </ul>
+            </div>
+            <div class="specimen__group type-specimen">
+              <h3 class="label">Typographie</h3>
+              <div><span class="subtle small">Titres</span><span class="subtitle">Newsreader 400, taille optique automatique</span></div>
+              <div><span class="subtle small">Texte</span><span>Atkinson Hyperlegible Next 400 et 600</span></div>
+              <div><span class="subtle small">Chiffres</span><span class="figure figure--lg">12 480,32 €</span><span class="small muted">Newsreader 400, chiffres tabulaires et alignés</span></div>
+              <div><span class="subtle small">Glow</span><span>Menthe, flou 40 px, étalement −8 px, opacité 35 %. Trois emplacements par écran au plus.</span></div>
+            </div>
+          </div>
+
+          <figure class="phone-figure" data-reveal>
+            <div class="phone" aria-hidden="true" inert>
+              <div class="phone__screen">
+                <div class="phone__header"><div class="phone__status"><span>9:41</span><span><span class="icon icon--sm" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/wifi-high.svg)"></span></span></div></div>
+                <div class="phone__body">
+                  <p class="phone__title"><span>Net.</span><span>Précis.</span><span>Durable.</span></p>
+                  <p class="small muted">Vos comptes tenus comme un registre, au centime.</p>
+                  <div class="steps"><i class="is-on"></i><i></i><i></i><i></i></div>
+                  <span class="btn btn--primary" data-glow="action">Commencer<span class="icon btn__icon btn__icon--trail" aria-hidden="true" style="--icon: url(../../assets/icons/phosphor/light/arrow-right.svg)"></span></span>
+                </div>
+              </div>
+            </div>
+            <figcaption class="sr-only">Écran d'accueil mobile, étape 1 sur 4 : « Net. Précis. Durable. », Vos comptes tenus comme un registre, au centime. Bouton « Commencer ».</figcaption>
+          </figure>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <p>Proposition 5 sur 5, exploration non adoptée. Données entièrement fictives. Polices Newsreader et Atkinson Hyperlegible Next (SIL OFL 1.1). Icônes Phosphor light (MIT).</p>
+        <a href="../index.html">Comparer les 5 directions</a>
+      </div>
+    </footer>
+  </body>
+</html>
