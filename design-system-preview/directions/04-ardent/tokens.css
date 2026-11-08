@@ -1,0 +1,278 @@
+/* Direction 04, Ardent.
+   Magenta to amber on near-black aubergine, after reference 03: vivid
+   striped gradient headers over black, heavy expanded headings, a glowing
+   call to action with a lighter outline, warm and energetic copy.
+   Layers: 1 primitives, 2 semantic, 3 component, 4 glow, 5 motion. */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("../../assets/fonts/archivo/archivo-latin-standard-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ---------- 1. Primitives ---------- */
+
+  --plum-950: #0e080f;
+  --plum-900: #160e18;
+  --plum-850: #1e1421;
+  --plum-800: #2b1f2e;
+  --plum-700: #3d2c40;
+  --blush-100: #fcf3f5;
+  --blush-300: #cdbac6;
+  --blush-500: #9e8a99;
+  --blush-600: #7a6676;
+  --magenta-200: #ff9ec9;
+  --magenta-300: #ff7cc2;
+  --magenta-500: #e0359a;
+  --magenta-600: #c21d80;
+  --magenta-700: #a3156b;
+  --amber-400: #f6a430;
+  --amber-300: #ffbf5e;
+  --apricot-300: #ff9e6b;
+  --jade-400: #6bd9a8;
+  --yellow-300: #f4d35e;
+  --vermilion-400: #ff6f61;
+  --white: #fff;
+  --black: #000;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: clamp(1.25rem, 1.1667rem + 0.3704vw, 1.5rem);
+  --space-6: clamp(1.5rem, 1.3333rem + 0.7407vw, 2rem);
+  --space-7: clamp(2rem, 1.6667rem + 1.4815vw, 3rem);
+
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --radius-2xl: 48px;
+  --radius-full: 999px;
+
+  --family-archivo: "Archivo", ui-sans-serif, sans-serif;
+
+  /* ---------- 2. Semantic ---------- */
+
+  --surface-raised: var(--plum-900);
+  --surface-control: var(--plum-800);
+  --surface-hover: color-mix(in srgb, var(--blush-100) 6%, transparent);
+  --page-background: var(--plum-950);
+
+  --text: var(--blush-100);
+  --text-muted: var(--blush-300);
+  --text-subtle: var(--blush-500);
+  --stroke: var(--blush-600);
+  --border: color-mix(in srgb, var(--blush-100) 8%, transparent);
+  --link: var(--magenta-300);
+
+  --accent: var(--magenta-500);
+  --planned-text: var(--amber-300);
+
+  --success: var(--jade-400);
+  --success-tint: color-mix(in srgb, var(--jade-400) 14%, transparent);
+  --warning: var(--yellow-300);
+  --warning-tint: color-mix(in srgb, var(--yellow-300) 14%, transparent);
+  --error: var(--vermilion-400);
+  --error-tint: color-mix(in srgb, var(--vermilion-400) 14%, transparent);
+  --error-ring: color-mix(in srgb, var(--vermilion-400) 45%, transparent);
+
+  --focus: var(--blush-100);
+  --focus-offset: 3px;
+
+  --disabled-background: color-mix(in srgb, var(--blush-100) 5%, transparent);
+  --disabled-text: var(--blush-500);
+
+  --font-display: var(--family-archivo);
+  --font-text: var(--family-archivo);
+  --font-figures: var(--family-archivo);
+  --font-eyebrow: var(--family-archivo);
+  --weight-text: 400;
+  --weight-label: 600;
+  --weight-display: 800;
+  --weight-title: 760;
+  --weight-figures: 620;
+  --weight-button: 650;
+  --stretch-display: 125%;
+  --stretch-figures: 108%;
+  /* Narrower than the display width so three short lines fit the phone */
+  --stretch-onboarding: 118%;
+  --figures-features: "tnum" 1;
+
+  --text-display: clamp(2.375rem, 1.6667rem + 3.1481vw, 4.5rem);
+  --text-title: clamp(1.5rem, 1.25rem + 1.1111vw, 2.25rem);
+  --text-subtitle: clamp(1.125rem, 1.0833rem + 0.1852vw, 1.25rem);
+  --text-lead: clamp(1.0625rem, 1rem + 0.2778vw, 1.25rem);
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-caption: 0.8125rem;
+  --text-button: 1rem;
+  --text-figure-xl: clamp(2.5rem, 1.9167rem + 2.5926vw, 4.25rem);
+  --text-figure-lg: clamp(1.375rem, 1.25rem + 0.5556vw, 1.75rem);
+  --text-figure-md: 1rem;
+  --text-onboarding: 2rem;
+
+  --leading-display: 1;
+  --leading-title: 1.06;
+  --leading-body: 1.55;
+  --tracking-display: -0.03em;
+  --tracking-title: -0.02em;
+  --tracking-figures: -0.02em;
+  --tracking-eyebrow: 0.12em;
+  --tracking-button: 0.005em;
+  --eyebrow-case: uppercase;
+
+  --container-max: 1240px;
+  --gutter: clamp(1rem, 0.5rem + 2.2222vw, 2.5rem);
+  --grid-gap: var(--space-5);
+  --section-space: clamp(3.5rem, 2.6667rem + 3.7037vw, 6rem);
+
+  /* Icons: Phosphor duotone */
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --icon-check: url("../../assets/icons/phosphor/duotone/check.svg");
+
+  /* ---------- 3. Component ---------- */
+
+  --header-background: transparent;
+  --wordmark-height: 28px;
+  --nav-background: var(--plum-900);
+  --nav-current-background: var(--plum-800);
+  --nav-current-text: var(--blush-100);
+
+  --radius-card: var(--radius-xl);
+  --radius-inset: var(--radius-lg);
+  --radius-control: var(--radius-md);
+  --radius-pill: var(--radius-full);
+  --card-padding: clamp(1.25rem, 1rem + 1.1111vw, 2rem);
+  --card-background: var(--plum-900);
+  --card-border: color-mix(in srgb, var(--blush-100) 7%, transparent);
+  --card-shadow: inset 0 1px 0 color-mix(in srgb, var(--blush-100) 5%, transparent);
+  --hero-card-background:
+    radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--magenta-500) 24%, transparent), transparent 56%),
+    radial-gradient(70% 90% at 0% 100%, color-mix(in srgb, var(--amber-400) 12%, transparent), transparent 60%),
+    var(--plum-900);
+  --hero-card-border: color-mix(in srgb, var(--magenta-300) 32%, transparent);
+  --planned-rule: 2px dotted var(--amber-400);
+
+  /* Stripes in the top right corner, as on the onboarding screens of 03 */
+  --radius-bank-card: 22px;
+  --bank-card-background: linear-gradient(150deg, var(--plum-700), var(--plum-950));
+  --bank-card-border: color-mix(in srgb, var(--blush-100) 12%, transparent);
+  --bank-card-shadow: 0 30px 60px -30px color-mix(in srgb, var(--magenta-700) 55%, transparent);
+  --bank-card-text: var(--blush-100);
+  --bank-card-pattern:
+    repeating-linear-gradient(118deg, transparent 0 10px, color-mix(in srgb, var(--black) 32%, transparent) 16px, transparent 20px),
+    radial-gradient(85% 95% at 100% 0%, var(--magenta-500), color-mix(in srgb, var(--amber-400) 55%, transparent) 38%, transparent 62%);
+  --bank-card-chip: linear-gradient(135deg, var(--amber-300), color-mix(in srgb, var(--amber-400) 60%, var(--plum-700)));
+  --bank-card-status-background: color-mix(in srgb, var(--plum-950) 72%, transparent);
+
+  /* Meter as chunky pills */
+  --tick-gap: 4px;
+  --tick-height: 14px;
+  --tick-width: 100%;
+  --tick-radius: var(--radius-full);
+  --ticks-radius: 0;
+  --tick-empty: var(--blush-600);
+  --tick-on: var(--magenta-300);
+
+  --radius-badge: var(--radius-full);
+  --radius-chip: var(--radius-full);
+  --chip-background: transparent;
+  --chip-border: color-mix(in srgb, var(--blush-100) 14%, transparent);
+  --chip-on-background: var(--magenta-600);
+  --chip-on-border: var(--magenta-300);
+  --chip-on-text: var(--white);
+
+  --radius-button: var(--radius-lg);
+  --radius-icon-button: var(--radius-md);
+  --button-height: 54px;
+  --button-padding-x: 1.625rem;
+  --button-primary-background: linear-gradient(180deg, var(--magenta-600), var(--magenta-700));
+  --button-primary-background-hover: linear-gradient(180deg, var(--magenta-700), var(--magenta-700));
+  --button-primary-text: var(--white);
+  --button-primary-border: color-mix(in srgb, var(--magenta-200) 70%, transparent);
+  --button-primary-edge: inset 0 1px 0 color-mix(in srgb, var(--white) 32%, transparent);
+  --button-secondary-background: var(--plum-800);
+  --button-secondary-background-hover: var(--plum-700);
+  --button-secondary-border: color-mix(in srgb, var(--blush-100) 8%, transparent);
+  --button-secondary-edge: inset 0 1px 0 color-mix(in srgb, var(--blush-100) 7%, transparent);
+
+  --chart-plot-background: transparent;
+  --chart-grid: color-mix(in srgb, var(--blush-100) 8%, transparent);
+  --chart-grid-dash: none;
+  --chart-real: var(--magenta-300);
+  --chart-planned: var(--amber-400);
+  --chart-area: var(--magenta-500);
+  --chart-area-opacity: 0.3;
+  --chart-line-width: 3px;
+  --chart-line-filter: none;
+  --chart-today: var(--blush-100);
+  --tooltip-background: var(--plum-800);
+  --tooltip-border: color-mix(in srgb, var(--blush-100) 12%, transparent);
+
+  --tx-gap: 8px;
+  --radius-row: var(--radius-lg);
+  --row-background: var(--plum-850);
+  --row-border: transparent;
+  --row-height: 66px;
+  --avatar-size: 44px;
+  --radius-avatar: var(--radius-md);
+  --avatar-background: color-mix(in srgb, var(--magenta-500) 16%, var(--plum-800));
+  --avatar-icon: var(--apricot-300);
+
+  --field-height: 54px;
+  --radius-field: var(--radius-md);
+  --field-background: var(--plum-850);
+  --field-border: var(--blush-600);
+  --field-border-hover: var(--blush-300);
+  --field-border-focus: var(--magenta-300);
+  --field-ring: color-mix(in srgb, var(--magenta-300) 32%, transparent);
+
+  --radius-device: var(--radius-2xl);
+  --device-frame: linear-gradient(145deg, var(--plum-700), var(--plum-950));
+  --device-shadow: 0 40px 80px -40px color-mix(in srgb, var(--black) 85%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--blush-100) 10%, transparent);
+  --onboarding-background: var(--plum-950);
+  --onboarding-header: linear-gradient(165deg, var(--magenta-200) 0%, var(--magenta-500) 30%, var(--amber-400) 62%, var(--plum-950) 100%);
+  --onboarding-stripes: repeating-linear-gradient(112deg, transparent 0 11px, color-mix(in srgb, var(--black) 20%, transparent) 17px, transparent 21px);
+  --onboarding-status: var(--plum-950);
+
+  /* ---------- 4. Glow recipe (the formula is in ../shared/base.css): magenta, medium radius ---------- */
+
+  --glow-color: var(--magenta-500);
+  --glow-blur: 36px;
+  --glow-spread: -4px;
+  --glow-opacity: 55%;
+  --glow-opacity-hover: 78%;
+  --glow-filter: drop-shadow(0 0 9px color-mix(in srgb, var(--glow-color) 95%, transparent));
+
+  /* ---------- 5. Motion: energetic, a visible spring ----------
+     Motion (framer-motion) equivalents:
+       hover/colour   { duration: 0.15, ease: [0.2, 0.8, 0.2, 1] }
+       press          whileTap={{ scale: 0.95 }}, transition { type: "spring", stiffness: 340, damping: 22 }
+       entrance       from { opacity: 0, y: 20 }, { duration: 0.56, ease: [0.18, 1.25, 0.4, 1] },
+                      stagger 0.05, viewport { once: true, amount: 0.12 } */
+
+  --duration-press: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 260ms;
+  --motion-enter-duration: 560ms;
+  --motion-chart-duration: 900ms;
+  --motion-stagger: 50ms;
+  --motion-enter-distance: 20px;
+  --motion-enter-blur: 0px;
+  --motion-spin-duration: 800ms;
+  --press-scale: 0.95;
+  --press-scale-card: 0.985;
+  --nudge: 4px;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-enter: cubic-bezier(0.18, 1.25, 0.4, 1);
+  /* Spring stiffness 340, damping 22: settles in 660 ms, 9.5 % overshoot */
+  --motion-spring-duration: 660ms;
+  --ease-spring: linear(0, 0.046, 0.148, 0.291, 0.438, 0.591, 0.722, 0.84, 0.93, 1.001, 1.047, 1.078, 1.092, 1.095, 1.089, 1.078, 1.065, 1.05, 1.037, 1.024, 1.014, 1.005, 0.999, 0.995, 0.992, 0.991, 0.991, 0.992, 0.993, 0.994, 0.995, 0.997, 0.998, 0.999, 1, 1, 1.001, 1.001, 1.001, 1.001, 1);
+}
