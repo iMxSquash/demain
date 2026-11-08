@@ -1041,7 +1041,9 @@ th.num {
   gap: var(--space-3);
   min-height: var(--row-height);
   padding: var(--space-2) var(--space-3);
-  border-radius: inherit;
+  /* Not "inherit": Chrome slots the summary inside the details shadow tree,
+     so it would inherit the slot's 0 radius and the hover would be square. */
+  border-radius: var(--radius-row);
   cursor: pointer;
   list-style: none;
   transition:
