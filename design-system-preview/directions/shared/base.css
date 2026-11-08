@@ -587,6 +587,8 @@ a {
 
 .badge {
   display: inline-flex;
+  /* Never stretched when placed directly in a grid cell */
+  justify-self: start;
   align-items: center;
   gap: var(--space-1);
   min-height: 1.75rem;
