@@ -1,0 +1,204 @@
+/* Sections that only the Demain landing page uses. Reads the semantic and
+   component tokens of tokens.css, like base.css. Nothing here is interactive
+   on hover: the cards inform, they do not pretend to be buttons. */
+
+.section__lead {
+  max-width: 34rem;
+  color: var(--text-muted);
+}
+
+.hero__copy .actions {
+  margin-top: var(--space-3);
+}
+
+.hero__copy {
+  max-width: 52rem;
+}
+
+/* ---------- Hero side: overflow chain ---------- */
+
+.overflow {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.chain > li {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.chain__node {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface-control);
+  color: var(--text);
+  font-weight: var(--weight-label);
+}
+
+.chain__link {
+  color: var(--planned-text);
+}
+
+/* ---------- Rules card ---------- */
+
+.rules {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.rule-list {
+  display: grid;
+  gap: var(--tx-gap);
+}
+
+.rule-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-row);
+  background: var(--row-background);
+  border: var(--hairline) solid var(--row-border);
+}
+
+.rule-list dt {
+  color: var(--text-subtle);
+  font-size: var(--text-small);
+}
+
+.rule-list dd {
+  margin: 0;
+  font-weight: var(--weight-label);
+}
+
+code {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.rule-list code,
+.steps-list code,
+.install p code {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-control);
+  color: var(--text);
+}
+
+/* ---------- Features ---------- */
+
+.grid--features {
+  margin-bottom: var(--grid-gap);
+}
+
+@media (min-width: 40rem) {
+  .grid--features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .grid--features {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.feature {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.feature__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.feature__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-control);
+  color: var(--focus);
+}
+
+/* ---------- Simulation comparison ---------- */
+
+.compare {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ---------- At home ---------- */
+
+.privacy {
+  display: grid;
+  gap: var(--grid-gap);
+  align-content: start;
+}
+
+.privacy > li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.privacy > li > .icon {
+  margin-top: var(--space-1);
+  color: var(--focus);
+}
+
+.privacy h3 {
+  margin-bottom: var(--space-2);
+}
+
+.install {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.steps-list {
+  display: grid;
+  gap: var(--space-3);
+  padding-left: 1.25rem;
+  list-style: decimal;
+  color: var(--text-muted);
+}
+
+.steps-list li::marker {
+  color: var(--text-subtle);
+  font-weight: var(--weight-label);
+}
+
+.code {
+  overflow-x: auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--field-background, var(--surface-control));
+  border: var(--hairline) solid var(--border);
+  color: var(--text);
+}
+
+.code code {
+  font-size: var(--text-body);
+}

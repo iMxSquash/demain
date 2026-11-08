@@ -1,0 +1,280 @@
+/* Direction 03, Vitre.
+   Cobalt and violet frosted glass on ink, after reference 02: translucent
+   cards told apart by a hairline and a top highlight, a vivid cobalt primary
+   action, a glowing chart line over a fading area, one vivid gradient object
+   (the bank card, like the insight card of 02). Type: the system stack of
+   the brand file, as in direction 01.
+   Layers: 1 primitives, 2 semantic, 3 component, 4 glow, 5 motion. */
+
+:root {
+  /* ---------- 1. Primitives ---------- */
+
+  --ink-950: #05061a;
+  --ink-900: #0b0d26;
+  --ink-800: #1d2042;
+  --ink-700: #2a2e5a;
+  --haze-100: #f4f5ff;
+  --haze-300: #b8bbda;
+  --haze-500: #9497b8;
+  --haze-600: #6c6f93;
+  --cobalt-500: #3360ff;
+  --cobalt-600: #2a55f5;
+  --cobalt-700: #1f44d6;
+  --cobalt-300: #8ea6ff;
+  --cobalt-400: #6c8bff;
+  --violet-400: #a08cff;
+  --violet-600: #5b45c8;
+  --ice-300: #9ed8ff;
+  --mint-400: #4fd8a8;
+  --amber-300: #ffc266;
+  --rose-400: #ff7a8a;
+  --white: #fff;
+  --black: #000;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: clamp(1.25rem, 1.1667rem + 0.3704vw, 1.5rem);
+  --space-6: clamp(1.5rem, 1.3333rem + 0.7407vw, 2rem);
+  --space-7: clamp(2rem, 1.6667rem + 1.4815vw, 3rem);
+
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 44px;
+  --radius-full: 999px;
+
+  /* The system stack of brand/README.md: no font file */
+  --family-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---------- 2. Semantic ---------- */
+
+  --surface-raised: var(--ink-900);
+  --surface-control: var(--ink-800);
+  --surface-hover: color-mix(in srgb, var(--haze-100) 7%, transparent);
+  /* A cobalt horizon at the top of the page, so the glass has light to catch */
+  --page-background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cobalt-500) 20%, var(--ink-950)) 0, var(--ink-950) 640px) var(--ink-950);
+
+  --text: var(--haze-100);
+  --text-muted: var(--haze-300);
+  --text-subtle: var(--haze-500);
+  --stroke: var(--haze-600);
+  --border: color-mix(in srgb, var(--haze-100) 9%, transparent);
+  --link: var(--cobalt-300);
+
+  --accent: var(--cobalt-500);
+  --planned-text: var(--violet-400);
+
+  --success: var(--mint-400);
+  --success-tint: color-mix(in srgb, var(--mint-400) 14%, transparent);
+  --warning: var(--amber-300);
+  --warning-tint: color-mix(in srgb, var(--amber-300) 14%, transparent);
+  --error: var(--rose-400);
+  --error-tint: color-mix(in srgb, var(--rose-400) 14%, transparent);
+  --error-ring: color-mix(in srgb, var(--rose-400) 45%, transparent);
+
+  --focus: var(--ice-300);
+  --focus-offset: 2px;
+
+  --disabled-background: color-mix(in srgb, var(--haze-100) 5%, transparent);
+  --disabled-text: var(--haze-500);
+
+  --font-display: var(--family-sans);
+  --font-text: var(--family-sans);
+  --font-figures: var(--family-sans);
+  --font-eyebrow: var(--family-sans);
+  --weight-text: 400;
+  --weight-label: 600;
+  --weight-display: 600;
+  --weight-title: 600;
+  --weight-figures: 400;
+  --weight-button: 600;
+  --stretch-display: normal;
+  --stretch-figures: 100%;
+  --figures-features: "tnum" 1;
+
+  --text-display: clamp(2.5rem, 1.8333rem + 2.963vw, 4.5rem);
+  --text-title: clamp(1.625rem, 1.375rem + 1.1111vw, 2.375rem);
+  --text-subtitle: clamp(1.1875rem, 1.125rem + 0.2778vw, 1.375rem);
+  --text-lead: clamp(1.0625rem, 1rem + 0.2778vw, 1.25rem);
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-caption: 0.8125rem;
+  --text-button: 1rem;
+  --text-figure-xl: clamp(2.75rem, 2.0833rem + 2.963vw, 4.75rem);
+  --text-figure-lg: clamp(1.5rem, 1.3333rem + 0.7407vw, 2rem);
+  --text-figure-md: 1rem;
+  --text-onboarding: 2.125rem;
+
+  --leading-display: 1.04;
+  --leading-title: 1.12;
+  --leading-body: 1.55;
+  --tracking-display: -0.025em;
+  --tracking-title: -0.015em;
+  --tracking-figures: -0.02em;
+  --tracking-eyebrow: 0.01em;
+  --tracking-button: 0;
+  --eyebrow-case: none;
+
+  --container-max: 1240px;
+  --gutter: clamp(1rem, 0.5rem + 2.2222vw, 2.5rem);
+  --grid-gap: var(--space-5);
+  --section-space: clamp(3.5rem, 2.6667rem + 3.7037vw, 6rem);
+
+  /* Icons: Phosphor light, 18 px minimum so the thin stroke stays legible */
+  --icon-sm: 18px;
+  --icon-md: 22px;
+  --icon-lg: 26px;
+  --icon-check: url("../assets/icons/phosphor/light/check.svg");
+
+  /* ---------- 3. Component ---------- */
+
+  --header-background: color-mix(in srgb, var(--ink-950) 40%, transparent);
+  --wordmark-height: 28px;
+  --nav-background: color-mix(in srgb, var(--haze-100) 5%, transparent);
+  --nav-current-background: color-mix(in srgb, var(--haze-100) 12%, transparent);
+  --nav-current-text: var(--haze-100);
+
+  --radius-card: var(--radius-xl);
+  --radius-inset: var(--radius-lg);
+  --radius-control: var(--radius-sm);
+  --radius-pill: var(--radius-full);
+  --card-padding: clamp(1.25rem, 1rem + 1.1111vw, 2rem);
+  --glass-fill: linear-gradient(160deg, color-mix(in srgb, var(--haze-100) 7%, transparent), color-mix(in srgb, var(--haze-100) 2.5%, transparent));
+  --card-background: var(--glass-fill), color-mix(in srgb, var(--ink-900) 70%, transparent);
+  --card-border: color-mix(in srgb, var(--haze-100) 10%, transparent);
+  --card-shadow: inset 0 1px 0 color-mix(in srgb, var(--haze-100) 12%, transparent),
+    0 24px 48px -32px color-mix(in srgb, var(--black) 80%, transparent);
+  --hero-card-background:
+    radial-gradient(80% 110% at 0% 0%, color-mix(in srgb, var(--cobalt-500) 18%, transparent), transparent 62%),
+    radial-gradient(70% 90% at 100% 100%, color-mix(in srgb, var(--violet-400) 14%, transparent), transparent 60%),
+    var(--glass-fill), var(--ink-900);
+  --hero-card-border: color-mix(in srgb, var(--cobalt-400) 40%, transparent);
+  --planned-rule: 2px dotted var(--violet-400);
+
+  /* Vivid object of the page: deep enough for white text everywhere on it */
+  --radius-bank-card: 20px;
+  --bank-card-background: linear-gradient(135deg, var(--cobalt-700) 0%, var(--cobalt-700) 40%, var(--violet-600) 100%);
+  --bank-card-border: color-mix(in srgb, var(--white) 22%, transparent);
+  --bank-card-shadow: 0 30px 60px -30px color-mix(in srgb, var(--cobalt-700) 70%, transparent);
+  --bank-card-text: var(--white);
+  --bank-card-pattern: linear-gradient(115deg, transparent 38%, color-mix(in srgb, var(--white) 8%, transparent) 50%, transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--white) 6%, transparent), transparent 40%);
+  --bank-card-chip: linear-gradient(135deg, color-mix(in srgb, var(--white) 80%, transparent), color-mix(in srgb, var(--ice-300) 60%, transparent));
+  --bank-card-status-background: color-mix(in srgb, var(--ink-950) 40%, transparent);
+
+  /* Meter as one continuous glass bar */
+  --tick-gap: 0;
+  --tick-height: 10px;
+  --tick-width: 100%;
+  --tick-radius: 0;
+  --ticks-radius: var(--radius-full);
+  --tick-empty: var(--haze-600);
+  --tick-on: var(--cobalt-400);
+
+  --radius-badge: var(--radius-sm);
+  --radius-chip: var(--radius-sm);
+  --chip-background: color-mix(in srgb, var(--haze-100) 4%, transparent);
+  --chip-border: color-mix(in srgb, var(--haze-100) 12%, transparent);
+  --chip-on-background: var(--cobalt-600);
+  --chip-on-border: var(--cobalt-400);
+  --chip-on-text: var(--white);
+
+  --radius-button: var(--radius-sm);
+  --radius-icon-button: var(--radius-md);
+  --button-height: 50px;
+  --button-padding-x: 1.375rem;
+  --button-primary-background: linear-gradient(180deg, var(--cobalt-600), var(--cobalt-700));
+  --button-primary-background-hover: linear-gradient(180deg, var(--cobalt-700), var(--cobalt-700));
+  --button-primary-text: var(--white);
+  --button-primary-border: color-mix(in srgb, var(--cobalt-300) 55%, transparent);
+  --button-primary-edge: inset 0 1px 0 color-mix(in srgb, var(--white) 30%, transparent);
+  --button-secondary-background: color-mix(in srgb, var(--haze-100) 6%, transparent);
+  --button-secondary-background-hover: color-mix(in srgb, var(--haze-100) 11%, transparent);
+  --button-secondary-border: color-mix(in srgb, var(--haze-100) 12%, transparent);
+  --button-secondary-edge: inset 0 1px 0 color-mix(in srgb, var(--haze-100) 10%, transparent);
+
+  /* Chart: the glowing line is this direction's data detail (reference 02) */
+  --chart-plot-background: transparent;
+  --chart-grid: color-mix(in srgb, var(--haze-100) 8%, transparent);
+  --chart-grid-dash: none;
+  --chart-real: var(--cobalt-400);
+  --chart-planned: var(--violet-400);
+  --chart-area: var(--cobalt-500);
+  --chart-area-opacity: 0.38;
+  --chart-line-width: 2.5px;
+  --chart-line-filter: drop-shadow(0 0 6px color-mix(in srgb, var(--glow-color) 90%, transparent));
+  --chart-today: var(--ice-300);
+  --tooltip-background: var(--ink-800);
+  --tooltip-border: color-mix(in srgb, var(--haze-100) 14%, transparent);
+
+  /* Rows as rounded glass tiles one step above the card, as in Kerf */
+  --tx-gap: 8px;
+  --radius-row: var(--radius-lg);
+  --row-background: color-mix(in srgb, var(--haze-100) 5%, transparent);
+  /* Lighter than --surface-hover: it stacks on the row fill and must keep
+     the subtle text at 4.5:1 (4.67:1 measured) */
+  --row-background-hover: color-mix(in srgb, var(--haze-100) 4%, transparent);
+  --row-border: transparent;
+  --row-height: 64px;
+  --avatar-size: 44px;
+  --radius-avatar: var(--radius-md);
+  --avatar-background: color-mix(in srgb, var(--haze-100) 7%, transparent);
+  --avatar-icon: var(--ice-300);
+
+  --field-height: 52px;
+  --radius-field: var(--radius-md);
+  --field-background: color-mix(in srgb, var(--ink-950) 55%, transparent);
+  --field-border: var(--haze-600);
+  --field-border-hover: var(--haze-300);
+  --field-border-focus: var(--ice-300);
+  --field-ring: color-mix(in srgb, var(--ice-300) 30%, transparent);
+
+  --radius-device: var(--radius-2xl);
+  --device-frame: linear-gradient(145deg, var(--ink-700), var(--ink-950));
+  --device-shadow: 0 40px 80px -40px color-mix(in srgb, var(--black) 85%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--haze-100) 12%, transparent);
+  --onboarding-background: var(--ink-950);
+  --onboarding-header: linear-gradient(165deg, var(--ice-300) 0%, var(--cobalt-500) 34%, var(--violet-600) 62%, var(--ink-950) 100%);
+  --onboarding-stripes: repeating-linear-gradient(112deg, transparent 0 12px, color-mix(in srgb, var(--black) 26%, transparent) 18px, transparent 22px);
+  --onboarding-status: var(--ink-950);
+
+  /* ---------- 4. Glow recipe (the formula is in ../shared/base.css): wide and soft, cobalt ----------
+     Placements: hero card, primary action, the real line of the chart.
+     The today point has no glow here, to stay at three. */
+
+  --glow-color: var(--cobalt-500);
+  --glow-blur: 44px;
+  --glow-spread: -6px;
+  --glow-opacity: 60%;
+  --glow-opacity-hover: 80%;
+  --glow-filter: none;
+
+  /* ---------- 5. Motion: fluid, a light spring overshoot, a blur that clears ----------
+     Motion (framer-motion) equivalents:
+       hover/colour   { duration: 0.16, ease: [0.22, 1, 0.36, 1] }
+       press          whileTap={{ scale: 0.97 }}, transition { type: "spring", stiffness: 190, damping: 20 }
+       entrance       from { opacity: 0, y: 16, filter: "blur(6px)" }, { duration: 0.72, ease: [0.22, 1, 0.36, 1] },
+                      stagger 0.07, viewport { once: true, amount: 0.12 } */
+
+  --duration-press: 100ms;
+  --duration-fast: 160ms;
+  --duration-base: 280ms;
+  --motion-enter-duration: 720ms;
+  --motion-chart-duration: 1200ms;
+  --motion-stagger: 70ms;
+  --motion-enter-distance: 16px;
+  --motion-enter-blur: 6px;
+  --motion-spin-duration: 900ms;
+  --press-scale: 0.97;
+  --press-scale-card: 0.99;
+  --nudge: 3px;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Spring stiffness 190, damping 20: settles in 767 ms, 3.5 % overshoot */
+  --motion-spring-duration: 767ms;
+  --ease-spring: linear(0, 0.035, 0.114, 0.218, 0.334, 0.451, 0.568, 0.668, 0.755, 0.829, 0.888, 0.936, 0.973, 0.999, 1.016, 1.027, 1.033, 1.035, 1.034, 1.032, 1.029, 1.025, 1.02, 1.016, 1.013, 1.009, 1.007, 1.004, 1.003, 1.001, 1, 1, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1);
+}

@@ -355,6 +355,22 @@ Verified in the T3 browser at 1440 and 375 px: no horizontal overflow, every tex
 
 Decisions for the owner: which direction to keep, if any; whether the new brand names (coined, trademarks not checked) are worth pursuing; the status colours, which the brand file does not define.
 
+## Reference landing (final proposal)
+
+`design-system-preview/reference/index.html` is the presentation landing kept as the visual reference for Demain. It is direction 3 (Vitre: cobalt and violet glass on ink, system font stack, rounded glass rows, transitions on every appearance and hover, no lift) applied to Demain, with the French copy of the product. Open it with the same local server as the rest, at `/reference/index.html`.
+
+| File | Content |
+| --- | --- |
+| `reference/tokens.css` | Copy of the Vitre tokens, so the reference does not depend on the exploration folders |
+| `reference/base.css`, `reference/preview.js` | Copies of the shared component anatomy and behaviour |
+| `reference/landing.css` | Sections only this page uses (overflow chain, rules card, feature cards, install block) |
+| `reference/index.html` | Hero with balance and deposit ceiling, real and planned chart with its data table, transactions, rules, feature status, simulation comparison, install |
+
+- The page is `noindex`: Demain is a private, authenticated app, so this is a design reference, not a marketing site. Figures are fictional.
+- Feature cards state what exists (badge "En place") and what is planned ("À venir"), taken from the README and the roadmap. Estimation figures appear only in the simulation card, labelled as such (ADR-011).
+- The brand colours follow it: see `brand/README.md` (Ink, Cobalt, Violet, Violet deep, Haze, Slate, with measured contrast). The logo geometry is unchanged; the dots are Violet, the stroke Haze on dark and Ink on light.
+- Not verified: other browsers, screen reader, axe or Lighthouse, motion playback in a visible tab.
+
 ## Accessibility
 
 Target is WCAG 2.2 AA, as in `docs/ARCHITECTURE.md`.
