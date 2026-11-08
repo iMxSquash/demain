@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cinq directions : comparaison du design system Demain</title>
+    <meta name="description" content="Comparaison des cinq propositions de design system sombres de Demain : Dawn, Kerf, Vitre, Ardent et Serac. Teinte, polices, glow, mesures de contraste et lien vers chaque page." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="../assets/demain-icon.svg" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --page: #0b0c10;
+        --raised: #12131a;
+        --line: rgb(255 255 255 / 0.09);
+        --text: #f4f4f2;
+        --muted: #b9bac4;
+        --subtle: #8e8f9b;
+        --focus: #f4f4f2;
+        --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        --gutter: clamp(1rem, 0.5rem + 2.2222vw, 2.5rem);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--text);
+        font-family: var(--font);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      p,
+      ol,
+      ul,
+      dl,
+      dd {
+        margin: 0;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: absolute;
+        left: 1rem;
+        top: 1rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--raised);
+        border-radius: 12px;
+        transform: translateY(-200%);
+      }
+
+      .skip-link:focus-visible {
+        transform: none;
+      }
+
+      .container {
+        width: min(100% - 2 * var(--gutter), 1120px);
+        margin-inline: auto;
+      }
+
+      header {
+        padding-block: clamp(3rem, 2rem + 4vw, 5.5rem) clamp(2rem, 1.5rem + 2vw, 3.5rem);
+        display: grid;
+        gap: 1rem;
+      }
+
+      .eyebrow {
+        color: var(--subtle);
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      h1 {
+        font-size: clamp(2.25rem, 1.6rem + 2.8vw, 3.75rem);
+        line-height: 1.04;
+        letter-spacing: -0.035em;
+        font-weight: 600;
+        max-width: 18ch;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: clamp(1.0625rem, 1rem + 0.28vw, 1.25rem);
+        max-width: 40rem;
+      }
+
+      .directions {
+        list-style: none;
+        padding: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .direction {
+        display: grid;
+        gap: 1.25rem 2.5rem;
+        padding-block: clamp(1.75rem, 1.4rem + 1.5vw, 2.75rem);
+        border-bottom: 1px solid var(--line);
+      }
+
+      @media (min-width: 56rem) {
+        .direction {
+          grid-template-columns: 15rem 1fr;
+        }
+      }
+
+      .direction__brand {
+        display: grid;
+        gap: 0.75rem;
+        align-content: start;
+      }
+
+      .direction__brand img {
+        height: 30px;
+        width: auto;
+      }
+
+      .direction__number {
+        color: var(--subtle);
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      .palette {
+        display: flex;
+        list-style: none;
+        padding: 0;
+        height: 0.75rem;
+        border-radius: 999px;
+        overflow: hidden;
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+
+      .palette li {
+        flex: 1;
+      }
+
+      .palette li.is-accent {
+        flex: 2.2;
+      }
+
+      .direction__body {
+        display: grid;
+        gap: 1rem;
+      }
+
+      h2 {
+        font-size: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+        gap: 0.75rem 1.5rem;
+        font-size: 0.9375rem;
+      }
+
+      .facts dt {
+        color: var(--subtle);
+        font-size: 0.8125rem;
+      }
+
+      .facts dd {
+        color: var(--muted);
+      }
+
+      .recommendation {
+        padding-left: 1rem;
+        border-left: 2px solid var(--direction-accent);
+        max-width: 48rem;
+      }
+
+      .open {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        padding-inline: 1.25rem;
+        justify-self: start;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 0.07);
+        border: 1px solid var(--line);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .open:hover {
+        background: rgb(255 255 255 / 0.12);
+      }
+
+      .open svg {
+        width: 16px;
+        height: 16px;
+        transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .open:hover svg {
+        transform: translateX(3px);
+      }
+
+      footer {
+        padding-block: 2.5rem;
+        color: var(--subtle);
+        font-size: 0.875rem;
+      }
+
+      footer .container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      footer a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+    <main id="main">
+      <header class="container">
+        <p class="eyebrow">Design system Demain · exploration, rien n'est adopté</p>
+        <h1>Cinq directions sombres, côte à côte</h1>
+        <p class="lead">
+          Chaque page montre exactement le même contenu fictif : solde et carte, graphique avec tableau de données,
+          opérations, formulaire avec ses états, boutons, badges et écran d'accueil mobile. La première respecte la
+          marque actuelle ; les quatre autres sont de nouvelles marques. Les mesures citées viennent des tokens et
+          du navigateur.
+        </p>
+      </header>
+
+      <ol class="directions container" role="list">
+        <li class="direction" style="--direction-accent: #db6430">
+          <div class="direction__brand">
+            <span class="direction__number">Proposition 1, marque existante</span>
+            <img src="../assets/demain-horizontal-reversed.svg" alt="Demain" width="150" height="30" />
+            <ul class="palette" role="img" aria-label="Palette : Night profond, Night, Paper, Dawn, Dawn clair">
+              <li style="background: #0b0c18"></li><li style="background: #1c1e3a"></li><li style="background: #f7f4ee"></li><li class="is-accent" style="background: #db6430"></li><li style="background: #f5a27a"></li>
+            </ul>
+          </div>
+          <div class="direction__body">
+            <h2>Dawn : la marque actuelle, avec un glow dérivé de Dawn</h2>
+            <dl class="facts">
+              <div><dt>Teinte</dt><dd>Dawn #DB6430 sur Night profond, aucune nouvelle teinte d'accent</dd></div>
+              <div><dt>Polices</dt><dd>Pile système de la marque, 400 et 600, 0 Ko téléchargé</dd></div>
+              <div><dt>Glow</dt><dd>Dawn, 32 px, opacité 50 %</dd></div>
+              <div><dt>Texte le plus faible mesuré</dt><dd>4,75:1 (texte discret au coin cuivré de la carte héros)</dd></div>
+            </dl>
+            <p class="recommendation">À retenir si la marque doit rester intacte : rien à télécharger, aucune teinte nouvelle, et la règle « Dawn veut dire prévu » est conservée telle quelle.</p>
+            <a class="open" href="01-dawn/index.html">Ouvrir Dawn<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+          </div>
+        </li>
+
+        <li class="direction" style="--direction-accent: #d4ff3a">
+          <div class="direction__brand">
+            <span class="direction__number">Proposition 2, nouvelle marque</span>
+            <img src="02-kerf/wordmark.svg" alt="Kerf" width="120" height="30" />
+            <ul class="palette" role="img" aria-label="Palette : graphite, graphite clair, pierre, lime, bleu signal">
+              <li style="background: #101110"></li><li style="background: #2a2b28"></li><li style="background: #f3f4ee"></li><li class="is-accent" style="background: #d4ff3a"></li><li style="background: #7c9cff"></li>
+            </ul>
+          </div>
+          <div class="direction__body">
+            <h2>Kerf : lime sur graphite, dense et compté au centime</h2>
+            <dl class="facts">
+              <div><dt>Teinte</dt><dd>Lime #D4FF3A sur graphite #101110, d'après l'inspiration 01</dd></div>
+              <div><dt>Polices</dt><dd>Schibsted Grotesk et Martian Mono pour les chiffres, 60 Ko</dd></div>
+              <div><dt>Glow</dt><dd>Lime, 28 px, opacité 38 %, le plus serré</dd></div>
+              <div><dt>Texte le plus faible mesuré</dt><dd>4,60:1 (texte discret au coin lime de la carte héros)</dd></div>
+            </dl>
+            <p class="recommendation">Pour un outil consulté chaque jour : la police dédiée la plus légère, des chiffres monospace qui s'alignent sans effort, et l'accent le plus contrasté (16,4:1 sur le fond).</p>
+            <a class="open" href="02-kerf/index.html">Ouvrir Kerf<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+          </div>
+        </li>
+
+        <li class="direction" style="--direction-accent: #3360ff">
+          <div class="direction__brand">
+            <span class="direction__number">Proposition 3, nouvelle marque</span>
+            <img src="03-vitre/wordmark.svg" alt="Vitre" width="130" height="30" />
+            <ul class="palette" role="img" aria-label="Palette : encre, encre claire, brume, cobalt, violet">
+              <li style="background: #05061a"></li><li style="background: #1d2042"></li><li style="background: #f4f5ff"></li><li class="is-accent" style="background: #3360ff"></li><li style="background: #a08cff"></li>
+            </ul>
+          </div>
+          <div class="direction__body">
+            <h2>Vitre : cobalt et violet en verre dépoli sur encre</h2>
+            <dl class="facts">
+              <div><dt>Teinte</dt><dd>Cobalt #3360FF et violet #A08CFF sur encre #05061A, d'après l'inspiration 02</dd></div>
+              <div><dt>Polices</dt><dd>Mona Sans variable, titres élargis à 112 %, 98 Ko</dd></div>
+              <div><dt>Glow</dt><dd>Cobalt, 44 px, opacité 60 %, le plus intense ; la ligne du graphique brille</dd></div>
+              <div><dt>Texte le plus faible mesuré</dt><dd>4,85:1 (texte discret au coin bleu de la carte héros, après correction)</dd></div>
+            </dl>
+            <p class="recommendation">Pour l'effet le plus spectaculaire : le verre et le glow les plus forts des cinq, au prix de surfaces translucides à surveiller sur chaque nouvel écran.</p>
+            <a class="open" href="03-vitre/index.html">Ouvrir Vitre<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+          </div>
+        </li>
+
+        <li class="direction" style="--direction-accent: #e0359a">
+          <div class="direction__brand">
+            <span class="direction__number">Proposition 4, nouvelle marque</span>
+            <img src="04-ardent/wordmark.svg" alt="Ardent" width="170" height="30" />
+            <ul class="palette" role="img" aria-label="Palette : aubergine, aubergine claire, blush, magenta, ambre">
+              <li style="background: #0e080f"></li><li style="background: #2b1f2e"></li><li style="background: #fcf3f5"></li><li class="is-accent" style="background: #e0359a"></li><li style="background: #f6a430"></li>
+            </ul>
+          </div>
+          <div class="direction__body">
+            <h2>Ardent : magenta vers ambre sur aubergine presque noire</h2>
+            <dl class="facts">
+              <div><dt>Teinte</dt><dd>Magenta #E0359A vers ambre #F6A430 sur aubergine #0E080F, d'après l'inspiration 03</dd></div>
+              <div><dt>Polices</dt><dd>Archivo variable, titres 800 étendus à 125 %, 90 Ko</dd></div>
+              <div><dt>Glow</dt><dd>Magenta, 36 px, opacité 55 %</dd></div>
+              <div><dt>Texte le plus faible mesuré</dt><dd>4,55:1 (texte discret au coin magenta de la carte héros)</dd></div>
+            </dl>
+            <p class="recommendation">Pour la personnalité la plus chaude : titres massifs et ressort visible (9,5 % de dépassement) ; le bouton doit rester sur un magenta sombre pour garder le texte blanc à 5,55:1.</p>
+            <a class="open" href="04-ardent/index.html">Ouvrir Ardent<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+          </div>
+        </li>
+
+        <li class="direction" style="--direction-accent: #78f0c8">
+          <div class="direction__brand">
+            <span class="direction__number">Proposition 5, nouvelle marque</span>
+            <img src="05-serac/wordmark.svg" alt="Serac" width="150" height="30" />
+            <ul class="palette" role="img" aria-label="Palette : noir froid, ardoise, glacier, menthe, cyan">
+              <li style="background: #06090b"></li><li style="background: #1b252a"></li><li style="background: #ecf5f4"></li><li class="is-accent" style="background: #78f0c8"></li><li style="background: #3fc6ee"></li>
+            </ul>
+          </div>
+          <div class="direction__body">
+            <h2>Serac : menthe glacée et cyan sur noir froid, chiffres en serif</h2>
+            <dl class="facts">
+              <div><dt>Teinte</dt><dd>Menthe #78F0C8 et cyan #3FC6EE sur noir froid #06090B</dd></div>
+              <div><dt>Polices</dt><dd>Newsreader pour titres et chiffres, Atkinson Hyperlegible Next pour le texte, 157 Ko</dd></div>
+              <div><dt>Glow</dt><dd>Menthe, 40 px, opacité 35 %, le plus discret</dd></div>
+              <div><dt>Texte le plus faible mesuré</dt><dd>4,94:1, la meilleure marge des cinq</dd></div>
+            </dl>
+            <p class="recommendation">Pour une lecture posée sur la durée : la plus aérée et la meilleure marge de contraste, avec le mouvement le plus lent (860 ms) et les polices les plus lourdes.</p>
+            <a class="open" href="05-serac/index.html">Ouvrir Serac<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></a>
+          </div>
+        </li>
+      </ol>
+    </main>
+    <footer>
+      <div class="container">
+        <p>Données entièrement fictives. Polices sous SIL OFL 1.1, icônes Phosphor sous licence MIT, tout est servi en local.</p>
+        <a href="../index.html">Aperçu du design system actuel</a>
+      </div>
+    </footer>
+  </body>
+</html>
