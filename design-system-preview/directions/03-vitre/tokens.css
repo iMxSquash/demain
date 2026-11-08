@@ -220,9 +220,13 @@
   --tooltip-background: var(--ink-800);
   --tooltip-border: color-mix(in srgb, var(--haze-100) 14%, transparent);
 
-  --tx-gap: 0;
+  /* Rows as rounded glass tiles one step above the card, as in Kerf */
+  --tx-gap: 8px;
   --radius-row: var(--radius-lg);
-  --row-background: transparent;
+  --row-background: color-mix(in srgb, var(--haze-100) 5%, transparent);
+  /* Lighter than --surface-hover: it stacks on the row fill and must keep
+     the subtle text at 4.5:1 (4.67:1 measured) */
+  --row-background-hover: color-mix(in srgb, var(--haze-100) 4%, transparent);
   --row-border: transparent;
   --row-height: 64px;
   --avatar-size: 44px;

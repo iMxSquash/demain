@@ -46,6 +46,7 @@ Violet is used here because the brief asks for it, against the taste skill's "no
 - Hero card: an 18 % cobalt light top left and a 14 % violet light bottom right.
 - Bank card (the vivid object, like the insight card of 02): cobalt 700 to violet 600, with an 8 % sheen band and a 6 % top light.
 - Onboarding header: ice, cobalt, violet 600, ink, with stripes.
+- Transaction rows: rounded 16 px glass tiles (haze 5 %) 8 px apart, hover at haze 4 % with the same radius (subtle text 4.67:1 on hover), taken from Kerf at the owner's request.
 
 ### Contrast on solid backgrounds
 

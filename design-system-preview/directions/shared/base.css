@@ -19,6 +19,7 @@
   --planned-mark-width: 2px;
   --row-divider: transparent;
   --avatar-border: transparent;
+  --row-background-hover: var(--surface-hover);
 }
 
 *,
@@ -1056,7 +1057,7 @@ th.num {
 }
 
 .tx summary:hover {
-  background: var(--surface-hover);
+  background: var(--row-background-hover);
 }
 
 .tx summary:active {
