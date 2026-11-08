@@ -148,6 +148,10 @@ function readMotion() {
     springMs: ms("--motion-spring-duration", 600),
     enterMs: ms("--motion-enter-duration", 600),
     staggerMs: ms("--motion-stagger", 60),
+    baseMs: ms("--duration-base", 260),
+    // Exits run at 75 % of the entrance, so closing feels responsive.
+    exitMs: ms("--duration-base", 260) * 0.75,
+    nudge: token("--nudge", "2px"),
     distance: token("--motion-enter-distance", "12px"),
     blur: token("--motion-enter-blur", "0px"),
     standard: token("--ease-standard", "ease-out"),
@@ -241,25 +245,107 @@ function setupChart(motion) {
   return { svg, play: () => animateChart(svg, motion) };
 }
 
-function setupToggles() {
+// Fades the given elements out, runs the change, then fades them back in, so
+// a swapped value or label never changes instantly.
+function crossfade(elements, motion, change) {
+  if (!motion || elements.length === 0) {
+    change();
+    return;
+  }
+  const half = motion.baseMs / 2;
+  const out = elements.map((el) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: half, easing: motion.standard, fill: "forwards" }));
+  out[0].finished.then(() => {
+    change();
+    out.forEach((a) => a.cancel());
+    for (const el of elements) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: half, easing: motion.standard });
+  }, () => {
+    // Rejected only when the fade-out is cancelled by a newer click, which
+    // starts its own crossfade: nothing to do here.
+  });
+}
+
+function setupToggles(motion) {
   for (const button of document.querySelectorAll("[data-toggle]")) {
     const target = document.getElementById(button.getAttribute("aria-controls"));
     const stateClass = button.dataset.toggle;
     button.addEventListener("click", () => {
       const pressed = button.getAttribute("aria-pressed") !== "true";
       button.setAttribute("aria-pressed", String(pressed));
-      target?.classList.toggle(stateClass, pressed);
-      const status = target?.querySelector("[data-status-text]");
-      if (status) status.textContent = pressed ? status.dataset.on : status.dataset.off;
+      const status = target.querySelector("[data-status-text]");
+      crossfade([...target.querySelectorAll("[data-fade]")], motion, () => {
+        target.classList.toggle(stateClass, pressed);
+        if (status) status.textContent = pressed ? status.dataset.on : status.dataset.off;
+      });
     });
   }
 }
 
-function setupFilters() {
+// details elements open and close by animating their height; the content
+// fades in on open. Without motion they keep the native instant toggle.
+function setupDisclosures(motion) {
+  if (!motion) return;
+  for (const details of document.querySelectorAll("details.tx, details.data-table")) {
+    const summary = details.querySelector(":scope > summary");
+    const content = summary.nextElementSibling;
+    let isOpen = details.open;
+    let running = null;
+    summary.addEventListener("click", (event) => {
+      event.preventDefault();
+      const start = details.offsetHeight;
+      running?.cancel();
+      isOpen = !isOpen;
+      details.open = true;
+      const border = details.offsetHeight - details.clientHeight;
+      const end = isOpen ? details.offsetHeight : summary.offsetHeight + border;
+      const duration = isOpen ? motion.baseMs : motion.exitMs;
+      details.style.overflow = "hidden";
+      running = details.animate([{ height: `${start}px` }, { height: `${end}px` }], { duration, easing: motion.standard });
+      content.animate(
+        isOpen
+          ? [{ opacity: 0, transform: `translateY(calc(-1 * ${motion.nudge}))` }, { opacity: 1, transform: "none" }]
+          : [{ opacity: 1 }, { opacity: 0 }],
+        { duration, easing: motion.standard, fill: isOpen ? "none" : "forwards" },
+      );
+      running.onfinish = () => {
+        details.style.overflow = "";
+        if (!isOpen) details.open = false;
+        for (const a of content.getAnimations()) a.cancel();
+        running = null;
+      };
+    });
+  }
+}
+
+// Rows leaving the filter collapse and fade, rows entering grow back, instead
+// of appearing or disappearing at once.
+function showItem(item, visible, motion, gap) {
+  if (!motion) {
+    item.hidden = !visible;
+    return;
+  }
+  if (visible === !item.hidden && !item.getAnimations().length) return;
+  for (const a of item.getAnimations()) a.cancel();
+  item.hidden = false;
+  const height = item.offsetHeight;
+  const shown = { height: `${height}px`, opacity: 1, marginBottom: "0px" };
+  const gone = { height: "0px", opacity: 0, marginBottom: `-${gap}px` };
+  item.style.overflow = "hidden";
+  const animation = item.animate(visible ? [gone, shown] : [shown, gone], {
+    duration: visible ? motion.baseMs : motion.exitMs,
+    easing: motion.standard,
+  });
+  animation.onfinish = () => {
+    item.style.overflow = "";
+    item.hidden = !visible;
+  };
+}
+
+function setupFilters(motion) {
   const group = document.querySelector("[data-filter-group]");
   if (!group) return;
   const list = document.getElementById(group.getAttribute("aria-controls"));
   const live = document.querySelector("[data-filter-count]");
+  const gap = parseFloat(getComputedStyle(list).rowGap) || 0;
   for (const chip of group.querySelectorAll("[data-filter]")) {
     chip.addEventListener("click", () => {
       for (const other of group.querySelectorAll("[data-filter]")) other.setAttribute("aria-pressed", String(other === chip));
@@ -267,7 +353,7 @@ function setupFilters() {
       let count = 0;
       for (const item of list.children) {
         const visible = filter === "all" || item.dataset.kind === filter;
-        item.hidden = !visible;
+        showItem(item, visible, motion, gap);
         if (visible) count++;
       }
       if (live) live.textContent = `${count} opération${count > 1 ? "s" : ""} affichée${count > 1 ? "s" : ""}`;
@@ -275,19 +361,27 @@ function setupFilters() {
   }
 }
 
-function setupForm() {
+function setupForm(motion) {
   const form = document.querySelector("[data-demo-form]");
   if (!form) return;
   const status = form.querySelector("[data-form-status]");
+  const announce = (text) => {
+    status.textContent = text;
+    if (!motion) return;
+    status.animate([{ opacity: 0, transform: `translateY(${motion.nudge})` }, { opacity: 1, transform: "none" }], {
+      duration: motion.baseMs,
+      easing: motion.standard,
+    });
+  };
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const invalid = form.querySelector('[aria-invalid="true"]');
     if (invalid) {
       invalid.focus();
-      status.textContent = "Une erreur empêche l'enregistrement : corrigez la date.";
+      announce("Une erreur empêche l'enregistrement : corrigez la date.");
       return;
     }
-    status.textContent = "Opération enregistrée (démonstration, rien n'est envoyé).";
+    announce("Opération enregistrée (démonstration, rien n'est envoyé).");
   });
 }
 
@@ -330,8 +424,9 @@ if (isBrowser) {
   // null under reduced motion: every animation is skipped.
   const motion = reduced ? null : readMotion();
   const chart = setupChart(motion);
-  setupToggles();
-  setupFilters();
-  setupForm();
+  setupToggles(motion);
+  setupDisclosures(motion);
+  setupFilters(motion);
+  setupForm(motion);
   setupEntrance(motion, chart);
 }

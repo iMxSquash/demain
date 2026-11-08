@@ -127,7 +127,7 @@ Fluid: `cubic-bezier(0.22, 1, 0.36, 1)`, a soft spring with 3.5 % overshoot, ent
 | Chart | real line drawn in 1200 ms, area fades in, planned line and dots after, today's point springs in, one halo pulse |
 | Spring | stiffness 190, damping 20, mass 1: settles in 767 ms, 3.5 % overshoot; sampled into a CSS `linear()` easing (`--ease-spring`) |
 
-Micro-interactions (nothing lifts on hover): buttons and chips press to the scale above and return on the spring; a trailing arrow nudges 3 px on hover; the primary button's glow rises to the hover opacity; transaction rows (native `details`) brighten on hover without moving, press slightly, and open their detail with a short fade and rise. Only `transform`, `opacity` and colours are animated (the entrance blur is the one `filter`).
+Micro-interactions (nothing lifts on hover, nothing appears or disappears instantly): every hover is a transition (colour, border, inset layer or opacity); the primary button's hover background is a layer that fades in, because gradients cannot be interpolated, and its glow rises to the hover opacity; buttons and chips press to the scale above and return on the spring; a trailing arrow nudges 3 px sideways on hover; a chip's check grows in when pressed. Transaction rows (native `details`) brighten as a whole tile on hover and the whole tile, open or closed, presses to 0.99. Rows and the data table open and close by animating their height (280 ms, closing at 75 %), the content fading in; filtered rows collapse and fade out or grow back; the masked balance and the card status cross-fade; the form message fades in. Only `transform`, `opacity` and colours are animated (the entrance blur is the one `filter`).
 
 Motion (framer-motion) equivalent, documented only (not installed):
 

@@ -645,7 +645,6 @@ a {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
   min-height: var(--target-min);
   padding-inline: var(--space-4);
   border-radius: var(--radius-chip);
@@ -679,13 +678,27 @@ a {
   color: var(--chip-on-text);
 }
 
-.chip[aria-pressed="true"]::before {
+/* The check is always there and grows in, with its spacing, so pressing a
+   chip never makes it appear or disappear instantly. */
+.chip::before {
   content: "";
-  width: var(--icon-sm);
+  width: 0;
   height: var(--icon-sm);
+  margin-right: 0;
+  opacity: 0;
   background-color: currentColor;
   -webkit-mask: var(--icon-check) center / contain no-repeat;
   mask: var(--icon-check) center / contain no-repeat;
+  transition:
+    width var(--duration-base) var(--ease-standard),
+    margin-right var(--duration-base) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
+}
+
+.chip[aria-pressed="true"]::before {
+  width: var(--icon-sm);
+  margin-right: var(--space-2);
+  opacity: 1;
 }
 
 /* ---------- Buttons ---------- */
@@ -729,14 +742,30 @@ a {
 }
 
 .btn--primary {
+  position: relative;
+  isolation: isolate;
   background: var(--button-primary-background);
   color: var(--button-primary-text);
   border-color: var(--button-primary-border);
   box-shadow: var(--button-primary-edge);
 }
 
-.btn--primary:hover:not(:disabled) {
+/* Gradients cannot be interpolated, so the hover background is a layer that
+   fades in under the label instead of a background swap. */
+.btn--primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
   background: var(--button-primary-background-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.btn--primary:hover:not(:disabled, [aria-busy="true"])::after {
+  opacity: 1;
 }
 
 .btn--primary[data-glow] {
@@ -968,6 +997,7 @@ a {
   color: var(--link);
   font-size: var(--text-small);
   font-weight: var(--weight-label);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .data-table summary:hover {
@@ -1031,10 +1061,25 @@ th.num {
   gap: var(--tx-gap);
 }
 
+/* Hover and press act on the whole tile, open or closed. The hover is an
+   inset shadow so it follows the radius and its colour can transition. */
 .tx {
   border-radius: var(--radius-row);
   background: var(--row-background);
   border: var(--hairline) solid var(--row-border);
+  box-shadow: inset 0 0 0 100vmax transparent;
+  transition:
+    box-shadow var(--duration-fast) var(--ease-standard),
+    transform var(--motion-spring-duration) var(--ease-spring);
+}
+
+.tx:has(> summary:hover) {
+  box-shadow: inset 0 0 0 100vmax var(--row-background-hover);
+}
+
+.tx:has(> summary:active) {
+  transform: scale(var(--press-scale-card));
+  transition-duration: var(--duration-fast), var(--duration-press);
 }
 
 .tx summary {
@@ -1045,26 +1090,14 @@ th.num {
   min-height: var(--row-height);
   padding: var(--space-2) var(--space-3);
   /* Not "inherit": Chrome slots the summary inside the details shadow tree,
-     so it would inherit the slot's 0 radius and the hover would be square. */
+     so it would inherit the slot's 0 radius; the focus ring needs the row's. */
   border-radius: var(--radius-row);
   cursor: pointer;
   list-style: none;
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    transform var(--motion-spring-duration) var(--ease-spring);
 }
 
 .tx summary::-webkit-details-marker {
   display: none;
-}
-
-.tx summary:hover {
-  background: var(--row-background-hover);
-}
-
-.tx summary:active {
-  transform: scale(var(--press-scale-card));
-  transition-duration: var(--duration-press);
 }
 
 .tx__avatar {
@@ -1131,17 +1164,6 @@ th.num {
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4) var(--space-4) calc(var(--avatar-size) + var(--space-3) * 2);
   font-size: var(--text-small);
-}
-
-.tx[open] .tx__more {
-  animation: tx-open var(--duration-base) var(--ease-enter);
-}
-
-@keyframes tx-open {
-  from {
-    opacity: 0;
-    transform: translateY(calc(-1 * var(--nudge) * 2));
-  }
 }
 
 .tx__more div {
