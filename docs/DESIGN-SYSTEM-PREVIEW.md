@@ -339,7 +339,7 @@ Open `http://127.0.0.1:4173/directions/index.html` (server command in [How to vi
 | --- | --- | --- | --- | --- |
 | `01-dawn/` | Dawn, the existing brand | Dawn on Night deep, glow and gradients derived from Dawn only | System stack of the brand file, 0 KB | Regular |
 | `02-kerf/` | Kerf, new brand | Lime on graphite, after 01 | Schibsted Grotesk, Martian Mono for figures, 60 KB | Regular |
-| `03-vitre/` | Vitre, new brand | Cobalt and violet frosted glass on ink, after 02 | Mona Sans variable, 98 KB | Light |
+| `03-vitre/` | Vitre, new brand | Cobalt and violet frosted glass on ink, after 02 | System stack of the brand file, 0 KB | Light |
 | `04-ardent/` | Ardent, new brand | Magenta to amber on near-black aubergine, after 03 | Archivo variable, 90 KB | Duotone |
 | `05-serac/` | Serac, new brand | Glacial mint and cyan on cold black, serif figures | Newsreader, Atkinson Hyperlegible Next, 157 KB | Light |
 

@@ -2,17 +2,9 @@
    Cobalt and violet frosted glass on ink, after reference 02: translucent
    cards told apart by a hairline and a top highlight, a vivid cobalt primary
    action, a glowing chart line over a fading area, one vivid gradient object
-   (the bank card, like the insight card of 02).
+   (the bank card, like the insight card of 02). Type: the system stack of
+   the brand file, as in direction 01.
    Layers: 1 primitives, 2 semantic, 3 component, 4 glow, 5 motion. */
-
-@font-face {
-  font-family: "Mona Sans";
-  src: url("../../assets/fonts/mona-sans/mona-sans-latin-standard-normal.woff2") format("woff2-variations");
-  font-weight: 200 900;
-  font-stretch: 75% 125%;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
   /* ---------- 1. Primitives ---------- */
@@ -54,7 +46,8 @@
   --radius-2xl: 44px;
   --radius-full: 999px;
 
-  --family-mona: "Mona Sans", ui-sans-serif, sans-serif;
+  /* The system stack of brand/README.md: no font file */
+  --family-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* ---------- 2. Semantic ---------- */
 
@@ -89,19 +82,17 @@
   --disabled-background: color-mix(in srgb, var(--haze-100) 5%, transparent);
   --disabled-text: var(--haze-500);
 
-  --font-display: var(--family-mona);
-  --font-text: var(--family-mona);
-  --font-figures: var(--family-mona);
-  --font-eyebrow: var(--family-mona);
+  --font-display: var(--family-sans);
+  --font-text: var(--family-sans);
+  --font-figures: var(--family-sans);
+  --font-eyebrow: var(--family-sans);
   --weight-text: 400;
-  --weight-label: 560;
-  --weight-display: 500;
-  --weight-title: 520;
-  --weight-figures: 360;
-  /* Big figures in a light weight, as on the portfolio value of reference 02 */
-  --weight-figure-xl: 300;
+  --weight-label: 600;
+  --weight-display: 600;
+  --weight-title: 600;
+  --weight-figures: 400;
   --weight-button: 600;
-  --stretch-display: 112%;
+  --stretch-display: normal;
   --stretch-figures: 100%;
   --figures-features: "tnum" 1;
 

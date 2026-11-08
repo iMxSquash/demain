@@ -91,10 +91,10 @@ Text placed on a gradient is measured against the stop where it is weakest (dark
 
 ## Typography
 
-- **Pairing**: Mona Sans (variable) alone: titles at weight 500 and 112 % width, text at 400, large figures at 300. One variable family gives the airy, wide geometry of reference 02 and its light big numbers from a single file.
-- **Scale**: display 40 to 72 px, title 26 to 38 px, figures 44 to 76 px at weight 300.
-- **Licence and files**: SIL OFL 1.1, `assets/fonts/mona-sans/` with `OFL.txt`, Fontsource variable 5.3.0 (weight 200 to 900, width 75 to 125 %).
-- **Payload**: 98.1 KB.
+- **Pairing**: the system stack of the brand file, as in direction 01 (`ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`), weights 400 and 600, `tabular-nums` on every amount. Chosen by the owner over a dedicated font (Mona Sans was tried first). A stack has no variable width and only two reliable weights, so the wide titles and light figures of the first version are gone.
+- **Scale**: display 40 to 72 px, title 26 to 38 px, figures 44 to 76 px at weight 400.
+- **Payload**: 0 KB, no font file.
+- **Trade-off**: renders as SF Pro on Apple devices, Segoe UI on Windows; only macOS was seen.
 
 ## Icons
 
@@ -162,7 +162,7 @@ Measured in the T3 Code integrated browser (Chromium, macOS), page served on loo
 - Glow: at most 3 elements carrying `data-glow` intersect any 900 px tall viewport (sampled every 100 px), 2 at 375 px.
 - Every button, link, summary and field is at least 44 x 44 px (radio inputs excluded: their 44 px target is the label).
 - Focus: `:focus-visible` draws a 2 px ice outline, offset 2 px.
-- Fonts actually loaded (`document.fonts`, status `loaded`): Mona Sans 200 to 900. Tabular figures checked: "111111" and "000000" render at the same width in the figures font.
+- Fonts actually loaded (`document.fonts`, status `loaded`): none, the system stack is used (computed family `ui-sans-serif`). Tabular figures checked: "111111" and "000000" render at the same width in the figures font.
 - Network: every resource is served by the loopback origin; no request to another host, no CDN, no web font service.
 - Console: the page was reloaded in a same-origin iframe with an error and `console.error`/`console.warn` recorder injected before any script, then the range chips, the transaction filter, the card freeze, the balance mask and the form submit were clicked: no entry.
 - Interactions: the filter leaves 1 row for "Prévu" and updates the live count; submitting the form moves focus to the invalid date field and writes the error in the status region.
