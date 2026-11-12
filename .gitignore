@@ -47,3 +47,6 @@ Thumbs.db
 
 # Playwright MCP session output
 .playwright-mcp/
+
+# Third-party reference screenshots of the design exploration, kept local
+design-system-preview/inspiration/
