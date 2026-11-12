@@ -1,0 +1,140 @@
+/*
+ * Demain identity for Tailwind CSS v4: the entry stylesheet of the app (it replaces
+ * src/app/globals.css). tokens.css stays the only place where a value is written; this
+ * file only tells Tailwind which names exist, so `bg-surface` compiles to
+ * `background-color: var(--color-surface)` and follows the light and dark themes.
+ *
+ * `@theme inline reference` is what makes that possible: `reference` keeps Tailwind from
+ * declaring the variables again (they would point at themselves), `inline` makes each
+ * utility read the token directly. Every token is therefore always declared, including
+ * those that only CSS modules read, such as the chart colours.
+ */
+
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* The theme is chosen on the server from the `theme` cookie: `data-theme="light"` or
+   `"dark"` on <html>, nothing for the system setting. The semantic tokens already switch,
+   so `dark:` should almost never be needed; it follows the same rule as tokens.css. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+}
+
+@theme inline reference {
+  /* Only identity values compile: a default palette colour, size, weight, radius or
+     shadow is an error to fix, not a choice. */
+  --color-*: initial;
+  --font-*: initial;
+  --font-weight-*: initial;
+  --text-*: initial;
+  --leading-*: initial;
+  --tracking-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-sunken: var(--color-surface-sunken);
+  --color-control: var(--color-control);
+  --color-control-hover: var(--color-control-hover);
+  --color-divider: var(--color-divider);
+  --color-border-control: var(--color-border-control);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-on-primary: var(--color-on-primary);
+  --color-accent: var(--color-accent);
+  --color-on-accent: var(--color-on-accent);
+  --color-accent-tint: var(--color-accent-tint);
+  --color-positive: var(--color-positive);
+  --color-positive-tint: var(--color-positive-tint);
+  --color-negative: var(--color-negative);
+  --color-negative-tint: var(--color-negative-tint);
+  --color-warning: var(--color-warning);
+  --color-warning-tint: var(--color-warning-tint);
+  --color-danger: var(--color-danger);
+  --color-on-danger: var(--color-on-danger);
+  --color-focus: var(--color-focus);
+  --color-backdrop: var(--color-backdrop);
+
+  --font-sans: var(--font-sans);
+  /* No monospace face: `font-mono` sets the text face, whose figures are already tabular (owner, 12 Nov 2026) */
+  --font-mono: var(--font-sans);
+
+  --font-weight-regular: var(--weight-regular);
+  --font-weight-medium: var(--weight-medium);
+  --font-weight-bold: var(--weight-bold);
+
+  /* Each size carries the line height and tracking the previews pair it with. */
+  --text-label: var(--text-label);
+  --text-label--line-height: var(--leading-normal);
+  --text-label--letter-spacing: var(--tracking-label);
+  --text-caption: var(--text-caption);
+  --text-caption--line-height: var(--leading-normal);
+  --text-body: var(--text-body);
+  --text-body--line-height: var(--leading-normal);
+  --text-title: var(--text-title);
+  --text-title--line-height: var(--leading-normal);
+  --text-title--letter-spacing: var(--tracking-tight);
+  --text-heading: var(--text-heading);
+  --text-heading--line-height: var(--leading-tight);
+  --text-heading--letter-spacing: var(--tracking-tight);
+  --text-amount: var(--text-amount);
+  --text-amount--line-height: var(--leading-tight);
+  --text-amount--letter-spacing: var(--tracking-tight);
+  --text-display: var(--text-display);
+  --text-display--line-height: var(--leading-tight);
+  --text-display--letter-spacing: var(--tracking-tight);
+
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --radius-tile: var(--radius-tile);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-overlay: var(--shadow-overlay);
+  --shadow-raised: var(--shadow-raised);
+
+  /* Spacing is not mapped: Tailwind's 0.25rem step is the 4 px grid, so `p-6` is
+     --space-6 (24 px) and `min-h-11` is --target-min (44 px). */
+}
+
+/* The holographic blur sits behind its content on a pseudo-element, as on the board. */
+@utility holo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--holo-cream);
+  color: var(--color-on-holo);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    z-index: -1;
+    background: var(--gradient-holo);
+    filter: blur(var(--holo-blur));
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
+  }
+
+  /* One visible focus indicator for every interactive element (WCAG 2.4.7, 2.4.13). */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
