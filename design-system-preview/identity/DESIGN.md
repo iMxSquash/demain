@@ -49,9 +49,9 @@ Everything below lives in `design-system-preview/identity/`. Nothing in `src/` u
 
 | File | Role | Destination in the app |
 | --- | --- | --- |
-| `tokens.css` | The only place where a value is written: primitives, then semantic tokens, light by default, dark through `prefers-color-scheme` or `data-theme` | `src/app/tokens.css` |
+| `tokens.css` | The only place where a value is written: primitives, then semantic tokens, light by default, dark through `prefers-color-scheme` or `data-theme` | `src/app/tokens.css`, which then becomes the source of truth (owner, 12 Nov 2026); the copy here stays as the reference pages were validated |
 | `tailwind.css` | Tailwind v4 entry: imports Tailwind and `tokens.css`, declares the utility names, base styles, the `dark` variant, the `holo` utility | Replaces `src/app/globals.css` |
-| `fonts/HostGrotesk-Variable.ttf`, `fonts/OFL-HostGrotesk.txt` | The text face and its licence | Self-hosted with the app, never fetched from a CDN. Prefer `next/font/local` with a WOFF2 subset (preload and size-adjusted fallback), then point `--font-sans` at its variable |
+| `fonts/HostGrotesk-Variable.ttf`, `fonts/OFL-HostGrotesk.txt` | The text face and its licence | Self-hosted with the app, never fetched from a CDN. A WOFF2 subset made from the shipped TTF (owner, 12 Nov 2026), checked to keep U+202F mapped to the thin space (section 5), loaded with `next/font/local` (preload and size-adjusted fallback); `--font-sans` points at its variable |
 | `theme/theme-preference.ts`, `theme/actions.ts`, `theme/tests/` | The appearance setting: cookie allowlist, `<html>` attribute, server action | `src/app/theme/` |
 | `react/` | The trajectory chart, its geometry, its data table, and their tests. `react/preview/board.tsx` mounts it on `brand-board.html`, which carries its bundle inline; `react/preview/build-board.mjs` rebuilds that bundle (`node design-system-preview/identity/react/preview/build-board.mjs` from the repository root) | `src/charts/` and `src/app/`; the preview entries are not shipped |
 | `icons/` | PNG app icons and the web manifest | 192, 512 and maskable PNGs in `public/icons/`; `apple-touch-icon.png` as `src/app/apple-icon.png`; `manifest.ts` as `src/app/manifest.ts` |
@@ -61,7 +61,7 @@ Everything below lives in `design-system-preview/identity/`. Nothing in `src/` u
 ### Integration order
 
 1. Copy `tokens.css` and the font. Replace `globals.css` with `tailwind.css`, adjusting the import path and the font URL.
-2. Migrate the classes listed in [section 16](#16-migrating-the-current-classes). The build fails on any class that is not part of the identity, which is the point.
+2. Migrate the classes listed in [section 16](#16-migrating-the-current-classes), in the same pull request as step 1 (owner, 12 Nov 2026). Tailwind drops a class it does not know without any error, so `tailwind.css` without the migration would leave the app unstyled (white text on no fill for the old blue buttons) while the build and the tests pass. A test that refuses the classes of section 16 keeps them out afterwards.
 3. Add the theme setting (section 3) and render `data-theme` from the root layout.
 4. Restyle the shared components (`FormField`, `ConfirmActionButton`, the toast provider, the locale switcher) to section 8.
 5. Add the icons, the manifest and the favicon (section 13).
@@ -72,6 +72,8 @@ Motion (section 6) lands with each component:
 - The CSS transitions and the entrance utility come with `tailwind.css` in step 1.
 - The `motion` npm package (owner's choice, 12 Nov 2026) is added once, in its own pull request with an ADR, before the first component that needs an exit (the toast). It runs behind `LazyMotion`.
 - Its timings come from one module, `src/app/motion.ts`, which mirrors the motion tokens and turns them to 0 under reduced motion.
+
+The icons (section 7) need `@phosphor-icons/react`, added the same way, in its own pull request, before the first component that shows an icon.
 
 ## 3. Theme
 
@@ -197,6 +199,8 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
 - **Navigation, narrow:**
   - the logo and a round "Add transaction" button at the top;
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
+  - **Until Calendar (M2) and Simulations (M3) exist:** the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land.
+- **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Until the navigation lands, the theme setting sits in the header next to the language switcher.
 
   Use a container query on the app frame, not a media query.
 ### Motion
@@ -257,9 +261,28 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 
 ## 7. Icons
 
-- Line icons on a 24 grid, drawn at 20 px, stroke 1.5, round caps and joins, `currentColor`. Inside a tinted disc of 36 px (32 px in chips) when they mark a kind.
+- **One set:** [Phosphor Icons](https://phosphoricons.com), Regular weight only, through the `@phosphor-icons/react` package (MIT; owner, 12 Nov 2026). Server components import from `@phosphor-icons/react/ssr`. No other icon set, and no hand-drawn icon next to them.
+- **Drawing:** 20 px (`--icon-size`), in `currentColor`. Phosphor draws filled outlines on a 256 grid with round ends; at 20 px its Regular stroke is 1.25 px. Inside a tinted disc of 36 px (32 px in chips) when they mark a kind.
 - Money out is a down-right arrow in `negative`; money in is an up-right arrow in `positive`; a transfer is two opposed arrows in ink; interest is a percent sign in `positive`.
-- The icons drawn so far are inline SVG symbols in `components.html` and `form-proposals.html` (chevron, calendar, check, close, alert, eye, eye off, file, out, in, swap, percent, and one per category). Reuse their paths. Adding an icon library is a new dependency: ask the owner first.
+- **The icons in use** (as drawn in `components.html`):
+
+| Use | Phosphor icon |
+| --- | --- |
+| Open a picker, a disclosure | `CaretDown` |
+| Date | `CalendarBlank` |
+| Selected, success | `Check` |
+| Close, dismiss | `X` |
+| Error, alert | `WarningCircle` |
+| Show or hide a password | `Eye`, `EyeSlash` |
+| File | `File` |
+| Money out, money in, transfer, interest | `ArrowDownRight`, `ArrowUpRight`, `ArrowsLeftRight`, `Percent` |
+| Categories (Food, Housing, Transport, Leisure, Health, Gifts, Savings) | `Basket`, `House`, `Bus`, `Ticket`, `Heart`, `Gift`, `Coins` |
+| Later, to categorize | `Tray` |
+| Account (current), keypad delete | `CreditCard`, `Backspace` |
+| Suggestion from history | `ClockCounterClockwise` |
+| Overview, Transactions, Accounts, Imports, Settings | `ChartLine`, `ArrowsDownUp`, `Wallet`, `TrayArrowDown`, `GearSix` |
+
+- A new icon is picked from Phosphor Regular and added to this table.
 - An icon that carries meaning has a text label next to it or an accessible name. A decorative icon has `aria-hidden="true"`.
 
 ## 8. Components
@@ -316,6 +339,7 @@ Open `components.html` next to this section: every state below is drawn there in
   - Escape closes it.
 
   This is `ConfirmActionButton` restyled.
+- **Not a dialog:** work that needs more room than 420 px is a page of its own, never a wide dialog. The review of an imported file becomes a page (owner, 12 Nov 2026), reached from the import and left by its own Cancel and Import actions.
 
 ### Data display
 
@@ -372,6 +396,7 @@ When a field expects an exact syntax, restrict it on both sides with the same ru
   - When the field is left, flag an incomplete value with the invalid state ("Error: invalid amount “12,”: digits missing after the decimal separator.").
 - **Server:** validate the same rule in the schema and stay the authority, since the browser can always be bypassed.
 - **Amount:** digits and one comma or point, at most the decimals of the currency. Spaces of a pasted value are removed (space, no-break space, narrow no-break space).
+- **Balance:** a value that can be negative (an opening balance, a balance check, a row of an imported file) keeps the amount syntax, without a sign. A segmented control next to it, "Credit" or "Debit", gives the side, and the server turns Debit into a negative amount (owner, 12 Nov 2026).
 - **Currency code:** three letters, uppercased as typed.
 - The server's `parseAmount` currently accepts more (signs, symbols, grouping). Narrow it per field when the forms are rebuilt.
 
@@ -425,6 +450,12 @@ The add-transaction form becomes a three-step flow (`form-proposals.html`, "Reta
 - **Account:**
   - account chips;
   - for a transfer, they are replaced by "From" and "To, the account that receives", and the From account is disabled in To.
+- **Above the ceiling** (owner, 12 Nov 2026; DOMAIN, deposit ceiling and overflow): when the save of a transfer finds that the amount does not fit under the ceiling of the receiving account, nothing is recorded yet and a step opens in place of the save button.
+  - It has a heading ("Above the ceiling"), which takes the focus, and a notice: "Warning: €50.00 fits under the ceiling of Savings A, €150.00 does not."
+  - "Where does the surplus go?" offers one chip per other account and "Keep it in Current" (the surplus is not moved). The overflow account of the receiving account is chosen first when there is one.
+  - Cancel (secondary) closes the step and returns the focus to the save button. The confirming button says what will happen: "Move €50.00 to Savings A, the rest to Savings B", or "Move only €50.00 to Savings A".
+  - What fits nowhere stays in the source account and is said after saving, next to the form ("€100.00 stays in Current: Savings B is full").
+  - The server computes the split, as today: the browser never decides what fits.
 - **More details:** a disclosure with the note and the payment mode (Card, Transfer, Direct debit).
 - **Save button:** says what will happen: "Add expense of €42.00", the verb of the type plus the formatted amount. A transfer names its destination: "Move €42.00 to Savings A". It checks the amount, then the label, since the step 3 editors can empty them: on a phone, an error takes the user back to its step, with the message and the focus on the field.
 
@@ -463,7 +494,8 @@ The reference implementation is in `react/`:
 
 | Part | Specification |
 | --- | --- |
-| Data | One series per account: month-end balance, real up to today, then dated planned items only. No estimate (ADR-011). Values in minor units; labels formatted by the server with `Intl` |
+| Data | The two curves of DOMAIN ("The real chart"): month-end total of the checking accounts and of the savings accounts, in the reference currency, real up to the last complete month, then dated planned items only. No estimate (ADR-011). Values in minor units; labels formatted by the server with `Intl` |
+| Without planned items | The whole chart is built, but each planned part shows only when there is something planned to draw: the dashed lines, the planned zone and its labels, the lowest planned balance and the horizon control. The Today rule stays (owner, 12 Nov 2026) |
 | Plot | 280 px tall, margins top 28, right 8, bottom 36, left 52; 8 px inner padding |
 | Lines | Stroke 2, round joins and caps. First series in `--chart-real` (ink), second in `--color-text-muted`. Solid up to today, dashed `6 5` after; both paths join exactly on today |
 | Glow | `drop-shadow(0 0 5px)` of the line's own colour at 40 %, on the data lines only. Owner's request, kept low (see DECISIONS) |
@@ -582,3 +614,7 @@ These need action before the related work lands in `src/` (details in DECISIONS.
 - **Roadmap:** record in `docs/ROADMAP.md` that the dark theme and the phone navigation are decided, when the work lands.
 - **Motion on the references:** `components.html` shows the CSS part of section 6 (states, popovers, dialog, disclosure, step editor, flow steps, progress bar, toast in and out). The trajectory line drawing and the page entrance are specified but not drawn: `brand-board.html` would need its bundle rebuilt. They are checked in the app when the chart and the layout land.
 - **Values to confirm:** the motion tokens are proposed by role, since the references are still images. The owner confirms them on `components.html` (DECISIONS.md, "Motion").
+- **Phone navigation, other pages:** with four tabs, the phone has no way yet to reach Balances, Categories, Rules, Currencies and Backup. Decide where they live (section 6).
+- **Sidebar icons to confirm:** Balances, Categories, Rules, Currencies, Backup and Security need a Phosphor icon in section 7. Proposed: `Scales`, `Tag`, `Funnel`, `CurrencyEur`, `Archive`, `ShieldCheck`.
+- **Icons of the other reference pages:** `brand-board.html` and `form-proposals.html` still carry the hand-drawn icons, and `--icon-stroke` stays in `tokens.css` for them. `form-proposals.html` is a record of the proposals; the board is redrawn when its bundle is rebuilt.
+- **Phosphor at 20 px:** its Regular stroke is 1.25 px at that size (1.5 px at 24 px). The owner judges it on `components.html`; drawing icons at 24 px would change the layouts.

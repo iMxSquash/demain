@@ -2,6 +2,8 @@
 
 One line per choice, with the evidence that justifies it. Reference IDs are those of [00-reference-audit.md](00-reference-audit.md) (`01` to `03`, then capture times such as `07:20`). `DOMAIN` and `PRODUCT` point to `docs/DOMAIN.md` and `docs/PRODUCT.md`. "Owner" means a decision taken by the owner during review.
 
+Version 0.6 (12 Nov 2026): the owner's answers to the open points of the integration plan. Phosphor icons, a Settings page, an interim phone tab bar, Credit and Debit for balances, the import review as a page, a step for a transfer above a ceiling, the chart without planned items, a WOFF2 font, the migration in one pull request, `src/app/tokens.css` as the source after integration.
+
 Version 0.5 (12 Nov 2026): motion. The owner asked for it, with the `motion` library, on states, floating layers, the add-transaction flow, the chart and pages; reduced motion turns it all off; content rendered by the server never starts in a hidden state that would make the page jump.
 
 Version 0.4 (12 Nov 2026): the wordmark redrawn in Host Grotesk, a `shadow-raised` token, `font-mono` set to the text face, the token names kept, U+202F in the shipped font, and the wide layout of the add-transaction flow.
@@ -234,7 +236,7 @@ Every pair is computed from the tokens in both themes. The three pages compute t
 | Elevation | Tone only for cards; one soft wide shadow for floating layers; one small tight shadow, `--shadow-raised` (`0 1px 2px`, 8 % black in light, 40 % in dark), for a control lifted from its own track, today the selected type segment | 01, 07:20, 08:25, 11:01; 12:47. Raised: owner, 12 Nov 2026, "relief by shadow must be possible in some cases"; the dark value is stronger so the relief still shows on a dark track |
 | Touch target | 44 px | Owner's accessibility rules |
 | Motion tokens | Five durations, three easings, two offsets (see Motion) | Owner, 12 Nov 2026. Until then none were defined, since the references are still images |
-| Icons | Line, 1.5 stroke, round ends, 24 grid, in a neutral disc; diagonal arrows for money in and out | 13:19, 11:54, 12:47, 01, 10:47, 12:59 |
+| Icons | Phosphor Icons, Regular weight, through `@phosphor-icons/react`, 20 px, in a neutral disc; diagonal arrows for money in and out. Until 12 Nov 2026, hand-drawn line icons (1.5 stroke, round ends, 24 grid) | Owner, 12 Nov 2026: one maintained set rather than drawing each icon, including the navigation ones that were missing. Regular keeps the round ends and the light line of the references (13:19, 11:54, 12:47, 01, 10:47, 12:59); at 20 px its stroke is 1.25 px, judged on `components.html` |
 
 ## Components
 
@@ -265,6 +267,11 @@ Drawn on `components.html`, which also holds the add-transaction flow and the cu
 | Dialog | The native `dialog`, card radius, overlay shadow, backdrop token; Cancel takes the focus first, Escape closes, the destructive action is on the right | The app's `ConfirmActionButton` |
 | Table | 48 px rows, hairlines between rows, uppercase label headers, figures right-aligned; a row hovers to the inner surface; income has a plus sign and the positive colour, expenses stay ink with their minus; status words in pills | 01, 11:54, 13:08 |
 | Phone tab bar | Four destinations in a 343 px pill track, 52 px items, selected item in ink | 07:32. Width test: the longest candidate French label, "Vue d’ensemble" (77 px at 12 px), still fits the 80 px item; the page uses "Aperçu" |
+| Settings page | `/settings` holds Appearance and Language, then links to Security and Backup; the sidebar ends with it | Owner, 12 Nov 2026: the sidebar of the board already ends with Settings, and the app had no such page |
+| Phone tab bar, interim | Overview, Transactions, Accounts, Imports until Calendar (M2) and Simulations (M3) exist | Owner, 12 Nov 2026: the four most frequent tasks of M1; the planned destinations take their places when they land |
+| Balance side | A balance that can be negative is typed without a sign, with a Credit or Debit segmented control | Owner, 12 Nov 2026, preferred to a minus sign: the amount keeps one syntax everywhere, and the side is a word, not a character |
+| Import review | A page of its own instead of an 80rem dialog | Owner, 12 Nov 2026: a dialog stays at 420 px for a confirmation; a review needs a page |
+| Transfer above a ceiling | A step in the add-transaction flow: what fits, what does not, where the surplus goes (another account, or kept in the source), a button that says the result | Owner, 12 Nov 2026, to keep transfers in the flow. DOMAIN: a manual transfer shows the split and lets the user choose. The server keeps computing the split |
 | Appearance setting | System, Light, Dark as a segmented control of native radios, posted like the language switcher; stored in a `theme` cookie and rendered on the server as `data-theme` on `<html>` (no attribute for System) | Owner: the app has a light and dark setting. Server rendering means no flash of the other theme and no script |
 
 ## Add-transaction flow
@@ -317,7 +324,10 @@ The React reference in `react/` (hand-written SVG with `d3-scale` and `d3-shape`
 | Checked | 41 utilities compared with their token in six states (system light or dark, attribute absent, light or dark): no difference | Browser check of a demo page |
 | Theme preference code | `theme/theme-preference.ts` (allowlist, attribute for `<html>`) and `theme/actions.ts` (server action, as `setLocaleAction`), with tests | Reference code: the setting does not exist in `src/` yet |
 | Token names | Kept, so utilities read `bg-bg`, `text-text`, `text-text-muted` | Owner, 12 Nov 2026: each utility names its token, at the cost of some repetition |
-| Migration | Adopting the mapping is a migration: 40 classes of `src/` stop compiling (`font-mono` now compiles). DESIGN.md lists their replacements | Counted by compiling `src/` against both stylesheets, 12 Nov 2026 |
+| Migration | Adopting the mapping is a migration: 40 classes of `src/` stop compiling (`font-mono` now compiles). DESIGN.md lists their replacements. It lands in the same pull request as `tailwind.css` | Counted by compiling `src/` against both stylesheets, 12 Nov 2026. Tailwind drops an unknown class silently, so the build would pass on an unstyled app; owner, 12 Nov 2026: one pull request rather than a transitional stylesheet |
+| Font file | A WOFF2 subset of the shipped TTF, with U+202F still mapped to the thin space | Owner, 12 Nov 2026, as DESIGN.md preferred; the mapping is checked after conversion |
+| Source of the tokens | `src/app/tokens.css` once integrated; the copy in this folder stays as the reference pages were validated | Owner, 12 Nov 2026: one place to change a value in the app |
+| Chart without planned items | Every part is built; the planned parts show only when there is something planned | Owner, 12 Nov 2026: build the chart of DESIGN.md now, it fills in when planned items arrive (M2) |
 
 ## Motion
 
