@@ -843,7 +843,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
     var split=document.getElementById("f-split"),outcome=form.querySelector("[data-split-outcome]"),surplusTo="keep";
     function toMinor(text){var p=text.replace(",",".").split(".");return Number(p[0])*100+Number(((p[1]||"")+"00").slice(0,2));}
     function eur(minor){return new Intl.NumberFormat("en",{style:"currency",currency:"EUR"}).format(minor+"E-2");}
-    function splitLabel(){var fits=eur(ROOM[S.to]);form.querySelector("[data-split-save]").textContent=surplusTo==="keep"?"Move only "+fits+" to "+ACCT[S.to]:"Move "+fits+" to "+ACCT[S.to]+", the rest to "+ACCT[surplusTo];}
+    function splitLabel(){var fits=eur(ROOM[S.to]);form.querySelector("[data-split-save]").textContent=surplusTo==="keep"?"Move only "+fits+" to "+ACCT[S.to]:"Move "+fits+", the rest to "+ACCT[surplusTo];}
     function openSplit(){
       var amount=toMinor(S.amount),fits=ROOM[S.to],box=split.querySelector("[data-split-choices]");
       surplusTo=OVERFLOW[S.to]&&OVERFLOW[S.to]!==S.from?OVERFLOW[S.to]:"keep";

@@ -110,8 +110,7 @@
 
   /* ---- Size ---- */
   --target-min: 44px;     /* touch target */
-  --icon-size: 20px;
-  --icon-stroke: 1.5;     /* line icons, 13:19 */
+  --icon-size: 20px;      /* Phosphor Regular, filled outlines: no stroke token */
 
   /* ---- Motion (owner, 12 Nov 2026): short, no bounce, only on a change the user caused ---- */
   /* The references are still images, so these values are chosen by role, see DECISIONS.md "Motion" */

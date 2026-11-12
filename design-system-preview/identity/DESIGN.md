@@ -200,6 +200,7 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
   - the logo and a round "Add transaction" button at the top;
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
   - **Until Calendar (M2) and Simulations (M3) exist:** the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land.
+  - **The other pages on a phone** (owner, 12 Nov 2026): a 44 px icon button with `GearSix` and the label "Settings" sits in the top bar next to "Add transaction". `/settings` ends with a "More" list of the pages that have no tab: Balances, Categories, Rules, Currencies, Backup, Security, each with its icon.
 - **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Until the navigation lands, the theme setting sits in the header next to the language switcher.
 
   Use a container query on the app frame, not a media query.
@@ -282,6 +283,9 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | Account (current), keypad delete | `CreditCard`, `Backspace` |
 | Suggestion from history | `ClockCounterClockwise` |
 | Overview, Transactions, Accounts, Imports, Settings | `ChartLine`, `ArrowsDownUp`, `Wallet`, `TrayArrowDown`, `GearSix` |
+| Balances, Categories, Rules, Currencies, Backup, Security | `Scales`, `Tag`, `Funnel`, `CurrencyEur`, `Archive`, `ShieldCheck` |
+| Calendar, Simulations (M2, M3) | `CalendarBlank`, `ArrowsSplit` |
+| Add, ceiling, overflow | `Plus`, `ArrowLineUp`, `ArrowLineRight` |
 
 - A new icon is picked from Phosphor Regular and added to this table.
 - An icon that carries meaning has a text label next to it or an accessible name. A decorative icon has `aria-hidden="true"`.
@@ -454,7 +458,7 @@ The add-transaction form becomes a three-step flow (`form-proposals.html`, "Reta
 - **Above the ceiling** (owner, 12 Nov 2026; DOMAIN, deposit ceiling and overflow): when the save of a transfer finds that the amount does not fit under the ceiling of the receiving account, nothing is recorded yet and a step opens in place of the save button.
   - It has a heading ("Above the ceiling"), which takes the focus, and a notice: "Warning: €50.00 fits under the ceiling of Savings A, €150.00 does not."
   - "Where does the surplus go?" offers one chip per other account and "Keep it in Current" (the surplus is not moved). The overflow account of the receiving account is chosen first when there is one.
-  - Cancel (secondary) closes the step and returns the focus to the save button. The confirming button says what will happen: "Move €50.00 to Savings A, the rest to Savings B", or "Move only €50.00 to Savings A".
+  - Cancel (secondary) closes the step and returns the focus to the save button. The confirming button says what will happen, short enough for one line on a phone: "Move €50.00, the rest to Savings B", or "Move only €50.00 to Savings A".
   - What fits nowhere stays in the source account and is said after saving, next to the form ("€100.00 stays in Current: Savings B is full").
   - The server computes the split, as today: the browser never decides what fits.
 - **More details:** a disclosure with the note and the payment mode (Card, Transfer, Direct debit).
@@ -615,7 +619,5 @@ These need action before the related work lands in `src/` (details in DECISIONS.
 - **Roadmap:** record in `docs/ROADMAP.md` that the dark theme and the phone navigation are decided, when the work lands.
 - **Motion on the references:** `components.html` shows the CSS part of section 6 (states, popovers, dialog, disclosure, step editor, flow steps, progress bar, toast in and out). The trajectory line drawing and the page entrance are specified but not drawn: `brand-board.html` would need its bundle rebuilt. They are checked in the app when the chart and the layout land.
 - **Values to confirm:** the motion tokens are proposed by role, since the references are still images. The owner confirms them on `components.html` (DECISIONS.md, "Motion").
-- **Phone navigation, other pages:** with four tabs, the phone has no way yet to reach Balances, Categories, Rules, Currencies and Backup. Decide where they live (section 6).
-- **Sidebar icons to confirm:** Balances, Categories, Rules, Currencies, Backup and Security need a Phosphor icon in section 7. Proposed: `Scales`, `Tag`, `Funnel`, `CurrencyEur`, `Archive`, `ShieldCheck`.
-- **Icons of the other reference pages:** `brand-board.html` and `form-proposals.html` still carry the hand-drawn icons, and `--icon-stroke` stays in `tokens.css` for them. `form-proposals.html` is a record of the proposals; the board is redrawn when its bundle is rebuilt.
+- **Icons of `form-proposals.html`:** it keeps its hand-drawn icons, as the record of the proposals of 11 Nov 2026. `components.html` and `brand-board.html` use Phosphor.
 - **Phosphor at 20 px:** its Regular stroke is 1.25 px at that size (1.5 px at 24 px). The owner judges it on `components.html`; drawing icons at 24 px would change the layouts.
