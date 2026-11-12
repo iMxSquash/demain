@@ -40,7 +40,7 @@ export function AssertionLinkPanel({
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h4 id={headingId} className="font-semibold">
+      <h4 id={headingId} className="font-medium">
         {t("heading")}
       </h4>
       <p aria-live="polite">{summary ?? t("empty")}</p>
@@ -55,7 +55,7 @@ export function AssertionLinkPanel({
           <table className="w-full border-collapse text-left">
             <caption className="py-1 text-left">{t("caption", { name: fileName })}</caption>
             <thead>
-              <tr className="border-b border-neutral-500">
+              <tr className="border-b border-border-control">
                 <th scope="col" className="py-2 pr-2">
                   {t("columnAccount")}
                 </th>
@@ -73,8 +73,8 @@ export function AssertionLinkPanel({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.key} className="border-b border-neutral-300">
-                  <th scope="row" className="py-2 pr-2 font-normal">
+                <tr key={row.key} className="border-b border-divider">
+                  <th scope="row" className="py-2 pr-2 font-regular">
                     {row.accountName}
                   </th>
                   <td className="pr-2">{row.date}</td>

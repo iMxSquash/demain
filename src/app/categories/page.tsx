@@ -45,10 +45,10 @@ export default async function CategoriesPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
 
       <section aria-labelledby="queue-heading" className="flex flex-col gap-3">
-        <h2 id="queue-heading" className="text-xl font-semibold">
+        <h2 id="queue-heading" className="text-title font-medium">
           {t("queueHeading")}
         </h2>
         <ToCategorizeQueue
@@ -59,7 +59,7 @@ export default async function CategoriesPage() {
       </section>
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-xl font-semibold">
+        <h2 id="list-heading" className="text-title font-medium">
           {t("listHeading")}
         </h2>
         {categories.length === 0 ? (
@@ -69,7 +69,7 @@ export default async function CategoriesPage() {
             {categories.map((category) => (
               <li
                 key={category.id}
-                className="flex items-center justify-between border-b border-neutral-300 py-1"
+                className="flex items-center justify-between border-b border-divider py-1"
               >
                 <span className="font-medium">{category.name}</span>
                 <div className="flex gap-2">
@@ -99,7 +99,7 @@ export default async function CategoriesPage() {
           aria-labelledby="archived-heading"
           className="flex flex-col gap-3"
         >
-          <h2 id="archived-heading" className="text-xl font-semibold">
+          <h2 id="archived-heading" className="text-title font-medium">
             {t("archivedHeading")}
           </h2>
           <p>{t("archivedIntro")}</p>
@@ -107,7 +107,7 @@ export default async function CategoriesPage() {
             {archivedCategories.map((category) => (
               <li
                 key={category.id}
-                className="flex items-center justify-between border-b border-neutral-300 py-1"
+                className="flex items-center justify-between border-b border-divider py-1"
               >
                 <span className="font-medium">{category.name}</span>
                 <form action={reactivateCategoryAction.bind(null, category.id)}>
@@ -123,7 +123,7 @@ export default async function CategoriesPage() {
       ) : null}
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-        <h2 id="new-heading" className="text-xl font-semibold">
+        <h2 id="new-heading" className="text-title font-medium">
           {t("addHeading")}
         </h2>
         <CategoryForm

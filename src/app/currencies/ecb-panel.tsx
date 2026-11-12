@@ -10,7 +10,7 @@ interface EcbPanelProps {
 }
 
 const BUTTON_CLASS =
-  "min-h-11 self-start rounded border border-neutral-500 px-4 font-medium disabled:opacity-60";
+  "min-h-11 self-start rounded-pill border border-border-control px-4 font-medium disabled:opacity-60";
 
 export function EcbPanel({ isEnabled, setEnabled, fetchRates }: EcbPanelProps) {
   const t = useTranslations("currencies");

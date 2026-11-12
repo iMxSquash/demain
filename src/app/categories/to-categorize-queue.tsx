@@ -33,7 +33,7 @@ export async function ToCategorizeQueue({
   return (
     <table className="w-full border-collapse text-left">
       <thead>
-        <tr className="border-b border-neutral-500">
+        <tr className="border-b border-border-control">
           <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
           <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
           <th scope="col" className="py-2 pr-4">{t("columns.label")}</th>
@@ -50,7 +50,7 @@ export async function ToCategorizeQueue({
             );
           }
           return (
-            <tr key={row.id} className="border-b border-neutral-300">
+            <tr key={row.id} className="border-b border-divider">
               <td className="py-2 pr-4 tabular-nums">
                 <time dateTime={row.date}>
                   {formatCalendarDate(row.date, locale)}

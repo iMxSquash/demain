@@ -20,7 +20,7 @@ export function EnrollTotpForm({ secret, children }: EnrollTotpFormProps) {
     return (
       <section aria-labelledby="backup-heading" className="max-w-md">
         <p className="mb-4">{t("totpOn")}</p>
-        <h3 id="backup-heading" className="text-lg font-semibold">
+        <h3 id="backup-heading" className="text-title font-medium">
           {t("backupHeading")}
         </h3>
         <p className="my-2">{t("backupIntro")}</p>
@@ -64,7 +64,7 @@ export function EnrollTotpForm({ secret, children }: EnrollTotpFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="min-h-11 self-start rounded bg-blue-800 px-4 font-medium text-white disabled:opacity-60"
+          className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
         >
           {t("enable")}
         </button>

@@ -6,7 +6,7 @@ export default async function NotFoundPage() {
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-4 p-8">
-      <h1 className="text-2xl font-semibold">{t("notFoundTitle")}</h1>
+      <h1 className="text-heading font-medium">{t("notFoundTitle")}</h1>
       <p className="max-w-prose">{t("notFoundBody")}</p>
       <Link href="/" className="self-start underline">
         {common("backToHome")}

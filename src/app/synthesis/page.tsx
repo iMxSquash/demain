@@ -50,7 +50,7 @@ export default async function SynthesisPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
 
       {unconverted.length > 0 ? (
         <p role="status">
@@ -82,7 +82,7 @@ export default async function SynthesisPage() {
               {t("caption", { currency: referenceCurrency })}
             </caption>
             <thead>
-              <tr className="border-b border-neutral-500">
+              <tr className="border-b border-border-control">
                 <th scope="col" className="py-2 pr-4">{t("columns.month")}</th>
                 <th scope="col" className={NUMBER_HEADER}>{t("columns.net")}</th>
                 <th scope="col" className={NUMBER_HEADER}>{t("columns.savings")}</th>
@@ -103,7 +103,7 @@ export default async function SynthesisPage() {
                   month.balances.map((entry) => [entry.accountId, entry]),
                 );
                 return (
-                  <tr key={month.month} className="border-b border-neutral-300">
+                  <tr key={month.month} className="border-b border-divider">
                     <th scope="row" className="py-2 pr-4 font-medium tabular-nums">
                       <time dateTime={month.month}>
                         {formatMonth(month.month, locale)}

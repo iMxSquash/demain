@@ -53,7 +53,7 @@ export default async function EditAccountPage({
       <Link href="/accounts" className="self-start underline">
         {t("backToAccounts")}
       </Link>
-      <h1 className="text-2xl font-semibold">
+      <h1 className="text-heading font-medium">
         {t("editTitle", { name: account.name })}
       </h1>
       <AccountForm

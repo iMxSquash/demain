@@ -61,7 +61,7 @@ export default async function BalanceAssertionsPage({
       <Link href="/accounts" className="self-start underline">
         {accountsT("backToAccounts")}
       </Link>
-      <h1 className="text-2xl font-semibold">
+      <h1 className="text-heading font-medium">
         {t("title", { name: account.name })}
       </h1>
       <p>{t("intro")}</p>
@@ -70,7 +70,7 @@ export default async function BalanceAssertionsPage({
         <p>{t("archivedNote")}</p>
       ) : (
         <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-          <h2 id="new-heading" className="text-xl font-semibold">
+          <h2 id="new-heading" className="text-title font-medium">
             {t("addHeading")}
           </h2>
           <BalanceAssertionForm
@@ -86,7 +86,7 @@ export default async function BalanceAssertionsPage({
       )}
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-xl font-semibold">
+        <h2 id="list-heading" className="text-title font-medium">
           {t("listHeading")}
         </h2>
         {assertions.length === 0 ? (

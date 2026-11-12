@@ -220,7 +220,7 @@ function ReviewBody({
               </option>
             ))}
           </select>
-          <p id={accountHintId} className="text-sm">
+          <p id={accountHintId} className="text-caption">
             {t("receivingAccountHint")}
           </p>
         </div>
@@ -246,7 +246,7 @@ function ReviewBody({
               </option>
             ))}
           </select>
-          <p id={savingsHintId} className="text-sm">
+          <p id={savingsHintId} className="text-caption">
             {t("savingsAccountHint")}
           </p>
         </div>
@@ -254,7 +254,7 @@ function ReviewBody({
 
       {state.files.length < 2 ? null : (
         <section aria-labelledby={orderHeadingId} className="flex flex-col gap-1">
-          <h3 id={orderHeadingId} className="font-semibold">
+          <h3 id={orderHeadingId} className="font-medium">
             {t("order.heading")}
           </h3>
           <p>
@@ -364,14 +364,14 @@ export function StagedImportReview({
       onClose={(event) => {
         if (isOwnCloseEvent(event)) onClose();
       }}
-      className="m-auto max-h-[90vh] w-[min(80rem,95vw)] overflow-y-auto rounded border border-neutral-500 bg-white p-6 text-neutral-900 backdrop:bg-black/40"
+      className="m-auto max-h-[90vh] w-[min(80rem,95vw)] overflow-y-auto rounded-control border border-border-control bg-surface p-6 text-text backdrop:bg-backdrop"
     >
       <div className="flex flex-col gap-4">
         <h2
           id={titleId}
           ref={titleRef}
           tabIndex={-1}
-          className="text-xl font-semibold"
+          className="text-title font-medium"
         >
           {t("title")}
         </h2>

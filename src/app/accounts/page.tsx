@@ -48,10 +48,10 @@ export default async function AccountsPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-10 p-8">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
 
       <section aria-labelledby="active-heading" className="flex flex-col gap-3">
-        <h2 id="active-heading" className="text-xl font-semibold">
+        <h2 id="active-heading" className="text-title font-medium">
           {t("activeHeading")}
         </h2>
         {active.length === 0 ? (
@@ -62,7 +62,7 @@ export default async function AccountsPage() {
       </section>
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-        <h2 id="new-heading" className="text-xl font-semibold">
+        <h2 id="new-heading" className="text-title font-medium">
           {t("addHeading")}
         </h2>
         <AccountForm
@@ -75,7 +75,7 @@ export default async function AccountsPage() {
 
       {archived.length > 0 ? (
         <section aria-labelledby="archived-heading" className="flex flex-col gap-3">
-          <h2 id="archived-heading" className="text-xl font-semibold">
+          <h2 id="archived-heading" className="text-title font-medium">
             {t("archivedHeading")}
           </h2>
           <AccountTable accounts={archived} allAccounts={all} balances={balances} />
@@ -106,7 +106,7 @@ async function AccountTable({
   return (
     <table className="w-full border-collapse text-left">
       <thead>
-        <tr className="border-b border-neutral-500">
+        <tr className="border-b border-border-control">
           <th scope="col" className="py-2 pr-4">{t("columns.name")}</th>
           <th scope="col" className="py-2 pr-4">{t("columns.kind")}</th>
           <th scope="col" className="py-2 pr-4">{t("columns.currency")}</th>
@@ -154,7 +154,7 @@ async function AccountRow({
   );
 
   return (
-    <tr className="border-b border-neutral-300">
+    <tr className="border-b border-divider">
       <th scope="row" className="py-2 pr-4 font-medium">{account.name}</th>
       <td className="py-2 pr-4">{t(`kinds.${account.kind as AccountKind}`)}</td>
       <td className="py-2 pr-4">{account.currency}</td>

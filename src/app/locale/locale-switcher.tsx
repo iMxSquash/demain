@@ -5,7 +5,7 @@ import { setLocaleAction } from "./actions";
 
 // Not CONTROL_CLASS: that one is full width, the switcher sits in the header.
 const SELECT_CLASS =
-  "min-h-11 rounded border border-neutral-500 bg-white px-3 text-neutral-900";
+  "min-h-11 rounded-control border border-border-control bg-surface px-3 text-text";
 
 /** Works without JavaScript: a plain form posted to a server action. */
 export async function LocaleSwitcher() {
@@ -33,7 +33,7 @@ export async function LocaleSwitcher() {
           </option>
         ))}
       </select>
-      <button type="submit" className="min-h-11 rounded border border-neutral-500 px-3">
+      <button type="submit" className="min-h-11 rounded-pill border border-border-control px-3">
         {t("apply")}
       </button>
     </form>

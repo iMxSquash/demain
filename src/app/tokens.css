@@ -1,0 +1,247 @@
+/*
+ * Demain identity tokens: the only place where a value is written. This file is the source
+ * of truth; design-system-preview/identity/tokens.css stays as the copy the reference pages
+ * were validated with.
+ * Layer 1: primitives (raw values, each traced to a reference image in
+ * design-system-preview/identity/00-reference-audit.md).
+ * Layer 2: semantic tokens (what the interface uses), light by default, dark through
+ * prefers-color-scheme or [data-theme="dark"]; [data-theme="light"] forces light.
+ * Contrast of every text and component pair is listed in design-system-preview/identity/DECISIONS.md.
+ */
+
+/* Host Grotesk, SIL Open Font License 1.1 (fonts/OFL-HostGrotesk.txt), no reserved font name: it may ship inside the app.
+   Chosen by the owner among the open neo-grotesks measured against Neue Montreal, the face named in 13:54.
+   The root layout loads it with next/font/local and sets --font-host-grotesk on <html>. */
+
+:root {
+  /* ---- Primitives: neutrals, light family ---- */
+  --gray-0: #ffffff;   /* card, 07:20, 08:25, 12:47 */
+  --gray-50: #f0f0f0;  /* inner card, 07:20 */
+  --gray-100: #ebebeb; /* page ground, 07:07, 07:32, 08:25 */
+  --gray-200: #dcdcdc; /* panel and hairline, 08:25 */
+  --gray-500: #838383; /* label grey 06:44, used only for control borders (3.18:1 min) */
+  --gray-600: #616163; /* caption grey, 07:20 (5.18:1 on gray-100) */
+  --gray-800: #2e2e30; /* hover of the ink button: one tone step up from gray-950 */
+  --gray-950: #080808; /* headline ink, 07:07 */
+
+  /* ---- Primitives: neutrals, dark family ---- */
+  --night-0: #090909;  /* ground, 11:41, 12:59, 13:54 */
+  --night-1: #161616;  /* app ground and card, 01 */
+  --night-2: #1c1c1c;  /* raised panel, 11:01 */
+  --night-3: #212121;  /* hairline divider, 01 */
+  --night-4: #242424;  /* control and icon tile, 12:59, 13:19 */
+  --night-5: #2e2e2e;  /* hover of a dark control: one tone step up from night-4 */
+  --night-6: #727272;  /* control border: icon disc #414141 of 10:47 lifted to 3.2:1 on the control tone night-4 */
+  --night-8: #ababab;  /* muted text, 01, 11:41 */
+
+  /* ---- Primitives: accent (the "today" blue) ---- */
+  --blue-600: #3555f6; /* 12:59 and 13:19 #3c5bf6, darkened to 4.6:1 on gray-100 */
+  --blue-400: #6f85f6; /* 13:54 #5973f5, lifted to 4.7:1 on night-4 */
+  --blue-50: #ebeefe;  /* 10 % blue-600 on white */
+  --blue-950: #24283a; /* 16 % blue-400 on night-1 */
+
+  /* ---- Primitives: states (hue kept from the references, lightness adjusted for AA) ---- */
+  --green-700: #3c7350; /* 07:20 #4d9366 darkened */
+  --green-400: #70ce64; /* 10:47 */
+  --green-50: #e4f9f3;  /* status pill, 11:54 */
+  --green-950: #243322; /* 16 % green-400 on night-1 */
+  --red-700: #bf3924;   /* 08:25 #e17261 darkened */
+  --red-300: #e38388;   /* 13:08 */
+  --red-50: #f7e7e5;    /* 12 % red-700 on white */
+  --red-950: #372728;   /* 16 % red-300 on night-1 */
+  --amber-700: #826313; /* 13:08 #eac86f darkened */
+  --amber-300: #eac86f; /* 13:08 */
+  --amber-50: #f3e5d8;  /* status pill, 11:54 */
+  --amber-950: #383224; /* 16 % amber-300 on night-1 */
+
+  /* ---- Primitives: holographic blur (the graphic signature, 11:54, 12:21, 12:47) ---- */
+  --holo-sky: #6eb1f8;   /* 12:21 */
+  --holo-blue: #9ac6f8;  /* 12:21 */
+  --holo-aqua: #bbebf6;  /* 12:21 */
+  --holo-rose: #f2cee1;  /* 12:47 */
+  --holo-peach: #f1b28d; /* 12:21 */
+  --holo-sand: #f9e1cf;  /* 11:54 */
+  --holo-cream: #f9f6e4; /* 12:21, ground under the blur */
+  /* Blurred mesh: soft radial fields, blurred again by the component that uses it */
+  --gradient-holo:
+    radial-gradient(42% 52% at 14% 18%, var(--holo-sky) 0%, transparent 70%),
+    radial-gradient(38% 48% at 42% 78%, var(--holo-aqua) 0%, transparent 72%),
+    radial-gradient(40% 50% at 74% 26%, var(--holo-rose) 0%, transparent 72%),
+    radial-gradient(46% 56% at 92% 88%, var(--holo-peach) 0%, transparent 72%),
+    linear-gradient(135deg, var(--holo-blue), var(--holo-sand));
+  --holo-blur: 28px;
+
+  /* ---- Typography ---- */
+  /* The fallback name keeps the value valid if the variable is ever missing. */
+  --font-sans: var(--font-host-grotesk, "Host Grotesk"), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --weight-regular: 400;     /* stem 0.129 cap height, Neue Montreal Regular 0.126 */
+  --weight-medium: 560;      /* stem 0.166, Neue Montreal Medium 0.166 */
+  --weight-bold: 800;        /* axis maximum, stem 0.200; Neue Montreal Bold is 0.252 */
+  --text-label: 0.75rem;     /* 12 px, uppercase card labels (07:20) */
+  --text-caption: 0.8125rem; /* 13 px */
+  --text-body: 0.9375rem;    /* 15 px */
+  --text-title: 1.25rem;     /* 20 px, card titles */
+  --text-heading: 1.75rem;   /* 28 px, page titles */
+  --text-amount: 2.25rem;    /* 36 px, key amounts (01, 07:20) */
+  --text-display: 3.5rem;    /* 56 px, a single headline number */
+  --leading-tight: 1.1;
+  --leading-normal: 1.45;
+  --tracking-label: 0.06em;
+  --tracking-tight: -0.02em;
+
+  /* ---- Space: 4 px grid; card padding 24 (01, 08:25) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Radii (measured, see audit) ---- */
+  --radius-control: 12px; /* 0.27 x a 44 px button, 11:01 */
+  --radius-card: 20px;    /* 07:20, 08:25, 11:01, 01 */
+  --radius-tile: 20%;     /* app-icon tile, 12:59, 13:19 */
+  --radius-pill: 999px;   /* pills, chips, segmented controls, 01, 07:32, 13:19 */
+
+  /* ---- Size ---- */
+  --target-min: 44px;     /* touch target */
+  --icon-size: 20px;      /* Phosphor Regular, filled outlines: no stroke token */
+
+  /* ---- Motion (owner, 12 Nov 2026): short, no bounce, only on a change the user caused ---- */
+  /* The references are still images, so these values are chosen by role, see DECISIONS.md "Motion" */
+  --motion-duration-state: 120ms; /* a tone change on hover, press, check or selection */
+  --motion-duration-exit: 140ms;  /* a layer that leaves: shorter than its entrance */
+  --motion-duration-enter: 200ms; /* a layer or a page that arrives */
+  --motion-duration-step: 260ms;  /* a step of the add-transaction flow, the progress bar, the selected segment sliding */
+  --motion-duration-draw: 600ms;  /* the trajectory line drawn once, the longest motion allowed */
+  --motion-ease-enter: cubic-bezier(0.2, 0, 0, 1); /* decelerates: arrives fast, settles */
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);  /* accelerates: leaves without lingering */
+  --motion-ease-move: cubic-bezier(0.4, 0, 0.2, 1); /* from one place or tone to another */
+  --motion-offset: 8px;       /* rise of a layer or a page as it fades in */
+  --motion-offset-step: 24px; /* slide of a flow step, towards where the user is going */
+
+  /* ---- Semantic: light (default) ---- */
+  color-scheme: light;
+  --color-bg: var(--gray-100);
+  --color-surface: var(--gray-0);
+  --color-surface-sunken: var(--gray-50);
+  --color-control: var(--gray-50);
+  --color-divider: var(--gray-200);
+  --color-border-control: var(--gray-500);
+  --color-text: var(--gray-950);
+  --color-text-muted: var(--gray-600);
+  --color-primary: var(--gray-950);     /* primary action is ink, 06:44, 08:16, 12:21, 13:28 */
+  --color-on-primary: var(--gray-0);
+  --color-accent: var(--blue-600);      /* today marker, focus, selection, links */
+  --color-on-accent: var(--gray-0);
+  --color-accent-tint: var(--blue-50);
+  --color-positive: var(--green-700);
+  --color-positive-tint: var(--green-50);
+  --color-negative: var(--red-700);
+  --color-negative-tint: var(--red-50);
+  --color-warning: var(--amber-700);
+  --color-warning-tint: var(--amber-50);
+  --color-focus: var(--blue-600);
+  --color-primary-hover: var(--gray-800);
+  --color-control-hover: var(--gray-200);
+  --color-danger: var(--red-700);       /* fill of the confirm button of a destructive action only */
+  --color-on-danger: var(--gray-0);
+  --color-backdrop: rgb(8 8 8 / 0.45);
+  --chart-real: var(--gray-950);        /* solid line: real transactions */
+  --chart-planned: var(--gray-600);     /* dashed line with ring markers: dated planned items */
+  --chart-today: var(--blue-600);
+  --color-on-holo: var(--gray-950);     /* only ink text on holographic surfaces, in both themes */
+  --logo-ink: var(--gray-950);
+  /* One soft, wide shadow, only for floating layers (12:47) */
+  --shadow-overlay: 0 24px 48px -16px rgb(8 8 8 / 0.16), 0 2px 6px rgb(8 8 8 / 0.05);
+  /* A small, tight shadow for a control lifted from its own track, such as the selected type segment (owner, 12 Nov 2026) */
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg: var(--night-0);
+    --color-surface: var(--night-1);
+    --color-surface-sunken: var(--night-2);
+    --color-control: var(--night-4);
+    --color-divider: var(--night-3);
+    --color-border-control: var(--night-6);
+    --color-text: var(--gray-0);
+    --color-text-muted: var(--night-8);
+    --color-primary: var(--gray-0);
+    --color-on-primary: var(--night-0);
+    --color-accent: var(--blue-400);
+    --color-on-accent: var(--night-0);
+    --color-accent-tint: var(--blue-950);
+    --color-positive: var(--green-400);
+    --color-positive-tint: var(--green-950);
+    --color-negative: var(--red-300);
+    --color-negative-tint: var(--red-950);
+    --color-warning: var(--amber-300);
+    --color-warning-tint: var(--amber-950);
+    --color-focus: var(--blue-400);
+    --color-primary-hover: var(--gray-200);
+    --color-control-hover: var(--night-5);
+    --color-danger: var(--red-300);
+    --color-on-danger: var(--night-0);
+    --color-backdrop: rgb(0 0 0 / 0.6);
+    --chart-real: var(--gray-0);
+    --chart-planned: var(--night-8);
+    --chart-today: var(--blue-400);
+    --logo-ink: var(--gray-0);
+    --shadow-overlay: 0 24px 48px -16px rgb(0 0 0 / 0.6);
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: var(--night-0);
+  --color-surface: var(--night-1);
+  --color-surface-sunken: var(--night-2);
+  --color-control: var(--night-4);
+  --color-divider: var(--night-3);
+  --color-border-control: var(--night-6);
+  --color-text: var(--gray-0);
+  --color-text-muted: var(--night-8);
+  --color-primary: var(--gray-0);
+  --color-on-primary: var(--night-0);
+  --color-accent: var(--blue-400);
+  --color-on-accent: var(--night-0);
+  --color-accent-tint: var(--blue-950);
+  --color-positive: var(--green-400);
+  --color-positive-tint: var(--green-950);
+  --color-negative: var(--red-300);
+  --color-negative-tint: var(--red-950);
+  --color-warning: var(--amber-300);
+  --color-warning-tint: var(--amber-950);
+  --color-focus: var(--blue-400);
+  --color-primary-hover: var(--gray-200);
+  --color-control-hover: var(--night-5);
+  --color-danger: var(--red-300);
+  --color-on-danger: var(--night-0);
+  --color-backdrop: rgb(0 0 0 / 0.6);
+  --chart-real: var(--gray-0);
+  --chart-planned: var(--night-8);
+  --chart-today: var(--blue-400);
+  --logo-ink: var(--gray-0);
+  --shadow-overlay: 0 24px 48px -16px rgb(0 0 0 / 0.6);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+/* Reduced motion turns every motion off, fades included (owner's rule): each change is then
+   instant, as before motion existed. Components never test the preference themselves for CSS. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-state: 0ms;
+    --motion-duration-exit: 0ms;
+    --motion-duration-enter: 0ms;
+    --motion-duration-step: 0ms;
+    --motion-duration-draw: 0ms;
+    --motion-offset: 0px;
+    --motion-offset-step: 0px;
+  }
+}

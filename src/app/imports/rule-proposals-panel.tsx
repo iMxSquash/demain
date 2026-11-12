@@ -65,9 +65,9 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col items-start gap-2 border-t border-neutral-500 pt-3"
+      className="flex flex-col items-start gap-2 border-t border-border-control pt-3"
     >
-      <h4 id={headingId} className="font-semibold">
+      <h4 id={headingId} className="font-medium">
         {t("heading")}
       </h4>
       {proposals === null ? <p role="status">{t("loading")}</p> : null}
@@ -104,7 +104,7 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
                     </span>
                   </label>
                   {proposal.shadowingCategoryName === null ? null : (
-                    <p id={warningId} className="ml-6 text-sm">
+                    <p id={warningId} className="ml-6 text-caption">
                       {t("shadowed", { category: proposal.shadowingCategoryName })}
                     </p>
                   )}

@@ -106,7 +106,7 @@ export function CategorizeForm({
         </div>
       </details>
       {state ? (
-        <p id={errorId} role="alert" className="font-medium text-red-800">
+        <p id={errorId} role="alert" className="font-medium text-negative">
           {common("error", { message: state.message })}
         </p>
       ) : null}

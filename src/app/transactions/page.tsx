@@ -57,10 +57,10 @@ export default async function TransactionsPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-xl font-semibold">
+        <h2 id="list-heading" className="text-title font-medium">
           {t("listHeading")}
         </h2>
         {rows.length === 0 ? (
@@ -68,7 +68,7 @@ export default async function TransactionsPage() {
         ) : (
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-neutral-500">
+              <tr className="border-b border-border-control">
                 <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
                 <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
                 <th scope="col" className="py-2 pr-4">{t("columns.label")}</th>
@@ -88,7 +88,7 @@ export default async function TransactionsPage() {
                   );
                 }
                 return (
-                  <tr key={row.id} className="border-b border-neutral-300">
+                  <tr key={row.id} className="border-b border-divider">
                     <td className="py-2 pr-4 tabular-nums">
                       <time dateTime={row.date}>
                         {formatCalendarDate(row.date, locale)}
@@ -161,7 +161,7 @@ export default async function TransactionsPage() {
       ) : (
         <>
           <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-            <h2 id="new-heading" className="text-xl font-semibold">
+            <h2 id="new-heading" className="text-title font-medium">
               {t("addHeading")}
             </h2>
             <TransactionForm
@@ -183,7 +183,7 @@ export default async function TransactionsPage() {
           </section>
 
           <section aria-labelledby="transfer-heading" className="flex flex-col gap-3">
-            <h2 id="transfer-heading" className="text-xl font-semibold">
+            <h2 id="transfer-heading" className="text-title font-medium">
               {t("transferHeading")}
             </h2>
             <TransferForm

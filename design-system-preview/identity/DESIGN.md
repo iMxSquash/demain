@@ -45,7 +45,7 @@ The repository documents still win over this file: `docs/DOMAIN.md`, the ADRs in
 
 ## 2. Files and how they reach the app
 
-Everything below lives in `design-system-preview/identity/`. Nothing in `src/` uses it yet.
+Everything below lives in `design-system-preview/identity/`. Steps 1 and 2 of the integration order are applied (#104): `src/app/tokens.css`, `src/app/globals.css` and `src/app/fonts/` are in the app, and `tests/design/identity-guard.test.ts` refuses the classes of section 16.
 
 | File | Role | Destination in the app |
 | --- | --- | --- |

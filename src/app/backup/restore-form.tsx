@@ -8,7 +8,7 @@ import { CONTROL_CLASS, FormField } from "../form-field";
 import { restoreSnapshotAction } from "./actions";
 
 const RESTORE_BUTTON_CLASS =
-  "min-h-11 self-start rounded bg-red-800 px-4 font-medium text-white";
+  "min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover";
 
 export function RestoreForm() {
   const t = useTranslations("backup");

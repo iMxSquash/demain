@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import localFont from "next/font/local";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -14,6 +15,15 @@ import { getTranslator } from "./translator";
 import "./globals.css";
 
 const CONTENT_ID = "content";
+
+// Self-hosted, never fetched from a CDN. The WOFF2 is a subset of the shipped TTF that keeps
+// U+202F (the French thousands separator) mapped to the thin space (DESIGN.md section 5).
+// next/font preloads it and adds a size-adjusted Arial fallback by default.
+const hostGrotesk = localFont({
+  src: "./fonts/HostGrotesk-Variable.woff2",
+  weight: "300 800",
+  variable: "--font-host-grotesk",
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("home");
@@ -38,13 +48,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const isSignedIn = session !== null && !session.mfaPending;
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={hostGrotesk.variable}>
       <body>
         <NextIntlClientProvider>
           <ToastProvider notice={notice}>
             <a
               href={`#${CONTENT_ID}`}
-              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-4 focus:py-3 focus:text-neutral-900"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded-control focus:bg-surface focus:px-4 focus:py-3 focus:text-text"
             >
               {tCommon("skipToContent")}
             </a>
@@ -55,7 +65,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                     {t("security")}
                   </Link>
                   <form action={logoutAction}>
-                    <button type="submit" className="min-h-11 rounded border border-neutral-500 px-3">
+                    <button type="submit" className="min-h-11 rounded-pill border border-border-control px-3">
                       {t("signOut")}
                     </button>
                   </form>

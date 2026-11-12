@@ -47,7 +47,7 @@ export async function BalanceAssertionsTable({
       <table className="w-full border-collapse text-left">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-neutral-500">
+          <tr className="border-b border-border-control">
             <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
             {showAccount ? (
               <th scope="col" className="py-2 pr-4">{t("accountColumn")}</th>
@@ -68,7 +68,7 @@ export async function BalanceAssertionsTable({
               assertion.amount,
             );
             return (
-              <tr key={assertion.id} className="border-b border-neutral-300">
+              <tr key={assertion.id} className="border-b border-divider">
                 <th scope="row" className="py-2 pr-4 font-medium tabular-nums">
                   <time dateTime={assertion.date}>{assertion.date}</time>
                 </th>

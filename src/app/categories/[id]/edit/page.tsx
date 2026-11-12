@@ -48,7 +48,7 @@ export default async function RenameCategoryPage({
       <Link href="/categories" className="self-start underline">
         {t("backToCategories")}
       </Link>
-      <h1 className="text-2xl font-semibold">
+      <h1 className="text-heading font-medium">
         {t("renameTitle", { name: category.name })}
       </h1>
       <CategoryForm

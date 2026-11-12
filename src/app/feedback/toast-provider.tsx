@@ -43,13 +43,13 @@ function ToastItem({ notice, onDismiss }: { notice: Notice; onDismiss: (id: stri
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
-      className={`flex items-start gap-3 rounded border-2 bg-white p-3 text-neutral-900 shadow-lg ${
-        isError ? "border-red-800" : "border-green-800"
+      className={`flex items-start gap-3 rounded-control border-2 bg-surface p-3 text-text shadow-overlay ${
+        isError ? "border-negative" : "border-positive"
       }`}
     >
       {/* The word carries the kind, the border color only reinforces it. */}
       <p className="flex-1">
-        <strong className={isError ? "text-red-800" : "text-green-800"}>
+        <strong className={isError ? "text-negative" : "text-positive"}>
           {isError ? t("toastError") : t("toastSuccess")}
         </strong>{" "}
         {notice.message}
@@ -58,7 +58,7 @@ function ToastItem({ notice, onDismiss }: { notice: Notice; onDismiss: (id: stri
         type="button"
         onClick={() => onDismiss(notice.id)}
         aria-label={t("toastDismiss")}
-        className="min-h-11 min-w-11 rounded border border-neutral-500"
+        className="min-h-11 min-w-11 rounded-pill border border-border-control"
       >
         <span aria-hidden="true">×</span>
       </button>

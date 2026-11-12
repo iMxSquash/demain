@@ -2,10 +2,10 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 export const CONTROL_CLASS =
-  "min-h-11 w-full rounded border border-neutral-500 bg-white px-3 text-neutral-900 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
+  "min-h-11 w-full rounded-control border border-border-control bg-surface px-3 text-text aria-[invalid=true]:border-2 aria-[invalid=true]:border-negative";
 
 export const BUTTON_CLASS =
-  "min-h-11 rounded border border-neutral-900 px-4 font-medium disabled:opacity-60";
+  "min-h-11 rounded-pill border border-text px-4 font-medium disabled:opacity-60";
 
 interface FormFieldProps {
   id: string;
@@ -26,7 +26,7 @@ export function FormField({ id, label, error, children }: FormFieldProps) {
         <p
           id={`${id}-error`}
           role="alert"
-          className="font-medium text-red-800"
+          className="font-medium text-negative"
         >
           {t("error", { message: error })}
         </p>

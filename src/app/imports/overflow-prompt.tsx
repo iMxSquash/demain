@@ -31,7 +31,7 @@ function useFieldError(hintId: string, error: string | null) {
     },
     errorParagraph:
       error === null ? null : (
-        <p id={errorId} role="alert" className="font-medium text-red-800">
+        <p id={errorId} role="alert" className="font-medium text-negative">
           {common("error", { message: error })}
         </p>
       ),
@@ -91,8 +91,8 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
   }
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3 rounded border border-neutral-500 p-4">
-      <h3 id={headingId} className="text-lg font-semibold">
+    <section aria-labelledby={headingId} className="flex flex-col gap-3 rounded-control border border-border-control p-4">
+      <h3 id={headingId} className="text-title font-medium">
         {t("heading", { account: accountName })}
       </h3>
       <p>
@@ -123,7 +123,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
             </option>
           ))}
         </select>
-        <p id={hintId} className="text-sm">
+        <p id={hintId} className="text-caption">
           {t("permanent", { account: accountName })}
         </p>
         {selectError.errorParagraph}
@@ -147,7 +147,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
             }}
             className={CONTROL_CLASS}
           />
-          <p id={nameHintId} className="text-sm">
+          <p id={nameHintId} className="text-caption">
             {t("createHint", { currency })}
           </p>
           {nameError.errorParagraph}
