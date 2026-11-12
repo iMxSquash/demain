@@ -27,7 +27,8 @@ section{margin-top:var(--space-12)}
 .grid>*{min-width:0}
 @media (min-width:768px){.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}}
 .card{background:var(--color-surface);border-radius:var(--radius-card);padding:var(--space-6)}
-.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* Phosphor Regular: filled outlines on a 256 grid, coloured by currentColor */
+.ico{width:var(--icon-size);height:var(--icon-size);fill:currentColor;flex:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* buttons: ink primary (06:44, 12:21), neutral secondary (12:21), text link tertiary (13:19) */
@@ -115,14 +116,24 @@ legend{padding:0;margin-bottom:var(--space-2)}
 .check input.is-focus{outline:2px solid var(--color-focus);outline-offset:2px}
 
 /* segmented radio group (07:32 and 06:44): the appearance setting */
-.seg{display:inline-flex;padding:3px;gap:2px;background:var(--color-control);border-radius:var(--radius-pill);max-width:100%}
-.seg label{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:var(--target-min);padding:0 var(--space-4);border-radius:var(--radius-pill);color:var(--color-text-muted);font-weight:var(--weight-medium);cursor:pointer}
+/* equal segments, so one indicator can slide under them: its index comes from :has(), in CSS only, so the
+   server-rendered radios work without JavaScript and nothing jumps at load */
+.seg{position:relative;display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:3px;gap:2px;background:var(--color-control);border-radius:var(--radius-pill);max-width:100%;--n:2;--i:0}
+.seg:has(>label:nth-child(3)){--n:3}
+.seg:has(>label:nth-child(4)){--n:4}
+.seg:has(>label:nth-child(2) input:checked){--i:1}
+.seg:has(>label:nth-child(3) input:checked){--i:2}
+.seg:has(>label:nth-child(4) input:checked){--i:3}
+.seg::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px - (var(--n) - 1) * 2px) / var(--n));border-radius:var(--radius-pill);background:var(--color-primary);translate:calc(var(--i) * (100% + 2px)) 0;transition:translate var(--motion-duration-step) var(--motion-ease-move)}
+.seg:not(:has(input:checked))::before{opacity:0}
+.seg label{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--target-min);padding:0 var(--space-4);border-radius:var(--radius-pill);color:var(--color-text-muted);font-weight:var(--weight-medium);cursor:pointer}
 .seg label:hover{color:var(--color-text)}
 /* the native input stays, visually hidden, under segments, file pickers and chips */
 .seg input,.file input,#flow .chip input{position:absolute;opacity:0;width:1px;height:1px}
-.seg label:has(input:checked){background:var(--color-primary);color:var(--color-on-primary)}
+.seg label:has(input:checked){color:var(--color-on-primary)}
 /* raised variant: the selected segment sits on white, for segments whose icons carry red and green (transaction type) */
-.seg.raised label:has(input:checked){background:var(--color-surface);color:var(--color-text);box-shadow:var(--shadow-raised)}
+.seg.raised::before{background:var(--color-surface);box-shadow:var(--shadow-raised)}
+.seg.raised label:has(input:checked){color:var(--color-text)}
 .seg label:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
 
 /* file picker: the native input stays, a secondary button shows it */
@@ -273,6 +284,14 @@ code{font-family:inherit;color:var(--color-text-muted)}
 #flow.wide [data-step="3"]{grid-column:2;grid-row:2/4;align-self:stretch;padding-left:var(--space-8);border-left:1px solid var(--color-divider)}
 #flow.wide .big{margin-bottom:0}
 #flow.wide .step-nav{margin-top:var(--space-6)}
+/* surplus of a transfer above the ceiling (DOMAIN, deposit ceiling and overflow): replaces the save button until decided */
+#flow .split h4{font-size:var(--text-body);font-weight:var(--weight-medium);margin:0 0 var(--space-3)}
+#flow .split h4:focus{outline:none}
+#flow .split .notice{margin-bottom:var(--space-4)}
+#flow .split fieldset{margin-bottom:0}
+#flow:has(.split:not([hidden])) [data-save-nav]{display:none}
+#flow [data-split-outcome]{margin-top:var(--space-3)}
+#flow [data-split-outcome]:empty{display:none}
 
 /* motion (DESIGN section 6): tokens only, so reduced motion (all durations 0 in tokens.css) makes
    every change instant. Nothing visible at load starts hidden: entrances play when an element is
@@ -285,7 +304,7 @@ code{font-family:inherit;color:var(--color-text-muted)}
 @keyframes fade-out{to{opacity:0}}
 @keyframes step-in{from{opacity:0;translate:var(--step-shift) 0}}
 .pop:not([hidden]),dialog.dialog[open],#toast-demo .toast{animation:motion-enter var(--motion-duration-enter) var(--motion-ease-enter) backwards}
-dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){animation:fade-in var(--motion-duration-enter) var(--motion-ease-enter)}
+dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flow .split:not([hidden]){animation:fade-in var(--motion-duration-enter) var(--motion-ease-enter)}
 #toast-demo .toast.is-leaving{animation:fade-out var(--motion-duration-exit) var(--motion-ease-exit) forwards}
 #flow[data-dir="forward"]{--step-shift:var(--motion-offset-step)}
 #flow[data-dir="back"]{--step-shift:calc(-1 * var(--motion-offset-step))}
@@ -295,29 +314,34 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
-  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
-  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
-  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></symbol>
-  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/></symbol>
-  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7l10 10M17 9v8H9"/></symbol>
-  <symbol id="i-in" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></symbol>
-  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></symbol>
-  <symbol id="i-pct" viewBox="0 0 24 24"><path d="M18 6L6 18"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
-  <symbol id="i-food" viewBox="0 0 24 24"><path d="M3.5 9.5h17l-1.6 8.2a2 2 0 0 1-2 1.8H7.1a2 2 0 0 1-2-1.8z"/><path d="M8 9.5l3-5M16 9.5l-3-5"/></symbol>
-  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z"/><path d="M10 20.5v-5h4v5"/></symbol>
-  <symbol id="i-bus" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="14" rx="3"/><path d="M5 11h14M8 21v-3.5M16 21v-3.5M8.5 14.5h.01M15.5 14.5h.01"/></symbol>
-  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5v2a2.5 2.5 0 0 0 0 5v2a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5v-2a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v12"/></symbol>
-  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.5-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.5-7.5 10-7.5 10z"/></symbol>
-  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="4" rx="1"/><path d="M5.5 13v6.5h13V13M12 9v10.5M12 9C10 5 7 5.5 7.5 7.5S12 9 12 9zm0 0c2-4 5-3.5 4.5-1.5S12 9 12 9z"/></symbol>
-  <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="6.5" ry="2.5"/><path d="M5.5 7v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5V7M5.5 12v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-5"/></symbol>
-  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3.5 13.5l2.6-7.2A1.5 1.5 0 0 1 7.5 5.3h9a1.5 1.5 0 0 1 1.4 1l2.6 7.2V18a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 18z"/><path d="M3.5 13.5H8l1.5 2h5l1.5-2h4.5"/></symbol>
-  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
-  <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 5.5h10.5A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5H9L3 12z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></symbol>
-  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.5 6.5l2.5 2.5M15 15l2.5 2.5M17.5 6.5L15 9M9 15l-2.5 2.5"/></symbol>
+  <!-- Phosphor Icons, Regular weight (MIT, Copyright (c) 2023 Phosphor Icons), from @phosphor-icons/core 2.1.1 -->
+  <symbol id="i-chev" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 256 256"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 256 256"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128,133.33,133.33,0,0,1,48.07,97.25C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 256 256"><path d="M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C25,88.84,9.38,123.2,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208a127.11,127.11,0,0,0,52.07-10.83l22,24.21a8,8,0,1,0,11.84-10.76Zm47.33,75.84,41.67,45.85a32,32,0,0,1-41.67-45.85ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.16,133.16,0,0,1,25,128c4.69-8.79,19.66-33.39,47.35-49.38l18,19.75a48,48,0,0,0,63.66,70l14.73,16.2A112,112,0,0,1,128,192Zm6-95.43a8,8,0,0,1,3-15.72,48.16,48.16,0,0,1,38.77,42.64,8,8,0,0,1-7.22,8.71,6.39,6.39,0,0,1-.75,0,8,8,0,0,1-8-7.26A32.09,32.09,0,0,0,134,96.57Zm113.28,34.69c-.42.94-10.55,23.37-33.36,43.8a8,8,0,1,1-10.67-11.92A132.77,132.77,0,0,0,231.05,128a133.15,133.15,0,0,0-23.12-30.77C185.67,75.19,158.78,64,128,64a118.37,118.37,0,0,0-19.36,1.57A8,8,0,1,1,106,49.79,134,134,0,0,1,128,48c34.88,0,66.57,13.26,91.66,38.35,18.83,18.83,27.3,37.62,27.65,38.41A8,8,0,0,1,247.31,131.26Z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 256 256"><path d="M200,88V192a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h84.69L58.34,69.66A8,8,0,0,1,69.66,58.34L184,172.69V88a8,8,0,0,1,16,0Z"/></symbol>
+  <symbol id="i-in" viewBox="0 0 256 256"><path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 256 256"><path d="M213.66,181.66l-32,32a8,8,0,0,1-11.32-11.32L188.69,184H48a8,8,0,0,1,0-16H188.69l-18.35-18.34a8,8,0,0,1,11.32-11.32l32,32A8,8,0,0,1,213.66,181.66Zm-139.32-64a8,8,0,0,0,11.32-11.32L67.31,88H208a8,8,0,0,0,0-16H67.31L85.66,53.66A8,8,0,0,0,74.34,42.34l-32,32a8,8,0,0,0,0,11.32Z"/></symbol>
+  <symbol id="i-pct" viewBox="0 0 256 256"><path d="M205.66,61.64l-144,144a8,8,0,0,1-11.32-11.32l144-144a8,8,0,0,1,11.32,11.31ZM50.54,101.44a36,36,0,0,1,50.92-50.91h0a36,36,0,0,1-50.92,50.91ZM56,76A20,20,0,1,0,90.14,61.84h0A20,20,0,0,0,56,76ZM216,180a36,36,0,1,1-10.54-25.46h0A35.76,35.76,0,0,1,216,180Zm-16,0a20,20,0,1,0-5.86,14.14A19.87,19.87,0,0,0,200,180Z"/></symbol>
+  <symbol id="i-food" viewBox="0 0 256 256"><path d="M136,120v56a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Zm36.84-.8-5.6,56A8,8,0,0,0,174.4,184a7.32,7.32,0,0,0,.81,0,8,8,0,0,0,7.95-7.2l5.6-56a8,8,0,0,0-15.92-1.6Zm-89.68,0a8,8,0,0,0-15.92,1.6l5.6,56a8,8,0,0,0,8,7.2,7.32,7.32,0,0,0,.81,0,8,8,0,0,0,7.16-8.76ZM239.93,89.06,224.86,202.12A16.06,16.06,0,0,1,209,216H47a16.06,16.06,0,0,1-15.86-13.88L16.07,89.06A8,8,0,0,1,24,80H68.37L122,18.73a8,8,0,0,1,12,0L187.63,80H232a8,8,0,0,1,7.93,9.06ZM89.63,80h76.74L128,36.15ZM222.86,96H33.14L47,200H209Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 256 256"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/></symbol>
+  <symbol id="i-bus" viewBox="0 0 256 256"><path d="M184,32H72A32,32,0,0,0,40,64V208a16,16,0,0,0,16,16H80a16,16,0,0,0,16-16V192h64v16a16,16,0,0,0,16,16h24a16,16,0,0,0,16-16V64A32,32,0,0,0,184,32ZM56,176V120H200v56Zm0-96H200v24H56ZM72,48H184a16,16,0,0,1,16,16H56A16,16,0,0,1,72,48Zm8,160H56V192H80Zm96,0V192h24v16Zm-72-60a12,12,0,1,1-12-12A12,12,0,0,1,104,148Zm72,0a12,12,0,1,1-12-12A12,12,0,0,1,176,148Zm72-68v24a8,8,0,0,1-16,0V80a8,8,0,0,1,16,0ZM24,80v24a8,8,0,0,1-16,0V80a8,8,0,0,1,16,0Z"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 256 256"><path d="M232,104a8,8,0,0,0,8-8V64a16,16,0,0,0-16-16H32A16,16,0,0,0,16,64V96a8,8,0,0,0,8,8,24,24,0,0,1,0,48,8,8,0,0,0-8,8v32a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V160a8,8,0,0,0-8-8,24,24,0,0,1,0-48ZM32,167.2a40,40,0,0,0,0-78.4V64H88V192H32Zm192,0V192H104V64H224V88.8a40,40,0,0,0,0,78.4Z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 256 256"><path d="M178,40c-20.65,0-38.73,8.88-50,23.89C116.73,48.88,98.65,40,78,40a62.07,62.07,0,0,0-62,62c0,70,103.79,126.66,108.21,129a8,8,0,0,0,7.58,0C136.21,228.66,240,172,240,102A62.07,62.07,0,0,0,178,40ZM128,214.8C109.74,204.16,32,155.69,32,102A46.06,46.06,0,0,1,78,56c19.45,0,35.78,10.36,42.6,27a8,8,0,0,0,14.8,0c6.82-16.67,23.15-27,42.6-27a46.06,46.06,0,0,1,46,46C224,155.61,146.24,204.15,128,214.8Z"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 256 256"><path d="M216,72H180.92c.39-.33.79-.65,1.17-1A29.53,29.53,0,0,0,192,49.57,32.62,32.62,0,0,0,158.44,16,29.53,29.53,0,0,0,137,25.91a54.94,54.94,0,0,0-9,14.48,54.94,54.94,0,0,0-9-14.48A29.53,29.53,0,0,0,97.56,16,32.62,32.62,0,0,0,64,49.57,29.53,29.53,0,0,0,73.91,71c.38.33.78.65,1.17,1H40A16,16,0,0,0,24,88v32a16,16,0,0,0,16,16v64a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V136a16,16,0,0,0,16-16V88A16,16,0,0,0,216,72ZM149,36.51a13.69,13.69,0,0,1,10-4.5h.49A16.62,16.62,0,0,1,176,49.08a13.69,13.69,0,0,1-4.5,10c-9.49,8.4-25.24,11.36-35,12.4C137.7,60.89,141,45.5,149,36.51Zm-64.09.36A16.63,16.63,0,0,1,96.59,32h.49a13.69,13.69,0,0,1,10,4.5c8.39,9.48,11.35,25.2,12.39,34.92-9.72-1-25.44-4-34.92-12.39a13.69,13.69,0,0,1-4.5-10A16.6,16.6,0,0,1,84.87,36.87ZM40,88h80v32H40Zm16,48h64v64H56Zm144,64H136V136h64Zm16-80H136V88h80v32Z"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 256 256"><path d="M184,89.57V84c0-25.08-37.83-44-88-44S8,58.92,8,84v40c0,20.89,26.25,37.49,64,42.46V172c0,25.08,37.83,44,88,44s88-18.92,88-44V132C248,111.3,222.58,94.68,184,89.57ZM232,132c0,13.22-30.79,28-72,28-3.73,0-7.43-.13-11.08-.37C170.49,151.77,184,139,184,124V105.74C213.87,110.19,232,122.27,232,132ZM72,150.25V126.46A183.74,183.74,0,0,0,96,128a183.74,183.74,0,0,0,24-1.54v23.79A163,163,0,0,1,96,152,163,163,0,0,1,72,150.25Zm96-40.32V124c0,8.39-12.41,17.4-32,22.87V123.5C148.91,120.37,159.84,115.71,168,109.93ZM96,56c41.21,0,72,14.78,72,28s-30.79,28-72,28S24,97.22,24,84,54.79,56,96,56ZM24,124V109.93c8.16,5.78,19.09,10.44,32,13.57v23.37C36.41,141.4,24,132.39,24,124Zm64,48v-4.17c2.63.1,5.29.17,8,.17,3.88,0,7.67-.13,11.39-.35A121.92,121.92,0,0,0,120,171.41v23.46C100.41,189.4,88,180.39,88,172Zm48,26.25V174.4a179.48,179.48,0,0,0,24,1.6,183.74,183.74,0,0,0,24-1.54v23.79a165.45,165.45,0,0,1-48,0Zm64-3.38V171.5c12.91-3.13,23.84-7.79,32-13.57V172C232,180.39,219.59,189.4,200,194.87Z"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 256 256"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,16V152h-28.7A15.86,15.86,0,0,0,168,156.69L148.69,176H107.31L88,156.69A15.86,15.86,0,0,0,76.69,152H48V48Zm0,160H48V168H76.69L96,187.31A15.86,15.86,0,0,0,107.31,192h41.38A15.86,15.86,0,0,0,160,187.31L179.31,168H208v40Z"/></symbol>
+  <symbol id="i-card" viewBox="0 0 256 256"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224v88Zm-16-24a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h32A8,8,0,0,1,208,168Zm-64,0a8,8,0,0,1-8,8H120a8,8,0,0,1,0-16h16A8,8,0,0,1,144,168Z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 256 256"><path d="M216,40H68.53a16.08,16.08,0,0,0-13.72,7.77L9.14,123.88a8,8,0,0,0,0,8.24l45.67,76.11A16.08,16.08,0,0,0,68.53,216H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM61.67,204.12,68.53,200h0ZM216,200H68.53l-43.2-72,43.2-72H216ZM106.34,146.34,124.69,128l-18.35-18.34a8,8,0,0,1,11.32-11.32L136,116.69l18.34-18.35a8,8,0,0,1,11.32,11.32L147.31,128l18.35,18.34a8,8,0,0,1-11.32,11.32L136,139.31l-18.34,18.35a8,8,0,0,1-11.32-11.32Z"/></symbol>
+  <symbol id="i-history" viewBox="0 0 256 256"><path d="M136,80v43.47l36.12,21.67a8,8,0,0,1-8.24,13.72l-40-24A8,8,0,0,1,120,128V80a8,8,0,0,1,16,0Zm-8-48A95.44,95.44,0,0,0,60.08,60.15C52.81,67.51,46.35,74.59,40,82V64a8,8,0,0,0-16,0v40a8,8,0,0,0,8,8H72a8,8,0,0,0,0-16H49c7.15-8.42,14.27-16.35,22.39-24.57a80,80,0,1,1,1.66,114.75,8,8,0,1,0-11,11.64A96,96,0,1,0,128,32Z"/></symbol>
+  <symbol id="i-overview" viewBox="0 0 256 256"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0v94.37L90.73,98a8,8,0,0,1,10.07-.38l58.81,44.11L218.73,90a8,8,0,1,1,10.54,12l-64,56a8,8,0,0,1-10.07.38L96.39,114.29,40,163.63V200H224A8,8,0,0,1,232,208Z"/></symbol>
+  <symbol id="i-transactions" viewBox="0 0 256 256"><path d="M117.66,170.34a8,8,0,0,1,0,11.32l-32,32a8,8,0,0,1-11.32,0l-32-32a8,8,0,0,1,11.32-11.32L72,188.69V48a8,8,0,0,1,16,0V188.69l18.34-18.35A8,8,0,0,1,117.66,170.34Zm96-96-32-32a8,8,0,0,0-11.32,0l-32,32a8,8,0,0,0,11.32,11.32L168,67.31V208a8,8,0,0,0,16,0V67.31l18.34,18.35a8,8,0,0,0,11.32-11.32Z"/></symbol>
+  <symbol id="i-accounts" viewBox="0 0 256 256"><path d="M216,64H56a8,8,0,0,1,0-16H192a8,8,0,0,0,0-16H56A24,24,0,0,0,32,56V184a24,24,0,0,0,24,24H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64Zm0,128H56a8,8,0,0,1-8-8V78.63A23.84,23.84,0,0,0,56,80H216Zm-48-60a12,12,0,1,1,12,12A12,12,0,0,1,168,132Z"/></symbol>
+  <symbol id="i-imports" viewBox="0 0 256 256"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,16V152h-28.7A15.86,15.86,0,0,0,168,156.69L148.69,176H107.31L88,156.69A15.86,15.86,0,0,0,76.69,152H48V48Zm0,160H48V168H76.69L96,187.31A15.86,15.86,0,0,0,107.31,192h41.38A15.86,15.86,0,0,0,160,187.31L179.31,168H208v40ZM90.34,125.66a8,8,0,0,1,11.32-11.32L120,132.69V72a8,8,0,0,1,16,0v60.69l18.34-18.35a8,8,0,0,1,11.32,11.32l-32,32a8,8,0,0,1-11.32,0Z"/></symbol>
 </svg>
 <div class="wrap">
 <main id="main">
@@ -376,7 +400,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
 
 <section aria-labelledby="h-form">
 <h2 id="h-form">Adding a transaction</h2>
-<p class="why">The add-transaction form of the app becomes three steps, retained by the owner on 11 Nov 2026 from the proposals of <code>form-proposals.html</code>. Step 1 takes the type and the amount, typed or tapped on the keypad, under the exact-syntax rule. Step 2 is the label, with suggestions from history, and the category, "Later" sending it to the to-categorize queue. Step 3 recaps and edits in place, picks the date with the date picker, asks for the receiving account of a transfer, and keeps the note and the payment mode under "More details". Every choice is a chip or a segment with an icon, a colour and a word. The colour pairs of the flow are measured on <code>form-proposals.html</code>. On a computer, from 760 px of available width, the same flow fits one screen in two columns: the amount, the label and the category on the left, the date, the account and the save button on the right. It is typed on the keyboard, so the keypad, the steps and the recap go; the save button checks the amount and the label. Use the switch to see both layouts.</p>
+<p class="why">The add-transaction form of the app becomes three steps, retained by the owner on 11 Nov 2026 from the proposals of <code>form-proposals.html</code>. Step 1 takes the type and the amount, typed or tapped on the keypad, under the exact-syntax rule. Step 2 is the label, with suggestions from history, and the category, "Later" sending it to the to-categorize queue. Step 3 recaps and edits in place, picks the date with the date picker, asks for the receiving account of a transfer, and keeps the note and the payment mode under "More details". Every choice is a chip or a segment with an icon, a colour and a word. The colour pairs of the flow are measured on <code>form-proposals.html</code>. On a computer, from 760 px of available width, the same flow fits one screen in two columns: the amount, the label and the category on the left, the date, the account and the save button on the right. It is typed on the keyboard, so the keypad, the steps and the recap go; the save button checks the amount and the label. Use the switch to see both layouts. A transfer that does not fit under the ceiling of the receiving account opens a step of its own before saving: what fits, what does not, and where the surplus goes (try Move, 200 to Savings A; 50.00 is left under each synthetic ceiling).</p>
 <fieldset class="flow-width" id="flow-width"><legend class="sr">Preview width</legend><div class="seg"><label><input type="radio" name="flow-width" value="phone">Phone</label><label><input type="radio" name="flow-width" value="desktop" checked>Desktop</label></div></fieldset>
 <form class="flow" id="flow" data-kind="expense" onsubmit="return false" novalidate aria-labelledby="f-title">
   <p class="sr" id="f-title"><span class="narrow-only">New transaction, in three steps</span><span class="wide-only">New transaction</span></p>
@@ -428,7 +452,14 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
       <div class="field"><label for="f-note">Note</label><input class="input" id="f-note" type="text" autocomplete="off" data-bind="note"></div>
       <fieldset><legend>Payment mode</legend><div class="chips"><label class="chip text"><input type="radio" name="f-pay" value="card" data-bind="pay">Card</label><label class="chip text"><input type="radio" name="f-pay" value="transfer" data-bind="pay">Transfer</label><label class="chip text"><input type="radio" name="f-pay" value="direct-debit" data-bind="pay">Direct debit</label></div></fieldset>
     </details>
-    <div class="step-nav"><button class="btn secondary narrow-only" type="button" data-back>Back</button><button class="btn primary save" type="submit" data-save>Add expense</button></div>
+    <div class="step-nav" data-save-nav><button class="btn secondary narrow-only" type="button" data-back>Back</button><button class="btn primary save" type="submit" data-save>Add expense</button></div>
+    <div class="split" id="f-split" hidden>
+      <h4 id="f-split-title" tabindex="-1">Above the ceiling</h4>
+      <p class="notice"><b>Warning:</b> <span data-split-text></span></p>
+      <fieldset><legend>Where does the surplus go?</legend><div class="chips" data-split-choices></div></fieldset>
+      <div class="step-nav"><button class="btn secondary" type="button" data-split-cancel>Cancel</button><button class="btn primary save" type="button" data-split-save></button></div>
+    </div>
+    <p class="hint" data-split-outcome role="status"></p>
   </div>
 </form>
 </section>
@@ -460,13 +491,17 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
 
 <section aria-labelledby="h-syntax">
 <h2 id="h-syntax">Fields with an exact syntax</h2>
-<p class="why">When a field expects an exact syntax, the browser refuses any other character as it is typed, pasted or dropped, and says why in a polite live message instead of failing silently. An incomplete value is flagged when the field is left. The server checks the same rule again and stays the authority, since the browser can always be bypassed. An amount takes digits and one comma or point, with the decimals of its currency; spaces in a pasted amount are removed. A currency code takes three letters and is uppercased.</p>
+<p class="why">When a field expects an exact syntax, the browser refuses any other character as it is typed, pasted or dropped, and says why in a polite live message instead of failing silently. An incomplete value is flagged when the field is left. The server checks the same rule again and stays the authority, since the browser can always be bypassed. An amount takes digits and one comma or point, with the decimals of its currency; spaces in a pasted amount are removed. A currency code takes three letters and is uppercased. A balance that can be negative (an opening balance, a balance check, an imported row) keeps the same amount syntax, without a sign: a Credit or Debit choice next to it gives the side, so the sign never has to be typed.</p>
 <div class="grid g2">
   <div class="card form">
     <div class="field"><label for="x-amount">Amount</label><p class="hint" id="x-amount-hint">Digits and one comma or point, 2 decimals at most.</p><div class="control amount"><input class="input" id="x-amount" type="text" inputmode="decimal" autocomplete="off" data-syntax="amount" data-decimals="2" placeholder="0.00" aria-describedby="x-amount-hint"><span class="end" aria-hidden="true">&euro;</span></div></div>
   </div>
   <div class="card form">
     <div class="field"><label for="x-currency">Currency</label><p class="hint" id="x-currency-hint">ISO 4217 code, for example EUR.</p><div class="control"><input class="input" id="x-currency" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="3" data-syntax="currency" placeholder="EUR" aria-describedby="x-currency-hint"></div></div>
+  </div>
+  <div class="card form">
+    <div class="field"><label for="x-balance">Opening balance</label><p class="hint" id="x-balance-hint">Without a sign: say below whether the account is in credit or overdrawn.</p><div class="control amount"><input class="input" id="x-balance" type="text" inputmode="decimal" autocomplete="off" data-syntax="amount" data-decimals="2" placeholder="0.00" aria-describedby="x-balance-hint"><span class="end" aria-hidden="true">&euro;</span></div></div>
+    <fieldset><legend>Balance</legend><div class="seg"><label><input type="radio" name="x-balance-side" value="credit" checked>Credit</label><label><input type="radio" name="x-balance-side" value="debit">Debit</label></div></fieldset>
   </div>
 </div>
 </section>
@@ -547,12 +582,12 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
   <div class="card" lang="en">
     <p class="label">English</p>
     <dl class="kv num" id="fmt-en"></dl>
-    <ul class="tabs" aria-label="Tab bar, English"><li class="on">Overview</li><li>Calendar</li><li>Accounts</li><li>Simulations</li></ul>
+    <ul class="tabs" aria-label="Tab bar, English"><li class="on"><svg class="ico" aria-hidden="true"><use href="#i-overview"/></svg>Overview</li><li><svg class="ico" aria-hidden="true"><use href="#i-transactions"/></svg>Transactions</li><li><svg class="ico" aria-hidden="true"><use href="#i-accounts"/></svg>Accounts</li><li><svg class="ico" aria-hidden="true"><use href="#i-imports"/></svg>Imports</li></ul>
   </div>
   <div class="card" lang="fr">
     <p class="label">Fran&ccedil;ais</p>
     <dl class="kv num" id="fmt-fr"></dl>
-    <ul class="tabs" aria-label="Tab bar, French"><li class="on">Aper&ccedil;u</li><li>Calendrier</li><li>Comptes</li><li>Simulations</li></ul>
+    <ul class="tabs" aria-label="Tab bar, French"><li class="on"><svg class="ico" aria-hidden="true"><use href="#i-overview"/></svg>Aper&ccedil;u</li><li><svg class="ico" aria-hidden="true"><use href="#i-transactions"/></svg>Transactions</li><li><svg class="ico" aria-hidden="true"><use href="#i-accounts"/></svg>Comptes</li><li><svg class="ico" aria-hidden="true"><use href="#i-imports"/></svg>Imports</li></ul>
   </div>
 </div>
 </section>
@@ -800,7 +835,34 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
       form.querySelector("[data-sum-icon=cat] use").setAttribute("href","#"+(CAT_ICON[S.cat]||"i-inbox"));
       form.querySelector("[data-pick-label]").textContent=S.picked?fmtDate(S.picked,{weekday:"short",month:"short",day:"numeric"}):"Pick a date";
     }
-    function set(key,value){S[key]=value;if(key==="from"&&S.to===S.from){S.to=Object.keys(ACCT).filter(function(k){return k!==S.from;})[0];}sync();}
+    function set(key,value){closeSplit();outcome.textContent="";S[key]=value;if(key==="from"&&S.to===S.from){S.to=Object.keys(ACCT).filter(function(k){return k!==S.from;})[0];}sync();}
+
+    /* surplus above a ceiling (DOMAIN, deposit ceiling and overflow). In the app the server previews the split on
+       the first save and asks; here the rooms are synthetic, as in the worked example: 50.00 left under each ceiling */
+    var ROOM={current:Infinity,"savings-a":5000,"savings-b":5000},OVERFLOW={"savings-a":"savings-b"};
+    var split=document.getElementById("f-split"),outcome=form.querySelector("[data-split-outcome]"),surplusTo="keep";
+    function toMinor(text){var p=text.replace(",",".").split(".");return Number(p[0])*100+Number(((p[1]||"")+"00").slice(0,2));}
+    function eur(minor){return new Intl.NumberFormat("en",{style:"currency",currency:"EUR"}).format(minor+"E-2");}
+    function splitLabel(){var fits=eur(ROOM[S.to]);form.querySelector("[data-split-save]").textContent=surplusTo==="keep"?"Move only "+fits+" to "+ACCT[S.to]:"Move "+fits+", the rest to "+ACCT[surplusTo];}
+    function openSplit(){
+      var amount=toMinor(S.amount),fits=ROOM[S.to],box=split.querySelector("[data-split-choices]");
+      surplusTo=OVERFLOW[S.to]&&OVERFLOW[S.to]!==S.from?OVERFLOW[S.to]:"keep";
+      split.querySelector("[data-split-text]").textContent=eur(fits)+" fits under the ceiling of "+ACCT[S.to]+", "+eur(amount-fits)+" does not.";
+      box.innerHTML="";
+      Object.keys(ACCT).filter(function(k){return k!==S.from&&k!==S.to;}).concat("keep").forEach(function(k){
+        var l=document.createElement("label");l.className="chip text";l.innerHTML="<input type='radio' name='f-surplus'><span></span>";
+        l.firstChild.value=k;l.firstChild.checked=k===surplusTo;l.lastChild.textContent=k==="keep"?"Keep it in "+ACCT[S.from]:"Send to "+ACCT[k];box.appendChild(l);
+      });
+      splitLabel();outcome.textContent="";split.hidden=false;split.querySelector("h4").focus();
+    }
+    function closeSplit(){split.hidden=true;}
+    function saveSplit(){
+      var surplus=toMinor(S.amount)-ROOM[S.to],placed=surplusTo==="keep"?0:Math.min(surplus,ROOM[surplusTo]),unplaced=surplusTo==="keep"?0:surplus-placed;
+      closeSplit();
+      outcome.textContent="Moved "+eur(ROOM[S.to])+" to "+ACCT[S.to]+(placed?" and "+eur(placed)+" to "+ACCT[surplusTo]:"")+"."+(unplaced?" "+eur(unplaced)+" stays in "+ACCT[S.from]+": "+ACCT[surplusTo]+" is full.":"");
+      form.querySelector("[data-save]").focus();
+    }
+    split.addEventListener("change",function(e){if(e.target.name==="f-surplus"){surplusTo=e.target.value;splitLabel();}});
     form.addEventListener("change",function(e){var b=e.target.getAttribute("data-bind");if(!b)return;if(e.target.type==="radio"&&!e.target.checked)return;if(b==="date"&&e.target.value==="pick")return;set(b,e.target.value);});
     form.addEventListener("input",function(e){var b=e.target.getAttribute("data-bind");if(b&&e.target.type!=="radio")set(b,e.target.value);});
 
@@ -822,7 +884,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
     lab.addEventListener("input",function(){
       note.textContent="";sug.innerHTML="";var q=lab.value.trim().toLowerCase();if(q.length<2)return;
       HISTORY.filter(function(h){return h.label.toLowerCase().indexOf(q)>=0&&h.label.toLowerCase()!==q;}).slice(0,3).forEach(function(h){
-        var b=document.createElement("button");b.type="button";b.innerHTML="<svg class='ico' aria-hidden='true'><use href='#i-spark'/></svg><span></span>";b.lastChild.textContent=h.label+" · "+CAT_NAMES[h.cat];
+        var b=document.createElement("button");b.type="button";b.innerHTML="<svg class='ico' aria-hidden='true'><use href='#i-history'/></svg><span></span>";b.lastChild.textContent=h.label+" · "+CAT_NAMES[h.cat];
         b.addEventListener("click",function(){sug.innerHTML="";S.label=h.label;S.cat=h.cat;sync();note.textContent="Category "+CAT_NAMES[h.cat]+" from your rule “"+h.rule+"”.";lab.focus();});
         sug.appendChild(b);
       });
@@ -842,7 +904,9 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){anim
       var t=e.target.closest("button");if(!t)return;
       if(t.hasAttribute("data-next")&&valid(current))show(current+1,true);
       else if(t.hasAttribute("data-back"))show(current-1,true);
-      else if(t.hasAttribute("data-save"))valid(1)&&valid(2);
+      else if(t.hasAttribute("data-save")){if(valid(1)&&valid(2)&&S.kind==="transfer"&&toMinor(S.amount)>ROOM[S.to])openSplit();}
+      else if(t.hasAttribute("data-split-cancel")){closeSplit();form.querySelector("[data-save]").focus();}
+      else if(t.hasAttribute("data-split-save"))saveSplit();
       else if(t.hasAttribute("data-edit")){var ed=document.getElementById(t.getAttribute("data-edit")),open=ed.hidden;ed.hidden=!open;t.setAttribute("aria-expanded",String(open));t.textContent=open?"Close":"Edit";if(open){var f=ed.querySelector("input:checked,input");if(f)f.focus();}}
       else if(t.hasAttribute("data-done")){var id=t.getAttribute("data-done"),edb=form.querySelector("[data-edit='"+id+"']");if(id==="e-amount"){var ea=form.querySelector("#e-amount-input");if(!money(S.amount)){ea.setAttribute("aria-invalid","true");ea.focus();return;}ea.removeAttribute("aria-invalid");}document.getElementById(id).hidden=true;edb.setAttribute("aria-expanded","false");edb.textContent="Edit";edb.focus();}
     });

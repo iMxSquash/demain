@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "design-system-preview/identity/components.html"
+        ],
+        "createdAt": "2026-11-12T15:02:26.914Z",
+        "reason": "Claude, 2026-11-12: the flagged pair (#090909 on #242424) is the selected segment label on the sliding ::before pill (#ffffff in dark, 19.9:1), which the detector cannot see; the page computes its own contrast table, 54 pairs, 0 below threshold"
+      }
+    ]
+  }
+}
