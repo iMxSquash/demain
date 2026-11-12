@@ -38,6 +38,9 @@
   --tracking-*: initial;
   --radius-*: initial;
   --shadow-*: initial;
+  /* Motion: no default easing or animation (spin, ping, pulse, bounce) compiles */
+  --ease-*: initial;
+  --animate-*: initial;
 
   --color-bg: var(--color-bg);
   --color-surface: var(--color-surface);
@@ -102,6 +105,11 @@
   --shadow-overlay: var(--shadow-overlay);
   --shadow-raised: var(--shadow-raised);
 
+  /* `transition-colors` and the other transition utilities take the state duration and the
+     move easing, so a component never writes `duration-*` or `ease-*` (DESIGN section 6). */
+  --default-transition-duration: var(--motion-duration-state);
+  --default-transition-timing-function: var(--motion-ease-move);
+
   /* Spacing is not mapped: Tailwind's 0.25rem step is the 4 px grid, so `p-6` is
      --space-6 (24 px) and `min-h-11` is --target-min (44 px). */
 }
@@ -122,6 +130,22 @@
     background: var(--gradient-holo);
     filter: blur(var(--holo-blur));
   }
+}
+
+/* Entrance of content rendered by the server (a page on navigation, a section): a CSS animation
+   from the stylesheet, which runs from the first paint. Never an initial state written in a
+   style attribute, which the content security policy blocks and which would show the final
+   state first, then jump (DESIGN section 6). */
+/* `translate`, not `transform`, so an element placed with a transform keeps its placement. */
+@keyframes motion-enter {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-offset);
+  }
+}
+
+@utility motion-enter {
+  animation: motion-enter var(--motion-duration-enter) var(--motion-ease-enter) backwards;
 }
 
 @layer base {

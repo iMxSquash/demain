@@ -11,7 +11,7 @@ The repository documents still win over this file: `docs/DOMAIN.md`, the ADRs in
 3. [Theme](#3-theme)
 4. [Colour](#4-colour)
 5. [Typography](#5-typography)
-6. [Layout, space and shape](#6-layout-space-and-shape)
+6. [Layout, space, shape and motion](#6-layout-space-shape-and-motion)
 7. [Icons](#7-icons)
 8. [Components](#8-components)
 9. [Forms](#9-forms)
@@ -34,7 +34,7 @@ The repository documents still win over this file: `docs/DOMAIN.md`, the ADRs in
    - Nothing else is coloured.
 3. **Never colour alone.** Every state also carries a sign, a word, an icon, a shape or a position.
 4. **Number first.** A figure comes before the words that explain it. Amounts are large, regular weight, tabular.
-5. **Calm.** Flat surfaces, a soft shadow for floating layers and a small one for a control lifted from its track, no motion, no decoration that does not carry information.
+5. **Calm.** Flat surfaces, a soft shadow for floating layers and a small one for a control lifted from its track, no decoration that does not carry information. Motion only shows a change: it is short, never bounces, never loops, and stops when the device asks for reduced motion ([section 6](#motion)).
 6. **WCAG 2.2 AA everywhere.**
    - Text reaches 4.5:1.
    - Borders, rings, marks and chart lines reach 3:1.
@@ -65,8 +65,13 @@ Everything below lives in `design-system-preview/identity/`. Nothing in `src/` u
 3. Add the theme setting (section 3) and render `data-theme` from the root layout.
 4. Restyle the shared components (`FormField`, `ConfirmActionButton`, the toast provider, the locale switcher) to section 8.
 5. Add the icons, the manifest and the favicon (section 13).
-6. Replace `src/app/real-chart.tsx` with the trajectory chart (section 11). It needs `d3-scale` and `d3-shape`, already anticipated by ADR-012. Ask the owner before adding them.
+6. Replace `src/app/real-chart.tsx` with the trajectory chart (section 11). It needs `d3-scale` and `d3-shape`, already anticipated by ADR-012 and already in `package.json`.
 7. Rebuild the add-transaction form as the flow of section 10.
+
+Motion (section 6) lands with each component:
+- The CSS transitions and the entrance utility come with `tailwind.css` in step 1.
+- The `motion` npm package (owner's choice, 12 Nov 2026) is added once, in its own pull request with an ADR, before the first component that needs an exit (the toast). It runs behind `LazyMotion`.
+- Its timings come from one module, `src/app/motion.ts`, which mirrors the motion tokens and turns them to 0 under reduced motion.
 
 ## 3. Theme
 
@@ -172,7 +177,7 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
 - **French thousands separator:** `Intl` puts a narrow no-break space (U+202F) between thousands in French. The upstream Host Grotesk file has no glyph for it, so the shipped `fonts/HostGrotesk-Variable.ttf` maps U+202F to the face's own thin space (U+2009, 0.15 em) in its `cmap`. Keep the `Intl` output as it is: never replace the separator in code. When the font file is updated from upstream, map it again (fontTools: point U+202F at the glyph of U+2009 in every Unicode `cmap` subtable).
 - **Labels** are written in sentence case in the messages and uppercased with CSS (`uppercase`), so accented capitals stay correct.
 
-## 6. Layout, space and shape
+## 6. Layout, space, shape and motion
 
 - **Grid:** 4 px. Tailwind's spacing step is 4 px, so use the identity steps only: `1` (4), `2` (8), `3` (12), `4` (16), `6` (24), `8` (32), `12` (48), `16` (64).
 - **Cards:** `rounded-card` (20 px), `bg-surface`, padding `p-6` (24), gaps `gap-4` (16). In narrow views, padding 16 and gaps 12.
@@ -194,7 +199,61 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
 
   Use a container query on the app frame, not a media query.
-- **Motion:** none. States change by tone, instantly. If motion is added later, it must respect `prefers-reduced-motion`.
+### Motion
+
+Motion shows a change the user caused, or that the app made for them: a layer that opens, a step that follows, a state that switches. It never decorates and never asks for attention on its own.
+
+**Tokens** (`tokens.css`; never a raw duration or easing in a component):
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--motion-duration-state` | 120 ms | Tone change on hover, press, check, selection |
+| `--motion-duration-exit` | 140 ms | A layer that leaves |
+| `--motion-duration-enter` | 200 ms | A layer or a page that arrives |
+| `--motion-duration-step` | 260 ms | A step of the add-transaction flow, the progress bar |
+| `--motion-duration-draw` | 600 ms | The trajectory line, drawn once; the longest motion allowed |
+| `--motion-ease-enter` | `cubic-bezier(0.2, 0, 0, 1)` | Entrances: arrive fast, settle |
+| `--motion-ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Exits: leave without lingering |
+| `--motion-ease-move` | `cubic-bezier(0.4, 0, 0.2, 1)` | From one tone or place to another |
+| `--motion-offset` | 8 px | Rise of a layer or a page as it fades in |
+| `--motion-offset-step` | 24 px | Slide of a flow step |
+
+**What moves**
+
+| Moment | Motion | Duration and easing |
+| --- | --- | --- |
+| Hover, press, focus of a control; checking a box; choosing a segment or a chip | The tone fades from one step to the next. Size and position never change | state, move |
+| The chevron of a picker or a disclosure | Turns by 180° | state, move |
+| Menu, picker, suggestions (popovers) | In: fade and rise of `--motion-offset` towards their trigger. Out: fade | enter; exit |
+| Toast | In: fade and rise of `--motion-offset`. Out: fade, then the toasts below close the gap | enter; exit |
+| Dialog | In: fade and rise of `--motion-offset`; the backdrop fades. Out: fade, then the dialog closes and the focus returns to its trigger | enter; exit |
+| Disclosure, step 3 editor | The content fades in under its summary or its row | enter |
+| Add-transaction steps (phone) | The new step slides `--motion-offset-step` from the side the user goes to (from the right on Next, from the left on Back) and fades in; the old one leaves at once, so the new one never waits | step, move |
+| Progress bar | The segment of the step reached fills from left to right | step, move |
+| Sign of the amount | Its colour fades when the type changes; the digits typed never animate | state, move |
+| Trajectory line | Drawn once from left to right when the chart first appears, real part then planned part; markers, labels and the zone appear at once | draw, move |
+| Chart reading | The marker, the crosshair and the tooltip move to the month being read | state, move |
+| Page | On load and on navigation inside the app, the content of `<main>` fades in and rises `--motion-offset` | enter |
+
+**Never**
+
+- An initial state rendered by the server, in a `style` attribute or in Motion's `initial`, for content that is in the HTML: the content security policy blocks style attributes, so the page would show its final state and then jump. Content rendered by the server enters with a CSS animation from the stylesheet (the `motion-enter` utility of `tailwind.css`, or a keyframe in a CSS module), which runs from the first paint. Motion's components rendered on the server take `initial={false}`; Motion animates only what the browser mounts after the page is shown.
+- A figure that counts up or rolls: a real amount is shown as it is (principle 1).
+- Bounce, overshoot, springs that oscillate, parallax, motion tied to scroll, loops, or anything that moves for more than `--motion-duration-draw`.
+- Motion on the holographic signature or on the glow of the chart lines.
+- Waiting for a motion to finish before accepting input: focus moves at once (the heading of a new step, the trigger of a closed picker) and the motion plays around it.
+
+**Reduced motion**
+
+- With `prefers-reduced-motion: reduce`, every duration and offset is 0: each change is instant, fades included (owner, 12 Nov 2026).
+  - For CSS, `tokens.css` does it.
+  - For Motion, `src/app/motion.ts` does it. `MotionConfig reducedMotion="user"` alone is not enough, since it keeps fades.
+- Nothing carries meaning through motion alone: a step, an error or a new toast is also a heading, a live region, a word.
+
+**In Tailwind:**
+- Use `transition-colors` (or `transition-transform` for the chevron) without a `duration-*` or `ease-*` class. `tailwind.css` points the default transition at `--motion-duration-state` and `--motion-ease-move`.
+- The default easings and animations (`ease-in`, `animate-spin`, `animate-pulse`) no longer compile.
+- `duration-*` still compiles, since Tailwind does not read it from the theme: it is refused in review.
 
 ## 7. Icons
 
@@ -217,7 +276,7 @@ Open `components.html` next to this section: every state below is drawn there in
 | Destructive | `bg-danger text-on-danger` | Only the confirm button inside a destructive dialog |
 
 - **Shape:** `rounded-pill`, `min-h-11`, `px-4`, `font-medium`, icon and text 8 px apart.
-- **Hover and pressed:** one tone step, nothing moves.
+- **Hover and pressed:** one tone step, faded over `--motion-duration-state`; the button never changes size or position.
 - **Disabled:** `bg-surface-sunken text-text-muted`, `cursor-not-allowed`. Never opacity.
 - **Pending:** keep the fill, change the label to the ongoing verb ("Adding…", "Deleting…"), set `aria-busy="true"`, and ignore further clicks.
 - **Icon button:** a 44 px circle, transparent, `hover:bg-control`, always with an `aria-label`.
@@ -483,7 +542,7 @@ Run through it for every new screen or component (WCAG 2.2 AA):
 - [ ] Amounts and dates come from `Intl`, from minor units.
 - [ ] Works at 375 px wide with no horizontal page scroll, at 200 % zoom, and in both themes.
 - [ ] Forms post without JavaScript; custom controls enhance native ones.
-- [ ] Any animation added later respects `prefers-reduced-motion`.
+- [ ] Motion follows [section 6](#motion): tokens only, nothing rendered by the server starts hidden or offset in a `style` attribute, everything instant with `prefers-reduced-motion: reduce`, focus never waits for a motion.
 
 ## 16. Migrating the current classes
 
@@ -521,3 +580,5 @@ With `tailwind.css`, Tailwind's default palette, sizes, weights, radii and shado
 These need action before the related work lands in `src/` (details in DECISIONS.md, "Open questions for the owner"):
 
 - **Roadmap:** record in `docs/ROADMAP.md` that the dark theme and the phone navigation are decided, when the work lands.
+- **Motion on the references:** `components.html` shows the CSS part of section 6 (states, popovers, dialog, disclosure, step editor, flow steps, progress bar, toast in and out). The trajectory line drawing and the page entrance are specified but not drawn: `brand-board.html` would need its bundle rebuilt. They are checked in the app when the chart and the layout land.
+- **Values to confirm:** the motion tokens are proposed by role, since the references are still images. The owner confirms them on `components.html` (DECISIONS.md, "Motion").
