@@ -10,7 +10,8 @@
  * those that only CSS modules read, such as the chart colours.
  */
 
-@import "tailwindcss";
+/* Only src/ is scanned: the tests and the identity previews name refused classes on purpose. */
+@import "tailwindcss" source("../");
 @import "./tokens.css";
 
 /* The theme is chosen on the server from the `theme` cookie: `data-theme="light"` or
