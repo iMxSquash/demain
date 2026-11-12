@@ -50,3 +50,6 @@ Thumbs.db
 
 # Third-party reference screenshots of the design exploration, kept local
 design-system-preview/inspiration/
+
+# Design detector cache (the config with its ignore rules is tracked)
+.impeccable/hook.cache.json
