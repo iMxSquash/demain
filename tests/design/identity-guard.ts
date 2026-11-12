@@ -10,12 +10,17 @@ const PALETTE =
 const FORBIDDEN_CLASSES: readonly RegExp[] = [
   // Default palette colours: `bg-blue-800`, `text-white`, `backdrop:bg-black/40`, `stroke-neutral-300`
   new RegExp(
-    `^(bg|text|border|fill|stroke|ring|outline|divide|decoration|placeholder|accent|caret|from|via|to|shadow)-(${PALETTE})(-\\d+)?(/\\d+)?$`,
+    `^(bg|text|border(-[xytrblse])?|fill|stroke|ring|ring-offset|inset-ring|outline|divide|decoration|placeholder|accent|caret|from|via|to|shadow)-(${PALETTE})(-\\d+)?(/\\d+)?$`,
   ),
-  /^rounded$/,
+  // The other namespaces that globals.css resets: their named steps no longer compile.
+  /^rounded(-[trblse]{1,2})?(-(xs|sm|md|lg|xl|\dxl))?$/,
   /^shadow(-(2xs|xs|sm|md|lg|xl|2xl|inner))?$/,
   /^font-(thin|extralight|light|normal|semibold|extrabold|black)$/,
   /^text-(xs|sm|base|lg|xl|\dxl)$/,
+  /^leading-(tight|snug|normal|relaxed|loose)$/,
+  /^tracking-(tighter|tight|normal|wide|wider|widest)$/,
+  /^ease-(in|out|in-out)$/,
+  /^animate-(spin|ping|pulse|bounce)$/,
   // Tailwind does not read durations from the theme, so `duration-*` still compiles;
   // transitions take the motion tokens through their defaults (DESIGN.md section 6).
   /^duration-/,
@@ -42,7 +47,7 @@ function findForbiddenClasses(source: string): string[] {
   });
 }
 
-/** Every class or value of `source` that the identity refuses, in order of appearance. */
+/** Every class of `source` that the identity refuses, then every hex colour of a component. */
 export function findIdentityViolations(source: string, fileName: string): string[] {
   const hexColours = fileName.endsWith(".tsx") ? (source.match(HEX_COLOUR) ?? []) : [];
   return [...findForbiddenClasses(source), ...hexColours];

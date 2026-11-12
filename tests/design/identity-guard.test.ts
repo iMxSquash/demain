@@ -5,20 +5,20 @@ import { describe, expect, it } from "vitest";
 
 import { findIdentityViolations } from "./identity-guard";
 
-const SOURCE_DIRECTORY = path.join(import.meta.dirname, "..", "..", "src");
+const SOURCE_DIRECTORY = "src";
 
-function readSourceFiles(): { file: string; source: string }[] {
-  return readdirSync(SOURCE_DIRECTORY, { recursive: true, encoding: "utf8" })
-    .filter((file) => /\.tsx?$/.test(file))
-    .map((file) => ({
-      file,
-      source: readFileSync(path.join(SOURCE_DIRECTORY, file), "utf8"),
-    }));
-}
+const SOURCE_FILES = readdirSync(SOURCE_DIRECTORY, { recursive: true, encoding: "utf8" })
+  .filter((file) => /\.tsx?$/.test(file))
+  .map((file) => path.join(SOURCE_DIRECTORY, file))
+  .map((file) => ({ file, source: readFileSync(file, "utf8") }));
 
 describe("identity guard", () => {
+  it("scans the components of src", () => {
+    expect(SOURCE_FILES.map(({ file }) => file)).toContain(path.join("src", "app", "layout.tsx"));
+  });
+
   it("finds no refused class or colour in src", () => {
-    const violations = readSourceFiles().flatMap(({ file, source }) =>
+    const violations = SOURCE_FILES.flatMap(({ file, source }) =>
       findIdentityViolations(source, file).map((violation) => `${file}: ${violation}`),
     );
 
@@ -53,6 +53,28 @@ describe("identity guard", () => {
     const source = `<rect fill="#1d4ed8" stroke="#fff" />`;
 
     expect(findIdentityViolations(source, "mark.tsx")).toEqual(["#1d4ed8", "#fff"]);
+  });
+
+  it("rejects the other default theme values that no longer compile", () => {
+    const source = `const CLASS = "rounded-lg rounded-t leading-tight tracking-wide ease-in-out animate-spin border-t-neutral-300 ring-offset-white inset-ring-red-800";`;
+
+    expect(findIdentityViolations(source, "card.ts")).toEqual([
+      "rounded-lg",
+      "rounded-t",
+      "leading-tight",
+      "tracking-wide",
+      "ease-in-out",
+      "animate-spin",
+      "border-t-neutral-300",
+      "ring-offset-white",
+      "inset-ring-red-800",
+    ]);
+  });
+
+  it("accepts the static utilities that still compile", () => {
+    const source = `const CLASS = "rounded-full rounded-none leading-none leading-6 ease-linear animate-none border-t-divider";`;
+
+    expect(findIdentityViolations(source, "card.ts")).toEqual([]);
   });
 
   it("accepts the identity utilities and in-page anchors", () => {
