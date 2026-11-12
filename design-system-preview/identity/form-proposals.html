@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add transaction proposals</title>
+<meta name="description" content="Three ways to add a transaction in Demain with less typing: one screen, three steps, or a quick sheet with a keypad.">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);font-weight:var(--weight-regular);font-size:var(--text-body);line-height:var(--leading-normal)}
+:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:16px;background:var(--color-surface);padding:8px 12px;border-radius:var(--radius-control);z-index:9}
+.wrap{max-width:1240px;margin:0 auto;padding:var(--space-8) var(--space-4) var(--space-16)}
+@media (min-width:768px){.wrap{padding:var(--space-12) var(--space-8) var(--space-16)}}
+h1{font-size:var(--text-heading);font-weight:var(--weight-medium);letter-spacing:var(--tracking-tight);line-height:var(--leading-tight);margin:0 0 var(--space-2)}
+h2{font-size:var(--text-title);font-weight:var(--weight-medium);letter-spacing:var(--tracking-tight);margin:0 0 var(--space-2)}
+h3{font-size:var(--text-body);font-weight:var(--weight-medium);margin:0 0 var(--space-2)}
+p{margin:0 0 var(--space-3)}
+section{margin-top:var(--space-12)}
+.lede{color:var(--color-text-muted);max-width:70ch}
+.why{color:var(--color-text-muted);font-size:var(--text-caption)}
+.label{font-size:var(--text-label);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--color-text-muted);font-weight:var(--weight-medium);margin:0 0 var(--space-2)}
+.muted{color:var(--color-text-muted)}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.card{background:var(--color-surface);border-radius:var(--radius-card);padding:var(--space-6)}
+
+/* three proposals side by side on a wide screen, stacked on a phone */
+.proposals{display:grid;gap:var(--space-6);margin-top:var(--space-8)}
+@media (min-width:1100px){.proposals{grid-template-columns:repeat(3,1fr);align-items:start}}
+.proposal{min-width:0}
+.proposal>header{min-height:0;margin-bottom:var(--space-4)}
+@media (min-width:1100px){.proposal>header{min-height:150px}}
+.frame{background:var(--color-surface);border-radius:var(--radius-card);padding:var(--space-4);max-width:400px;margin:0 auto}
+.frame h3{font-size:var(--text-title);margin:0 0 var(--space-4)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-3);margin:var(--space-4) auto 0;max-width:400px;font-size:var(--text-caption)}
+.facts dt{color:var(--color-text-muted)}
+.facts dd{margin:0}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--target-min);padding:0 var(--space-4);border-radius:var(--radius-pill);font:inherit;font-weight:var(--weight-medium);border:0;cursor:pointer}
+.btn.primary{background:var(--color-primary);color:var(--color-on-primary)}
+.btn.primary:hover:not(:disabled){background:var(--color-primary-hover)}
+.btn.secondary{background:var(--color-control);color:var(--color-text)}
+.btn.secondary:hover:not(:disabled){background:var(--color-control-hover)}
+.btn.link{background:none;color:var(--color-text);text-decoration:underline;text-underline-offset:3px;padding:0 var(--space-2)}
+.btn.block{width:100%}
+.btn.save{min-height:52px;font-size:var(--text-body)}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0;margin-bottom:var(--space-6)}
+.field>label,.field>.lbl,legend{font-size:var(--text-caption);font-weight:var(--weight-medium);color:var(--color-text);padding:0}
+fieldset{border:0;margin:0 0 var(--space-6);padding:0;min-width:0}
+legend{margin-bottom:var(--space-2)}
+.hint{font-size:var(--text-caption);color:var(--color-text-muted);margin:0}
+.input{width:100%;min-height:48px;padding:0 var(--space-3);border-radius:var(--radius-control);border:1px solid var(--color-border-control);background:var(--color-control);color:var(--color-text);font:inherit;appearance:none}
+.input::placeholder{color:var(--color-text-muted);opacity:1}
+.input:hover{border-color:var(--color-text)}
+.input:focus-visible{border-color:var(--color-text)}
+.input[aria-invalid="true"]{border:2px solid var(--color-negative);padding:0 11px}
+.error{display:flex;gap:6px;align-items:flex-start;font-size:var(--text-caption);font-weight:var(--weight-medium);color:var(--color-negative);margin:0}
+.error:empty,.syntax-msg:empty{display:none}
+
+/* the amount comes first and large (voice rule "number first"); its sign follows the type */
+.amount-box{display:flex;align-items:center;gap:var(--space-3);min-height:72px;padding:0 var(--space-4);border-radius:var(--radius-control);border:1px solid var(--color-border-control);background:var(--color-control)}
+.amount-box:focus-within{outline:2px solid var(--color-focus);outline-offset:2px;border-color:var(--color-text)}
+.amount-box .sign{font-size:var(--text-amount);line-height:1;font-weight:var(--weight-regular);min-width:.6em;text-align:center}
+.amount-box input{flex:1;align-self:stretch;min-width:0;border:0;background:none;color:var(--color-text);font:inherit;font-size:var(--text-amount);line-height:1;font-variant-numeric:tabular-nums;padding:0}
+.amount-box input:focus{outline:none}
+.amount-box input::placeholder{color:var(--color-text-muted);opacity:1}
+.amount-box .cur{font-size:var(--text-title);color:var(--color-text-muted)}
+[data-kind="expense"] .sign{color:var(--color-negative)}
+[data-kind="income"] .sign,[data-kind="interest"] .sign{color:var(--color-positive)}
+[data-kind="transfer"] .sign{color:var(--color-text-muted)}
+
+/* type tiles: icon, colour and word together, never colour alone */
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3)}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:var(--space-2) 4px;border-radius:var(--radius-control);background:var(--color-surface-sunken);border:2px solid transparent;font-size:var(--text-caption);font-weight:var(--weight-medium);color:var(--color-text);cursor:pointer;text-align:center}
+.tile input,.chip input{position:absolute;opacity:0;width:1px;height:1px}
+.tile:has(input:focus-visible),.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+.disc{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--color-control);color:var(--color-text);flex:none}
+.t-expense .disc{background:var(--color-negative-tint);color:var(--color-negative)}
+.t-income .disc,.t-interest .disc{background:var(--color-positive-tint);color:var(--color-positive)}
+.t-expense:has(input:checked){background:var(--color-negative-tint);border-color:var(--color-negative)}
+.t-income:has(input:checked),.t-interest:has(input:checked){background:var(--color-positive-tint);border-color:var(--color-positive)}
+.t-transfer:has(input:checked){background:var(--color-control);border-color:var(--color-text)}
+.tile:has(input:checked) .disc{background:var(--color-surface)}
+
+/* chips: categories, dates, accounts, payment modes. Selected is ink with a check */
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.chip{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:var(--target-min);padding:0 var(--space-3) 0 6px;border-radius:var(--radius-pill);background:var(--color-surface-sunken);border:1px solid var(--color-divider);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
+.chip.text{padding:0 var(--space-4)}
+.chip .disc{width:32px;height:32px}
+.chip:hover{border-color:var(--color-text)}
+.chip:has(input:checked){background:var(--color-primary);border-color:var(--color-primary);color:var(--color-on-primary)}
+.chip:has(input:checked) .disc{background:var(--color-surface);color:var(--color-text)}
+.chip.later .disc{background:var(--color-warning-tint);color:var(--color-warning)}
+.chip.later:has(input:checked){background:var(--color-warning-tint);border-color:var(--color-warning);color:var(--color-text)}
+.chip.later:has(input:checked) .disc{background:var(--color-surface);color:var(--color-warning)}
+.chip.today:not(:has(input:checked)){box-shadow:inset 0 0 0 1.5px var(--color-accent)}
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3)}
+.cats .chip{flex-direction:column;justify-content:center;gap:4px;min-height:76px;padding:var(--space-2) 2px;border-radius:var(--radius-control);font-size:var(--text-caption);white-space:normal;text-align:center}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
+.suggest{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.suggest:empty{display:none}
+.suggest button{display:inline-flex;align-items:center;gap:6px;min-height:var(--target-min);padding:0 var(--space-3);border-radius:var(--radius-pill);border:1px dashed var(--color-border-control);background:none;color:var(--color-text);font:inherit;font-size:var(--text-caption);cursor:pointer}
+.suggest button:hover{border-style:solid;border-color:var(--color-text)}
+.note{font-size:var(--text-caption);color:var(--color-text-muted);margin:0}
+.note:empty{display:none}
+details.more{border-top:1px solid var(--color-divider);margin:0 0 var(--space-6)}
+details.more summary{display:flex;align-items:center;justify-content:space-between;min-height:var(--target-min);padding:var(--space-2) 0;cursor:pointer;font-weight:var(--weight-medium);list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more[open] summary .ico{transform:rotate(180deg)}
+.from-to[hidden],.acct[hidden]{display:none}
+
+/* B: steps */
+.progress{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 var(--space-2);padding:0;list-style:none}
+.progress li{height:4px;border-radius:2px;background:var(--color-control)}
+.progress li.done{background:var(--color-primary)}
+.step[hidden]{display:none}
+.step h3:focus{outline:none}
+.step-nav{display:flex;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-4)}
+.step-nav .primary{flex:1}
+.summary{list-style:none;margin:0 0 var(--space-4);padding:0}
+.summary li{display:flex;align-items:center;gap:var(--space-3);min-height:56px;border-top:1px solid var(--color-divider)}
+.summary li:first-child{border-top:0}
+.summary .what{flex:1;min-width:0}
+.summary .what span{display:block}
+.summary .what .muted{font-size:var(--text-caption)}
+
+/* C: quick sheet with a keypad that can only produce a valid amount */
+.sheet{position:relative;padding-top:var(--space-3)}
+.grabber{width:40px;height:4px;border-radius:2px;background:var(--color-divider);margin:0 auto var(--space-4)}
+.big{display:flex;align-items:baseline;justify-content:center;gap:6px;min-height:64px;margin:var(--space-2) 0 var(--space-3);font-size:var(--text-display);line-height:1;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+.big .sign{font-size:var(--text-amount)}
+.big .cur{font-size:var(--text-title);color:var(--color-text-muted)}
+.big .ph{color:var(--color-text-muted)}
+.scroller{display:flex;gap:var(--space-3);overflow-x:auto;padding:2px 2px var(--space-2);margin:0 -2px var(--space-2);scrollbar-width:none}
+.scroller .chip{flex:none}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);margin:var(--space-3) 0}
+.keypad button{min-height:52px;border:0;border-radius:var(--radius-control);background:var(--color-surface-sunken);color:var(--color-text);font:inherit;font-size:var(--text-title);font-variant-numeric:tabular-nums;cursor:pointer;display:grid;place-items:center}
+.keypad button:hover{background:var(--color-control-hover)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);padding:3px;gap:2px;background:var(--color-control);border-radius:var(--radius-pill)}
+.seg label{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;min-height:var(--target-min);border-radius:var(--radius-pill);font-size:var(--text-caption);font-weight:var(--weight-medium);color:var(--color-text-muted);cursor:pointer}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label .ico{width:18px;height:18px}
+.seg label.t-expense .ico{color:var(--color-negative)}
+.seg label.t-income .ico,.seg label.t-interest .ico{color:var(--color-positive)}
+.seg label:has(input:checked){background:var(--color-surface);color:var(--color-text);box-shadow:var(--shadow-raised)}
+.seg label:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* comparison */
+table.cmp{width:100%;border-collapse:collapse}
+.cmp th,.cmp td{text-align:left;vertical-align:top;padding:var(--space-3) var(--space-3) var(--space-3) 0;border-top:1px solid var(--color-divider)}
+.cmp thead th{font-size:var(--text-label);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--color-text-muted);font-weight:var(--weight-medium);border-top:0}
+.scroll{overflow-x:auto}
+ul.rules{margin:0;padding-left:1.2em}
+ul.rules li{margin-bottom:var(--space-2)}
+code{font-family:inherit;color:var(--color-text-muted)}
+.footer{margin-top:var(--space-12);color:var(--color-text-muted);font-size:var(--text-caption)}
+
+/* retained flow: C's type selector, amount and keypad, B's step 2, an editable step 3 */
+.pop{position:absolute;top:calc(100% + 6px);left:0;z-index:5;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-control);box-shadow:var(--shadow-overlay);padding:6px}
+.pop[hidden]{display:none}
+/* seven 44 px days need 332 px, wider than a phone field: centre the calendar under its field */
+.dp{width:332px;max-width:calc(100vw - 32px);padding:var(--space-3);left:50%;transform:translateX(-50%)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-1)}
+.dp-title{margin:0;font-weight:var(--weight-medium)}
+.dp-grid{width:100%;border-collapse:collapse;table-layout:fixed}
+.dp-grid th{height:32px;font-size:var(--text-label);font-weight:var(--weight-medium);color:var(--color-text-muted);text-align:center}
+.dp-grid td{height:var(--target-min);padding:0;text-align:center;border-radius:50%;font-variant-numeric:tabular-nums;cursor:pointer}
+.dp-grid td:empty{cursor:default}
+.dp-grid td[data-iso]:not([aria-selected="true"]):hover{background:var(--color-control)}
+.dp-grid td[aria-current="date"]{box-shadow:inset 0 0 0 1.5px var(--color-accent);color:var(--color-accent);font-weight:var(--weight-medium)}
+.dp-grid td[aria-selected="true"]{background:var(--color-primary);color:var(--color-on-primary);cursor:default}
+.dp-grid td:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px}
+.dp-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-1);padding-top:var(--space-1);border-top:1px solid var(--color-divider)}
+.icon-btn{display:inline-grid;place-items:center;width:var(--target-min);height:var(--target-min);border-radius:50%;border:0;background:none;color:var(--color-text);cursor:pointer;flex:none}
+.icon-btn:hover{background:var(--color-control)}
+.big input{width:1ch;min-width:1ch;border:0;padding:0;background:none;color:var(--color-text);font:inherit;font-size:var(--text-display);letter-spacing:inherit;text-align:center;font-variant-numeric:tabular-nums}
+.big{position:relative}
+.big .sizer{position:absolute;visibility:hidden;white-space:pre;font-size:var(--text-display);font-variant-numeric:tabular-nums;left:0;top:0}
+.big input::placeholder{color:var(--color-text-muted);opacity:1}
+.big input:focus{outline:none}
+.big:focus-within{outline:2px solid var(--color-focus);outline-offset:4px;border-radius:var(--radius-control)}
+.when{position:relative}
+.editor{padding:var(--space-3) 0 var(--space-4)}
+.editor[hidden]{display:none}
+.editor .seg{margin-bottom:var(--space-3)}
+.editor .amount-line{position:relative;display:flex;align-items:center}
+.editor .amount-line .input{text-align:right;padding-right:36px;font-variant-numeric:tabular-nums}
+.editor .amount-line .cur{position:absolute;right:14px;color:var(--color-text-muted);pointer-events:none}
+.editor .done{margin-top:var(--space-3)}
+.chip:has(input:disabled){background:transparent;color:var(--color-text-muted);border-style:dashed;cursor:not-allowed}
+.chip:has(input:disabled) .disc{background:var(--color-surface-sunken);color:var(--color-text-muted)}
+.flow-frame{max-width:420px}
+@media (min-width:1100px){.retained{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:var(--space-8);align-items:start}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7l10 10M17 9v8H9"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></symbol>
+  <symbol id="i-pct" viewBox="0 0 24 24"><path d="M18 6L6 18"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path d="M3.5 9.5h17l-1.6 8.2a2 2 0 0 1-2 1.8H7.1a2 2 0 0 1-2-1.8z"/><path d="M8 9.5l3-5M16 9.5l-3-5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z"/><path d="M10 20.5v-5h4v5"/></symbol>
+  <symbol id="i-bus" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="14" rx="3"/><path d="M5 11h14M8 21v-3.5M16 21v-3.5M8.5 14.5h.01M15.5 14.5h.01"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5v2a2.5 2.5 0 0 0 0 5v2a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5v-2a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v12"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.5-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.5-7.5 10-7.5 10z"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="4" rx="1"/><path d="M5.5 13v6.5h13V13M12 9v10.5M12 9C10 5 7 5.5 7.5 7.5S12 9 12 9zm0 0c2-4 5-3.5 4.5-1.5S12 9 12 9z"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="6.5" ry="2.5"/><path d="M5.5 7v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5V7M5.5 12v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-5"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3.5 13.5l2.6-7.2A1.5 1.5 0 0 1 7.5 5.3h9a1.5 1.5 0 0 1 1.4 1l2.6 7.2V18a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 18z"/><path d="M3.5 13.5H8l1.5 2h5l1.5-2h4.5"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 5.5h10.5A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5H9L3 12z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.5 6.5l2.5 2.5M15 15l2.5 2.5M17.5 6.5L15 9M9 15l-2.5 2.5"/></symbol>
+</svg>
+<div class="wrap">
+<main id="main">
+<h1>Adding a transaction, three proposals</h1>
+<p class="lede">Today the form asks for eight fields in a column, five of them with long labels. The three proposals below ask for the same data but type only two things for a usual expense: the amount and, if needed, a label. Every choice is a tile or a chip with an icon, a colour and a word, so it can be recognised without reading and still read by a screen reader. All three are live: try them.</p>
+
+<section aria-labelledby="h-flow" style="margin-top:var(--space-8)">
+<div class="retained">
+<div>
+<h2 id="h-flow">Retained flow: amount, what for, check and save</h2>
+<p class="lede">Chosen by the owner on 11 Nov 2026 from the proposals below.</p>
+<ul class="rules">
+  <li><b>Step 1, from C:</b> the type selector, the large amount and the keypad. The amount can also be typed straight into the display with a keyboard; it keeps the same look and the same rule, digits and one comma or point.</li>
+  <li><b>Step 2, from B, unchanged:</b> what it was, with suggestions from history, and the category grid.</li>
+  <li><b>Step 3, editable in place:</b> the recap rows open their editor right there with "Edit", without going back. "Pick a date" opens the calendar of the date picker component. A transfer asks for the account that sends and the account that receives; the same account cannot be both. "More details" holds the note and the payment mode.</li>
+</ul>
+</div>
+<div class="frame flow-frame">
+<form class="flow" id="flow" data-kind="expense" onsubmit="return false" novalidate aria-labelledby="f-title">
+  <p class="sr" id="f-title">New transaction, in three steps</p>
+  <ol class="progress" aria-hidden="true"><li class="done"></li><li></li><li></li></ol>
+  <p class="hint" data-stepcount aria-live="polite">Step 1 of 3</p>
+
+  <div class="step" data-step="1">
+    <h3 tabindex="-1" class="sr">How much?</h3>
+    <fieldset style="margin-bottom:0"><legend class="sr">Type</legend><div class="seg"><label class="t-expense"><input type="radio" name="f-kind" value="expense" data-bind="kind" checked><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg>Out</label><label class="t-income"><input type="radio" name="f-kind" value="income" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg>In</label><label class="t-transfer"><input type="radio" name="f-kind" value="transfer" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Move</label><label class="t-interest"><input type="radio" name="f-kind" value="interest" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg>Interest</label></div></fieldset>
+    <p class="big"><span class="sign" aria-hidden="true">&minus;</span><label class="sr" for="f-amount">Amount</label><input id="f-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0" data-syntax="amount" data-decimals="2" data-bind="amount" aria-describedby="f-amount-error"><span class="cur" aria-hidden="true">&euro;</span><span class="sizer" aria-hidden="true"></span></p>
+    <p class="error" id="f-amount-error" style="justify-content:center"></p>
+    <div class="keypad" role="group" aria-label="Keypad">
+      <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+      <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+      <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+      <button type="button" data-key="," aria-label="Decimal comma">,</button><button type="button" data-key="0">0</button><button type="button" data-key="del" aria-label="Delete last digit"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button>
+    </div>
+    <div class="step-nav"><button class="btn primary" type="button" data-next>Next</button></div>
+  </div>
+
+  <div class="step" data-step="2" hidden>
+    <h3 tabindex="-1">What for?</h3>
+    <div class="field"><label for="f-label">What was it?</label><input class="input" id="f-label" type="text" autocomplete="off" placeholder="e.g. Carrefour City" data-bind="label" data-fsuggest="f-sug" aria-describedby="f-label-error"><div class="suggest" id="f-sug" role="group" aria-label="Suggestions from your history"></div><p class="note" aria-live="polite"></p><p class="error" id="f-label-error"></p></div>
+    <fieldset><legend>Category</legend><div class="cats"><label class="chip later"><input type="radio" name="f-cat" value="later" data-bind="cat" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label><label class="chip"><input type="radio" name="f-cat" value="food" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label><label class="chip"><input type="radio" name="f-cat" value="housing" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label><label class="chip"><input type="radio" name="f-cat" value="transport" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label><label class="chip"><input type="radio" name="f-cat" value="leisure" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label><label class="chip"><input type="radio" name="f-cat" value="health" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></span>Health</label><label class="chip"><input type="radio" name="f-cat" value="gifts" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg></span>Gifts</label><label class="chip"><input type="radio" name="f-cat" value="savings" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings</label></div></fieldset>
+    <div class="step-nav"><button class="btn secondary" type="button" data-back>Back</button><button class="btn primary" type="button" data-next>Next</button></div>
+  </div>
+
+  <div class="step" data-step="3" hidden>
+    <h3 tabindex="-1">Check and save</h3>
+    <ul class="summary">
+      <li><span class="disc" data-sum-icon="kind"><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg></span><span class="what"><span data-sum="amount"></span><span class="muted" data-sum="kind"></span></span><button class="btn link" type="button" data-edit="e-amount" aria-expanded="false" aria-controls="e-amount" aria-label="Edit amount and type">Edit</button></li>
+      <li class="editor-row" style="display:block;border-top:0;min-height:0"><div class="editor" id="e-amount" hidden><div class="seg"><label class="t-expense"><input type="radio" name="e-kind" value="expense" data-bind="kind" checked><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg>Out</label><label class="t-income"><input type="radio" name="e-kind" value="income" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg>In</label><label class="t-transfer"><input type="radio" name="e-kind" value="transfer" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Move</label><label class="t-interest"><input type="radio" name="e-kind" value="interest" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg>Interest</label></div><div class="amount-line"><label class="sr" for="e-amount-input">Amount</label><input class="input" id="e-amount-input" type="text" inputmode="decimal" autocomplete="off" data-syntax="amount" data-decimals="2" data-bind="amount"><span class="cur" aria-hidden="true">&euro;</span></div><button class="btn secondary done" type="button" data-done="e-amount">Done</button></div></li>
+      <li><span class="disc" data-sum-icon="cat"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span><span class="what"><span data-sum="label"></span><span class="muted" data-sum="cat"></span></span><button class="btn link" type="button" data-edit="e-what" aria-expanded="false" aria-controls="e-what" aria-label="Edit label and category">Edit</button></li>
+      <li class="editor-row" style="display:block;border-top:0;min-height:0"><div class="editor" id="e-what" hidden><div class="field"><label for="e-label">What was it?</label><input class="input" id="e-label" type="text" autocomplete="off" data-bind="label"></div><fieldset style="margin-bottom:0"><legend>Category</legend><div class="cats"><label class="chip later"><input type="radio" name="e-cat" value="later" data-bind="cat" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label><label class="chip"><input type="radio" name="e-cat" value="food" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label><label class="chip"><input type="radio" name="e-cat" value="housing" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label><label class="chip"><input type="radio" name="e-cat" value="transport" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label><label class="chip"><input type="radio" name="e-cat" value="leisure" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label><label class="chip"><input type="radio" name="e-cat" value="health" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></span>Health</label><label class="chip"><input type="radio" name="e-cat" value="gifts" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg></span>Gifts</label><label class="chip"><input type="radio" name="e-cat" value="savings" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings</label></div></fieldset><button class="btn secondary done" type="button" data-done="e-what">Done</button></div></li>
+    </ul>
+    <fieldset class="when"><legend>When</legend>
+      <div class="chips"><label class="chip text today"><input type="radio" name="f-date" value="today" data-bind="date" checked>Today</label><label class="chip text"><input type="radio" name="f-date" value="yesterday" data-bind="date">Yesterday</label><label class="chip"><input type="radio" name="f-date" value="pick" data-bind="date" data-pick aria-haspopup="dialog" aria-controls="f-cal"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg></span><span data-pick-label>Pick a date</span></label></div>
+      <div class="pop dp" role="dialog" id="f-cal" aria-label="Choose a date" hidden>
+        <div class="dp-head"><button class="icon-btn dp-prev" type="button" aria-label="Previous month"><svg class="ico" aria-hidden="true" style="transform:rotate(90deg)"><use href="#i-chev"/></svg></button><p class="dp-title" aria-live="polite"></p><button class="icon-btn dp-next" type="button" aria-label="Next month"><svg class="ico" aria-hidden="true" style="transform:rotate(-90deg)"><use href="#i-chev"/></svg></button></div>
+        <table class="dp-grid" role="grid"><thead><tr></tr></thead><tbody></tbody></table>
+        <div class="dp-foot"><button class="btn link dp-today" type="button">Today</button></div>
+      </div>
+    </fieldset>
+    <fieldset class="acct"><legend>Account</legend><div class="chips"><label class="chip"><input type="radio" name="f-acct" value="current" data-bind="from" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="f-acct" value="savings-a" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label><label class="chip"><input type="radio" name="f-acct" value="savings-b" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings B</label></div></fieldset>
+    <div class="from-to" hidden>
+      <fieldset><legend>From</legend><div class="chips"><label class="chip"><input type="radio" name="f-from" value="current" data-bind="from" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="f-from" value="savings-a" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label><label class="chip"><input type="radio" name="f-from" value="savings-b" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings B</label></div></fieldset>
+      <fieldset><legend>To, the account that receives</legend><div class="chips"><label class="chip"><input type="radio" name="f-to" value="current" data-bind="to"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="f-to" value="savings-a" data-bind="to" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label><label class="chip"><input type="radio" name="f-to" value="savings-b" data-bind="to"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings B</label></div></fieldset>
+    </div>
+    <details class="more"><summary>More details<svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+      <div class="field"><label for="f-note">Note</label><input class="input" id="f-note" type="text" autocomplete="off" data-bind="note"></div>
+      <fieldset><legend>Payment mode</legend><div class="chips"><label class="chip text"><input type="radio" name="f-pay" value="card" data-bind="pay">Card</label><label class="chip text"><input type="radio" name="f-pay" value="transfer" data-bind="pay">Transfer</label><label class="chip text"><input type="radio" name="f-pay" value="direct-debit" data-bind="pay">Direct debit</label></div></fieldset>
+    </details>
+    <div class="step-nav"><button class="btn secondary" type="button" data-back>Back</button><button class="btn primary save" type="submit" data-save>Add expense</button></div>
+  </div>
+</form>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="h-shared" style="margin-top:var(--space-12)">
+<h2 id="h-shared">What the three share</h2>
+<div class="card"><ul class="rules">
+  <li><b>Defaults that are right most of the time:</b> type Expense, date Today, the account used last. Nothing to touch for the usual case.</li>
+  <li><b>The amount first, large, with its sign drawn from the type:</b> a red minus for an expense, a green plus for income or interest. The field only takes digits and one comma or point.</li>
+  <li><b>One meaning per colour, as in the identity:</b> red and a down-right arrow for money out, green and an up-right arrow for money in, ink for the chosen chip, amber for "Later" (the to-categorize queue), blue only on the Today chip.</li>
+  <li><b>The label suggests from history:</b> picking "Carrefour City" fills the category through the existing categorization rule, and says so.</li>
+  <li><b>Category is a grid of icons, with "Later" as an explicit choice:</b> skipping it sends the transaction to the to-categorize queue, as the app already does, but the user sees it.</li>
+  <li><b>Rare fields wait under "More details":</b> note and payment mode. A transfer swaps the account for "From" and "To".</li>
+  <li><b>The button says what will happen:</b> "Add expense of &euro;42.00", not "Submit".</li>
+</ul></div>
+</section>
+
+<div class="proposals">
+
+<!-- A: one screen -->
+<article class="proposal" aria-labelledby="h-a">
+<header><p class="label">Proposal A</p><h2 id="h-a">One screen, amount first</h2><p class="why">The whole form on one screen, in the order people think: how much, which way, what for. Defaults cover date and account; they stay visible as chips so a wrong default is caught at a glance.</p></header>
+<div class="frame">
+<form class="qform" data-kind="expense" onsubmit="return false" novalidate aria-labelledby="a-title">
+  <h3 id="a-title">New transaction</h3>
+  <fieldset><legend class="sr">Type</legend>
+    <div class="types">
+      <label class="tile t-expense"><input type="radio" name="a-kind" value="expense" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg></span>Expense</label>
+      <label class="tile t-income"><input type="radio" name="a-kind" value="income"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></span>Income</label>
+      <label class="tile t-transfer"><input type="radio" name="a-kind" value="transfer"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg></span>Transfer</label>
+      <label class="tile t-interest"><input type="radio" name="a-kind" value="interest"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg></span>Interest</label>
+    </div>
+  </fieldset>
+  <div class="field"><label for="a-amount">Amount</label><div class="amount-box"><span class="sign" aria-hidden="true">&minus;</span><input id="a-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" data-syntax="amount" data-decimals="2"><span class="cur" aria-hidden="true">&euro;</span></div></div>
+  <div class="field"><label for="a-label">What was it?</label><input class="input" id="a-label" type="text" autocomplete="off" placeholder="e.g. Carrefour City" data-suggest="a-sug"><div class="suggest" id="a-sug" aria-label="Suggestions from your history" role="group"></div><p class="note" aria-live="polite"></p></div>
+  <fieldset><legend>Category</legend>
+    <div class="cats">
+      <label class="chip later"><input type="radio" name="a-cat" value="later" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label>
+      <label class="chip"><input type="radio" name="a-cat" value="food"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label>
+      <label class="chip"><input type="radio" name="a-cat" value="housing"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label>
+      <label class="chip"><input type="radio" name="a-cat" value="transport"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label>
+      <label class="chip"><input type="radio" name="a-cat" value="leisure"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label>
+      <label class="chip"><input type="radio" name="a-cat" value="health"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></span>Health</label>
+      <label class="chip"><input type="radio" name="a-cat" value="gifts"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg></span>Gifts</label>
+      <label class="chip"><input type="radio" name="a-cat" value="savings"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings</label>
+    </div>
+  </fieldset>
+  <fieldset><legend>When</legend>
+    <div class="chips"><label class="chip text today"><input type="radio" name="a-date" value="today" checked>Today</label><label class="chip text"><input type="radio" name="a-date" value="yesterday">Yesterday</label><label class="chip"><input type="radio" name="a-date" value="pick"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg></span>Pick a date</label></div>
+  </fieldset>
+  <fieldset class="acct"><legend>Account</legend>
+    <div class="chips"><label class="chip"><input type="radio" name="a-acct" value="current" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="a-acct" value="savings-a"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label></div>
+  </fieldset>
+  <fieldset class="from-to" hidden><legend>From and to</legend>
+    <div class="chips" role="group" aria-label="From"><span class="hint" style="width:100%">From</span><label class="chip"><input type="radio" name="a-from" value="current" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="a-from" value="savings-a"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label></div>
+    <div class="chips" role="group" aria-label="To" style="margin-top:var(--space-2)"><span class="hint" style="width:100%">To</span><label class="chip"><input type="radio" name="a-to" value="current"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="a-to" value="savings-a" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label></div>
+  </fieldset>
+  <details class="more"><summary>More details<svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+    <div class="field"><label for="a-note">Note</label><input class="input" id="a-note" type="text" autocomplete="off"></div>
+    <fieldset><legend>Payment mode</legend><div class="chips"><label class="chip text"><input type="radio" name="a-pay" value="card">Card</label><label class="chip text"><input type="radio" name="a-pay" value="transfer">Transfer</label><label class="chip text"><input type="radio" name="a-pay" value="direct-debit">Direct debit</label></div></fieldset>
+  </details>
+  <button class="btn primary block save" type="submit" data-save>Add expense</button>
+</form>
+</div>
+<dl class="facts"><dt>Usual expense</dt><dd>Type the amount, tap a category, tap the button: 1 field and 2 taps.</dd><dt>Best for</dt><dd>Desktop and tablet, and anyone who wants to see everything before saving.</dd><dt>Watch out</dt><dd>Long on a phone: the button sits below the fold.</dd></dl>
+</article>
+
+<!-- B: three steps -->
+<article class="proposal" aria-labelledby="h-b">
+<header><p class="label">Proposal B</p><h2 id="h-b">Three short steps</h2><p class="why">One question per screen: how much, what for, when and where. Each step fits a phone without scrolling, and the last one recaps everything with a link back to each answer before saving.</p></header>
+<div class="frame">
+<form class="qform wizard" data-kind="expense" onsubmit="return false" novalidate aria-labelledby="b-title">
+  <p class="sr" id="b-title">New transaction, in three steps</p>
+  <ol class="progress" aria-hidden="true"><li class="done"></li><li></li><li></li></ol>
+  <p class="hint" data-stepcount aria-live="polite">Step 1 of 3</p>
+  <div class="step" data-step="1">
+    <h3 tabindex="-1">How much?</h3>
+    <fieldset><legend class="sr">Type</legend><div class="types">
+      <label class="tile t-expense"><input type="radio" name="b-kind" value="expense" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg></span>Expense</label>
+      <label class="tile t-income"><input type="radio" name="b-kind" value="income"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></span>Income</label>
+      <label class="tile t-transfer"><input type="radio" name="b-kind" value="transfer"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg></span>Transfer</label>
+      <label class="tile t-interest"><input type="radio" name="b-kind" value="interest"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg></span>Interest</label>
+    </div></fieldset>
+    <div class="field"><label for="b-amount" class="sr">Amount</label><div class="amount-box"><span class="sign" aria-hidden="true">&minus;</span><input id="b-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" data-syntax="amount" data-decimals="2" aria-describedby="b-amount-error"><span class="cur" aria-hidden="true">&euro;</span></div><p class="error" id="b-amount-error"></p></div>
+    <div class="step-nav"><button class="btn primary" type="button" data-next>Next</button></div>
+  </div>
+  <div class="step" data-step="2" hidden>
+    <h3 tabindex="-1">What for?</h3>
+    <div class="field"><label for="b-label">What was it?</label><input class="input" id="b-label" type="text" autocomplete="off" placeholder="e.g. Carrefour City" data-suggest="b-sug" aria-describedby="b-label-error"><div class="suggest" id="b-sug" aria-label="Suggestions from your history" role="group"></div><p class="note" aria-live="polite"></p><p class="error" id="b-label-error"></p></div>
+    <fieldset><legend>Category</legend><div class="cats">
+      <label class="chip later"><input type="radio" name="b-cat" value="later" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label>
+      <label class="chip"><input type="radio" name="b-cat" value="food"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label>
+      <label class="chip"><input type="radio" name="b-cat" value="housing"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label>
+      <label class="chip"><input type="radio" name="b-cat" value="transport"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label>
+      <label class="chip"><input type="radio" name="b-cat" value="leisure"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label>
+      <label class="chip"><input type="radio" name="b-cat" value="health"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></span>Health</label>
+      <label class="chip"><input type="radio" name="b-cat" value="gifts"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg></span>Gifts</label>
+      <label class="chip"><input type="radio" name="b-cat" value="savings"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings</label>
+    </div></fieldset>
+    <div class="step-nav"><button class="btn secondary" type="button" data-back>Back</button><button class="btn primary" type="button" data-next>Next</button></div>
+  </div>
+  <div class="step" data-step="3" hidden>
+    <h3 tabindex="-1">When and where?</h3>
+    <fieldset><legend>When</legend><div class="chips"><label class="chip text today"><input type="radio" name="b-date" value="today" checked>Today</label><label class="chip text"><input type="radio" name="b-date" value="yesterday">Yesterday</label><label class="chip"><input type="radio" name="b-date" value="pick"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg></span>Pick a date</label></div></fieldset>
+    <fieldset class="acct"><legend>Account</legend><div class="chips"><label class="chip"><input type="radio" name="b-acct" value="current" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="b-acct" value="savings-a"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label></div></fieldset>
+    <p class="label">Check before saving</p>
+    <ul class="summary" data-summary></ul>
+    <div class="step-nav"><button class="btn secondary" type="button" data-back>Back</button><button class="btn primary save" type="submit" data-save>Add expense</button></div>
+  </div>
+</form>
+</div>
+<dl class="facts"><dt>Usual expense</dt><dd>Amount, Next, a category, Next, the button: 1 field and 4 taps.</dd><dt>Best for</dt><dd>A first transaction, or someone unsure; the recap catches mistakes.</dd><dt>Watch out</dt><dd>Slower for daily entry: two extra taps every time.</dd></dl>
+</article>
+
+<!-- C: quick sheet -->
+<article class="proposal" aria-labelledby="h-c">
+<header><p class="label">Proposal C</p><h2 id="h-c">Quick sheet with a keypad</h2><p class="why">A sheet that slides up over any screen on a phone, like the bottom sheets of 07:32 and 12:59. A large keypad types the amount: it can only produce digits and one comma, so there is nothing to correct. The categories used most come first in a row.</p></header>
+<div class="frame">
+<form class="qform sheet" data-kind="expense" onsubmit="return false" novalidate aria-labelledby="c-title">
+  <div class="grabber" aria-hidden="true"></div>
+  <h3 class="sr" id="c-title">Quick add</h3>
+  <fieldset style="margin-bottom:0"><legend class="sr">Type</legend>
+    <div class="seg">
+      <label class="t-expense"><input type="radio" name="c-kind" value="expense" checked><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg>Out</label>
+      <label class="t-income"><input type="radio" name="c-kind" value="income"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg>In</label>
+      <label class="t-transfer"><input type="radio" name="c-kind" value="transfer"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Move</label>
+      <label class="t-interest"><input type="radio" name="c-kind" value="interest"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg>Interest</label>
+    </div>
+  </fieldset>
+  <p class="big" aria-live="polite" aria-atomic="true"><span class="sr">Amount: </span><span class="sign" aria-hidden="true">&minus;</span><span data-display class="ph">0</span><span class="cur">&euro;</span></p>
+  <fieldset style="margin-bottom:var(--space-2)"><legend class="sr">Category</legend>
+    <div class="scroller">
+      <label class="chip"><input type="radio" name="c-cat" value="food"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label>
+      <label class="chip"><input type="radio" name="c-cat" value="transport"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label>
+      <label class="chip"><input type="radio" name="c-cat" value="leisure"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label>
+      <label class="chip later"><input type="radio" name="c-cat" value="later" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label>
+      <label class="chip"><input type="radio" name="c-cat" value="housing"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label>
+    </div>
+  </fieldset>
+  <fieldset style="margin-bottom:0"><legend class="sr">When and account</legend>
+    <div class="row"><label class="chip text today"><input type="radio" name="c-date" value="today" checked>Today</label><label class="chip text"><input type="radio" name="c-date" value="yesterday">Yesterday</label></div>
+    <div class="row" role="group" aria-label="Account" style="margin-top:var(--space-2)"><label class="chip"><input type="radio" name="c-acct" value="current" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="c-acct" value="savings-a"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label></div>
+  </fieldset>
+  <div class="keypad" role="group" aria-label="Keypad">
+    <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+    <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+    <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+    <button type="button" data-key="," aria-label="Decimal comma">,</button><button type="button" data-key="0">0</button><button type="button" data-key="del" aria-label="Delete last digit"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button>
+  </div>
+  <button class="btn primary block save" type="submit" data-save>Add expense</button>
+</form>
+</div>
+<dl class="facts"><dt>Usual expense</dt><dd>Tap the digits, tap a category, tap the button: no field and 2 taps besides the digits.</dd><dt>Best for</dt><dd>Entering an expense on a phone right after paying.</dd><dt>Watch out</dt><dd>The label is skipped by default: the entry relies on a later import or on the to-categorize queue to be named.</dd></dl>
+</article>
+</div>
+
+<section aria-labelledby="h-cmp">
+<h2 id="h-cmp">Comparison and recommendation</h2>
+<div class="card scroll"><table class="cmp">
+  <thead><tr><th scope="col">Criterion</th><th scope="col">A. One screen</th><th scope="col">B. Three steps</th><th scope="col">C. Quick sheet</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">Usual expense</th><td>1 field, 2 taps</td><td>1 field, 4 taps</td><td>Digits, 2 taps</td></tr>
+    <tr><th scope="row">Fits a phone without scrolling</th><td>No</td><td>Yes, per step</td><td>Yes</td></tr>
+    <tr><th scope="row">Everything visible before saving</th><td>Yes</td><td>Yes, in the recap</td><td>Mostly; the account is a chip</td></tr>
+    <tr><th scope="row">Label and history suggestions</th><td>Yes</td><td>Yes</td><td>No, by design</td></tr>
+    <tr><th scope="row">Works without JavaScript</th><td>Yes, as a plain form</td><td>Yes, all steps shown at once</td><td>No: the keypad needs it; fall back to A</td></tr>
+  </tbody>
+</table></div>
+<p class="lede" style="margin-top:var(--space-4)">My recommendation: A as the form of the app on every screen, and C as the shortcut on a phone, opened from the round "Add transaction" button of the narrow layout. They share the same defaults, tiles and chips, so learning one teaches the other. B fits flows that happen once, such as creating the first account or an import, better than an entry made every day.</p>
+</section>
+<section aria-labelledby="h-contrast">
+<h2 id="h-contrast">Contrast of the new pairs</h2>
+<div class="card scroll"><table class="cmp num"><thead><tr><th scope="col">Use</th><th scope="col">Foreground on background</th><th scope="col">Light</th><th scope="col">Dark</th><th scope="col">Needs</th></tr></thead><tbody id="contrast"></tbody></table><p class="hint" id="contrast-summary" style="margin-top:var(--space-3)"></p></div>
+</section>
+<p class="footer">Demain, add-transaction proposals, draft for review, 11 Nov 2026. Accounts, categories and history are synthetic.</p>
+</main>
+</div>
+<script>
+(function(){
+  var HISTORY=[{label:"Carrefour City",cat:"food",rule:"Carrefour"},{label:"Carrefour Market",cat:"food",rule:"Carrefour"},{label:"SNCF Connect",cat:"transport",rule:"SNCF"},{label:"Cinema Pathe",cat:"leisure",rule:"Pathe"},{label:"Pharmacie du Port",cat:"health",rule:"Pharmacie"},{label:"Rent November",cat:"housing",rule:"Rent"}];
+  var CAT_NAMES={later:"Later, in To categorize",food:"Food",housing:"Housing",transport:"Transport",leisure:"Leisure",health:"Health",gifts:"Gifts",savings:"Savings"};
+  var CAT_ICON={later:"i-inbox",food:"i-food",housing:"i-home",transport:"i-bus",leisure:"i-ticket",health:"i-heart",gifts:"i-gift",savings:"i-coins"};
+  var VERB={expense:"expense",income:"income",transfer:"transfer",interest:"interest"};
+  var SIGN={expense:"−",income:"+",interest:"+",transfer:""};
+  function checked(form,name){var el=form.querySelector("input[name='"+name+"']:checked");return el?el.value:"";}
+  function amountText(form){var input=form.querySelector("[data-syntax=amount]");if(input)return input.value;var disp=form.querySelector("[data-display]");return disp&&!disp.classList.contains("ph")?disp.textContent:"";}
+  function money(text){if(!text||/[.,]$/.test(text))return "";var minor=text.replace(",",".");return new Intl.NumberFormat("en",{style:"currency",currency:"EUR"}).format(minor);}
+  function prefix(form){return form.querySelector("input[name$='-kind']").name.split("-")[0];}
+
+  function update(form){
+    var p=prefix(form),kind=checked(form,p+"-kind")||"expense";
+    form.setAttribute("data-kind",kind);
+    Array.prototype.forEach.call(form.querySelectorAll(".sign"),function(s){s.textContent=SIGN[kind];});
+    var acct=form.querySelector(".acct"),ft=form.querySelector(".from-to");
+    if(ft){ft.hidden=kind!=="transfer";if(acct)acct.hidden=kind==="transfer";}
+    var m=money(amountText(form)),save=form.querySelector("[data-save]");
+    if(save)save.textContent="Add "+VERB[kind]+(m?" of "+m:"");
+    var sum=form.querySelector("[data-summary]");
+    if(sum){
+      var label=form.querySelector("[data-suggest]").value||"No label";
+      var rows=[[kind==="expense"?"i-out":kind==="transfer"?"i-swap":kind==="interest"?"i-pct":"i-in",(SIGN[kind]?SIGN[kind]+" ":"")+(m||"No amount"),VERB[kind].charAt(0).toUpperCase()+VERB[kind].slice(1),1],
+                [CAT_ICON[checked(form,p+"-cat")]||"i-inbox",label,CAT_NAMES[checked(form,p+"-cat")]||"",2]];
+      sum.innerHTML=rows.map(function(r){return "<li><span class='disc'><svg class='ico' aria-hidden='true'><use href='#"+r[0]+"'/></svg></span><span class='what'><span></span><span class='muted'></span></span><button class='btn link' type='button' data-goto='"+r[3]+"'>Edit</button></li>";}).join("");
+      Array.prototype.forEach.call(sum.querySelectorAll("li"),function(li,i){li.querySelector(".what span").textContent=rows[i][1];li.querySelector(".what .muted").textContent=rows[i][2];li.querySelector("[data-goto]").setAttribute("aria-label","Edit "+(i===0?"amount":"label and category"));});
+    }
+  }
+
+  /* amount fields only take digits and one comma or point (exact syntax rule) */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-syntax=amount]"),function(el){
+    var re=new RegExp("^[0-9]*([.,][0-9]{0,"+(el.getAttribute("data-decimals")||"2")+"})?$"),last="";
+    el.addEventListener("beforeinput",function(e){
+      if(e.inputType.indexOf("delete")===0)return;
+      var data=e.data;if(data===null&&e.dataTransfer)data=e.dataTransfer.getData("text/plain");if(data===null)return;
+      var clean=data.split(" ").join("").split(String.fromCharCode(160)).join("").split(String.fromCharCode(8239)).join("");
+      var next=el.value.slice(0,el.selectionStart)+clean+el.value.slice(el.selectionEnd);
+      if(!re.test(next)){e.preventDefault();return;}
+      if(clean!==data){e.preventDefault();el.setRangeText(clean,el.selectionStart,el.selectionEnd,"end");el.dispatchEvent(new Event("input",{bubbles:true}));}
+    });
+    el.addEventListener("input",function(){if(!re.test(el.value))el.value=last;last=el.value;});
+  });
+
+  /* label suggestions from history fill the category through the existing rule */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-suggest]"),function(input){
+    var box=document.getElementById(input.getAttribute("data-suggest")),note=input.parentNode.querySelector(".note"),form=input.closest("form"),p=prefix(form);
+    input.addEventListener("input",function(){
+      note.textContent="";var q=input.value.trim().toLowerCase();box.innerHTML="";
+      if(q.length<2)return;
+      HISTORY.filter(function(h){return h.label.toLowerCase().indexOf(q)>=0&&h.label.toLowerCase()!==q;}).slice(0,3).forEach(function(h){
+        var b=document.createElement("button");b.type="button";b.innerHTML="<svg class='ico' aria-hidden='true'><use href='#i-spark'/></svg><span></span>";b.lastChild.textContent=h.label+" · "+CAT_NAMES[h.cat];
+        b.addEventListener("click",function(){input.value=h.label;box.innerHTML="";var r=form.querySelector("input[name='"+p+"-cat'][value='"+h.cat+"']");if(r){r.checked=true;}note.textContent="Category "+CAT_NAMES[h.cat]+" from your rule “"+h.rule+"”.";input.focus();update(form);});
+        box.appendChild(b);
+      });
+    });
+  });
+
+  /* B: one step at a time, focus moves to the step heading */
+  Array.prototype.forEach.call(document.querySelectorAll(".wizard"),function(form){
+    var steps=Array.prototype.slice.call(form.querySelectorAll("[data-step]")),bars=form.querySelectorAll(".progress li"),count=form.querySelector("[data-stepcount]"),current=1;
+    function show(n){current=n;steps.forEach(function(s){s.hidden=Number(s.getAttribute("data-step"))!==n;});Array.prototype.forEach.call(bars,function(b,i){b.classList.toggle("done",i<n);});count.textContent="Step "+n+" of 3";update(form);steps[n-1].querySelector("h3").focus();}
+    function valid(n){
+      if(n===1){var a=form.querySelector("#b-amount"),e=form.querySelector("#b-amount-error");if(!money(a.value)){a.closest(".amount-box").style.borderColor="var(--color-negative)";e.textContent="Error: enter an amount, for example 42 or 42,50.";a.focus();return false;}a.closest(".amount-box").style.borderColor="";e.textContent="";}
+      if(n===2){var l=form.querySelector("#b-label"),le=form.querySelector("#b-label-error");if(!l.value.trim()){l.setAttribute("aria-invalid","true");le.textContent="Error: say what it was, for example Carrefour City.";l.focus();return false;}l.removeAttribute("aria-invalid");le.textContent="";}
+      return true;
+    }
+    form.addEventListener("click",function(e){
+      var t=e.target.closest("button");if(!t)return;
+      if(t.hasAttribute("data-next")&&valid(current))show(current+1);
+      else if(t.hasAttribute("data-back"))show(current-1);
+      else if(t.hasAttribute("data-goto"))show(Number(t.getAttribute("data-goto")));
+    });
+  });
+
+  /* C: the keypad can only build a valid amount */
+  Array.prototype.forEach.call(document.querySelectorAll(".sheet"),function(form){
+    var disp=form.querySelector("[data-display]"),value="";
+    form.querySelector(".keypad").addEventListener("click",function(e){
+      var b=e.target.closest("button");if(!b)return;
+      var k=b.getAttribute("data-key"),next=k==="del"?value.slice(0,-1):value+k;
+      if(next!==""&&!/^[0-9]+(,[0-9]{0,2})?$/.test(next))return;
+      if(next==="0"&&k!=="del"&&value==="")next="0";
+      value=next;disp.textContent=value||"0";disp.classList.toggle("ph",value==="");update(form);
+    });
+  });
+
+  /* retained flow: one state, every control bound to it, so step 3 can edit in place */
+  (function(){
+    var form=document.getElementById("flow");if(!form)return;
+    var TODAY="2026-11-11",ACCT={current:"Current","savings-a":"Savings A","savings-b":"Savings B"};
+    var S={kind:"expense",amount:"",label:"",cat:"later",date:"today",picked:"",from:"current",to:"savings-a",note:"",pay:""};
+    var KIND_ICON={expense:"i-out",income:"i-in",transfer:"i-swap",interest:"i-pct"},KIND_NAME={expense:"Expense",income:"Income",transfer:"Transfer",interest:"Interest"};
+    var steps=Array.prototype.slice.call(form.querySelectorAll("[data-step]")),bars=form.querySelectorAll(".progress li"),count=form.querySelector("[data-stepcount]"),current=1;
+    var big=form.querySelector("#f-amount");
+    function fmtDate(iso,opts){opts.timeZone="UTC";return new Intl.DateTimeFormat("en",opts).format(new Date(iso+"T00:00:00Z"));}
+    function sync(){
+      Array.prototype.forEach.call(form.querySelectorAll("[data-bind]"),function(el){var v=S[el.getAttribute("data-bind")];if(el.type==="radio")el.checked=el.value===v;else if(el!==document.activeElement)el.value=v||"";});
+      form.setAttribute("data-kind",S.kind);
+      Array.prototype.forEach.call(form.querySelectorAll(".sign"),function(x){x.textContent=SIGN[S.kind];});
+      var sizer=form.querySelector(".sizer");sizer.textContent=S.amount||"0";big.style.width=(sizer.offsetWidth+2)+"px";
+      var m=money(S.amount);
+      var transfer=S.kind==="transfer";
+      form.querySelector(".acct").hidden=transfer;form.querySelector(".from-to").hidden=!transfer;
+      Array.prototype.forEach.call(form.querySelectorAll("input[name=f-to]"),function(r){r.disabled=r.value===S.from;});
+      form.querySelector("[data-save]").textContent=transfer?"Move "+(m||"money")+" to "+ACCT[S.to]:"Add "+VERB[S.kind]+(m?" of "+m:"");
+      form.querySelector("[data-sum=amount]").textContent=(SIGN[S.kind]?SIGN[S.kind]+" ":"")+(m||"No amount");
+      form.querySelector("[data-sum=kind]").textContent=KIND_NAME[S.kind];
+      form.querySelector("[data-sum-icon=kind] use").setAttribute("href","#"+KIND_ICON[S.kind]);
+      form.querySelector("[data-sum=label]").textContent=S.label||"No label";
+      form.querySelector("[data-sum=cat]").textContent=CAT_NAMES[S.cat]||"";
+      form.querySelector("[data-sum-icon=cat] use").setAttribute("href","#"+(CAT_ICON[S.cat]||"i-inbox"));
+      form.querySelector("[data-pick-label]").textContent=S.picked?fmtDate(S.picked,{weekday:"short",month:"short",day:"numeric"}):"Pick a date";
+    }
+    function set(key,value){S[key]=value;if(key==="from"&&S.to===S.from){S.to=Object.keys(ACCT).filter(function(k){return k!==S.from;})[0];}sync();}
+    form.addEventListener("change",function(e){var b=e.target.getAttribute("data-bind");if(!b)return;if(e.target.type==="radio"&&!e.target.checked)return;if(b==="date"&&e.target.value==="pick")return;set(b,e.target.value);});
+    form.addEventListener("input",function(e){var b=e.target.getAttribute("data-bind");if(b&&e.target.type!=="radio")set(b,e.target.value);});
+
+    /* keypad: appends to the same value the display shows and the keyboard edits */
+    form.querySelector(".keypad").addEventListener("click",function(e){
+      var b=e.target.closest("button");if(!b)return;var k=b.getAttribute("data-key");
+      var next=k==="del"?S.amount.slice(0,-1):S.amount+k;
+      if(!/^[0-9]*([.,][0-9]{0,2})?$/.test(next))return;
+      set("amount",next);big.value=S.amount;
+    });
+
+    /* label suggestions fill the category through the rule */
+    var lab=form.querySelector("[data-fsuggest]"),sug=document.getElementById(lab.getAttribute("data-fsuggest")),note=lab.parentNode.querySelector(".note");
+    lab.addEventListener("input",function(){
+      note.textContent="";sug.innerHTML="";var q=lab.value.trim().toLowerCase();if(q.length<2)return;
+      HISTORY.filter(function(h){return h.label.toLowerCase().indexOf(q)>=0&&h.label.toLowerCase()!==q;}).slice(0,3).forEach(function(h){
+        var b=document.createElement("button");b.type="button";b.innerHTML="<svg class='ico' aria-hidden='true'><use href='#i-spark'/></svg><span></span>";b.lastChild.textContent=h.label+" · "+CAT_NAMES[h.cat];
+        b.addEventListener("click",function(){sug.innerHTML="";S.label=h.label;S.cat=h.cat;sync();note.textContent="Category "+CAT_NAMES[h.cat]+" from your rule “"+h.rule+"”.";lab.focus();});
+        sug.appendChild(b);
+      });
+    });
+
+    /* steps */
+    function show(n){current=n;steps.forEach(function(s){s.hidden=Number(s.getAttribute("data-step"))!==n;});Array.prototype.forEach.call(bars,function(b,i){b.classList.toggle("done",i<n);});count.textContent="Step "+n+" of 3";sync();steps[n-1].querySelector("h3").focus();}
+    function valid(n){
+      if(n===1){var e=form.querySelector("#f-amount-error");if(!money(S.amount)){e.textContent="Error: enter an amount, for example 42 or 42,50.";big.setAttribute("aria-invalid","true");big.focus();return false;}e.textContent="";big.removeAttribute("aria-invalid");}
+      if(n===2){var l=form.querySelector("#f-label"),le=form.querySelector("#f-label-error");if(!S.label.trim()){l.setAttribute("aria-invalid","true");le.textContent="Error: say what it was, for example Carrefour City.";l.focus();return false;}l.removeAttribute("aria-invalid");le.textContent="";}
+      return true;
+    }
+    form.addEventListener("click",function(e){
+      var t=e.target.closest("button");if(!t)return;
+      if(t.hasAttribute("data-next")&&valid(current))show(current+1);
+      else if(t.hasAttribute("data-back"))show(current-1);
+      else if(t.hasAttribute("data-edit")){var ed=document.getElementById(t.getAttribute("data-edit")),open=ed.hidden;ed.hidden=!open;t.setAttribute("aria-expanded",String(open));t.textContent=open?"Close":"Edit";if(open){var f=ed.querySelector("input:checked,input");if(f)f.focus();}}
+      else if(t.hasAttribute("data-done")){var id=t.getAttribute("data-done"),edb=form.querySelector("[data-edit='"+id+"']");if(id==="e-amount"&&!money(S.amount)){form.querySelector("#e-amount-input").setAttribute("aria-invalid","true");form.querySelector("#e-amount-input").focus();return;}form.querySelector("#e-amount-input").removeAttribute("aria-invalid");document.getElementById(id).hidden=true;edb.setAttribute("aria-expanded","false");edb.textContent="Edit";edb.focus();}
+    });
+
+    /* "Pick a date" opens the calendar of the date picker component */
+    var dlg=form.querySelector("#f-cal"),pick=form.querySelector("[data-pick]"),title=dlg.querySelector(".dp-title"),head=dlg.querySelector("thead tr"),body=dlg.querySelector("tbody"),prev=dlg.querySelector(".dp-prev"),next=dlg.querySelector(".dp-next"),todayBtn=dlg.querySelector(".dp-today");
+    var focusIso=TODAY,viewY,viewM,before="today";
+    function d(iso){return new Date(iso+"T00:00:00Z");}
+    function iso(dt){return dt.toISOString().slice(0,10);}
+    function addDays(s,n){var x=d(s);x.setUTCDate(x.getUTCDate()+n);return iso(x);}
+    function addMonths(s,n){var x=d(s),day=x.getUTCDate();x.setUTCDate(1);x.setUTCMonth(x.getUTCMonth()+n);var last=new Date(Date.UTC(x.getUTCFullYear(),x.getUTCMonth()+1,0)).getUTCDate();x.setUTCDate(Math.min(day,last));return iso(x);}
+    for(var w=0;w<7;w++){var th=document.createElement("th");th.scope="col";th.abbr=fmtDate(addDays("2026-11-09",w),{weekday:"long"});th.textContent=fmtDate(addDays("2026-11-09",w),{weekday:"short"});head.appendChild(th);}
+    function selectedIso(){return S.date==="yesterday"?addDays(TODAY,-1):S.date==="pick"&&S.picked?S.picked:TODAY;}
+    function render(){
+      var x=d(focusIso);viewY=x.getUTCFullYear();viewM=x.getUTCMonth();
+      title.textContent=fmtDate(iso(new Date(Date.UTC(viewY,viewM,1))),{month:"long",year:"numeric"});
+      var first=new Date(Date.UTC(viewY,viewM,1)),offset=(first.getUTCDay()+6)%7,days=new Date(Date.UTC(viewY,viewM+1,0)).getUTCDate(),html="",cell=0,sel=selectedIso();
+      for(var r=0;cell<offset+days;r++){html+="<tr>";for(var c=0;c<7;c++,cell++){var n=cell-offset+1;if(n<1||n>days){html+="<td></td>";continue;}var s=iso(new Date(Date.UTC(viewY,viewM,n)));html+="<td role='gridcell' data-iso='"+s+"' tabindex='"+(s===focusIso?0:-1)+"' aria-selected='"+(s===sel)+"'"+(s===TODAY?" aria-current='date'":"")+" aria-label='"+fmtDate(s,{weekday:"long",day:"numeric",month:"long",year:"numeric"})+"'>"+n+"</td>";}html+="</tr>";}
+      body.innerHTML=html;
+    }
+    function focusCell(){var c=body.querySelector("[data-iso='"+focusIso+"']");if(c)c.focus();}
+    function moveTo(s){var m=d(s).getUTCMonth()!==viewM||d(s).getUTCFullYear()!==viewY;focusIso=s;if(m)render();else Array.prototype.forEach.call(body.querySelectorAll("[data-iso]"),function(c){c.tabIndex=c.getAttribute("data-iso")===s?0:-1;});focusCell();}
+    function openCal(){before=S.date==="pick"?before:S.date;focusIso=selectedIso();render();dlg.hidden=false;pick.setAttribute("aria-expanded","true");focusCell();}
+    function closeCal(chosen){dlg.hidden=true;pick.setAttribute("aria-expanded","false");if(chosen){if(chosen===TODAY){S.picked="";S.date="today";}else if(chosen===addDays(TODAY,-1)){S.picked="";S.date="yesterday";}else{S.picked=chosen;S.date="pick";}}else if(!S.picked){S.date=before;}sync();(form.querySelector("input[name=f-date]:checked")||pick).focus();}
+    pick.addEventListener("click",function(){setTimeout(openCal,0);});
+    prev.addEventListener("click",function(){focusIso=addMonths(focusIso,-1);render();});
+    next.addEventListener("click",function(){focusIso=addMonths(focusIso,1);render();});
+    todayBtn.addEventListener("click",function(){closeCal(TODAY);});
+    body.addEventListener("click",function(e){var c=e.target.closest("[data-iso]");if(c)closeCal(c.getAttribute("data-iso"));});
+    body.addEventListener("keydown",function(e){
+      var k=e.key,step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[k];
+      if(step!==undefined){e.preventDefault();moveTo(addDays(focusIso,step));return;}
+      var wd=(d(focusIso).getUTCDay()+6)%7;
+      if(k==="Home"){e.preventDefault();moveTo(addDays(focusIso,-wd));}
+      else if(k==="End"){e.preventDefault();moveTo(addDays(focusIso,6-wd));}
+      else if(k==="PageUp"){e.preventDefault();moveTo(addMonths(focusIso,e.shiftKey?-12:-1));}
+      else if(k==="PageDown"){e.preventDefault();moveTo(addMonths(focusIso,e.shiftKey?12:1));}
+      else if(k==="Enter"||k===" "){e.preventDefault();closeCal(focusIso);}
+    });
+    dlg.addEventListener("keydown",function(e){
+      if(e.key==="Escape"){e.preventDefault();closeCal(null);return;}
+      if(e.key!=="Tab")return;
+      var cell=body.querySelector("[tabindex='0']"),ring=[prev,next,cell,todayBtn],i=ring.indexOf(document.activeElement);
+      e.preventDefault();ring[(i+(e.shiftKey?ring.length-1:1))%ring.length].focus();
+    });
+    document.addEventListener("pointerdown",function(e){if(!dlg.hidden&&!dlg.contains(e.target)&&!pick.parentNode.contains(e.target))closeCal(null);});
+    sync();
+  })();
+
+  var PAIRS=[["Tile text on expense tint","--color-text","--color-negative-tint",4.5],["Tile text on income tint","--color-text","--color-positive-tint",4.5],["Expense tile border","--color-negative","--color-surface",3],["Income tile border","--color-positive","--color-surface",3],["Expense icon in its disc","--color-negative","--color-negative-tint",3],["Income icon in its disc","--color-positive","--color-positive-tint",3],["Today chip ring","--color-accent","--color-surface-sunken",3],["Out icon on segment","--color-negative","--color-control",3],["In icon on segment","--color-positive","--color-control",3],["Later chip text","--color-text","--color-warning-tint",4.5],["Later icon","--color-warning","--color-warning-tint",3],["Chip and keypad text","--color-text","--color-surface-sunken",4.5],["Selected chip","--color-on-primary","--color-primary",4.5],["Minus on the amount field","--color-negative","--color-control",3],["Plus on the amount field","--color-positive","--color-control",3],["Muted segment label","--color-text-muted","--color-control",4.5]];
+  var root=document.documentElement;
+  function rgb(v){v=v.trim();if(v.length===4)v="#"+v[1]+v[1]+v[2]+v[2]+v[3]+v[3];return [1,3,5].map(function(i){return parseInt(v.substr(i,2),16)/255;});}
+  function lum(c){var l=c.map(function(x){return x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4);});return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2];}
+  function ratio(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+  function read(theme){var prev=root.getAttribute("data-theme");root.setAttribute("data-theme",theme);var cs=getComputedStyle(root);var out=PAIRS.map(function(p){return [cs.getPropertyValue(p[1]).trim(),cs.getPropertyValue(p[2]).trim()];});if(prev===null)root.removeAttribute("data-theme");else root.setAttribute("data-theme",prev);return out;}
+  var L=read("light"),D=read("dark"),fails=0,tb=document.getElementById("contrast");
+  PAIRS.forEach(function(p,i){var a=ratio(rgb(L[i][0]),rgb(L[i][1])),b=ratio(rgb(D[i][0]),rgb(D[i][1]));if(a<p[3])fails++;if(b<p[3])fails++;var tr=document.createElement("tr");tr.innerHTML="<td>"+p[0]+"</td><td><code>"+p[1].slice(2)+"</code> on <code>"+p[2].slice(2)+"</code></td><td>"+a.toFixed(2)+":1 "+(a>=p[3]?"Pass":"Fail")+"</td><td>"+b.toFixed(2)+":1 "+(b>=p[3]?"Pass":"Fail")+"</td><td>"+p[3]+":1</td>";tb.appendChild(tr);});
+  document.getElementById("contrast-summary").textContent=PAIRS.length*2+" pairs checked, "+fails+" below threshold.";
+  root.setAttribute("data-contrast-fails",String(fails));
+
+  Array.prototype.forEach.call(document.querySelectorAll(".qform"),function(form){form.addEventListener("change",function(){update(form);});form.addEventListener("input",function(){update(form);});update(form);});
+})();
+</script>
+</body>
+</html>

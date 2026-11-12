@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demain components</title>
+<meta name="description" content="Typeface, forms, component states, appearance setting and French formats of Demain, built on the identity tokens.">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);font-weight:var(--weight-regular);font-size:var(--text-body);line-height:var(--leading-normal)}
+:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:16px;background:var(--color-surface);padding:8px 12px;border-radius:var(--radius-control);z-index:3}
+.wrap{max-width:1200px;margin:0 auto;padding:var(--space-8) var(--space-4) var(--space-16)}
+@media (min-width:768px){.wrap{padding:var(--space-12) var(--space-8) var(--space-16)}}
+h1{font-size:var(--text-heading);font-weight:var(--weight-medium);letter-spacing:var(--tracking-tight);line-height:var(--leading-tight);margin:0 0 var(--space-2)}
+h2{font-size:var(--text-title);font-weight:var(--weight-medium);letter-spacing:var(--tracking-tight);margin:0 0 var(--space-2)}
+h3{font-size:var(--text-body);font-weight:var(--weight-medium);margin:0 0 var(--space-3)}
+p{margin:0 0 var(--space-3)}
+section{margin-top:var(--space-12)}
+.lede{color:var(--color-text-muted);max-width:66ch}
+.why{color:var(--color-text-muted);font-size:var(--text-caption);max-width:80ch;margin-bottom:var(--space-4)}
+.label{font-size:var(--text-label);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--color-text-muted);font-weight:var(--weight-medium);margin:0 0 var(--space-2)}
+.muted{color:var(--color-text-muted)}
+.num{font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:var(--space-4)}
+.grid>*{min-width:0}
+@media (min-width:768px){.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}}
+.card{background:var(--color-surface);border-radius:var(--radius-card);padding:var(--space-6)}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* buttons: ink primary (06:44, 12:21), neutral secondary (12:21), text link tertiary (13:19) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--target-min);padding:0 var(--space-4);border-radius:var(--radius-pill);font:inherit;font-weight:var(--weight-medium);border:0;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--color-primary);color:var(--color-on-primary)}
+.btn.primary:hover:not(:disabled),.btn.primary.is-hover,.btn.primary:active:not(:disabled),.btn.primary.is-active{background:var(--color-primary-hover)}
+.btn.secondary{background:var(--color-control);color:var(--color-text)}
+.btn.secondary:hover:not(:disabled),.btn.secondary.is-hover,.btn.secondary:active:not(:disabled),.btn.secondary.is-active{background:var(--color-control-hover)}
+.btn.danger{background:var(--color-danger);color:var(--color-on-danger)}
+.btn.link{background:none;color:var(--color-text);text-decoration:underline;text-underline-offset:3px;padding:0 var(--space-2)}
+.btn.link:hover:not(:disabled),.btn.link.is-hover{text-decoration-thickness:2px}
+.btn.link:active:not(:disabled){text-decoration-thickness:2px}
+.btn:disabled,.btn.is-disabled{background:var(--color-surface-sunken);color:var(--color-text-muted);cursor:not-allowed}
+.btn.link:disabled{background:none}
+.btn[aria-busy="true"]{cursor:progress}
+.is-focus{outline:2px solid var(--color-focus);outline-offset:2px}
+.states{width:100%;border-collapse:collapse}
+.states th{font-size:var(--text-label);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--color-text-muted);font-weight:var(--weight-medium);text-align:left;padding:0 var(--space-3) var(--space-2) 0;white-space:nowrap}
+.states td{padding:var(--space-2) var(--space-3) var(--space-2) 0;vertical-align:middle;white-space:nowrap}
+.scroll{overflow-x:auto}
+
+/* fields: label above, hint under the label, error under the control (FormField of the app) */
+.form{display:grid;gap:var(--space-4)}
+@media (min-width:640px){.form.two{grid-template-columns:repeat(2,1fr)}.form .full{grid-column:1/-1}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.field>.lbl,legend{font-size:var(--text-caption);font-weight:var(--weight-medium);color:var(--color-text)}
+.hint{font-size:var(--text-caption);color:var(--color-text-muted);margin:-2px 0 2px}
+.control{position:relative;display:flex;align-items:center}
+.input{width:100%;min-height:48px;padding:0 var(--space-3);border-radius:var(--radius-control);border:1px solid var(--color-border-control);background:var(--color-control);color:var(--color-text);font:inherit;appearance:none}
+.input::placeholder{color:var(--color-text-muted);opacity:1}
+.input:hover:not(:disabled):not([readonly]),.input.is-hover{border-color:var(--color-text)}
+.input:focus-visible,.input.is-focus{outline:2px solid var(--color-focus);outline-offset:2px;border-color:var(--color-text)}
+.input[aria-invalid="true"]{border:2px solid var(--color-negative);padding:0 11px}
+.input:disabled{background:var(--color-surface-sunken);border-color:var(--color-divider);color:var(--color-text-muted);cursor:not-allowed}
+.input[readonly]{background:transparent}
+/* show or hide a password: a 44 px icon button inside the 48 px field, one fixed label with aria-pressed */
+.secret .input{padding-right:50px}
+.secret .reveal{position:absolute;right:2px;color:var(--color-text-muted)}
+.secret .reveal:hover:not(:disabled){color:var(--color-text);background:var(--color-control-hover)}
+.secret .reveal[aria-pressed="true"]{color:var(--color-text)}
+.control .end{position:absolute;right:14px;pointer-events:none;color:var(--color-text-muted)}
+.amount .input{text-align:right;padding-right:36px;font-variant-numeric:tabular-nums}
+/* custom pickers: select-only combobox and date picker dialog (WAI-ARIA APG), drawn with the tokens */
+.trigger{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);text-align:left;cursor:pointer}
+.trigger .value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trigger .ico{color:var(--color-text-muted)}
+.trigger[aria-expanded="true"]{border-color:var(--color-text)}
+.trigger[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.pop{position:absolute;top:calc(100% + 6px);left:0;z-index:5;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-control);box-shadow:var(--shadow-overlay);padding:6px}
+.pop[hidden]{display:none}
+.list{width:100%;max-height:296px;overflow-y:auto;list-style:none;margin:0}
+.list [role="option"]{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-height:var(--target-min);padding:0 var(--space-3);border-radius:calc(var(--radius-control) - 6px);cursor:pointer}
+.list [role="option"]:hover,.list [role="option"].active{background:var(--color-control)}
+.list [role="option"] .tick{visibility:hidden}
+.list [role="option"][aria-selected="true"]{font-weight:var(--weight-medium)}
+.list [role="option"][aria-selected="true"] .tick{visibility:visible}
+/* seven 44 px days need 332 px, wider than a phone field: centre the calendar under its field */
+.dp{width:332px;max-width:calc(100vw - 32px);padding:var(--space-3);left:50%;transform:translateX(-50%)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-1)}
+.dp-title{margin:0;font-weight:var(--weight-medium)}
+.dp-grid{width:100%;border-collapse:collapse;table-layout:fixed}
+.dp-grid th{height:32px;font-size:var(--text-label);font-weight:var(--weight-medium);color:var(--color-text-muted);text-align:center}
+.dp-grid td{height:var(--target-min);padding:0;text-align:center;border-radius:50%;font-variant-numeric:tabular-nums;cursor:pointer}
+.dp-grid td:empty{cursor:default}
+.dp-grid td[data-iso]:not([aria-selected="true"]):hover{background:var(--color-control)}
+.dp-grid td[aria-current="date"]{box-shadow:inset 0 0 0 1.5px var(--color-accent);color:var(--color-accent);font-weight:var(--weight-medium)}
+.dp-grid td[aria-selected="true"]{background:var(--color-primary);color:var(--color-on-primary);cursor:default}
+.dp-grid td:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px}
+.dp-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-1);padding-top:var(--space-1);border-top:1px solid var(--color-divider)}
+.error{display:flex;gap:6px;align-items:flex-start;font-size:var(--text-caption);font-weight:var(--weight-medium);color:var(--color-negative);margin:0}
+.error .ico{width:16px;height:16px;margin-top:2px}
+.syntax-msg{display:flex;gap:6px;align-items:flex-start;margin:0}
+.syntax-msg:empty,.error:empty{display:none}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{padding:0;margin-bottom:var(--space-2)}
+
+/* checkbox: a 20 px box inside a 44 px row; checked is ink, never blue (blue means today) */
+.check{display:flex;align-items:center;gap:12px;min-height:var(--target-min);cursor:pointer}
+.check input{appearance:none;margin:0;flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--color-border-control);background:var(--color-control);display:grid;place-items:center;cursor:pointer}
+.check input:hover:not(:disabled){border-color:var(--color-text)}
+.check input:checked{background:var(--color-primary);border-color:var(--color-primary)}
+.check input:checked::after{content:"";width:10px;height:5px;border:solid var(--color-on-primary);border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+.check input:disabled{background:var(--color-surface-sunken);border-color:var(--color-divider);cursor:not-allowed}
+.check:has(input:disabled){color:var(--color-text-muted);cursor:not-allowed}
+.check input.is-focus{outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* segmented radio group (07:32 and 06:44): the appearance setting */
+.seg{display:inline-flex;padding:3px;gap:2px;background:var(--color-control);border-radius:var(--radius-pill);max-width:100%}
+.seg label{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:var(--target-min);padding:0 var(--space-4);border-radius:var(--radius-pill);color:var(--color-text-muted);font-weight:var(--weight-medium);cursor:pointer}
+.seg label:hover{color:var(--color-text)}
+/* the native input stays, visually hidden, under segments, file pickers and chips */
+.seg input,.file input,#flow .chip input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--color-primary);color:var(--color-on-primary)}
+/* raised variant: the selected segment sits on white, for segments whose icons carry red and green (transaction type) */
+.seg.raised label:has(input:checked){background:var(--color-surface);color:var(--color-text);box-shadow:var(--shadow-raised)}
+.seg label:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* file picker: the native input stays, a secondary button shows it */
+.file{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
+.file label.btn{cursor:pointer}
+.file:has(input:focus-visible) label.btn{outline:2px solid var(--color-focus);outline-offset:2px}
+
+details{border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
+summary{display:flex;align-items:center;justify-content:space-between;min-height:var(--target-min);padding:var(--space-3) 0;cursor:pointer;font-weight:var(--weight-medium);list-style:none}
+summary::-webkit-details-marker{display:none}
+details[open] summary .ico{transform:rotate(180deg)}
+details>div{padding:0 0 var(--space-4)}
+
+/* feedback */
+.toast{display:flex;align-items:flex-start;gap:12px;background:var(--color-surface);border-radius:var(--radius-card);box-shadow:var(--shadow-overlay);padding:var(--space-3) var(--space-3) var(--space-3) var(--space-4);max-width:420px}
+/* the text sits in a slot two lines tall (44 px, the close button): one line is centred in it, two lines fill it,
+   further lines grow downwards while the disc and the close button stay level with the first two */
+.toast p{flex:1;margin:0;min-height:max(var(--target-min),2lh);display:flex;align-items:center}
+.disc{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;flex:none;margin-top:4px}
+.disc.pos{background:var(--color-positive-tint);color:var(--color-positive)}
+.disc.neg{background:var(--color-negative-tint);color:var(--color-negative)}
+.word-pos{color:var(--color-positive);font-weight:var(--weight-medium)}
+.word-neg{color:var(--color-negative);font-weight:var(--weight-medium)}
+.icon-btn{display:inline-grid;place-items:center;width:var(--target-min);height:var(--target-min);border-radius:50%;border:0;background:none;color:var(--color-text);cursor:pointer;flex:none}
+.icon-btn:hover:not(:disabled){background:var(--color-control)}
+.notice{background:var(--color-warning-tint);color:var(--color-text);border-radius:var(--radius-control);padding:var(--space-3) var(--space-4);margin:0}
+.notice b{color:var(--color-warning);font-weight:var(--weight-medium)}
+.empty{text-align:center;padding:var(--space-8) var(--space-4);background:var(--color-surface-sunken);border-radius:var(--radius-control)}
+.empty p{margin:0 auto var(--space-4);max-width:36ch;color:var(--color-text-muted)}
+.stage{background:var(--color-backdrop);border-radius:var(--radius-card);padding:var(--space-8) var(--space-4);display:grid;place-items:center}
+.dialog{background:var(--color-surface);border-radius:var(--radius-card);box-shadow:var(--shadow-overlay);padding:var(--space-6);max-width:420px;width:100%}
+.dialog h3{font-size:var(--text-title);margin:0 0 var(--space-2)}
+.dialog .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-6)}
+dialog.dialog{border:0;color:var(--color-text)}
+dialog.dialog::backdrop{background:var(--color-backdrop)}
+
+/* table: 48 px rows (01), right-aligned figures and status words in pills (11:54) */
+table.data{width:100%;border-collapse:collapse}
+.data caption{text-align:left;font-weight:var(--weight-medium);padding-bottom:var(--space-3)}
+.data th{font-size:var(--text-label);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--color-text-muted);font-weight:var(--weight-medium);text-align:left;padding:0 var(--space-3) var(--space-2)}
+.data td{height:48px;padding:0 var(--space-3);border-top:1px solid var(--color-divider);white-space:nowrap}
+.data tbody tr:hover{background:var(--color-surface-sunken)}
+.data .r{text-align:right}
+.pill{display:inline-flex;align-items:center;border-radius:var(--radius-pill);padding:4px 10px;font-size:var(--text-caption);font-weight:var(--weight-medium)}
+.pill.warn{background:var(--color-warning-tint);color:var(--color-warning)}
+.pill.neutral{background:var(--color-control);color:var(--color-text)}
+.in{color:var(--color-positive)}
+
+/* typeface */
+.specimen{font-size:clamp(2rem,6vw,3.5rem);line-height:1.05;letter-spacing:var(--tracking-tight);margin:0 0 var(--space-4)}
+.weights{display:flex;flex-wrap:wrap;gap:var(--space-6);font-size:var(--text-title);margin:0}
+.figs{font-size:var(--text-title);margin:0;text-align:right}
+
+/* French next to English */
+.pair{display:grid;gap:var(--space-4)}
+@media (min-width:768px){.pair{grid-template-columns:repeat(2,1fr)}}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-4);margin:0}
+dl.kv dt{color:var(--color-text-muted);font-size:var(--text-caption);padding-top:2px}
+dl.kv dd{margin:0}
+/* 343 px: the tab bar of a 375 px phone with 16 px margins */
+.tabs{list-style:none;margin:var(--space-4) 0 0;padding:6px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%;max-width:343px;background:var(--color-bg);border-radius:var(--radius-pill)}
+.tabs li{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;min-width:0;border-radius:var(--radius-pill);color:var(--color-text-muted);font-size:var(--text-label);font-weight:var(--weight-medium);white-space:nowrap}
+.tabs li.on{background:var(--color-primary);color:var(--color-on-primary)}
+.contrast td,.contrast th{text-align:left;padding:6px var(--space-3) 6px 0;border-top:1px solid var(--color-divider);font-size:var(--text-caption)}
+.contrast .r{text-align:right}
+code{font-family:inherit;color:var(--color-text-muted)}
+.footer{margin-top:var(--space-12);color:var(--color-text-muted);font-size:var(--text-caption)}
+/* add-transaction flow (form-proposals.html, retained by the owner), scoped to #flow:
+   its segments, discs and chips have their own look and must not change the other sections */
+#flow{background:var(--color-surface);border-radius:var(--radius-card);padding:var(--space-4);max-width:420px}
+#flow h3{font-size:var(--text-title);margin:0 0 var(--space-4)}
+#flow h3:focus{outline:none}
+#flow .hint{margin:0}
+#flow .field{margin-bottom:var(--space-6)}
+#flow fieldset{margin:0 0 var(--space-6)}
+#flow .btn.save{min-height:52px}
+#flow .disc{background:var(--color-control);color:var(--color-text);margin-top:0}
+#flow .progress{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 var(--space-2);padding:0;list-style:none}
+#flow .progress li{height:4px;border-radius:2px;background:var(--color-control)}
+#flow .progress li.done{background:var(--color-primary)}
+#flow .step-nav{display:flex;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-4)}
+#flow .step-nav .primary{flex:1}
+#flow .seg{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
+#flow .seg label{display:flex;justify-content:center;gap:4px;padding:0;font-size:var(--text-caption)}
+#flow .seg label .ico{width:18px;height:18px}
+#flow .seg label.t-expense .ico{color:var(--color-negative)}
+#flow .seg label.t-income .ico,#flow .seg label.t-interest .ico{color:var(--color-positive)}
+#flow .big{position:relative;display:flex;align-items:baseline;justify-content:center;gap:6px;min-height:64px;margin:var(--space-2) 0 var(--space-3);font-size:var(--text-display);line-height:1;letter-spacing:var(--tracking-tight);font-variant-numeric:tabular-nums}
+#flow .big .sign{font-size:var(--text-amount)}
+#flow[data-kind="expense"] .big .sign{color:var(--color-negative)}
+#flow[data-kind="income"] .big .sign,#flow[data-kind="interest"] .big .sign{color:var(--color-positive)}
+#flow[data-kind="transfer"] .big .sign{color:var(--color-text-muted)}
+#flow .big .cur{font-size:var(--text-title);color:var(--color-text-muted)}
+#flow .big input{width:1ch;min-width:1ch;border:0;padding:0;background:none;color:var(--color-text);font:inherit;letter-spacing:inherit;text-align:center}
+#flow .big input::placeholder{color:var(--color-text-muted);opacity:1}
+#flow .big input:focus{outline:none}
+#flow .big:focus-within{outline:2px solid var(--color-focus);outline-offset:4px;border-radius:var(--radius-control)}
+#flow .big .sizer{position:absolute;visibility:hidden;white-space:pre;left:0;top:0}
+#flow .big~.syntax-msg,#flow .big~.error{justify-content:center;text-align:center}
+#flow .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);margin:var(--space-3) 0}
+#flow .keypad button{min-height:52px;border:0;border-radius:var(--radius-control);background:var(--color-surface-sunken);color:var(--color-text);font:inherit;font-size:var(--text-title);font-variant-numeric:tabular-nums;cursor:pointer;display:grid;place-items:center}
+#flow .keypad button:hover{background:var(--color-control-hover)}
+#flow .chips{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+#flow .chip{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:var(--target-min);padding:0 var(--space-3) 0 6px;border-radius:var(--radius-pill);background:var(--color-surface-sunken);border:1px solid var(--color-divider);font-weight:var(--weight-medium);cursor:pointer;white-space:nowrap}
+#flow .chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+#flow .chip.text{padding:0 var(--space-4)}
+#flow .chip .disc{width:32px;height:32px}
+#flow .chip:hover{border-color:var(--color-text)}
+#flow .chip:has(input:checked){background:var(--color-primary);border-color:var(--color-primary);color:var(--color-on-primary)}
+#flow .chip:has(input:checked) .disc{background:var(--color-surface);color:var(--color-text)}
+#flow .chip.later .disc{background:var(--color-warning-tint);color:var(--color-warning)}
+#flow .chip.later:has(input:checked){background:var(--color-warning-tint);border-color:var(--color-warning);color:var(--color-text)}
+#flow .chip.later:has(input:checked) .disc{color:var(--color-warning)}
+#flow .chip.today:not(:has(input:checked)){box-shadow:inset 0 0 0 1.5px var(--color-accent)}
+#flow .chip:has(input:disabled){background:transparent;color:var(--color-text-muted);border-style:dashed;cursor:not-allowed}
+#flow .chip:has(input:disabled) .disc{background:var(--color-surface-sunken);color:var(--color-text-muted)}
+#flow .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3)}
+#flow .cats .chip{flex-direction:column;justify-content:center;gap:4px;min-height:76px;padding:var(--space-2) 2px;border-radius:var(--radius-control);font-size:var(--text-caption);white-space:normal;text-align:center}
+#flow .suggest{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+#flow .suggest:empty{display:none}
+#flow .suggest button{display:inline-flex;align-items:center;gap:6px;min-height:var(--target-min);padding:0 var(--space-3);border-radius:var(--radius-pill);border:1px dashed var(--color-border-control);background:none;color:var(--color-text);font:inherit;font-size:var(--text-caption);cursor:pointer}
+#flow .suggest button:hover{border-style:solid;border-color:var(--color-text)}
+#flow .note{font-size:var(--text-caption);color:var(--color-text-muted);margin:0}
+#flow .note:empty{display:none}
+#flow .summary{list-style:none;margin:0 0 var(--space-4);padding:0}
+#flow .summary li{display:flex;align-items:center;gap:var(--space-3);min-height:56px;border-top:1px solid var(--color-divider)}
+#flow .summary li:first-child,#flow .summary .editor-row{border-top:0}
+#flow .summary .editor-row{display:block;min-height:0}
+#flow .summary .what{flex:1;min-width:0}
+#flow .summary .what span{display:block}
+#flow .summary .what .muted{font-size:var(--text-caption)}
+#flow .editor{padding:var(--space-3) 0 var(--space-4)}
+#flow .editor .seg{margin-bottom:var(--space-3)}
+#flow .editor .done{margin-top:var(--space-3)}
+#flow .when{position:relative}
+#flow details.more{border-bottom:0;margin:0 0 var(--space-6)}
+#flow details.more summary{padding:var(--space-2) 0}
+#flow details.more>div{padding:0}
+/* wide layout, on a computer: the same flow on one screen in two columns, typed on the keyboard, so no keypad and no steps */
+.flow-width{margin-bottom:var(--space-4)}
+/* 840 px of viewport leaves the 760 px the wide layout needs; matched by layout() in the flow script */
+@media (max-width:839px){.flow-width{display:none}}
+#flow:not(.wide) .wide-only,#flow.wide .narrow-only{display:none}
+#flow.wide{max-width:920px;padding:var(--space-8);display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-8);align-items:start}
+#flow.wide #f-title{grid-column:1/-1;font-size:var(--text-title);font-weight:var(--weight-medium);letter-spacing:var(--tracking-tight);margin:0 0 var(--space-6)}
+#flow.wide [data-step="2"]{margin-top:var(--space-6)}
+#flow.wide [data-step="3"]{grid-column:2;grid-row:2/4;align-self:stretch;padding-left:var(--space-8);border-left:1px solid var(--color-divider)}
+#flow.wide .big{margin-bottom:0}
+#flow.wide .step-nav{margin-top:var(--space-6)}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 7l10 10M17 9v8H9"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></symbol>
+  <symbol id="i-pct" viewBox="0 0 24 24"><path d="M18 6L6 18"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path d="M3.5 9.5h17l-1.6 8.2a2 2 0 0 1-2 1.8H7.1a2 2 0 0 1-2-1.8z"/><path d="M8 9.5l3-5M16 9.5l-3-5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z"/><path d="M10 20.5v-5h4v5"/></symbol>
+  <symbol id="i-bus" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="14" rx="3"/><path d="M5 11h14M8 21v-3.5M16 21v-3.5M8.5 14.5h.01M15.5 14.5h.01"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5v2a2.5 2.5 0 0 0 0 5v2a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5v-2a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v12"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.5-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.5-7.5 10-7.5 10z"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="4" rx="1"/><path d="M5.5 13v6.5h13V13M12 9v10.5M12 9C10 5 7 5.5 7.5 7.5S12 9 12 9zm0 0c2-4 5-3.5 4.5-1.5S12 9 12 9z"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="6.5" ry="2.5"/><path d="M5.5 7v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5V7M5.5 12v5c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-5"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3.5 13.5l2.6-7.2A1.5 1.5 0 0 1 7.5 5.3h9a1.5 1.5 0 0 1 1.4 1l2.6 7.2V18a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 18z"/><path d="M3.5 13.5H8l1.5 2h5l1.5-2h4.5"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 5.5h10.5A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5H9L3 12z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.5 6.5l2.5 2.5M15 15l2.5 2.5M17.5 6.5L15 9M9 15l-2.5 2.5"/></symbol>
+</svg>
+<div class="wrap">
+<main id="main">
+<h1>Demain components</h1>
+<p class="lede">The parts every screen of the app is built from, drawn with the identity tokens. Each control keeps the behaviour the app already has (labels, linked errors, native dialog, toasts that name their kind); only shape and colour are new. Amounts are synthetic.</p>
+
+<section aria-labelledby="h-type">
+<h2 id="h-type">Typeface</h2>
+<p class="why">Host Grotesk, SIL Open Font License 1.1, no reserved font name: it can ship inside the app and its Docker image. Chosen by the owner among ten open neo-grotesks measured against Neue Montreal, the face named in 13:54: the same proportions of capitals to lowercase and the same stem, a little wider and more open.</p>
+<div class="grid g2">
+  <div class="card">
+    <p class="label">Specimen</p>
+    <p class="specimen">Demain, 12&#8239;480,50&nbsp;&euro; &Agrave; cat&eacute;goriser</p>
+    <div class="weights"><span>Regular 400</span><span style="font-weight:var(--weight-medium)">Medium 560</span><span style="font-weight:var(--weight-bold)">Bold 800</span></div>
+  </div>
+  <div class="card">
+    <p class="label">Measured against Neue Montreal Regular</p>
+    <div class="scroll"><table class="states num">
+      <thead><tr><th>Ratio</th><th>Neue Montreal</th><th>Host Grotesk</th></tr></thead>
+      <tbody>
+        <tr><td>x-height / em</td><td>0.510</td><td>0.496</td></tr>
+        <tr><td>Cap height / em</td><td>0.715</td><td>0.700</td></tr><tr><td>x-height / cap height</td><td>0.713</td><td>0.709</td></tr>
+        <tr><td>Lowercase width / x-height</td><td>0.938</td><td>1.050</td></tr>
+        <tr><td>Stem / cap height</td><td>0.126</td><td>0.129</td></tr>
+        <tr><td>Tabular figures</td><td>No</td><td>Yes, always</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <p class="label">Tabular figures</p>
+    <p class="figs num">1&#8239;204,50&nbsp;&euro;<br>12&#8239;480,50&nbsp;&euro;<br>320,00&nbsp;&euro;</p>
+  </div>
+  <div class="card">
+    <p class="label">Rules</p>
+    <p>Regular for text and amounts, Medium for labels, headings and buttons, Bold only where a single figure must dominate. No other family.</p>
+    <p class="muted" style="margin:0">The wordmark is set in the same face, Host Grotesk Medium, converted to outlines.</p>
+  </div>
+</div>
+</section>
+
+<section aria-labelledby="h-btn">
+<h2 id="h-btn">Buttons and their states</h2>
+<p class="why">Ink primary, one per screen (06:44, 08:16, 12:21); neutral secondary next to it (12:21); text link for a third action (13:19). Destructive red only on the confirm button inside a dialog. Hover and pressed take one tone step; there is no motion token, so nothing moves. Disabled uses explicit colours instead of transparency, so its contrast is measured. Pending keeps the fill, changes the label and sets <code>aria-busy</code>.</p>
+<div class="card scroll">
+<table class="states">
+  <thead><tr><th scope="col">Variant</th><th scope="col">Default</th><th scope="col">Hover, pressed</th><th scope="col">Focus</th><th scope="col">Disabled</th><th scope="col">Pending</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">Primary</th><td><button class="btn primary" type="button">Add transaction</button></td><td><button class="btn primary is-hover" type="button" tabindex="-1">Add transaction</button></td><td><button class="btn primary is-focus" type="button" tabindex="-1">Add transaction</button></td><td><button class="btn primary" type="button" disabled>Add transaction</button></td><td><button class="btn primary" type="button" aria-busy="true" tabindex="-1">Adding&hellip;</button></td></tr>
+    <tr><th scope="row">Secondary</th><td><button class="btn secondary" type="button">Cancel</button></td><td><button class="btn secondary is-hover" type="button" tabindex="-1">Cancel</button></td><td><button class="btn secondary is-focus" type="button" tabindex="-1">Cancel</button></td><td><button class="btn secondary" type="button" disabled>Cancel</button></td><td></td></tr>
+    <tr><th scope="row">Link</th><td><button class="btn link" type="button">Edit</button></td><td><button class="btn link is-hover" type="button" tabindex="-1">Edit</button></td><td><button class="btn link is-focus" type="button" tabindex="-1">Edit</button></td><td><button class="btn link" type="button" disabled>Edit</button></td><td></td></tr>
+    <tr><th scope="row">Destructive</th><td><button class="btn danger" type="button">Delete</button></td><td></td><td><button class="btn danger is-focus" type="button" tabindex="-1">Delete</button></td><td></td><td><button class="btn danger" type="button" aria-busy="true" tabindex="-1">Deleting&hellip;</button></td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<section aria-labelledby="h-form">
+<h2 id="h-form">Adding a transaction</h2>
+<p class="why">The add-transaction form of the app becomes three steps, retained by the owner on 11 Nov 2026 from the proposals of <code>form-proposals.html</code>. Step 1 takes the type and the amount, typed or tapped on the keypad, under the exact-syntax rule. Step 2 is the label, with suggestions from history, and the category, "Later" sending it to the to-categorize queue. Step 3 recaps and edits in place, picks the date with the date picker, asks for the receiving account of a transfer, and keeps the note and the payment mode under "More details". Every choice is a chip or a segment with an icon, a colour and a word. The colour pairs of the flow are measured on <code>form-proposals.html</code>. On a computer, from 760 px of available width, the same flow fits one screen in two columns: the amount, the label and the category on the left, the date, the account and the save button on the right. It is typed on the keyboard, so the keypad, the steps and the recap go; the save button checks the amount and the label. Use the switch to see both layouts.</p>
+<fieldset class="flow-width" id="flow-width"><legend class="sr">Preview width</legend><div class="seg"><label><input type="radio" name="flow-width" value="phone">Phone</label><label><input type="radio" name="flow-width" value="desktop" checked>Desktop</label></div></fieldset>
+<form class="flow" id="flow" data-kind="expense" onsubmit="return false" novalidate aria-labelledby="f-title">
+  <p class="sr" id="f-title"><span class="narrow-only">New transaction, in three steps</span><span class="wide-only">New transaction</span></p>
+  <ol class="progress narrow-only" aria-hidden="true"><li class="done"></li><li></li><li></li></ol>
+  <p class="hint narrow-only" data-stepcount aria-live="polite">Step 1 of 3</p>
+
+  <div class="step" data-step="1">
+    <h3 tabindex="-1" class="sr">How much?</h3>
+    <fieldset style="margin-bottom:0"><legend class="sr">Type</legend><div class="seg raised"><label class="t-expense"><input type="radio" name="f-kind" value="expense" data-bind="kind" checked><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg>Out</label><label class="t-income"><input type="radio" name="f-kind" value="income" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg>In</label><label class="t-transfer"><input type="radio" name="f-kind" value="transfer" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Move</label><label class="t-interest"><input type="radio" name="f-kind" value="interest" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg>Interest</label></div></fieldset>
+    <p class="big"><span class="sign" aria-hidden="true">&minus;</span><label class="sr" for="f-amount">Amount</label><input id="f-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0" data-syntax="amount" data-decimals="2" data-bind="amount" aria-describedby="f-amount-error"><span class="cur" aria-hidden="true">&euro;</span><span class="sizer" aria-hidden="true"></span></p>
+    <div class="keypad narrow-only" role="group" aria-label="Keypad">
+      <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+      <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+      <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+      <button type="button" data-key="," aria-label="Decimal comma">,</button><button type="button" data-key="0">0</button><button type="button" data-key="del" aria-label="Delete last digit"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></button>
+    </div>
+    <div class="step-nav narrow-only"><button class="btn primary" type="button" data-next>Next</button></div>
+  </div>
+
+  <div class="step" data-step="2" hidden>
+    <h3 tabindex="-1">What for?</h3>
+    <div class="field"><label for="f-label">What was it?</label><input class="input" id="f-label" type="text" autocomplete="off" placeholder="e.g. Carrefour City" data-bind="label" data-fsuggest="f-sug" aria-describedby="f-label-error"><div class="suggest" id="f-sug" role="group" aria-label="Suggestions from your history"></div><p class="note" aria-live="polite"></p><p class="error" id="f-label-error"></p></div>
+    <fieldset><legend>Category</legend><div class="cats"><label class="chip later"><input type="radio" name="f-cat" value="later" data-bind="cat" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label><label class="chip"><input type="radio" name="f-cat" value="food" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label><label class="chip"><input type="radio" name="f-cat" value="housing" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label><label class="chip"><input type="radio" name="f-cat" value="transport" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label><label class="chip"><input type="radio" name="f-cat" value="leisure" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label><label class="chip"><input type="radio" name="f-cat" value="health" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></span>Health</label><label class="chip"><input type="radio" name="f-cat" value="gifts" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg></span>Gifts</label><label class="chip"><input type="radio" name="f-cat" value="savings" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings</label></div></fieldset>
+    <div class="step-nav narrow-only"><button class="btn secondary" type="button" data-back>Back</button><button class="btn primary" type="button" data-next>Next</button></div>
+  </div>
+
+  <div class="step" data-step="3" hidden>
+    <h3 tabindex="-1"><span class="narrow-only">Check and save</span><span class="wide-only">Date and account</span></h3>
+    <ul class="summary narrow-only">
+      <li><span class="disc" data-sum-icon="kind"><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg></span><span class="what"><span data-sum="amount"></span><span class="muted" data-sum="kind"></span></span><button class="btn link" type="button" data-edit="e-amount" aria-expanded="false" aria-controls="e-amount" aria-label="Edit amount and type">Edit</button></li>
+      <li class="editor-row"><div class="editor" id="e-amount" hidden><div class="seg raised"><label class="t-expense"><input type="radio" name="e-kind" value="expense" data-bind="kind" checked><svg class="ico" aria-hidden="true"><use href="#i-out"/></svg>Out</label><label class="t-income"><input type="radio" name="e-kind" value="income" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg>In</label><label class="t-transfer"><input type="radio" name="e-kind" value="transfer" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg>Move</label><label class="t-interest"><input type="radio" name="e-kind" value="interest" data-bind="kind"><svg class="ico" aria-hidden="true"><use href="#i-pct"/></svg>Interest</label></div><div class="control amount"><label class="sr" for="e-amount-input">Amount</label><input class="input" id="e-amount-input" type="text" inputmode="decimal" autocomplete="off" data-syntax="amount" data-decimals="2" data-bind="amount"><span class="end" aria-hidden="true">&euro;</span></div><button class="btn secondary done" type="button" data-done="e-amount">Done</button></div></li>
+      <li><span class="disc" data-sum-icon="cat"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span><span class="what"><span data-sum="label"></span><span class="muted" data-sum="cat"></span></span><button class="btn link" type="button" data-edit="e-what" aria-expanded="false" aria-controls="e-what" aria-label="Edit label and category">Edit</button></li>
+      <li class="editor-row"><div class="editor" id="e-what" hidden><div class="field"><label for="e-label">What was it?</label><input class="input" id="e-label" type="text" autocomplete="off" data-bind="label"></div><fieldset style="margin-bottom:0"><legend>Category</legend><div class="cats"><label class="chip later"><input type="radio" name="e-cat" value="later" data-bind="cat" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-inbox"/></svg></span>Later</label><label class="chip"><input type="radio" name="e-cat" value="food" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-food"/></svg></span>Food</label><label class="chip"><input type="radio" name="e-cat" value="housing" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg></span>Housing</label><label class="chip"><input type="radio" name="e-cat" value="transport" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-bus"/></svg></span>Transport</label><label class="chip"><input type="radio" name="e-cat" value="leisure" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-ticket"/></svg></span>Leisure</label><label class="chip"><input type="radio" name="e-cat" value="health" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></span>Health</label><label class="chip"><input type="radio" name="e-cat" value="gifts" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-gift"/></svg></span>Gifts</label><label class="chip"><input type="radio" name="e-cat" value="savings" data-bind="cat"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings</label></div></fieldset><button class="btn secondary done" type="button" data-done="e-what">Done</button></div></li>
+    </ul>
+    <fieldset class="when"><legend>When</legend>
+      <div class="chips"><label class="chip text today"><input type="radio" name="f-date" value="today" data-bind="date" checked>Today</label><label class="chip text"><input type="radio" name="f-date" value="yesterday" data-bind="date">Yesterday</label><label class="chip"><input type="radio" name="f-date" value="pick" data-bind="date" data-pick aria-haspopup="dialog" aria-controls="f-cal"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg></span><span data-pick-label>Pick a date</span></label></div>
+      <div class="pop dp" role="dialog" id="f-cal" aria-label="Choose a date" hidden>
+        <div class="dp-head"><button class="icon-btn dp-prev" type="button" aria-label="Previous month"><svg class="ico" aria-hidden="true" style="transform:rotate(90deg)"><use href="#i-chev"/></svg></button><p class="dp-title" aria-live="polite"></p><button class="icon-btn dp-next" type="button" aria-label="Next month"><svg class="ico" aria-hidden="true" style="transform:rotate(-90deg)"><use href="#i-chev"/></svg></button></div>
+        <table class="dp-grid" role="grid"><thead><tr></tr></thead><tbody></tbody></table>
+        <div class="dp-foot"><button class="btn link dp-today" type="button">Today</button></div>
+      </div>
+    </fieldset>
+    <fieldset class="acct"><legend>Account</legend><div class="chips"><label class="chip"><input type="radio" name="f-acct" value="current" data-bind="from" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="f-acct" value="savings-a" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label><label class="chip"><input type="radio" name="f-acct" value="savings-b" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings B</label></div></fieldset>
+    <div class="from-to" hidden>
+      <fieldset><legend>From</legend><div class="chips"><label class="chip"><input type="radio" name="f-from" value="current" data-bind="from" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="f-from" value="savings-a" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label><label class="chip"><input type="radio" name="f-from" value="savings-b" data-bind="from"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings B</label></div></fieldset>
+      <fieldset><legend>To, the account that receives</legend><div class="chips"><label class="chip"><input type="radio" name="f-to" value="current" data-bind="to"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-card"/></svg></span>Current</label><label class="chip"><input type="radio" name="f-to" value="savings-a" data-bind="to" checked><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings A</label><label class="chip"><input type="radio" name="f-to" value="savings-b" data-bind="to"><span class="disc"><svg class="ico" aria-hidden="true"><use href="#i-coins"/></svg></span>Savings B</label></div></fieldset>
+    </div>
+    <details class="more"><summary>More details<svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+      <div class="field"><label for="f-note">Note</label><input class="input" id="f-note" type="text" autocomplete="off" data-bind="note"></div>
+      <fieldset><legend>Payment mode</legend><div class="chips"><label class="chip text"><input type="radio" name="f-pay" value="card" data-bind="pay">Card</label><label class="chip text"><input type="radio" name="f-pay" value="transfer" data-bind="pay">Transfer</label><label class="chip text"><input type="radio" name="f-pay" value="direct-debit" data-bind="pay">Direct debit</label></div></fieldset>
+    </details>
+    <div class="step-nav"><button class="btn secondary narrow-only" type="button" data-back>Back</button><button class="btn primary save" type="submit" data-save>Add expense</button></div>
+  </div>
+</form>
+</section>
+
+<section aria-labelledby="h-pick">
+<h2 id="h-pick">Custom pickers</h2>
+<p class="why">Selects and dates use custom pickers instead of the browser's, built on the WAI-ARIA select-only combobox and date picker dialog patterns: full keyboard support, the selected option carries a check, today keeps its blue ring and the chosen day is ink, with no hover. In the app they need JavaScript, so the server should render the native control first and swap it on load.</p>
+<div class="card">
+<div class="form two">
+  <div class="field"><label for="p-account" id="p-account-lbl">Account</label><div class="control select"><button class="input trigger" type="button" id="p-account" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="p-account-list" aria-labelledby="p-account-lbl"><span class="value">Current account</span><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></button><ul class="pop list" role="listbox" id="p-account-list" aria-labelledby="p-account-lbl" tabindex="-1" hidden><li role="option" id="p-account-o0" aria-selected="true"><span>Current account</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-account-o1" aria-selected="false"><span>Savings A</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-account-o2" aria-selected="false"><span>Savings B</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li></ul><input type="hidden" name="account" value="Current account"></div></div>
+  <div class="field"><label for="p-date" id="p-date-lbl">Date</label><div class="control datepicker" data-value="2026-11-11"><button class="input trigger" type="button" id="p-date" aria-haspopup="dialog" aria-expanded="false" aria-controls="p-date-dialog" aria-labelledby="p-date-lbl p-date"><span class="value">11/11/2026</span><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg></button><div class="pop dp" role="dialog" id="p-date-dialog" aria-label="Choose a date" hidden><div class="dp-head"><button class="icon-btn dp-prev" type="button" aria-label="Previous month"><svg class="ico" aria-hidden="true" style="transform:rotate(90deg)"><use href="#i-chev"/></svg></button><p class="dp-title" aria-live="polite"></p><button class="icon-btn dp-next" type="button" aria-label="Next month"><svg class="ico" aria-hidden="true" style="transform:rotate(-90deg)"><use href="#i-chev"/></svg></button></div><table class="dp-grid" role="grid"><thead><tr></tr></thead><tbody></tbody></table><div class="dp-foot"><button class="btn link dp-today" type="button">Today</button></div></div><input type="hidden" name="date" value="2026-11-11"></div></div>
+  <div class="field"><label for="p-cat" id="p-cat-lbl">Category <span class="muted">(optional)</span></label><p class="hint" id="p-cat-hint">With none, the transaction waits in the to-categorize queue.</p><div class="control select"><button class="input trigger" type="button" id="p-cat" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="p-cat-list" aria-labelledby="p-cat-lbl" aria-describedby="p-cat-hint"><span class="value">None</span><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></button><ul class="pop list" role="listbox" id="p-cat-list" aria-labelledby="p-cat-lbl" tabindex="-1" hidden><li role="option" id="p-cat-o0" aria-selected="true"><span>None</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o1" aria-selected="false"><span>Food</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o2" aria-selected="false"><span>Housing</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o3" aria-selected="false"><span>Transport</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o4" aria-selected="false"><span>Leisure</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o5" aria-selected="false"><span>Health</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o6" aria-selected="false"><span>Gifts</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li><li role="option" id="p-cat-o7" aria-selected="false"><span>Savings</span><svg class="ico tick" aria-hidden="true"><use href="#i-check"/></svg></li></ul><input type="hidden" name="cat" value="None"></div></div>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="h-states">
+<h2 id="h-states">Field states</h2>
+<p class="why">Hover darkens the border to ink. Focus adds the blue ring, the only place besides today where blue appears. Invalid doubles the border in red and writes "Error:" before the message, so colour is never alone. Disabled fades to the inner surface. Read-only drops the fill but keeps the 3:1 border and ink text: unlike a disabled field, it can still be focused, selected and read.</p>
+<div class="grid g3">
+  <div class="card field"><label for="s1">Default</label><input class="input" id="s1" placeholder="Groceries"></div>
+  <div class="card field"><label for="s2">Hover</label><input class="input is-hover" id="s2" value="Groceries" tabindex="-1"></div>
+  <div class="card field"><label for="s3">Focus</label><input class="input is-focus" id="s3" value="Groceries" tabindex="-1"></div>
+  <div class="card field"><label for="s4">Invalid</label><div class="control amount"><input class="input" id="s4" value="12," aria-invalid="true" aria-describedby="s4-error" tabindex="-1"><span class="end" aria-hidden="true">&euro;</span></div><p class="error" id="s4-error"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg><span>Error: invalid amount "12,": digits missing after the decimal separator.</span></p></div>
+  <div class="card field"><label for="s5">Disabled</label><input class="input" id="s5" value="EUR" disabled></div>
+  <div class="card field"><label for="s6">Read-only</label><input class="input" id="s6" value="Opened 1 Jan 2026" readonly></div>
+</div>
+</section>
+
+<section aria-labelledby="h-syntax">
+<h2 id="h-syntax">Fields with an exact syntax</h2>
+<p class="why">When a field expects an exact syntax, the browser refuses any other character as it is typed, pasted or dropped, and says why in a polite live message instead of failing silently. An incomplete value is flagged when the field is left. The server checks the same rule again and stays the authority, since the browser can always be bypassed. An amount takes digits and one comma or point, with the decimals of its currency; spaces in a pasted amount are removed. A currency code takes three letters and is uppercased.</p>
+<div class="grid g2">
+  <div class="card form">
+    <div class="field"><label for="x-amount">Amount</label><p class="hint" id="x-amount-hint">Digits and one comma or point, 2 decimals at most.</p><div class="control amount"><input class="input" id="x-amount" type="text" inputmode="decimal" autocomplete="off" data-syntax="amount" data-decimals="2" placeholder="0.00" aria-describedby="x-amount-hint"><span class="end" aria-hidden="true">&euro;</span></div></div>
+  </div>
+  <div class="card form">
+    <div class="field"><label for="x-currency">Currency</label><p class="hint" id="x-currency-hint">ISO 4217 code, for example EUR.</p><div class="control"><input class="input" id="x-currency" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="3" data-syntax="currency" placeholder="EUR" aria-describedby="x-currency-hint"></div></div>
+  </div>
+</div>
+</section>
+
+<section aria-labelledby="h-choice">
+<h2 id="h-choice">Choices, files and groups</h2>
+<p class="why">Checked boxes and selected segments are ink: blue already means today. The appearance setting is a segmented control (07:32) made of native radio buttons, so it posts with a plain form, like the language switcher, and works without JavaScript; here it switches this page.</p>
+<div class="grid g2">
+  <div class="card">
+    <fieldset><legend>Appearance</legend>
+      <div class="seg" id="theme"><label><input type="radio" name="theme" value="system" checked>System</label><label><input type="radio" name="theme" value="light">Light</label><label><input type="radio" name="theme" value="dark">Dark</label></div>
+    </fieldset>
+    <p class="hint" style="margin-top:var(--space-3)">System follows the device. The choice is kept in a cookie and rendered on the server, so the page never flashes the other theme.</p>
+  </div>
+  <div class="card">
+    <fieldset><legend>Checkbox</legend>
+      <label class="check"><input type="checkbox">Include archived accounts</label>
+      <label class="check"><input type="checkbox" checked>Apply the rule to past transactions</label>
+      <label class="check"><input type="checkbox" class="is-focus" tabindex="-1">Focus</label>
+      <label class="check"><input type="checkbox" disabled>Disabled</label>
+    </fieldset>
+  </div>
+  <div class="card form">
+    <div class="field"><span class="lbl" id="file-lbl">Bank statement</span><p class="hint" id="file-hint">A CSV file exported from your bank.</p>
+      <div class="file"><input id="f-file" type="file" accept=".csv" aria-labelledby="file-lbl" aria-describedby="file-hint"><label class="btn secondary" for="f-file"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg>Choose a file</label><span class="muted" id="file-name">No file chosen</span></div>
+    </div>
+    <div class="field"><label for="f-pass">Password <span class="muted">(12 characters at least)</span></label><div class="control secret"><input class="input" id="f-pass" type="password" autocomplete="new-password" value="correct horse"><button class="icon-btn reveal" type="button" aria-controls="f-pass" aria-pressed="false" aria-label="Show password"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg></button></div></div>
+  </div>
+  <div class="card">
+    <details><summary>Advanced options<svg class="ico" aria-hidden="true"><use href="#i-chev"/></svg></summary><div class="form"><div class="field"><label for="f-ceil">Deposit ceiling <span class="muted">(optional)</span></label><div class="control amount"><input class="input" id="f-ceil" type="text" inputmode="decimal" autocomplete="off" data-syntax="amount" data-decimals="2" value="22950.00"><span class="end" aria-hidden="true">&euro;</span></div></div></div></details>
+  </div>
+</div>
+</section>
+
+<section aria-labelledby="h-feed">
+<h2 id="h-feed">Feedback</h2>
+<p class="why">A toast names its kind in words ("Success.", "Error."), the tinted disc only repeats it. A success leaves after 8 seconds unless pointed at or focused; an error stays. The confirmation dialog is the native one: Cancel takes the focus first, Escape closes it (as <code>ConfirmActionButton</code>).</p>
+<div class="grid g2">
+  <div class="grid">
+    <div class="toast" role="status"><span class="disc pos" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span><p><span><span class="word-pos">Success.</span> Transaction added to Current account.</span></p><button class="icon-btn" type="button" aria-label="Dismiss notification"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="toast" role="alert"><span class="disc neg" aria-hidden="true"><svg class="ico"><use href="#i-alert"/></svg></span><p><span><span class="word-neg">Error.</span> The statement could not be read: no date column was found. Check that the file is the CSV export of your bank, then import it again.</span></p><button class="icon-btn" type="button" aria-label="Dismiss notification"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <p class="notice"><b>Warning:</b> without a password, this file is not encrypted. Anyone who gets it can read your finances.</p>
+    <div class="empty"><p>No transaction yet. Add the first one, or import a statement.</p><button class="btn secondary" type="button">Import a statement</button></div>
+  </div>
+  <div class="stage">
+    <div class="dialog" role="presentation">
+      <h3>Delete Groceries?</h3>
+      <p>The transaction is deleted and the balance of its account goes back.</p>
+      <div class="actions"><button class="btn secondary" type="button" id="open-dialog">Open the real dialog</button><button class="btn danger" type="button" tabindex="-1">Delete</button></div>
+    </div>
+  </div>
+</div>
+<dialog class="dialog" id="dlg" aria-labelledby="dlg-title"><h3 id="dlg-title">Delete Groceries?</h3><p>The transaction is deleted and the balance of its account goes back.</p><form method="dialog" class="actions"><button class="btn secondary" value="cancel" autofocus>Cancel</button><button class="btn danger" value="delete">Delete</button></form></dialog>
+</section>
+
+<section aria-labelledby="h-table">
+<h2 id="h-table">Table</h2>
+<p class="why">Rows 48 px (01), hairlines between rows, figures right-aligned and tabular (11:54). Income carries a plus sign and the positive colour, expenses stay in ink with their minus: the sign says it, the colour repeats it. A missing category is a word in a pill (11:54, 13:08).</p>
+<div class="card scroll">
+<table class="data">
+  <caption>Current account, November 2026</caption>
+  <thead><tr><th scope="col">Date</th><th scope="col">Label</th><th scope="col">Category</th><th scope="col" class="r">Amount</th></tr></thead>
+  <tbody>
+    <tr><td class="num">11 Nov 2026</td><td>Groceries</td><td><span class="pill neutral">Food</span></td><td class="r num">-&euro;42.00</td></tr>
+    <tr><td class="num">10 Nov 2026</td><td>Card payment 0412</td><td><span class="pill warn">To categorize</span></td><td class="r num">-&euro;18.90</td></tr>
+    <tr><td class="num">1 Nov 2026</td><td>Salary</td><td><span class="pill neutral">Income</span></td><td class="r num in">+&euro;2,450.00</td></tr>
+  </tbody>
+</table>
+</div>
+</section>
+
+<section aria-labelledby="h-fr">
+<h2 id="h-fr">English and French</h2>
+<p class="why">Amounts and dates come from <code>Intl</code>, as <code>formatAmount</code> and <code>formatCalendarDate</code> do in the app: the values below are computed by this page from integer minor units, not typed. French groups thousands with a narrow no-break space (U+202F) and puts the euro after a no-break space. The upstream Host Grotesk file has no U+202F glyph, so the shipped file maps it to the face's own thin space (0.15 em): the width no longer depends on the device, and the <code>Intl</code> output stays as it is. Labels are written in sentence case and uppercased by CSS, so accented capitals stay correct.</p>
+<div class="pair">
+  <div class="card" lang="en">
+    <p class="label">English</p>
+    <dl class="kv num" id="fmt-en"></dl>
+    <ul class="tabs" aria-label="Tab bar, English"><li class="on">Overview</li><li>Calendar</li><li>Accounts</li><li>Simulations</li></ul>
+  </div>
+  <div class="card" lang="fr">
+    <p class="label">Fran&ccedil;ais</p>
+    <dl class="kv num" id="fmt-fr"></dl>
+    <ul class="tabs" aria-label="Tab bar, French"><li class="on">Aper&ccedil;u</li><li>Calendrier</li><li>Comptes</li><li>Simulations</li></ul>
+  </div>
+</div>
+</section>
+
+<section aria-labelledby="h-contrast">
+<h2 id="h-contrast">Contrast of the new pairs</h2>
+<p class="why">Computed here from the tokens, in both themes, with the WCAG relative luminance formula. Text needs 4.5:1, borders, rings and marks 3:1.</p>
+<div class="card scroll"><table class="contrast num"><thead><tr><th>Use</th><th>Foreground on background</th><th class="r">Light</th><th class="r">Dark</th><th class="r">Needs</th></tr></thead><tbody id="contrast"></tbody></table><p class="hint" id="contrast-summary" style="margin-top:var(--space-3)"></p></div>
+</section>
+<p class="footer">Demain components, draft for review, 11 Nov 2026. Interface text in English; the French column shows the formats the app already produces.</p>
+</main>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  Array.prototype.forEach.call(document.querySelectorAll("#theme input"),function(r){
+    r.addEventListener("change",function(){if(r.value==="system")root.removeAttribute("data-theme");else root.setAttribute("data-theme",r.value);});
+  });
+  var file=document.getElementById("f-file");
+  file.addEventListener("change",function(){document.getElementById("file-name").textContent=file.files.length?file.files[0].name:"No file chosen";});
+  Array.prototype.forEach.call(document.querySelectorAll(".reveal"),function(b){
+    b.addEventListener("click",function(){var input=document.getElementById(b.getAttribute("aria-controls")),shown=input.type==="password";input.type=shown?"text":"password";b.setAttribute("aria-pressed",String(shown));b.querySelector("use").setAttribute("href",shown?"#i-eye-off":"#i-eye");});
+  });
+  /* exact syntax: filter what is typed, pasted or dropped; check completeness on leaving the field */
+  var SPACES=[" ",String.fromCharCode(160),String.fromCharCode(8239)];
+  function firstOutside(text,allowed){for(var i=0;i<text.length;i++)if(allowed.indexOf(text.charAt(i))<0)return text.charAt(i);return "";}
+  function decimalsOf(el){return Number(el.getAttribute("data-decimals")||"2");}
+  var SYNTAX={
+    amount:{
+      clean:function(t){SPACES.forEach(function(c){t=t.split(c).join("");});return t;},
+      partial:function(v,el){return new RegExp("^[0-9]*([.,][0-9]{0,"+decimalsOf(el)+"})?$").test(v);},
+      refused:function(el,data,next){var bad=firstOutside(data,"0123456789.,");if(bad)return "“"+bad+"” is not accepted: digits and one comma or point only.";if(next.split(",").length+next.split(".").length>3)return "One comma or point only.";return decimalsOf(el)+" decimals at most.";},
+      incomplete:function(v){if(v==="")return null;if(/^[.,]/.test(v))return "Error: invalid amount “"+v+"”: digits missing before the decimal separator.";if(/[.,]$/.test(v))return "Error: invalid amount “"+v+"”: digits missing after the decimal separator.";return null;}
+    },
+    currency:{
+      clean:function(t){return t.toUpperCase();},
+      partial:function(v){return /^[A-Z]{0,3}$/.test(v);},
+      refused:function(el,data){var bad=firstOutside(data,"ABCDEFGHIJKLMNOPQRSTUVWXYZ");if(bad)return "“"+bad+"” is not accepted: letters only.";return "Three letters at most.";},
+      incomplete:function(v){return v===""||v.length===3?null:"Error: a currency code has three letters, for example EUR.";}
+    }
+  };
+  function describe(el,id){var ids=(el.getAttribute("aria-describedby")||"").split(" ").filter(Boolean);if(ids.indexOf(id)<0)ids.push(id);el.setAttribute("aria-describedby",ids.join(" "));}
+  Array.prototype.forEach.call(document.querySelectorAll("[data-syntax]"),function(el){
+    var spec=SYNTAX[el.getAttribute("data-syntax")],control=el.closest(".control,.big"),last=el.value;
+    var msg=document.createElement("p");msg.className="hint syntax-msg";msg.id=el.id+"-syntax";msg.setAttribute("aria-live","polite");
+    var err=document.createElement("p");err.className="error";err.id=el.id+"-error";
+    control.insertAdjacentElement("afterend",err);control.insertAdjacentElement("afterend",msg);describe(el,msg.id);describe(el,err.id);
+    function refuse(data,next){msg.textContent=spec.refused(el,data,next);}
+    el.addEventListener("beforeinput",function(e){
+      if(e.inputType.indexOf("delete")===0)return;
+      var data=e.data;if(data===null&&e.dataTransfer)data=e.dataTransfer.getData("text/plain");if(data===null)return;
+      var clean=spec.clean(data),start=el.selectionStart,end=el.selectionEnd,next=el.value.slice(0,start)+clean+el.value.slice(end);
+      if(!spec.partial(next,el)){e.preventDefault();refuse(clean,next);return;}
+      msg.textContent="";
+      if(clean!==data){e.preventDefault();el.setRangeText(clean,start,end,"end");el.dispatchEvent(new Event("input",{bubbles:true}));}
+    });
+    el.addEventListener("input",function(){
+      if(!spec.partial(el.value,el)){var bad=el.value;el.value=last;refuse(bad,bad);return;}
+      last=el.value;
+      if(el.getAttribute("aria-invalid")==="true"){el.removeAttribute("aria-invalid");err.textContent="";}
+    });
+    el.addEventListener("blur",function(){
+      var problem=spec.incomplete(el.value);msg.textContent="";
+      if(problem){el.setAttribute("aria-invalid","true");err.innerHTML="<svg class='ico' aria-hidden='true'><use href='#i-alert'/></svg><span></span>";err.lastChild.textContent=problem;}
+    });
+  });
+  var LOCALE=document.documentElement.lang||"en",TODAY_ISO="2026-11-11";
+  function initSelect(root){
+    var btn=root.querySelector("[role=combobox]"),list=root.querySelector("[role=listbox]"),hidden=root.querySelector("input[type=hidden]"),val=root.querySelector(".value");
+    var opts=Array.prototype.slice.call(list.querySelectorAll("[role=option]")),active=-1,typed="",typedAt=0;
+    function selectedIndex(){for(var i=0;i<opts.length;i++)if(opts[i].getAttribute("aria-selected")==="true")return i;return 0;}
+    function isOpen(){return !list.hidden;}
+    function setActive(i){active=Math.max(0,Math.min(opts.length-1,i));opts.forEach(function(o,k){o.classList.toggle("active",k===active);});btn.setAttribute("aria-activedescendant",opts[active].id);opts[active].scrollIntoView({block:"nearest"});}
+    function open(i){list.hidden=false;btn.setAttribute("aria-expanded","true");setActive(i===undefined?selectedIndex():i);}
+    function close(){list.hidden=true;btn.setAttribute("aria-expanded","false");btn.removeAttribute("aria-activedescendant");}
+    function choose(i){opts.forEach(function(o,k){o.setAttribute("aria-selected",String(k===i));});val.textContent=opts[i].textContent;hidden.value=opts[i].textContent;close();}
+    function typeahead(ch){var now=Date.now();typed=(now-typedAt>600?"":typed)+ch.toLowerCase();typedAt=now;var start=typed.length===1?active+1:active;for(var n=0;n<opts.length;n++){var k=(start+n)%opts.length;if(opts[k].textContent.toLowerCase().indexOf(typed)===0)return k;}return -1;}
+    btn.addEventListener("click",function(){if(isOpen())close();else open();});
+    btn.addEventListener("keydown",function(e){
+      var k=e.key;
+      if(!isOpen()){
+        if(k==="ArrowDown"||k==="ArrowUp"||k==="Enter"||k===" "){e.preventDefault();open();return;}
+        if(k==="Home"){e.preventDefault();open(0);return;}
+        if(k==="End"){e.preventDefault();open(opts.length-1);return;}
+        if(k.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){var f=typeahead(k);if(f>=0){open(f);}return;}
+        return;
+      }
+      if(k==="ArrowDown"){e.preventDefault();if(e.altKey)return;setActive(active+1);}
+      else if(k==="ArrowUp"){e.preventDefault();if(e.altKey){choose(active);return;}setActive(active-1);}
+      else if(k==="Home"){e.preventDefault();setActive(0);}
+      else if(k==="End"){e.preventDefault();setActive(opts.length-1);}
+      else if(k==="PageDown"){e.preventDefault();setActive(active+10);}
+      else if(k==="PageUp"){e.preventDefault();setActive(active-10);}
+      else if(k==="Enter"||k===" "){e.preventDefault();choose(active);}
+      else if(k==="Escape"){e.preventDefault();close();}
+      else if(k==="Tab"){choose(active);}
+      else if(k.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){var t=typeahead(k);if(t>=0)setActive(t);}
+    });
+    opts.forEach(function(o,i){o.addEventListener("mousedown",function(e){e.preventDefault();});o.addEventListener("click",function(){choose(i);btn.focus();});o.addEventListener("mousemove",function(){if(active!==i)setActive(i);});});
+    document.addEventListener("pointerdown",function(e){if(isOpen()&&!root.contains(e.target))close();});
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".control.select"),initSelect);
+
+  function initDatePicker(root){
+    var btn=root.querySelector(".trigger"),dlg=root.querySelector("[role=dialog]"),hidden=root.querySelector("input[type=hidden]"),val=root.querySelector(".value");
+    var title=dlg.querySelector(".dp-title"),head=dlg.querySelector("thead tr"),body=dlg.querySelector("tbody"),prev=dlg.querySelector(".dp-prev"),next=dlg.querySelector(".dp-next"),todayBtn=dlg.querySelector(".dp-today");
+    var selected=root.getAttribute("data-value"),focusIso=selected,viewY,viewM;
+    function d(iso){return new Date(iso+"T00:00:00Z");}
+    function iso(dt){return dt.toISOString().slice(0,10);}
+    function addDays(s,n){var x=d(s);x.setUTCDate(x.getUTCDate()+n);return iso(x);}
+    function addMonths(s,n){var x=d(s),day=x.getUTCDate();x.setUTCDate(1);x.setUTCMonth(x.getUTCMonth()+n);var last=new Date(Date.UTC(x.getUTCFullYear(),x.getUTCMonth()+1,0)).getUTCDate();x.setUTCDate(Math.min(day,last));return iso(x);}
+    function fmt(s,opts){opts.timeZone="UTC";return new Intl.DateTimeFormat(LOCALE,opts).format(d(s));}
+    function showValue(){val.textContent=fmt(selected,{dateStyle:"medium"});hidden.value=selected;}
+    var monday="2026-11-09";
+    for(var w=0;w<7;w++){var th=document.createElement("th");th.scope="col";th.abbr=fmt(addDays(monday,w),{weekday:"long"});th.textContent=fmt(addDays(monday,w),{weekday:"short"});head.appendChild(th);}
+    function render(){
+      var x=d(focusIso);viewY=x.getUTCFullYear();viewM=x.getUTCMonth();
+      title.textContent=fmt(iso(new Date(Date.UTC(viewY,viewM,1))),{month:"long",year:"numeric"});
+      var first=new Date(Date.UTC(viewY,viewM,1)),offset=(first.getUTCDay()+6)%7,days=new Date(Date.UTC(viewY,viewM+1,0)).getUTCDate(),html="",cell=0;
+      for(var r=0;cell<offset+days;r++){html+="<tr>";for(var c=0;c<7;c++,cell++){var n=cell-offset+1;if(n<1||n>days){html+="<td></td>";continue;}var s=iso(new Date(Date.UTC(viewY,viewM,n)));html+="<td role='gridcell' data-iso='"+s+"' tabindex='"+(s===focusIso?0:-1)+"' aria-selected='"+(s===selected)+"'"+(s===TODAY_ISO?" aria-current='date'":"")+" aria-label='"+fmt(s,{weekday:"long",day:"numeric",month:"long",year:"numeric"})+"'>"+n+"</td>";}html+="</tr>";}
+      body.innerHTML=html;
+    }
+    function focusCell(){var c=body.querySelector("[data-iso='"+focusIso+"']");if(c)c.focus();}
+    function moveTo(s){var m=d(s).getUTCMonth()!==viewM||d(s).getUTCFullYear()!==viewY;focusIso=s;if(m)render();else Array.prototype.forEach.call(body.querySelectorAll("[data-iso]"),function(c){c.tabIndex=c.getAttribute("data-iso")===s?0:-1;});focusCell();}
+    function open(){focusIso=selected;render();dlg.hidden=false;btn.setAttribute("aria-expanded","true");focusCell();}
+    function close(){dlg.hidden=true;btn.setAttribute("aria-expanded","false");btn.focus();}
+    function choose(s){selected=s;showValue();close();}
+    btn.addEventListener("click",function(){if(dlg.hidden)open();else close();});
+    btn.addEventListener("keydown",function(e){if(e.key==="ArrowDown"&&dlg.hidden){e.preventDefault();open();}});
+    prev.addEventListener("click",function(){focusIso=addMonths(focusIso,-1);render();});
+    next.addEventListener("click",function(){focusIso=addMonths(focusIso,1);render();});
+    todayBtn.addEventListener("click",function(){choose(TODAY_ISO);});
+    body.addEventListener("click",function(e){var c=e.target.closest("[data-iso]");if(c)choose(c.getAttribute("data-iso"));});
+    body.addEventListener("keydown",function(e){
+      var k=e.key,step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[k];
+      if(step!==undefined){e.preventDefault();moveTo(addDays(focusIso,step));return;}
+      var wd=(d(focusIso).getUTCDay()+6)%7;
+      if(k==="Home"){e.preventDefault();moveTo(addDays(focusIso,-wd));}
+      else if(k==="End"){e.preventDefault();moveTo(addDays(focusIso,6-wd));}
+      else if(k==="PageUp"){e.preventDefault();moveTo(addMonths(focusIso,e.shiftKey?-12:-1));}
+      else if(k==="PageDown"){e.preventDefault();moveTo(addMonths(focusIso,e.shiftKey?12:1));}
+      else if(k==="Enter"||k===" "){e.preventDefault();choose(focusIso);}
+    });
+    dlg.addEventListener("keydown",function(e){
+      if(e.key==="Escape"){e.preventDefault();close();return;}
+      if(e.key!=="Tab")return;
+      var cell=body.querySelector("[tabindex='0']"),ring=[prev,next,cell,todayBtn],i=ring.indexOf(document.activeElement);
+      e.preventDefault();ring[(i+(e.shiftKey?ring.length-1:1))%ring.length].focus();
+    });
+    document.addEventListener("pointerdown",function(e){if(!dlg.hidden&&!root.contains(e.target)){dlg.hidden=true;btn.setAttribute("aria-expanded","false");}});
+    showValue();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".control.datepicker"),initDatePicker);
+  var dlg=document.getElementById("dlg");
+  document.getElementById("open-dialog").addEventListener("click",function(){if(dlg.showModal)dlg.showModal();});
+
+  function money(minor,loc,signed){return new Intl.NumberFormat(loc,{style:"currency",currency:"EUR",signDisplay:signed?"exceptZero":"auto"}).format(minor+"E-2");}
+  function day(iso,loc,opts){opts.timeZone="UTC";return new Intl.DateTimeFormat(loc,opts).format(new Date(iso+"T00:00:00Z"));}
+  var TEXT={
+    en:{bal:"Balance",chg:"Change",exp:"Expense",date:"Today",cal:"Calendar date",axis:"Axis month",label:"Label",labelText:"To categorize",err:"Error",errText:"Error: invalid amount.",btn:"Button",btnText:"Add transaction"},
+    fr:{bal:"Solde",chg:"Variation",exp:"Dépense",date:"Aujourd’hui",cal:"Date",axis:"Mois d’axe",label:"Étiquette",labelText:"À catégoriser",err:"Erreur",errText:"Erreur : montant invalide.",btn:"Bouton",btnText:"Ajouter la transaction"}
+  };
+  ["en","fr"].forEach(function(loc){
+    var t=TEXT[loc],rows=[
+      [t.bal,money(1248050,loc,false)],[t.chg,money(32000,loc,true)],[t.exp,money(-4200,loc,false)],
+      [t.date,day("2026-11-11",loc,{weekday:"long",day:"numeric",month:"long"})],[t.cal,day("2026-11-11",loc,{dateStyle:"medium"})],[t.axis,day("2027-07-01",loc,{month:"short",year:"2-digit"})],
+      [t.label,"<span class='label' style='margin:0'>"+t.labelText+"</span>"],[t.err,"<span class='word-neg'>"+t.errText+"</span>"],[t.btn,t.btnText]
+    ];
+    document.getElementById("fmt-"+loc).innerHTML=rows.map(function(r){return "<dt>"+r[0]+"</dt><dd>"+r[1]+"</dd>";}).join("");
+  });
+
+  var PAIRS=[
+    ["Field text","--color-text","--color-control",4.5],["Placeholder","--color-text-muted","--color-control",4.5],["Hint","--color-text-muted","--color-surface",4.5],
+    ["Field border","--color-border-control","--color-surface",3],["Field border on its fill","--color-border-control","--color-control",3],["Read-only border on card","--color-border-control","--color-surface",3],
+    ["Focus ring on card","--color-focus","--color-surface",3],["Focus ring on field","--color-focus","--color-control",3],["Focus ring on ground","--color-focus","--color-bg",3],
+    ["Error text","--color-negative","--color-surface",4.5],["Invalid border","--color-negative","--color-control",3],
+    ["Checked box","--color-primary","--color-surface",3],["Check mark","--color-on-primary","--color-primary",3],
+    ["Primary hover","--color-on-primary","--color-primary-hover",4.5],["Secondary","--color-text","--color-control",4.5],["Secondary hover","--color-text","--color-control-hover",4.5],
+    ["Disabled label","--color-text-muted","--color-surface-sunken",4.5],["Destructive button","--color-on-danger","--color-danger",4.5],
+    ["Success word","--color-positive","--color-surface",4.5],["Toast disc mark","--color-positive","--color-positive-tint",3],["Error disc mark","--color-negative","--color-negative-tint",3],
+    ["Warning notice text","--color-text","--color-warning-tint",4.5],["Warning word","--color-warning","--color-warning-tint",4.5],["Row hover","--color-text","--color-surface-sunken",4.5],["Active option","--color-text","--color-control",4.5],["Today in calendar","--color-accent","--color-surface",4.5],["Chosen day","--color-on-primary","--color-primary",4.5]
+  ];
+  function rgb(v){v=v.trim();if(v.charAt(0)!=="#")return null;if(v.length===4)v="#"+v[1]+v[1]+v[2]+v[2]+v[3]+v[3];return [1,3,5].map(function(i){return parseInt(v.substr(i,2),16)/255;});}
+  function lum(c){var l=c.map(function(x){return x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4);});return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2];}
+  function ratio(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+  function read(theme){var prev=root.getAttribute("data-theme");root.setAttribute("data-theme",theme);var cs=getComputedStyle(root);var out=PAIRS.map(function(p){return [cs.getPropertyValue(p[1]).trim(),cs.getPropertyValue(p[2]).trim()];});if(prev===null)root.removeAttribute("data-theme");else root.setAttribute("data-theme",prev);return out;}
+  var L=read("light"),D=read("dark"),fails=0,tb=document.getElementById("contrast");
+  PAIRS.forEach(function(p,i){
+    var a=ratio(rgb(L[i][0]),rgb(L[i][1])),b=ratio(rgb(D[i][0]),rgb(D[i][1]));
+    if(a<p[3])fails++;if(b<p[3])fails++;
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+p[0]+"</td><td><code>"+p[1].slice(2)+"</code> on <code>"+p[2].slice(2)+"</code></td><td class='r'>"+a.toFixed(2)+":1 "+(a>=p[3]?"Pass":"Fail")+"</td><td class='r'>"+b.toFixed(2)+":1 "+(b>=p[3]?"Pass":"Fail")+"</td><td class='r'>"+p[3]+":1</td>";
+    tb.appendChild(tr);
+  });
+  document.getElementById("contrast-summary").textContent=PAIRS.length*2+" pairs checked, "+fails+" below threshold.";
+  root.setAttribute("data-contrast-fails",String(fails));
+})();
+</script>
+<script>
+/* add-transaction flow, ported from form-proposals.html; its amount fields use the exact-syntax handler above */
+(function(){
+  var HISTORY=[{label:"Carrefour City",cat:"food",rule:"Carrefour"},{label:"Carrefour Market",cat:"food",rule:"Carrefour"},{label:"SNCF Connect",cat:"transport",rule:"SNCF"},{label:"Cinema Pathe",cat:"leisure",rule:"Pathe"},{label:"Pharmacie du Port",cat:"health",rule:"Pharmacie"},{label:"Rent November",cat:"housing",rule:"Rent"}];
+  var CAT_NAMES={later:"Later, in To categorize",food:"Food",housing:"Housing",transport:"Transport",leisure:"Leisure",health:"Health",gifts:"Gifts",savings:"Savings"};
+  var CAT_ICON={later:"i-inbox",food:"i-food",housing:"i-home",transport:"i-bus",leisure:"i-ticket",health:"i-heart",gifts:"i-gift",savings:"i-coins"};
+  var SIGN={expense:"−",income:"+",interest:"+",transfer:""};
+  function money(text){if(!text||/[.,]$/.test(text))return "";var minor=text.replace(",",".");return new Intl.NumberFormat("en",{style:"currency",currency:"EUR"}).format(minor);}
+  /* one state, every control bound to it, so step 3 can edit in place */
+    var form=document.getElementById("flow");
+    var TODAY="2026-11-11",ACCT={current:"Current","savings-a":"Savings A","savings-b":"Savings B"};
+    var S={kind:"expense",amount:"",label:"",cat:"later",date:"today",picked:"",from:"current",to:"savings-a",note:"",pay:""};
+    var KIND_ICON={expense:"i-out",income:"i-in",transfer:"i-swap",interest:"i-pct"},KIND_NAME={expense:"Expense",income:"Income",transfer:"Transfer",interest:"Interest"};
+    var steps=Array.prototype.slice.call(form.querySelectorAll("[data-step]")),bars=form.querySelectorAll(".progress li"),count=form.querySelector("[data-stepcount]"),current=1;
+    var big=form.querySelector("#f-amount"),sizer=form.querySelector(".sizer");
+    /* the amount field grows with its text; measured again when its step shows, since a hidden sizer measures 0 */
+    function fit(){sizer.textContent=S.amount||"0";big.style.width=(sizer.offsetWidth+2)+"px";}
+    function fmtDate(iso,opts){opts.timeZone="UTC";return new Intl.DateTimeFormat("en",opts).format(new Date(iso+"T00:00:00Z"));}
+    function sync(){
+      Array.prototype.forEach.call(form.querySelectorAll("[data-bind]"),function(el){var v=S[el.getAttribute("data-bind")];if(el.type==="radio")el.checked=el.value===v;else if(el!==document.activeElement)el.value=v||"";});
+      form.setAttribute("data-kind",S.kind);
+      Array.prototype.forEach.call(form.querySelectorAll(".sign"),function(x){x.textContent=SIGN[S.kind];});
+      if(sizer.textContent!==(S.amount||"0"))fit();
+      var m=money(S.amount);
+      var transfer=S.kind==="transfer";
+      form.querySelector(".acct").hidden=transfer;form.querySelector(".from-to").hidden=!transfer;
+      Array.prototype.forEach.call(form.querySelectorAll("input[name=f-to]"),function(r){r.disabled=r.value===S.from;});
+      form.querySelector("[data-save]").textContent=transfer?"Move "+(m||"money")+" to "+ACCT[S.to]:"Add "+S.kind+(m?" of "+m:"");
+      form.querySelector("[data-sum=amount]").textContent=(SIGN[S.kind]?SIGN[S.kind]+" ":"")+(m||"No amount");
+      form.querySelector("[data-sum=kind]").textContent=KIND_NAME[S.kind];
+      form.querySelector("[data-sum-icon=kind] use").setAttribute("href","#"+KIND_ICON[S.kind]);
+      form.querySelector("[data-sum=label]").textContent=S.label||"No label";
+      form.querySelector("[data-sum=cat]").textContent=CAT_NAMES[S.cat]||"";
+      form.querySelector("[data-sum-icon=cat] use").setAttribute("href","#"+(CAT_ICON[S.cat]||"i-inbox"));
+      form.querySelector("[data-pick-label]").textContent=S.picked?fmtDate(S.picked,{weekday:"short",month:"short",day:"numeric"}):"Pick a date";
+    }
+    function set(key,value){S[key]=value;if(key==="from"&&S.to===S.from){S.to=Object.keys(ACCT).filter(function(k){return k!==S.from;})[0];}sync();}
+    form.addEventListener("change",function(e){var b=e.target.getAttribute("data-bind");if(!b)return;if(e.target.type==="radio"&&!e.target.checked)return;if(b==="date"&&e.target.value==="pick")return;set(b,e.target.value);});
+    form.addEventListener("input",function(e){var b=e.target.getAttribute("data-bind");if(b&&e.target.type!=="radio")set(b,e.target.value);});
+
+    /* keypad: appends to the same value the display shows and the keyboard edits */
+    form.querySelector(".keypad").addEventListener("click",function(e){
+      var b=e.target.closest("button");if(!b)return;var k=b.getAttribute("data-key");
+      if(k==="del")big.value=big.value.slice(0,-1);
+      else{
+        /* asks the exact-syntax handler first, as typing does: it refuses an invalid key and says why */
+        var end=big.value.length;big.setSelectionRange(end,end);
+        if(!big.dispatchEvent(new InputEvent("beforeinput",{data:k,inputType:"insertText",cancelable:true})))return;
+        big.value+=k;
+      }
+      big.dispatchEvent(new Event("input",{bubbles:true}));
+    });
+
+    /* label suggestions fill the category through the rule */
+    var lab=form.querySelector("[data-fsuggest]"),sug=document.getElementById(lab.getAttribute("data-fsuggest")),note=lab.parentNode.querySelector(".note");
+    lab.addEventListener("input",function(){
+      note.textContent="";sug.innerHTML="";var q=lab.value.trim().toLowerCase();if(q.length<2)return;
+      HISTORY.filter(function(h){return h.label.toLowerCase().indexOf(q)>=0&&h.label.toLowerCase()!==q;}).slice(0,3).forEach(function(h){
+        var b=document.createElement("button");b.type="button";b.innerHTML="<svg class='ico' aria-hidden='true'><use href='#i-spark'/></svg><span></span>";b.lastChild.textContent=h.label+" · "+CAT_NAMES[h.cat];
+        b.addEventListener("click",function(){sug.innerHTML="";S.label=h.label;S.cat=h.cat;sync();note.textContent="Category "+CAT_NAMES[h.cat]+" from your rule “"+h.rule+"”.";lab.focus();});
+        sug.appendChild(b);
+      });
+    });
+
+    /* steps */
+    function show(n,moveFocus){current=n;steps.forEach(function(s){s.hidden=Number(s.getAttribute("data-step"))!==n;});Array.prototype.forEach.call(bars,function(b,i){b.classList.toggle("done",i<n);});count.textContent="Step "+n+" of 3";sync();if(n===1)fit();if(moveFocus)steps[n-1].querySelector("h3").focus();}
+    /* on a phone, an error found from step 3 shows its own step first, so the focus lands on a visible field */
+    function reveal(n){if(!form.classList.contains("wide")&&current!==n)show(n,false);}
+    function valid(n){
+      if(n===1){var e=form.querySelector("#f-amount-error");if(!money(S.amount)){reveal(1);e.textContent="Error: enter an amount, for example 42 or 42,50.";big.setAttribute("aria-invalid","true");big.focus();return false;}e.textContent="";big.removeAttribute("aria-invalid");}
+      if(n===2){var l=form.querySelector("#f-label"),le=form.querySelector("#f-label-error");if(!S.label.trim()){reveal(2);l.setAttribute("aria-invalid","true");le.textContent="Error: say what it was, for example Carrefour City.";l.focus();return false;}l.removeAttribute("aria-invalid");le.textContent="";}
+      return true;
+    }
+    form.addEventListener("click",function(e){
+      var t=e.target.closest("button");if(!t)return;
+      if(t.hasAttribute("data-next")&&valid(current))show(current+1,true);
+      else if(t.hasAttribute("data-back"))show(current-1,true);
+      else if(t.hasAttribute("data-save"))valid(1)&&valid(2);
+      else if(t.hasAttribute("data-edit")){var ed=document.getElementById(t.getAttribute("data-edit")),open=ed.hidden;ed.hidden=!open;t.setAttribute("aria-expanded",String(open));t.textContent=open?"Close":"Edit";if(open){var f=ed.querySelector("input:checked,input");if(f)f.focus();}}
+      else if(t.hasAttribute("data-done")){var id=t.getAttribute("data-done"),edb=form.querySelector("[data-edit='"+id+"']");if(id==="e-amount"){var ea=form.querySelector("#e-amount-input");if(!money(S.amount)){ea.setAttribute("aria-invalid","true");ea.focus();return;}ea.removeAttribute("aria-invalid");}document.getElementById(id).hidden=true;edb.setAttribute("aria-expanded","false");edb.textContent="Edit";edb.focus();}
+    });
+
+    /* "Pick a date" opens the calendar of the date picker component */
+    var dlg=form.querySelector("#f-cal"),pick=form.querySelector("[data-pick]"),title=dlg.querySelector(".dp-title"),head=dlg.querySelector("thead tr"),body=dlg.querySelector("tbody"),prev=dlg.querySelector(".dp-prev"),next=dlg.querySelector(".dp-next"),todayBtn=dlg.querySelector(".dp-today");
+    var focusIso=TODAY,viewY,viewM,before="today";
+    function d(iso){return new Date(iso+"T00:00:00Z");}
+    function iso(dt){return dt.toISOString().slice(0,10);}
+    function addDays(s,n){var x=d(s);x.setUTCDate(x.getUTCDate()+n);return iso(x);}
+    function addMonths(s,n){var x=d(s),day=x.getUTCDate();x.setUTCDate(1);x.setUTCMonth(x.getUTCMonth()+n);var last=new Date(Date.UTC(x.getUTCFullYear(),x.getUTCMonth()+1,0)).getUTCDate();x.setUTCDate(Math.min(day,last));return iso(x);}
+    for(var w=0;w<7;w++){var th=document.createElement("th");th.scope="col";th.abbr=fmtDate(addDays("2026-11-09",w),{weekday:"long"});th.textContent=fmtDate(addDays("2026-11-09",w),{weekday:"short"});head.appendChild(th);}
+    function selectedIso(){return S.date==="yesterday"?addDays(TODAY,-1):S.date==="pick"&&S.picked?S.picked:TODAY;}
+    function render(){
+      var x=d(focusIso);viewY=x.getUTCFullYear();viewM=x.getUTCMonth();
+      title.textContent=fmtDate(iso(new Date(Date.UTC(viewY,viewM,1))),{month:"long",year:"numeric"});
+      var first=new Date(Date.UTC(viewY,viewM,1)),offset=(first.getUTCDay()+6)%7,days=new Date(Date.UTC(viewY,viewM+1,0)).getUTCDate(),html="",cell=0,sel=selectedIso();
+      for(var r=0;cell<offset+days;r++){html+="<tr>";for(var c=0;c<7;c++,cell++){var n=cell-offset+1;if(n<1||n>days){html+="<td></td>";continue;}var s=iso(new Date(Date.UTC(viewY,viewM,n)));html+="<td role='gridcell' data-iso='"+s+"' tabindex='"+(s===focusIso?0:-1)+"' aria-selected='"+(s===sel)+"'"+(s===TODAY?" aria-current='date'":"")+" aria-label='"+fmtDate(s,{weekday:"long",day:"numeric",month:"long",year:"numeric"})+"'>"+n+"</td>";}html+="</tr>";}
+      body.innerHTML=html;
+    }
+    function focusCell(){var c=body.querySelector("[data-iso='"+focusIso+"']");if(c)c.focus();}
+    function moveTo(s){var m=d(s).getUTCMonth()!==viewM||d(s).getUTCFullYear()!==viewY;focusIso=s;if(m)render();else Array.prototype.forEach.call(body.querySelectorAll("[data-iso]"),function(c){c.tabIndex=c.getAttribute("data-iso")===s?0:-1;});focusCell();}
+    function openCal(){before=S.date==="pick"?before:S.date;focusIso=selectedIso();render();dlg.hidden=false;pick.setAttribute("aria-expanded","true");focusCell();}
+    function closeCal(chosen){dlg.hidden=true;pick.setAttribute("aria-expanded","false");if(chosen){if(chosen===TODAY){S.picked="";S.date="today";}else if(chosen===addDays(TODAY,-1)){S.picked="";S.date="yesterday";}else{S.picked=chosen;S.date="pick";}}else if(!S.picked){S.date=before;}sync();(form.querySelector("input[name=f-date]:checked")||pick).focus();}
+    pick.addEventListener("click",function(){setTimeout(openCal,0);});
+    prev.addEventListener("click",function(){focusIso=addMonths(focusIso,-1);render();});
+    next.addEventListener("click",function(){focusIso=addMonths(focusIso,1);render();});
+    todayBtn.addEventListener("click",function(){closeCal(TODAY);});
+    body.addEventListener("click",function(e){var c=e.target.closest("[data-iso]");if(c)closeCal(c.getAttribute("data-iso"));});
+    body.addEventListener("keydown",function(e){
+      var k=e.key,step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[k];
+      if(step!==undefined){e.preventDefault();moveTo(addDays(focusIso,step));return;}
+      var wd=(d(focusIso).getUTCDay()+6)%7;
+      if(k==="Home"){e.preventDefault();moveTo(addDays(focusIso,-wd));}
+      else if(k==="End"){e.preventDefault();moveTo(addDays(focusIso,6-wd));}
+      else if(k==="PageUp"){e.preventDefault();moveTo(addMonths(focusIso,e.shiftKey?-12:-1));}
+      else if(k==="PageDown"){e.preventDefault();moveTo(addMonths(focusIso,e.shiftKey?12:1));}
+      else if(k==="Enter"||k===" "){e.preventDefault();closeCal(focusIso);}
+    });
+    dlg.addEventListener("keydown",function(e){
+      if(e.key==="Escape"){e.preventDefault();closeCal(null);return;}
+      if(e.key!=="Tab")return;
+      var cell=body.querySelector("[tabindex='0']"),ring=[prev,next,cell,todayBtn],i=ring.indexOf(document.activeElement);
+      e.preventDefault();ring[(i+(e.shiftKey?ring.length-1:1))%ring.length].focus();
+    });
+    document.addEventListener("pointerdown",function(e){if(!dlg.hidden&&!dlg.contains(e.target)&&!pick.parentNode.contains(e.target))closeCal(null);});
+    /* wide layout: every step at once; back to the phone layout on the step that was open */
+    var wideScreen=window.matchMedia("(min-width:840px)"),widthSeg=document.getElementById("flow-width"),shownWhenWide=[form.querySelector("#f-title"),steps[0].querySelector("h3")];
+    function layout(){
+      var wide=wideScreen.matches&&widthSeg.querySelector("input:checked").value==="desktop";
+      if(wide===form.classList.contains("wide"))return;
+      form.classList.toggle("wide",wide);shownWhenWide.forEach(function(el){el.classList.toggle("sr",!wide);});
+      if(wide){steps.forEach(function(s){s.hidden=false;});fit();}else show(current,false);
+    }
+    widthSeg.addEventListener("change",layout);wideScreen.addEventListener("change",layout);
+    sync();layout();
+})();
+</script>
+</body>
+</html>
