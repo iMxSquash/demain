@@ -14,8 +14,8 @@
 @import "tailwindcss" source("../");
 @import "./tokens.css";
 
-/* The theme is chosen on the server from the `theme` cookie: `data-theme="light"` or
-   `"dark"` on <html>, nothing for the system setting. The semantic tokens already switch,
+/* Until the theme setting lands (DESIGN.md section 3), the system setting decides; it will
+   then render `data-theme="light"` or `"dark"` on <html>. The semantic tokens already switch,
    so `dark:` should almost never be needed; it follows the same rule as tokens.css. */
 @custom-variant dark {
   @media (prefers-color-scheme: dark) {
