@@ -214,7 +214,7 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | `--motion-duration-state` | 120 ms | Tone change on hover, press, check, selection |
 | `--motion-duration-exit` | 140 ms | A layer that leaves |
 | `--motion-duration-enter` | 200 ms | A layer or a page that arrives |
-| `--motion-duration-step` | 260 ms | A step of the add-transaction flow, the progress bar |
+| `--motion-duration-step` | 260 ms | A step of the add-transaction flow, the progress bar, the selected segment sliding |
 | `--motion-duration-draw` | 600 ms | The trajectory line, drawn once; the longest motion allowed |
 | `--motion-ease-enter` | `cubic-bezier(0.2, 0, 0, 1)` | Entrances: arrive fast, settle |
 | `--motion-ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Exits: leave without lingering |
@@ -228,6 +228,7 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | --- | --- | --- |
 | Hover, press, focus of a control; checking a box; choosing a segment or a chip | The tone fades from one step to the next. Size and position never change | state, move |
 | The chevron of a picker or a disclosure | Turns by 180° | state, move |
+| Segmented control (type, appearance, horizon) | The selected fill is one pill under equal segments that slides to the chosen one; the labels change tone. CSS only: the index comes from `:has(input:checked)`, so the native radios rendered by the server keep working without JavaScript | step, move |
 | Menu, picker, suggestions (popovers) | In: fade and rise of `--motion-offset` towards their trigger. Out: fade | enter; exit |
 | Toast | In: fade and rise of `--motion-offset`. Out: fade, then the toasts below close the gap | enter; exit |
 | Dialog | In: fade and rise of `--motion-offset`; the backdrop fades. Out: fade, then the dialog closes and the focus returns to its trigger | enter; exit |
@@ -312,7 +313,7 @@ Open `components.html` next to this section: every state below is drawn there in
   - checked: an ink fill with a 2 px tick in `on-primary`;
   - disabled: `surface-sunken` with a `divider` border and muted text.
 - **Segmented control:**
-  - a pill track on `control`, 3 px padding, 44 px segments in muted medium text;
+  - a pill track on `control`, 3 px padding, 44 px segments of equal width in muted medium text;
   - the selected segment is ink (the appearance setting) or raised on `surface` with `shadow-raised` (the transaction type, whose icons carry red and green);
   - always native radio buttons inside a `fieldset` with a `legend`.
 - **Chip:**
