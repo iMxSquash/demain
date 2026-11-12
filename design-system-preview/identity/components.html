@@ -201,8 +201,9 @@ code{font-family:inherit;color:var(--color-text-muted)}
 #flow .btn.save{min-height:52px}
 #flow .disc{background:var(--color-control);color:var(--color-text);margin-top:0}
 #flow .progress{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 var(--space-2);padding:0;list-style:none}
-#flow .progress li{height:4px;border-radius:2px;background:var(--color-control)}
-#flow .progress li.done{background:var(--color-primary)}
+#flow .progress li{position:relative;overflow:hidden;height:4px;border-radius:2px;background:var(--color-control)}
+#flow .progress li::after{content:"";position:absolute;inset:0;background:var(--color-primary);transform:scaleX(0);transform-origin:left;transition:transform var(--motion-duration-step) var(--motion-ease-move)}
+#flow .progress li.done::after{transform:scaleX(1)}
 #flow .step-nav{display:flex;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-4)}
 #flow .step-nav .primary{flex:1}
 #flow .seg{display:grid;grid-template-columns:repeat(4,1fr);width:100%}
@@ -272,6 +273,23 @@ code{font-family:inherit;color:var(--color-text-muted)}
 #flow.wide [data-step="3"]{grid-column:2;grid-row:2/4;align-self:stretch;padding-left:var(--space-8);border-left:1px solid var(--color-divider)}
 #flow.wide .big{margin-bottom:0}
 #flow.wide .step-nav{margin-top:var(--space-6)}
+
+/* motion (DESIGN section 6): tokens only, so reduced motion (all durations 0 in tokens.css) makes
+   every change instant. Nothing visible at load starts hidden: entrances play when an element is
+   opened or shown by the user. `translate` is used instead of `transform` so a layer keeps its own
+   placement (the calendar is centred with a transform). */
+.btn,.input,.icon-btn,.check input,.seg label,.list [role="option"],.dp-grid td,.chev,summary .ico,#flow .chip,#flow .keypad button,#flow .suggest button,#flow .big .sign{transition-property:color,background-color,border-color,box-shadow,text-decoration-color,transform;transition-duration:var(--motion-duration-state);transition-timing-function:var(--motion-ease-move)}
+/* motion-enter is the keyframe of the motion-enter utility of tailwind.css, copied because this page loads tokens.css only */
+@keyframes motion-enter{from{opacity:0;translate:0 var(--motion-offset)}}
+@keyframes fade-in{from{opacity:0}}
+@keyframes fade-out{to{opacity:0}}
+@keyframes step-in{from{opacity:0;translate:var(--step-shift) 0}}
+.pop:not([hidden]),dialog.dialog[open],#toast-demo .toast{animation:motion-enter var(--motion-duration-enter) var(--motion-ease-enter) backwards}
+dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]){animation:fade-in var(--motion-duration-enter) var(--motion-ease-enter)}
+#toast-demo .toast.is-leaving{animation:fade-out var(--motion-duration-exit) var(--motion-ease-exit) forwards}
+#flow[data-dir="forward"]{--step-shift:var(--motion-offset-step)}
+#flow[data-dir="back"]{--step-shift:calc(-1 * var(--motion-offset-step))}
+#flow:not(.wide)[data-dir] .step:not([hidden]){animation:step-in var(--motion-duration-step) var(--motion-ease-move)}
 </style>
 </head>
 <body>
@@ -342,7 +360,7 @@ code{font-family:inherit;color:var(--color-text-muted)}
 
 <section aria-labelledby="h-btn">
 <h2 id="h-btn">Buttons and their states</h2>
-<p class="why">Ink primary, one per screen (06:44, 08:16, 12:21); neutral secondary next to it (12:21); text link for a third action (13:19). Destructive red only on the confirm button inside a dialog. Hover and pressed take one tone step; there is no motion token, so nothing moves. Disabled uses explicit colours instead of transparency, so its contrast is measured. Pending keeps the fill, changes the label and sets <code>aria-busy</code>.</p>
+<p class="why">Ink primary, one per screen (06:44, 08:16, 12:21); neutral secondary next to it (12:21); text link for a third action (13:19). Destructive red only on the confirm button inside a dialog. Hover and pressed take one tone step, faded over <code>--motion-duration-state</code>; the button never changes size or position, and with reduced motion the step is instant. Disabled uses explicit colours instead of transparency, so its contrast is measured. Pending keeps the fill, changes the label and sets <code>aria-busy</code>.</p>
 <div class="card scroll">
 <table class="states">
   <thead><tr><th scope="col">Variant</th><th scope="col">Default</th><th scope="col">Hover, pressed</th><th scope="col">Focus</th><th scope="col">Disabled</th><th scope="col">Pending</th></tr></thead>
@@ -485,7 +503,9 @@ code{font-family:inherit;color:var(--color-text-muted)}
 
 <section aria-labelledby="h-feed">
 <h2 id="h-feed">Feedback</h2>
-<p class="why">A toast names its kind in words ("Success.", "Error."), the tinted disc only repeats it. A success leaves after 8 seconds unless pointed at or focused; an error stays. The confirmation dialog is the native one: Cancel takes the focus first, Escape closes it (as <code>ConfirmActionButton</code>).</p>
+<p class="why">A toast names its kind in words ("Success.", "Error."), the tinted disc only repeats it. A success leaves after 8 seconds unless pointed at or focused; an error stays. The confirmation dialog is the native one: Cancel takes the focus first, Escape closes it (as <code>ConfirmActionButton</code>). Layers fade in and rise (<code>--motion-duration-enter</code>, <code>--motion-offset</code>) and leave faster (<code>--motion-duration-exit</code>); the button below shows a toast arriving and leaving. With reduced motion, everything is instant.</p>
+<p><button class="btn secondary" type="button" id="show-toast">Show a toast</button></p>
+<div class="grid" id="toast-demo" aria-live="polite" style="margin-bottom:var(--space-4)"></div>
 <div class="grid g2">
   <div class="grid">
     <div class="toast" role="status"><span class="disc pos" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span><p><span><span class="word-pos">Success.</span> Transaction added to Current account.</span></p><button class="icon-btn" type="button" aria-label="Dismiss notification"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
@@ -689,6 +709,19 @@ code{font-family:inherit;color:var(--color-text-muted)}
   var dlg=document.getElementById("dlg");
   document.getElementById("open-dialog").addEventListener("click",function(){if(dlg.showModal)dlg.showModal();});
 
+  /* toast in and out: what AnimatePresence does in the app. The toast stays until its exit
+     animation has finished, which is at once with reduced motion (0 ms). */
+  var toastDemo=document.getElementById("toast-demo"),toastModel=document.querySelector(".toast[role=status]");
+  toastDemo.addEventListener("click",function(e){
+    var t=e.target.closest(".icon-btn")&&e.target.closest(".toast");
+    if(!t||t.classList.contains("is-leaving"))return;
+    t.classList.add("is-leaving");
+    Promise.all(t.getAnimations().map(function(a){return a.finished;})).then(function(){t.remove();});
+  });
+  document.getElementById("show-toast").addEventListener("click",function(){
+    var t=toastModel.cloneNode(true);t.removeAttribute("role");toastDemo.appendChild(t);
+  });
+
   function money(minor,loc,signed){return new Intl.NumberFormat(loc,{style:"currency",currency:"EUR",signDisplay:signed?"exceptZero":"auto"}).format(minor+"E-2");}
   function day(iso,loc,opts){opts.timeZone="UTC";return new Intl.DateTimeFormat(loc,opts).format(new Date(iso+"T00:00:00Z"));}
   var TEXT={
@@ -796,7 +829,8 @@ code{font-family:inherit;color:var(--color-text-muted)}
     });
 
     /* steps */
-    function show(n,moveFocus){current=n;steps.forEach(function(s){s.hidden=Number(s.getAttribute("data-step"))!==n;});Array.prototype.forEach.call(bars,function(b,i){b.classList.toggle("done",i<n);});count.textContent="Step "+n+" of 3";sync();if(n===1)fit();if(moveFocus)steps[n-1].querySelector("h3").focus();}
+    /* the direction is set only when the user moves between steps, so the step shown at load does not animate */
+    function show(n,moveFocus){if(moveFocus)form.setAttribute("data-dir",n>current?"forward":"back");current=n;steps.forEach(function(s){s.hidden=Number(s.getAttribute("data-step"))!==n;});Array.prototype.forEach.call(bars,function(b,i){b.classList.toggle("done",i<n);});count.textContent="Step "+n+" of 3";sync();if(n===1)fit();if(moveFocus)steps[n-1].querySelector("h3").focus();}
     /* on a phone, an error found from step 3 shows its own step first, so the focus lands on a visible field */
     function reveal(n){if(!form.classList.contains("wide")&&current!==n)show(n,false);}
     function valid(n){
@@ -860,7 +894,7 @@ code{font-family:inherit;color:var(--color-text-muted)}
     function layout(){
       var wide=wideScreen.matches&&widthSeg.querySelector("input:checked").value==="desktop";
       if(wide===form.classList.contains("wide"))return;
-      form.classList.toggle("wide",wide);shownWhenWide.forEach(function(el){el.classList.toggle("sr",!wide);});
+      form.removeAttribute("data-dir");form.classList.toggle("wide",wide);shownWhenWide.forEach(function(el){el.classList.toggle("sr",!wide);});
       if(wide){steps.forEach(function(s){s.hidden=false;});fit();}else show(current,false);
     }
     widthSeg.addEventListener("change",layout);wideScreen.addEventListener("change",layout);

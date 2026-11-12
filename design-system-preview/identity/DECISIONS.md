@@ -2,6 +2,8 @@
 
 One line per choice, with the evidence that justifies it. Reference IDs are those of [00-reference-audit.md](00-reference-audit.md) (`01` to `03`, then capture times such as `07:20`). `DOMAIN` and `PRODUCT` point to `docs/DOMAIN.md` and `docs/PRODUCT.md`. "Owner" means a decision taken by the owner during review.
 
+Version 0.5 (12 Nov 2026): motion. The owner asked for it, with the `motion` library, on states, floating layers, the add-transaction flow, the chart and pages; reduced motion turns it all off; content rendered by the server never starts in a hidden state that would make the page jump.
+
 Version 0.4 (12 Nov 2026): the wordmark redrawn in Host Grotesk, a `shadow-raised` token, `font-mono` set to the text face, the token names kept, U+202F in the shipped font, and the wide layout of the add-transaction flow.
 
 Version 0.3 (11 Nov 2026): Host Grotesk as the text face, a lighter dark control border, interaction tokens, the components, the add-transaction flow, the React trajectory chart, the Tailwind mapping, the appearance setting and the app icons. [DESIGN.md](DESIGN.md) is the specification that applies these decisions to the app.
@@ -106,7 +108,7 @@ Added with the components. Each one is a semantic token with a light and a dark 
 
 | Token | Light | Dark | Use | Justification |
 | --- | --- | --- | --- | --- |
-| `--color-primary-hover` | `--gray-800` | `--gray-200` | Hover and pressed fill of the ink button | One tone step, no motion: the references are still images |
+| `--color-primary-hover` | `--gray-800` | `--gray-200` | Hover and pressed fill of the ink button | One tone step, faded over `--motion-duration-state` (see Motion) |
 | `--color-control-hover` | `--gray-200` | `--night-5` | Hover of a secondary button, a keypad key, an icon button, a field's reveal button | Same rule |
 | `--color-danger`, `--color-on-danger` | `--red-700`, `--gray-0` | `--red-300`, `--night-0` | Fill and label of the confirm button of a destructive action, only inside its dialog | Red stays rare, so it keeps its meaning |
 | `--color-backdrop` | `rgb(8 8 8 / 0.45)` | `rgb(0 0 0 / 0.6)` | Behind a modal dialog | Dims the page without hiding where the user was |
@@ -231,7 +233,7 @@ Every pair is computed from the tokens in both themes. The three pages compute t
 | Radii | Card 20, control 12, tile 20 %, pill fully rounded | Measured, see audit |
 | Elevation | Tone only for cards; one soft wide shadow for floating layers; one small tight shadow, `--shadow-raised` (`0 1px 2px`, 8 % black in light, 40 % in dark), for a control lifted from its own track, today the selected type segment | 01, 07:20, 08:25, 11:01; 12:47. Raised: owner, 12 Nov 2026, "relief by shadow must be possible in some cases"; the dark value is stronger so the relief still shows on a dark track |
 | Touch target | 44 px | Owner's accessibility rules |
-| No motion tokens | Not defined | The references are still images |
+| Motion tokens | Five durations, three easings, two offsets (see Motion) | Owner, 12 Nov 2026. Until then none were defined, since the references are still images |
 | Icons | Line, 1.5 stroke, round ends, 24 grid, in a neutral disc; diagonal arrows for money in and out | 13:19, 11:54, 12:47, 01, 10:47, 12:59 |
 
 ## Components
@@ -242,7 +244,7 @@ Drawn on `components.html`, which also holds the add-transaction flow and the cu
 | --- | --- | --- |
 | Button hierarchy | Ink primary, one per screen; neutral secondary on the control tone; text link for a third action; red only on the confirm button inside a destructive dialog | 06:44, 08:16, 12:21 (ink primary), 12:21 (neutral secondary), 13:19 (text action) |
 | Button shape | Pill, 44 px tall, 16 px side padding, medium weight | 01, 07:32, 13:19 pills; 44 px target |
-| Hover and pressed | One tone step (`--color-primary-hover`, `--color-control-hover`); the link thickens its underline | No motion token: nothing moves |
+| Hover and pressed | One tone step (`--color-primary-hover`, `--color-control-hover`), faded over `--motion-duration-state`; the link thickens its underline | The tone says it; size and position never change, so nothing under the pointer shifts |
 | Disabled | Explicit colours (muted text on the inner surface), never opacity | Opacity cannot be measured; these pairs pass 4.5:1 |
 | Pending | Keeps its fill, the label becomes the ongoing verb ("Adding…"), `aria-busy="true"` | The button does not jump; assistive tech hears the state |
 | Field anatomy | Label above, hint under the label, control, error under the control; the hint and the error are linked with `aria-describedby` | The app's `FormField`; long labels of today ("Amount (without a sign, the type sets the direction)") split into a short label and a hint |
@@ -316,6 +318,25 @@ The React reference in `react/` (hand-written SVG with `d3-scale` and `d3-shape`
 | Theme preference code | `theme/theme-preference.ts` (allowlist, attribute for `<html>`) and `theme/actions.ts` (server action, as `setLocaleAction`), with tests | Reference code: the setting does not exist in `src/` yet |
 | Token names | Kept, so utilities read `bg-bg`, `text-text`, `text-text-muted` | Owner, 12 Nov 2026: each utility names its token, at the cost of some repetition |
 | Migration | Adopting the mapping is a migration: 40 classes of `src/` stop compiling (`font-mono` now compiles). DESIGN.md lists their replacements | Counted by compiling `src/` against both stylesheets, 12 Nov 2026 |
+
+## Motion
+
+Asked by the owner on 12 Nov 2026, after the plan to apply the identity had kept "Motion: none". The references are still images, so no value can be sampled from them: each one is chosen for its role, as written below, and the owner confirms them on `components.html`. Every motion has one purpose; a motion without one is not added.
+
+| Choice | Value | Justification |
+| --- | --- | --- |
+| Library | `motion` (npm), behind `LazyMotion`, for what the browser mounts: entrances and exits of layers, flow steps | Owner's choice, among CSS only, the library, or both. Exits need the element to stay until its motion ends, which `AnimatePresence` does. A dependency: added in its own pull request with an ADR |
+| CSS for the rest | Transitions for states, keyframes in the stylesheet for what the server renders | They need no JavaScript, keep the server components server-side, and are allowed by the content security policy |
+| Nothing rendered by the server starts hidden | No initial state in a `style` attribute or in Motion's `initial` for content in the HTML; `initial={false}` on Motion components rendered by the server | Owner, 12 Nov 2026: the page must never show its final state and then jump. `style-src` carries a nonce only (`src/security-headers.ts`), so a style attribute from the server is blocked, and the state would only arrive with the script |
+| State, 120 ms | Hover, press, check, selection fade from one tone to the next | Short enough to read as the answer to the action, long enough to soften a tone step that used to snap |
+| Exit 140 ms, enter 200 ms | Layers leave faster than they arrive | What leaves no longer matters; what arrives is read |
+| Step 260 ms, offset 24 px | A flow step slides from the side the user goes to | The direction says forward or back; 24 px is visible on a 375 px phone without crossing the screen |
+| Draw 600 ms | The trajectory line drawn once, left to right, real then planned | Reads the timeline in its own order, once: the longest motion allowed, so nothing else lasts more |
+| Easings | Decelerate in, accelerate out, standard between two states | The usual pairing for things that arrive and leave; no spring, no overshoot, to stay calm |
+| Offset 8 px | Layers and pages rise as they fade in | Says where the layer comes from without travelling |
+| Reduced motion | Every duration and offset at 0, fades included | Owner's rule: motion is off under reduced motion, not merely softened. Nothing carries meaning through motion alone (WCAG 2.3.3) |
+| Never | Counting figures, bounce, parallax, scroll motion, loops, motion on the holographic signature or the chart glow, input that waits for a motion | A real amount is shown as it is (principle 1); a loop or an autoplay over 5 seconds would need a pause control (WCAG 2.2.2) |
+| Tailwind | Default easings and animations reset; `transition-*` utilities read the state tokens | An off-system easing fails to compile, like an off-system colour; `duration-*` still compiles and is refused in review |
 
 ## Voice, five rules
 

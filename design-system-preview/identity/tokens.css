@@ -113,6 +113,19 @@
   --icon-size: 20px;
   --icon-stroke: 1.5;     /* line icons, 13:19 */
 
+  /* ---- Motion (owner, 12 Nov 2026): short, no bounce, only on a change the user caused ---- */
+  /* The references are still images, so these values are chosen by role, see DECISIONS.md "Motion" */
+  --motion-duration-state: 120ms; /* a tone change on hover, press, check or selection */
+  --motion-duration-exit: 140ms;  /* a layer that leaves: shorter than its entrance */
+  --motion-duration-enter: 200ms; /* a layer or a page that arrives */
+  --motion-duration-step: 260ms;  /* a step of the add-transaction flow, the progress bar */
+  --motion-duration-draw: 600ms;  /* the trajectory line drawn once, the longest motion allowed */
+  --motion-ease-enter: cubic-bezier(0.2, 0, 0, 1); /* decelerates: arrives fast, settles */
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);  /* accelerates: leaves without lingering */
+  --motion-ease-move: cubic-bezier(0.4, 0, 0.2, 1); /* from one place or tone to another */
+  --motion-offset: 8px;       /* rise of a layer or a page as it fades in */
+  --motion-offset-step: 24px; /* slide of a flow step, towards where the user is going */
+
   /* ---- Semantic: light (default) ---- */
   color-scheme: light;
   --color-bg: var(--gray-100);
@@ -221,4 +234,18 @@
   --logo-ink: var(--gray-0);
   --shadow-overlay: 0 24px 48px -16px rgb(0 0 0 / 0.6);
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+/* Reduced motion turns every motion off, fades included (owner's rule): each change is then
+   instant, as before motion existed. Components never test the preference themselves for CSS. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-state: 0ms;
+    --motion-duration-exit: 0ms;
+    --motion-duration-enter: 0ms;
+    --motion-duration-step: 0ms;
+    --motion-duration-draw: 0ms;
+    --motion-offset: 0px;
+    --motion-offset-step: 0px;
+  }
 }
