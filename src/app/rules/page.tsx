@@ -49,11 +49,11 @@ export default async function RulesPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
       <p>{t("intro")}</p>
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-xl font-semibold">
+        <h2 id="list-heading" className="text-title font-medium">
           {t("listHeading")}
         </h2>
         {rules.length === 0 ? (
@@ -61,7 +61,7 @@ export default async function RulesPage() {
         ) : (
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-neutral-500">
+              <tr className="border-b border-border-control">
                 <th scope="col" className="py-2 pr-4">{t("columns.order")}</th>
                 <th scope="col" className="py-2 pr-4">{t("columns.condition")}</th>
                 <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
@@ -76,7 +76,7 @@ export default async function RulesPage() {
                   value: rule.value,
                 });
                 return (
-                  <tr key={rule.id} className="border-b border-neutral-300">
+                  <tr key={rule.id} className="border-b border-divider">
                     <td className="py-2 pr-4 tabular-nums">{index + 1}</td>
                     <th scope="row" className="py-2 pr-4 font-medium">
                       {subject}
@@ -128,7 +128,7 @@ export default async function RulesPage() {
       </section>
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-        <h2 id="new-heading" className="text-xl font-semibold">
+        <h2 id="new-heading" className="text-title font-medium">
           {t("addHeading")}
         </h2>
         <RuleForm

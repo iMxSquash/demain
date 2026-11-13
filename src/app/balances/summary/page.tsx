@@ -25,7 +25,7 @@ export default async function SummaryBalancesPage() {
       <Link href="/balances" className="self-start underline">
         {t("backToBalances")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
       <p className="max-w-prose">{t("intro")}</p>
       {accounts.length === 0 ? (
         <p>{t("noAccount")}</p>

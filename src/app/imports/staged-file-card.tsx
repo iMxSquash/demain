@@ -84,7 +84,7 @@ function RowsTable({
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b border-neutral-500">
+            <tr className="border-b border-border-control">
               <th scope="col">
                 <label className="flex min-h-11 min-w-11 items-center justify-center">
                   <input
@@ -328,14 +328,14 @@ export function FileCard({
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-3 rounded border border-neutral-500 p-4"
+      className="flex flex-col gap-3 rounded-control border border-border-control p-4"
     >
-      <h3 id={headingId} ref={titleRef} tabIndex={-1} className="text-lg font-semibold break-all">
+      <h3 id={headingId} ref={titleRef} tabIndex={-1} className="text-title font-medium break-all">
         {file.fileName}
       </h3>
 
       {file.status === "failed" ? (
-        <p role="alert" className="font-medium text-red-800">
+        <p role="alert" className="font-medium text-negative">
           {file.message}
         </p>
       ) : null}
@@ -362,7 +362,7 @@ export function FileCard({
           )}
           {file.rereadError === null ? null : (
             <div className="flex flex-col items-start gap-2">
-              <p id={rereadErrorId} role="alert" className="font-medium text-red-800">
+              <p id={rereadErrorId} role="alert" className="font-medium text-negative">
                 {t("rereadFailed", { name: file.fileName, message: file.rereadError })}
               </p>
               {columns === null ? null : (

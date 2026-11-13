@@ -20,7 +20,7 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
 
   return (
     <section aria-labelledby="vocabulary-heading" className="flex flex-col gap-4">
-      <h2 id="vocabulary-heading" className="text-xl font-semibold">
+      <h2 id="vocabulary-heading" className="text-title font-medium">
         {t("heading")}
       </h2>
       <p>{t("intro")}</p>
@@ -34,7 +34,7 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
         <table className="w-full border-collapse text-left">
           <caption className="pb-2 text-left">{t("caption")}</caption>
           <thead>
-            <tr className="border-b border-neutral-500">
+            <tr className="border-b border-border-control">
               <th scope="col" className="py-2 pr-4">{t("columns.word")}</th>
               <th scope="col" className="py-2 pr-4">{t("columns.type")}</th>
               <th scope="col" className="py-2 pr-4">{t("columns.origin")}</th>
@@ -43,7 +43,7 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
           </thead>
           <tbody>
             {overview.words.map(({ word, type, origin }) => (
-              <tr key={word} className="border-b border-neutral-300">
+              <tr key={word} className="border-b border-divider">
                 <th scope="row" className="py-2 pr-4 font-medium">{word}</th>
                 <td className="py-2 pr-4">{t(`types.${type}`)}</td>
                 <td className="py-2 pr-4">{t(`origins.${origin}`)}</td>
@@ -87,7 +87,7 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
 
       {overview.removed.length > 0 ? (
         <section aria-labelledby="removed-heading" className="flex flex-col gap-2">
-          <h3 id="removed-heading" className="text-lg font-semibold">
+          <h3 id="removed-heading" className="text-title font-medium">
             {t("removedHeading")}
           </h3>
           <p>{t("removedIntro")}</p>
@@ -106,7 +106,7 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
         </section>
       ) : null}
 
-      <h3 className="text-lg font-semibold">{t("addHeading")}</h3>
+      <h3 className="text-title font-medium">{t("addHeading")}</h3>
       <VocabularyForm action={addVocabularyWordAction} />
     </section>
   );

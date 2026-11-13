@@ -49,7 +49,7 @@ export function ConfirmActionButton({
 
   const content = (
     <>
-      <h2 id={titleId} className="text-xl font-semibold">
+      <h2 id={titleId} className="text-title font-medium">
         {title}
       </h2>
       <p>{message}</p>
@@ -59,7 +59,7 @@ export function ConfirmActionButton({
           type="button"
           autoFocus
           onClick={() => dialogRef.current?.close()}
-          className="min-h-11 rounded border border-neutral-500 px-4"
+          className="min-h-11 rounded-pill border border-border-control px-4"
         >
           {t("cancel")}
         </button>
@@ -67,7 +67,7 @@ export function ConfirmActionButton({
           type="submit"
           form={formId}
           onClick={() => dialogRef.current?.close()}
-          className="min-h-11 rounded bg-red-800 px-4 font-medium text-white"
+          className="min-h-11 rounded-pill bg-danger px-4 font-medium text-on-danger"
         >
           {confirmLabel}
         </button>
@@ -88,7 +88,7 @@ export function ConfirmActionButton({
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
-        className="rounded border border-neutral-500 bg-white p-6 text-neutral-900 backdrop:bg-black/40"
+        className="rounded-control border border-border-control bg-surface p-6 text-text backdrop:bg-backdrop"
       >
         {formId ? (
           <div className="flex max-w-sm flex-col gap-4">{content}</div>

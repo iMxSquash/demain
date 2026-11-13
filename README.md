@@ -43,7 +43,7 @@ Details and definitions of done are in [ROADMAP.md](docs/ROADMAP.md).
 | Layer | Choice |
 | --- | --- |
 | Application | Next.js, TypeScript in strict mode |
-| Styling | Tailwind CSS v4 |
+| Styling | Tailwind CSS v4 on the identity tokens, Host Grotesk self-hosted |
 | Database | SQLite through Drizzle ORM |
 | Packaging | One Docker container, multi-architecture image (x86-64 and ARM64), data in a Docker volume |
 | HTTPS | Delegated to a shared reverse proxy (Caddy documented), one subdomain per application |
@@ -168,7 +168,7 @@ demain/
 ├── vitest.config.ts
 ├── postcss.config.mjs        Tailwind CSS v4 PostCSS plugin
 ├── src/
-│   ├── app/                  Next.js App Router (layout, pages, globals.css)
+│   ├── app/                  Next.js App Router (layout, pages; globals.css is the Tailwind entry, tokens.css the design tokens, fonts/ the Host Grotesk WOFF2 and its licence)
 │   ├── auth/                 Password hashing, TOTP, backup codes, sessions, rate limiting, the single account
 │   ├── proxy.ts              Deny-by-default access check for every page
 │   ├── i18n/                 Language negotiation, calendar date formatting, next-intl request setup

@@ -38,7 +38,7 @@ function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
 
   return (
     <section aria-labelledby="balances-heading" className="flex flex-col gap-2">
-      <h2 id="balances-heading" className="text-lg font-semibold">
+      <h2 id="balances-heading" className="text-title font-medium">
         {t("balancesHeading")}
       </h2>
       {/* A focusable region: the table is wider than a phone. */}
@@ -51,7 +51,7 @@ function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
         <table className="w-full border-collapse text-left">
           <caption className="pb-2 text-left">{t("balancesCaption")}</caption>
           <thead>
-            <tr className="border-b border-neutral-500">
+            <tr className="border-b border-border-control">
               <th scope="col" className={HEADER_CELL}>
                 {t("balancesColumns.month")}
               </th>
@@ -68,7 +68,7 @@ function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.date} className="border-b border-neutral-300">
+              <tr key={row.date} className="border-b border-divider">
                 <th scope="row" className={`${HEADER_CELL} font-medium`}>
                   {row.month}
                 </th>
@@ -89,7 +89,7 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
 
   return (
     <section aria-labelledby="comparison-heading" className="flex flex-col gap-2">
-      <h2 id="comparison-heading" className="text-lg font-semibold">
+      <h2 id="comparison-heading" className="text-title font-medium">
         {t("comparisonHeading")}
       </h2>
       {state.isMatching ? <p>{t("comparisonMatches")}</p> : null}
@@ -104,7 +104,7 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
           <table className="w-full border-collapse text-left">
             <caption className="pb-2 text-left">{t("comparisonCaption")}</caption>
             <thead>
-              <tr className="border-b border-neutral-500">
+              <tr className="border-b border-border-control">
                 <th scope="col" className={HEADER_CELL}>
                   {t("comparisonColumns.month")}
                 </th>
@@ -126,7 +126,7 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
               {state.differences.map((difference) => (
                 <tr
                   key={`${difference.month}-${difference.figure}`}
-                  className="border-b border-neutral-300"
+                  className="border-b border-divider"
                 >
                   <th scope="row" className={`${HEADER_CELL} font-medium`}>
                     {difference.month}
@@ -192,7 +192,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
       noValidate
     >
       <FormField id="summary" label={t("fileLabel")} error={errorFor("summary")}>
-        <p id="summary-hint" className="text-neutral-700">
+        <p id="summary-hint" className="text-text-muted">
           {t("fileHint", { size: MAX_FILE_BYTES / BYTES_PER_KILOBYTE })}
         </p>
         <input
@@ -223,7 +223,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
         </select>
       </FormField>
       <FormField id="year" label={t("yearLabel")} error={errorFor("year")}>
-        <p id="year-hint" className="text-neutral-700">
+        <p id="year-hint" className="text-text-muted">
           {t("yearHint")}
         </p>
         <input
@@ -240,7 +240,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
         {state === null || hasFieldError ? null : (
           <p
             role={isError ? "alert" : "status"}
-            className={isError ? "font-medium text-red-800" : "font-medium"}
+            className={isError ? "font-medium text-negative" : "font-medium"}
           >
             {isError ? common("error", { message: state.message }) : state.message}
           </p>
@@ -249,7 +249,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
           <>
             {state.notes.length === 0 ? null : (
               <section aria-labelledby="notes-heading">
-                <h2 id="notes-heading" className="text-lg font-semibold">
+                <h2 id="notes-heading" className="text-title font-medium">
                   {t("noteHeading")}
                 </h2>
                 <ul className="list-disc pl-6">

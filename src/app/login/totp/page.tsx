@@ -20,7 +20,7 @@ export default async function TotpPage() {
 
   return (
     <main className="p-8">
-      <h1 className="mb-4 text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="mb-4 text-heading font-medium">{t("title")}</h1>
       <p className="mb-4 max-w-md">{t("intro")}</p>
       <AuthForm
         action={verifyTotpAction}

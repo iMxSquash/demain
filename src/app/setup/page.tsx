@@ -22,7 +22,7 @@ export default async function SetupPage() {
 
   return (
     <main className="p-8">
-      <h1 className="mb-4 text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="mb-4 text-heading font-medium">{t("title")}</h1>
       {isTokenConfigured ? (
         <>
           <p className="mb-4 max-w-md">{t("intro", { min: MIN_PASSWORD_LENGTH })}</p>

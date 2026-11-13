@@ -51,9 +51,9 @@ export function BalanceCheckPanel({
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col items-start gap-2 border-t border-neutral-500 pt-3"
+      className="flex flex-col items-start gap-2 border-t border-border-control pt-3"
     >
-      <h4 id={headingId} className="font-semibold">
+      <h4 id={headingId} className="font-medium">
         {t("heading")}
       </h4>
       <form

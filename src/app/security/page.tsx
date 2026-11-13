@@ -25,9 +25,9 @@ export default async function SecurityPage() {
 
   return (
     <main className="flex flex-col gap-6 p-8">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
       <section aria-labelledby="totp-heading" className="flex flex-col gap-4">
-        <h2 id="totp-heading" className="text-xl font-semibold">
+        <h2 id="totp-heading" className="text-title font-medium">
           {t("totpHeading")}
         </h2>
         {secret ? (
@@ -48,7 +48,7 @@ export default async function SecurityPage() {
         ) : (
           <>
             <p>{t("totpOn")}</p>
-            <h3 className="text-lg font-semibold">{t("disableHeading")}</h3>
+            <h3 className="text-title font-medium">{t("disableHeading")}</h3>
             <p className="max-w-md">{t("disableIntro")}</p>
             <AuthForm
               action={disableTotpAction}

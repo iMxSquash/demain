@@ -29,7 +29,7 @@ const FIELD_OF_PROBLEM: Record<RowProblem, InvalidField> = {
 
 // The border is always there, transparent, so that the cell looks like text until it is pointed at or focused.
 const CELL_CLASS =
-  "min-h-11 w-full rounded border border-transparent bg-transparent px-2 hover:border-neutral-400 focus-visible:border-neutral-900 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-800";
+  "min-h-11 w-full rounded-control border border-transparent bg-transparent px-2 hover:border-text focus-visible:border-text aria-[invalid=true]:border-2 aria-[invalid=true]:border-negative";
 
 interface SavingsAccountOption {
   id: number;
@@ -113,7 +113,7 @@ export const RowEditor = memo(function RowEditor({
       : t("sameAsFile", { name: lookups.defaultSavingsName });
 
   return (
-    <tr className="border-b border-neutral-300 align-top">
+    <tr className="border-b border-divider align-top">
       <td>
         {/* The label makes the whole 44 px square a target; the input names itself. */}
         <label className="flex min-h-11 min-w-11 items-center justify-center">
@@ -126,7 +126,7 @@ export const RowEditor = memo(function RowEditor({
           />
         </label>
       </td>
-      <th scope="row" className="py-2 pr-2 text-right font-normal tabular-nums">
+      <th scope="row" className="py-2 pr-2 text-right font-regular tabular-nums">
         {row.line}
       </th>
       <td className="min-w-40">

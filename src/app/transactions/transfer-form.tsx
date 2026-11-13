@@ -29,7 +29,7 @@ interface TransferFormProps {
 const fieldId = (field: TransferFormField) => `transfer-${field}`;
 
 const BUTTON_CLASS =
-  "min-h-11 rounded border border-blue-800 px-4 font-medium text-blue-900 disabled:opacity-60";
+  "min-h-11 rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60";
 
 export function TransferForm({ action, initialValues, accounts }: TransferFormProps) {
   const t = useTranslations("transactions.transferForm");
@@ -138,7 +138,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
         <button
           type="submit"
           disabled={isPending}
-          className="min-h-11 self-start rounded bg-blue-800 px-4 font-medium text-white disabled:opacity-60"
+          className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
         >
           {t("submit")}
         </button>
@@ -173,7 +173,7 @@ function SurplusChoiceFields({
   );
 
   return (
-    <fieldset className="flex flex-col gap-3 rounded border border-neutral-500 p-4">
+    <fieldset className="flex flex-col gap-3 rounded-control border border-border-control p-4">
       <legend className="px-1 font-medium">{t("surplusLegend")}</legend>
       <p>
         {t("surplusIntro", {

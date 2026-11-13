@@ -34,7 +34,7 @@ export default async function ImportsPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
       <p className="max-w-prose">{t("intro")}</p>
       {view.accounts.length === 0 ? (
         <p>{t("noAccount")}</p>

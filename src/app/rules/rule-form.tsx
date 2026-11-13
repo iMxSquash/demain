@@ -101,7 +101,7 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="min-h-11 self-start rounded bg-blue-800 px-4 font-medium text-white disabled:opacity-60"
+        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
       >
         {t("addSubmit")}
       </button>

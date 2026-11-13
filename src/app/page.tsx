@@ -24,7 +24,7 @@ export default async function HomePage() {
 
   return (
     <main className="p-8">
-      <h1 className="text-2xl font-semibold">Demain</h1>
+      <h1 className="text-heading font-medium">Demain</h1>
       <nav aria-label={t("navLabel")} className="mt-4">
         <ul className="flex gap-6">
           {links.map((link) => (

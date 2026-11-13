@@ -94,7 +94,7 @@ function MappingFieldset({ fields }: { fields: MappingFields }) {
 
   return (
     <fieldset className="flex flex-col gap-4">
-      <legend className="text-lg font-semibold">{t("mappingHeading")}</legend>
+      <legend className="text-title font-medium">{t("mappingHeading")}</legend>
       <p>{t("mappingHint")}</p>
       <input type="hidden" name="mappingPresent" value="1" />
       <ChoiceSelect
@@ -146,7 +146,7 @@ function MessageList({
 
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="text-lg font-semibold">
+      <h2 id={id} className="text-title font-medium">
         {heading}
       </h2>
       <ul className="list-disc pl-6">
@@ -165,11 +165,11 @@ function RawRows({ rows }: { rows: string[][] }) {
   return (
     <div className="overflow-x-auto">
       <table className="border-collapse text-left">
-        <caption className="pb-2 text-left font-semibold">
+        <caption className="pb-2 text-left font-medium">
           {t("rawHeading")}
         </caption>
         <thead>
-          <tr className="border-b border-neutral-500">
+          <tr className="border-b border-border-control">
             {Array.from({ length: width }, (_, index) => (
               <th key={index} scope="col" className="py-2 pr-4">
                 {t("rawColumn", { number: index + 1 })}
@@ -179,7 +179,7 @@ function RawRows({ rows }: { rows: string[][] }) {
         </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-b border-neutral-300">
+            <tr key={rowIndex} className="border-b border-divider">
               {row.map((cell, cellIndex) => (
                 <td key={cellIndex} className="py-2 pr-4">
                   {cell}
@@ -433,7 +433,7 @@ export function ImportForm({
               role={state.status === "error" ? "alert" : "status"}
               className={
                 state.status === "error"
-                  ? "font-medium text-red-800"
+                  ? "font-medium text-negative"
                   : "font-medium"
               }
             >
@@ -458,11 +458,11 @@ export function ImportForm({
           )}
           {state !== null && state.sampleRows.length > 0 ? (
             <table className="border-collapse text-left">
-              <caption className="pb-2 text-left font-semibold">
+              <caption className="pb-2 text-left font-medium">
                 {t("sampleHeading")}
               </caption>
               <thead>
-                <tr className="border-b border-neutral-500">
+                <tr className="border-b border-border-control">
                   <th scope="col" className="py-2 pr-4">
                     {t("columns.date")}
                   </th>
@@ -476,7 +476,7 @@ export function ImportForm({
               </thead>
               <tbody>
                 {state.sampleRows.map((row, index) => (
-                  <tr key={index} className="border-b border-neutral-300">
+                  <tr key={index} className="border-b border-divider">
                     <td className="py-2 pr-4 tabular-nums">{row.date}</td>
                     <th scope="row" className="py-2 pr-4 font-medium">
                       {row.label}

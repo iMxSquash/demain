@@ -53,9 +53,11 @@ const ACTIVE_MARKER_SIZE = 13;
 const LEGEND_MARKER_SIZE = 12;
 
 // Literal class names: Tailwind only generates what it can read in the source.
+// Until the trajectory chart replaces this one, the first series is ink and the
+// second muted (DESIGN.md section 16); the tone names are those of the callers.
 const TONE_CLASSES: Record<ChartTone, { stroke: string; fill: string }> = {
-  blue: { stroke: "stroke-blue-700", fill: "fill-blue-700" },
-  orange: { stroke: "stroke-orange-700", fill: "fill-orange-700" },
+  blue: { stroke: "stroke-text", fill: "fill-text" },
+  orange: { stroke: "stroke-text-muted", fill: "fill-text-muted" },
 };
 
 interface MarkerProps {
@@ -68,7 +70,8 @@ interface MarkerProps {
 }
 
 function Marker({ kind, x, y, size, tone, seriesId }: MarkerProps) {
-  const className = `${TONE_CLASSES[tone].fill} stroke-white`;
+  // Outlined in the page ground the chart is drawn on, so that overlapping markers stay apart.
+  const className = `${TONE_CLASSES[tone].fill} stroke-bg`;
   return kind === "circle" ? (
     <circle
       cx={x}
@@ -184,14 +187,14 @@ export function LineChart({
                 x2={WIDTH - MARGIN.right}
                 y1={tick.y}
                 y2={tick.y}
-                className={tick.value === 0 ? "stroke-neutral-500" : "stroke-neutral-300"}
+                className={tick.value === 0 ? "stroke-border-control" : "stroke-divider"}
               />
               <text
                 x={MARGIN.left - AXIS_LABEL_OFFSET}
                 y={tick.y}
                 textAnchor="end"
                 dominantBaseline="middle"
-                className="fill-neutral-700 text-xs"
+                className="fill-text-muted text-label"
               >
                 {formatAmount(tick.value, currency, locale)}
               </text>
@@ -204,7 +207,7 @@ export function LineChart({
               x={geometry.xs[index]}
               y={plotBottom + X_LABEL_OFFSET}
               textAnchor="middle"
-              className="fill-neutral-700 text-xs"
+              className="fill-text-muted text-label"
             >
               {categories[index]?.tickLabel}
             </text>
@@ -216,7 +219,7 @@ export function LineChart({
               x2={geometry.xs[cursor]}
               y1={MARGIN.top}
               y2={plotBottom}
-              className="stroke-neutral-500"
+              className="stroke-border-control"
             />
           )}
 
@@ -260,7 +263,7 @@ export function LineChart({
         </svg>
       </div>
 
-      <p id={hintId} className="text-sm text-neutral-700">
+      <p id={hintId} className="text-caption text-text-muted">
         {hint}
       </p>
       <p aria-live="polite" className="min-h-6 font-medium">

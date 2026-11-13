@@ -20,11 +20,11 @@ export default async function BackupPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-heading font-medium">{t("title")}</h1>
       <p className="max-w-prose">{t("intro")}</p>
 
       <section aria-labelledby="snapshot-heading" className="flex flex-col gap-4">
-        <h2 id="snapshot-heading" className="text-xl font-semibold">
+        <h2 id="snapshot-heading" className="text-title font-medium">
           {t("snapshotHeading")}
         </h2>
         <p className="max-w-prose">{t("snapshotIntro")}</p>
@@ -38,7 +38,7 @@ export default async function BackupPage() {
       </section>
 
       <section aria-labelledby="json-heading" className="flex flex-col gap-4">
-        <h2 id="json-heading" className="text-xl font-semibold">
+        <h2 id="json-heading" className="text-title font-medium">
           {t("jsonHeading")}
         </h2>
         <p className="max-w-prose">{t("jsonIntro")}</p>
@@ -54,7 +54,7 @@ export default async function BackupPage() {
       </section>
 
       <section aria-labelledby="restore-heading" className="flex flex-col gap-4">
-        <h2 id="restore-heading" className="text-xl font-semibold">
+        <h2 id="restore-heading" className="text-title font-medium">
           {t("restoreHeading")}
         </h2>
         <p className="max-w-prose font-medium">{t("restoreWarning")}</p>

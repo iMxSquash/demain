@@ -61,7 +61,7 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
   };
 
   return (
-    <details className="rounded border border-neutral-400 p-3">
+    <details className="rounded-control border border-border-control p-3">
       <summary className="min-h-11 cursor-pointer py-2 font-medium">
         {t("columnsHeading")}
       </summary>
@@ -139,7 +139,7 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
     setChoice((previous) => ({ ...previous, [field]: value }));
 
   return (
-    <fieldset className="flex flex-col gap-3 rounded border border-neutral-400 p-3">
+    <fieldset className="flex flex-col gap-3 rounded-control border border-border-control p-3">
       <legend className="px-1 font-medium">{t("bulkHeading")}</legend>
       <p id={hintId}>{t("bulkHint")}</p>
       <div className="grid gap-3 sm:grid-cols-3">

@@ -41,7 +41,7 @@ export async function RealChart() {
 
   return (
     <section aria-labelledby="real-chart-heading" className="mt-8 flex flex-col gap-4">
-      <h2 id="real-chart-heading" className="text-xl font-semibold">
+      <h2 id="real-chart-heading" className="text-title font-medium">
         {t("heading")}
       </h2>
       <p>{t("intro", { currency: referenceCurrency })}</p>
@@ -76,7 +76,7 @@ export async function RealChart() {
             }))}
           />
 
-          <h3 className="text-lg font-semibold">{t("tableHeading")}</h3>
+          <h3 className="text-title font-medium">{t("tableHeading")}</h3>
           <div
             role="region"
             aria-label={t("tableHeading")}
@@ -88,7 +88,7 @@ export async function RealChart() {
                 {t("tableCaption", { currency: referenceCurrency })}
               </caption>
               <thead>
-                <tr className="border-b border-neutral-500">
+                <tr className="border-b border-border-control">
                   <th scope="col" className="py-2 pr-4">{t("columns.month")}</th>
                   {CHART_SERIES.map(({ kind }) => (
                     <th key={kind} scope="col" className="py-2 pl-4 text-right">
@@ -99,7 +99,7 @@ export async function RealChart() {
               </thead>
               <tbody>
                 {months.map((month) => (
-                  <tr key={month.month} className="border-b border-neutral-300">
+                  <tr key={month.month} className="border-b border-divider">
                     <th scope="row" className="py-2 pr-4 font-medium">
                       <time dateTime={month.month}>
                         {formatMonth(month.month, locale)}

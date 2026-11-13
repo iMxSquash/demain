@@ -36,7 +36,7 @@ export default async function AllBalanceAssertionsPage() {
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>
-      <h1 className="text-2xl font-semibold">{t("allTitle")}</h1>
+      <h1 className="text-heading font-medium">{t("allTitle")}</h1>
       <p>{t("allIntro")}</p>
       <p>
         <Link href="/balances/summary" className="underline">
@@ -45,7 +45,7 @@ export default async function AllBalanceAssertionsPage() {
       </p>
 
       <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-        <h2 id="new-heading" className="text-xl font-semibold">
+        <h2 id="new-heading" className="text-title font-medium">
           {t("addHeading")}
         </h2>
         {activeAccounts.length === 0 ? (
@@ -69,7 +69,7 @@ export default async function AllBalanceAssertionsPage() {
       </section>
 
       <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-xl font-semibold">
+        <h2 id="list-heading" className="text-title font-medium">
           {t("listHeading")}
         </h2>
         {assertions.length === 0 ? (

@@ -63,7 +63,7 @@ export default async function EditTransactionPage({
       <Link href="/transactions" className="self-start underline">
         {t("backToTransactions")}
       </Link>
-      <h1 className="text-2xl font-semibold">
+      <h1 className="text-heading font-medium">
         {t("editTitle", { label: transaction.label })}
       </h1>
       <TransactionForm
