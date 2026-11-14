@@ -363,9 +363,10 @@ Each record follows the same structure: context, decision, alternatives rejected
 **Alternatives rejected.**
 
 - *Hand-drawn icons.* Each icon had to be drawn and kept consistent, and the navigation ones were still missing (DECISIONS.md, v0.6). One maintained set removes that work.
-- *Other icon libraries.* [owner to complete]
+- *A smaller or stroke-based set (Heroicons, Radix Icons, Lucide).* The identity already names about forty icons, among them a basket, a bus, a ticket, coins, scales, a funnel and an archive box. All of them exist in Phosphor Regular, and a smaller set would bring back the problem of drawing the missing ones by hand. Stroke-based sets draw lines whose width is set by the code, while Phosphor Regular is a filled outline with round ends whose 1.25 px weight at 20 px was judged on `components.html` (DECISIONS.md, v0.6).
+- *An icon font or a variable symbol font (Material Symbols).* It adds a font file to load and a flash before it arrives, and it cannot be drawn in the HTML sent by the server as an inline SVG with an accessible name.
 
-**Consequences.** One runtime dependency. Components import icons from `@phosphor-icons/react/ssr`, never from the package root, which relies on a React context and is meant for client components. Only the `Icon` type is imported from the root, as a type-only import that is erased at build time. A new icon is picked from Phosphor Regular and added to the table of DESIGN.md, section 7. Importing a named icon keeps the bundle to the icons in use.
+**Consequences.** One runtime dependency. Components import icons from `@phosphor-icons/react/ssr`, never from the package root, which relies on a React context and is meant for client components. Only the `Icon` type is imported from the root, as a type-only import that is erased at build time. A new icon is picked from Phosphor Regular and added to the table of DESIGN.md, section 7. The package declares `sideEffects: false` and one module per icon, so importing a named icon keeps the bundle to the icons in use, out of about 1,500. Its MIT license is compatible with the AGPL-3.0 of the repository.
 
 ## Tooling
 
