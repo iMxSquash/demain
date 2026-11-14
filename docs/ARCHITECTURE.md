@@ -354,6 +354,20 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** One runtime dependency, with its features split out of the initial bundle. A component using Motion must import `m` from `motion/react`, take its values from `useMotion`, and never set an initial state for content that is in the server HTML. Reduced motion is handled in `motion.ts` for Motion and in `tokens.css` for CSS, and the two are kept in step by tests. The `domAnimation` set must be replaced by `domMax` before any layout animation or drag is used.
 
+### ADR-021: Icons come from Phosphor Regular through one server-safe component
+
+**Context.** The identity needs icons for navigation, categories, money direction and states (DESIGN.md, Icons). Until 12 Nov 2026 they were hand-drawn line icons, and the navigation ones were missing. The owner decided on 12 Nov 2026 (DECISIONS.md, v0.6) to use one maintained set rather than drawing each icon. Most screens are server components, and the page is served under a content security policy whose `style-src` carries a nonce only, so an icon must not depend on an inline style or on client code.
+
+**Decision.** `@phosphor-icons/react` is added (exact version, no range), Regular weight only. `src/components/icon.tsx` is the single way to draw one: it takes a Phosphor icon imported from `@phosphor-icons/react/ssr` and an optional `label`, and renders it at 20 px (the `--icon-size` token) in `currentColor`. Without a label the icon is decorative and gets `aria-hidden="true"`; with a label it gets `role="img"` and an `aria-label`. The `ssr` entry point renders an SVG with a `fill` attribute and no `style` attribute, and needs no client component. A test renders one icon on the server and checks the attributes.
+
+**Alternatives rejected.**
+
+- *Hand-drawn icons.* Each icon had to be drawn and kept consistent, and the navigation ones were still missing (DECISIONS.md, v0.6). One maintained set removes that work.
+- *A smaller or stroke-based set (Heroicons, Radix Icons, Lucide).* The identity already names about forty icons, among them a basket, a bus, a ticket, coins, scales, a funnel and an archive box. All of them exist in Phosphor Regular, and a smaller set would bring back the problem of drawing the missing ones by hand. Stroke-based sets draw lines whose width is set by the code, while Phosphor Regular is a filled outline with round ends whose 1.25 px weight at 20 px was judged on `components.html` (DECISIONS.md, v0.6).
+- *An icon font or a variable symbol font (Material Symbols).* It adds a font file to load and a flash before it arrives, and it cannot be drawn in the HTML sent by the server as an inline SVG with an accessible name.
+
+**Consequences.** One runtime dependency. Components import icons from `@phosphor-icons/react/ssr`, never from the package root, which relies on a React context and is meant for client components. Only the `Icon` type is imported from the root, as a type-only import that is erased at build time. A new icon is picked from Phosphor Regular and added to the table of DESIGN.md, section 7. The package declares `sideEffects: false` and one module per icon, so importing a named icon keeps the bundle to the icons in use, out of about 1,500. Its MIT license is compatible with the AGPL-3.0 of the repository.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.
@@ -371,6 +385,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | Image registry | GitHub Container Registry | See ADR-004. |
 | Charting | Hand-written SVG components with `d3-scale` and `d3-shape` | See ADR-012. |
 | Motion | `motion` behind `LazyMotion`, CSS for server-rendered content | See ADR-020. |
+| Icons | Phosphor Regular through `@phosphor-icons/react`, one `Icon` component | See ADR-021. |
 
 ## Deployment
 

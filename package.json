@@ -19,6 +19,7 @@
     "auth:reset-password": "node scripts/reset-password.ts"
   },
   "dependencies": {
+    "@phosphor-icons/react": "2.1.10",
     "@tailwindcss/postcss": "^4.3.3",
     "better-sqlite3": "^13.0.3",
     "d3-scale": "^4.0.2",

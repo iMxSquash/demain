@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Icons: the `@phosphor-icons/react` package (pinned) and a server-safe `Icon` component that draws a Phosphor Regular icon at 20 px in `currentColor`, hidden from assistive technology unless it has a label. No screen uses it yet. See ADR-021.
 - Motion foundation: the `motion` library (pinned) behind a `LazyMotion` provider with the `domAnimation` feature set, and `src/app/motion.ts`, which mirrors the motion tokens and returns 0 for every duration and offset under reduced motion, fades included. No component uses it yet. See ADR-020.
 - README section pointing to Actual Budget and Firefly III as more mature alternatives for users who do not need simulations.
 - CodeQL analysis workflow for JavaScript and TypeScript, run on pull requests and pushes to `main` and every week.
