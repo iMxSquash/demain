@@ -339,6 +339,21 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** Reading the vocabulary costs one query on the imported rows per file staged. An expense word learned from the history only matters for an incoming amount, which is then flagged to confirm in text. Removing a fixed or learned word is recorded as a removal, so it stays removed until restored from the same screen, even if the history would teach it again. The history of labels (`LabelHistory`) remains an input that nothing fills yet.
 
+### ADR-020: Motion uses the `motion` library behind `LazyMotion`, CSS for everything the server renders
+
+**Context.** The identity asks for motion on a change the user caused (DESIGN.md, Motion): layers that open and leave, the steps of the add-transaction flow, the drawn trajectory line, pages. Exits need the element to stay in the DOM until its motion ends. The page is server-rendered under a content security policy whose `style-src` carries a nonce only, so a style attribute from the server is blocked: content in the HTML cannot start from a hidden state set inline. Under reduced motion every duration and offset must be 0, fades included.
+
+**Decision.** `motion` is added (exact version, no range) and used only for what the browser mounts after the page is shown. `MotionProvider` (a client component mounted in the root layout, which stays a server component) wraps the app in `LazyMotion` with the `domAnimation` feature set, loaded on demand, in `strict` mode so components use `m` and never the full `motion` component. `domAnimation` covers animate, exit through `AnimatePresence`, variants and the hover, tap and focus gestures, which is what the planned uses need; layout animation and drag (`domMax`) are not used. Content rendered by the server enters with a CSS animation from the stylesheet, and any Motion component rendered on the server takes `initial={false}`. `src/app/motion.ts` mirrors the motion tokens of `tokens.css` and returns 0 for every duration and offset under reduced motion; components read the values through `useMotion`, never from the constants. A test keeps the constants equal to the tokens.
+
+**Alternatives rejected.**
+
+- *CSS only.* Transitions and keyframes cover states, the segmented control and the entrance of server-rendered content, but an exit needs the element to remain until the motion ends, and a flow step must leave and arrive at once with a direction. That means a state machine and `animationend` handling in every component, each one a place to get focus and reduced motion wrong.
+- *View Transitions.* To be confirmed by the owner: the design document does not state why they were set aside. The reason recorded here is that they animate a snapshot of the whole page or of named elements, not a layer that mounts and unmounts inside a component with focus and reduced motion handled in the same place, and that Next.js support for them sits behind an experimental flag. A change that needs them can revisit this decision.
+- *`MotionConfig reducedMotion="user"` as the only guard.* It removes transforms but keeps opacity animations, so fades would still play, against the owner's rule that reduced motion is off and not softened.
+- *The full `motion` component without `LazyMotion`.* It ships every feature in the initial bundle for features that are not used.
+
+**Consequences.** One runtime dependency, with its features split out of the initial bundle. A component using Motion must import `m` from `motion/react`, take its values from `useMotion`, and never set an initial state for content that is in the server HTML. Reduced motion is handled in `motion.ts` for Motion and in `tokens.css` for CSS, and the two are kept in step by tests. The `domAnimation` set must be replaced by `domMax` before any layout animation or drag is used.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.
@@ -355,6 +370,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | Reverse proxy | Caddy (documented) | See ADR-006. |
 | Image registry | GitHub Container Registry | See ADR-004. |
 | Charting | Hand-written SVG components with `d3-scale` and `d3-shape` | See ADR-012. |
+| Motion | `motion` behind `LazyMotion`, CSS for server-rendered content | See ADR-020. |
 
 ## Deployment
 

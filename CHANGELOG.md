@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Motion foundation: the `motion` library (pinned) behind a `LazyMotion` provider with the `domAnimation` feature set, and `src/app/motion.ts`, which mirrors the motion tokens and returns 0 for every duration and offset under reduced motion, fades included. No component uses it yet. See ADR-020.
 - README section pointing to Actual Budget and Firefly III as more mature alternatives for users who do not need simulations.
 - CodeQL analysis workflow for JavaScript and TypeScript, run on pull requests and pushes to `main` and every week.
 - Code of conduct: the Contributor Covenant 2.1, with `contact@elwen.dev` as the address for reports.
