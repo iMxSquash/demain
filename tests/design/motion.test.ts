@@ -14,11 +14,8 @@ function readToken(name: string): string {
   return value.trim();
 }
 
-function readMilliseconds(name: string): number {
-  return Number.parseFloat(readToken(name));
-}
-
-function readPixels(name: string): number {
+// Reads the leading number of a token: 120ms gives 120, 8px gives 8.
+function readNumber(name: string): number {
   return Number.parseFloat(readToken(name));
 }
 
@@ -32,11 +29,11 @@ function readBezier(name: string): number[] {
 describe("motion values", () => {
   it("mirror the duration tokens of tokens.css, in seconds", () => {
     expect(MOTION.duration).toEqual({
-      state: readMilliseconds("motion-duration-state") / MS_PER_SECOND,
-      exit: readMilliseconds("motion-duration-exit") / MS_PER_SECOND,
-      enter: readMilliseconds("motion-duration-enter") / MS_PER_SECOND,
-      step: readMilliseconds("motion-duration-step") / MS_PER_SECOND,
-      draw: readMilliseconds("motion-duration-draw") / MS_PER_SECOND,
+      state: readNumber("motion-duration-state") / MS_PER_SECOND,
+      exit: readNumber("motion-duration-exit") / MS_PER_SECOND,
+      enter: readNumber("motion-duration-enter") / MS_PER_SECOND,
+      step: readNumber("motion-duration-step") / MS_PER_SECOND,
+      draw: readNumber("motion-duration-draw") / MS_PER_SECOND,
     });
   });
 
@@ -50,8 +47,8 @@ describe("motion values", () => {
 
   it("mirror the offset tokens of tokens.css, in pixels", () => {
     expect(MOTION.offset).toEqual({
-      rise: readPixels("motion-offset"),
-      step: readPixels("motion-offset-step"),
+      rise: readNumber("motion-offset"),
+      step: readNumber("motion-offset-step"),
     });
   });
 
