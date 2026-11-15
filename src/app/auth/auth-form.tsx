@@ -1,7 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import type { AuthFormAction } from "./auth-form-data";
 
@@ -26,6 +28,7 @@ interface AuthFormProps {
  * the refusal in a toast.
  */
 export function AuthForm({ action, fields, submitLabel, hidden = {} }: AuthFormProps) {
+  const common = useTranslations("common");
   const [, formAction, isPending] = useActionState(action, null);
 
   return (
@@ -51,13 +54,14 @@ export function AuthForm({ action, fields, submitLabel, hidden = {} }: AuthFormP
         </FormField>
       ))}
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
       >
         {submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

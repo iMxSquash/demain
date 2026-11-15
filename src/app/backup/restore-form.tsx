@@ -7,9 +7,6 @@ import { ConfirmActionButton } from "../confirm-action-button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { restoreSnapshotAction } from "./actions";
 
-const RESTORE_BUTTON_CLASS =
-  "min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover";
-
 export function RestoreForm() {
   const t = useTranslations("backup");
   const [, formAction] = useActionState(restoreSnapshotAction, null);
@@ -52,7 +49,8 @@ export function RestoreForm() {
         title={t("restoreConfirmTitle")}
         message={t("restoreConfirmMessage")}
         confirmLabel={t("restoreConfirm")}
-        buttonClassName={RESTORE_BUTTON_CLASS}
+        variant="primary"
+        className="self-start"
       />
     </form>
   );

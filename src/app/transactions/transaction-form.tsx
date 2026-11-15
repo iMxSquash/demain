@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { ENTERED_TRANSACTION_KINDS, PAYMENT_MODES } from "../../domain/transaction";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
@@ -158,13 +159,14 @@ export function TransactionForm({
         </select>
       </FormField>
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
       >
         {submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

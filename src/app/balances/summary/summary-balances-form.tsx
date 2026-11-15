@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useState, useTransition, type FormEvent } from "react";
 
+import { Button } from "../../../components/button";
 import {
-  BUTTON_CLASS,
   CONTROL_CLASS,
   FormField,
 } from "../../form-field";
@@ -270,25 +270,27 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <button
+        <Button
           type="submit"
+          variant="secondary"
           name="intent"
           value="preview"
-          disabled={isPending || isDone}
-          className={BUTTON_CLASS}
+          disabled={isDone}
+          pending={isPending}
+          pendingLabel={t("previewSubmitPending")}
         >
           {t("previewSubmit")}
-        </button>
+        </Button>
         {state?.canCommit === true && !isDone ? (
-          <button
+          <Button
             type="submit"
             name="intent"
             value="commit"
-            disabled={isPending}
-            className={BUTTON_CLASS}
+            pending={isPending}
+            pendingLabel={t("commitSubmitPending")}
           >
             {t("commitSubmit")}
-          </button>
+          </Button>
         ) : null}
       </div>
     </form>

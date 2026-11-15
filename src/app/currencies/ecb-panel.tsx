@@ -3,14 +3,13 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
+
 interface EcbPanelProps {
   isEnabled: boolean;
   setEnabled: (enabled: boolean) => Promise<void>;
   fetchRates: () => Promise<void>;
 }
-
-const BUTTON_CLASS =
-  "min-h-11 self-start rounded-pill border border-border-control px-4 font-medium disabled:opacity-60";
 
 export function EcbPanel({ isEnabled, setEnabled, fetchRates }: EcbPanelProps) {
   const t = useTranslations("currencies");
@@ -25,16 +24,22 @@ export function EcbPanel({ isEnabled, setEnabled, fetchRates }: EcbPanelProps) {
       <p>{isEnabled ? t("ecbEnabled") : t("ecbDisabled")}</p>
 
       <form action={setEnabled.bind(null, !isEnabled)}>
-        <button type="submit" className={BUTTON_CLASS}>
+        <Button type="submit" variant="secondary" className="self-start">
           {isEnabled ? t("ecbDisable") : t("ecbEnable")}
-        </button>
+        </Button>
       </form>
 
       {isEnabled ? (
         <form action={fetchAction} className="flex flex-col gap-2">
-          <button type="submit" disabled={isPending} className={BUTTON_CLASS}>
+          <Button
+            type="submit"
+            variant="secondary"
+            pending={isPending}
+            pendingLabel={t("ecbFetchPending")}
+            className="self-start"
+          >
             {t("ecbFetch")}
-          </button>
+          </Button>
         </form>
       ) : null}
     </div>

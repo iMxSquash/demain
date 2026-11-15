@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 
+import { Button } from "../../components/button";
 import { useNotify } from "../feedback/toast-provider";
 import { CONTROL_CLASS, FormField } from "../form-field";
 
@@ -87,13 +88,14 @@ export function DownloadForm({
           className={CONTROL_CLASS}
         />
       </FormField>
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={t("working")}
+        className="self-start"
       >
         {submitLabel}
-      </button>
+      </Button>
       <p role="status">{isPending ? t("working") : null}</p>
     </form>
   );

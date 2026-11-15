@@ -6,6 +6,7 @@
     "cancel": "Cancel",
     "none": "None",
     "saveChanges": "Save changes",
+    "pending": "Working…",
     "archive": "Archive",
     "skipToContent": "Skip to content",
     "actions": "Actions",
@@ -110,6 +111,7 @@
     "regionLabel": "Balance assertions, scrollable table",
     "caption": "Balances recorded for {name}, most recent first",
     "submit": "Record balance",
+    "submitPending": "Recording…",
     "form": {
       "date": "Date (end of day)",
       "amount": "Balance shown by the bank",
@@ -157,7 +159,9 @@
     "yearLabel": "Year of the months (optional)",
     "yearHint": "Only needed when the months are written without a year. Leave empty if the file gives it.",
     "previewSubmit": "Preview",
+    "previewSubmitPending": "Reading…",
     "commitSubmit": "Record the balances",
+    "commitSubmitPending": "Recording…",
     "replaceWarning": "A day that already has a balance check is replaced by the amount of the Summary.",
     "noteHeading": "To read",
     "balancesHeading": "Balance checks",
@@ -307,6 +311,7 @@
       "amount": "Amount",
       "label": "Label",
       "submit": "Record transfer",
+      "submitPending": "Recording…",
       "surplusLegend": "Amount above the ceiling",
       "surplusIntro": "{deposited} fits under the ceiling of the destination account, {surplus} does not. Choose what to do with the surplus.",
       "surplusAccount": "Account that receives the surplus",
@@ -339,6 +344,7 @@
     "categoryFor": "Category for {transaction}",
     "choose": "Choose a category",
     "categorize": "Categorize",
+    "categorizePending": "Categorizing…",
     "columns": {
       "date": "Date",
       "account": "Account",
@@ -357,6 +363,7 @@
     "empty": "No rule yet. Add one below, or tick the rule option when you categorize a transaction.",
     "addHeading": "Add a rule",
     "addSubmit": "Add rule",
+    "addSubmitPending": "Adding…",
     "operator": "Condition",
     "operators": {
       "contains": "Label contains",
@@ -418,7 +425,8 @@
       "word": "Word",
       "wordHint": "One word, without spaces, 40 characters at most. Accents and capitals do not matter. Adding a word that already exists changes its type.",
       "type": "Type",
-      "addSubmit": "Save the word"
+      "addSubmit": "Save the word",
+      "addSubmitPending": "Saving…"
     }
   },
   "synthesis": {
@@ -445,6 +453,7 @@
     "referenceIntro": "Totals and the monthly synthesis are expressed in this currency. Accounts in another currency are converted with the exchange rates below.",
     "referenceLabel": "Reference currency (ISO 4217 code, for example EUR)",
     "referenceSubmit": "Save reference currency",
+    "referenceSubmitPending": "Saving…",
     "ratesHeading": "Exchange rates",
     "ratesIntro": "One unit of the base currency is worth the rate in the quote currency. A rate applies from its date until a more recent one is entered, in either direction of the pair. A currency without a rate is left out of the figures that need one, and reported.",
     "addRateHeading": "Enter a rate",
@@ -453,6 +462,7 @@
     "regionLabel": "Exchange rates, scrollable table",
     "caption": "Recorded exchange rates, by currency pair then date",
     "rateSubmit": "Save rate",
+    "rateSubmitPending": "Saving…",
     "form": {
       "date": "Date of validity",
       "base": "Base currency (for example EUR)",
@@ -478,7 +488,8 @@
     "ecbDisabled": "ECB fetch is disabled.",
     "ecbEnable": "Enable ECB fetch",
     "ecbDisable": "Disable ECB fetch",
-    "ecbFetch": "Fetch the ECB rates now"
+    "ecbFetch": "Fetch the ECB rates now",
+    "ecbFetchPending": "Fetching…"
   },
   "imports": {
     "metaTitle": "Import | Demain",
@@ -489,7 +500,9 @@
     "noAccount": "No active account yet. Add an account before importing.",
     "fileLabel": "Files (CSV or OFX, 20 MB each at most)",
     "previewSubmit": "Preview",
+    "previewSubmitPending": "Reading…",
     "importSubmit": "Import",
+    "importSubmitPending": "Importing…",
     "mappingHeading": "CSV columns",
     "mappingHint": "Columns are numbered from 1, left to right. The mapping is remembered for the next import on this account.",
     "rawHeading": "First rows of the file",
@@ -612,6 +625,7 @@
         "empty": "No rule to suggest: every categorized row of this file is already covered by a rule.",
         "noCategorizedRow": "No rule to suggest: no row of this file has a category yet. Categorize some, then come back.",
         "submit": "Create the selected rules",
+        "submitPending": "Creating…",
         "saving": "Creating the rules.",
         "noneSelected": "No rule is selected: nothing was created.",
         "nothingCreated": "None of the selected rules could be created: they may already exist.",
@@ -975,6 +989,7 @@
       "secretLabel": "Or type this key in the app:",
       "code": "Code from the app",
       "enable": "Turn on",
+      "enablePending": "Turning on…",
       "backupHeading": "Your backup codes",
       "backupIntro": "Keep these codes somewhere safe. Each one works once if you lose your authenticator. They are not shown again.",
       "disableHeading": "Turn off",

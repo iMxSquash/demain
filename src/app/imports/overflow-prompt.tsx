@@ -3,9 +3,10 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useRef, useState, type FormEvent } from "react";
 
+import { Button } from "../../components/button";
 import { overflowTargetChoices, type OverflowDemand, type OverflowTarget } from "../../domain/import-overflow";
 import { formatAmount } from "../../domain/money";
-import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { CONTROL_CLASS } from "../form-field";
 import type { ImportAccountOption } from "./import-form-data";
 
 interface DemandCardProps {
@@ -128,9 +129,9 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
         </p>
         {selectError.errorParagraph}
       </div>
-      <button type="button" disabled={isBusy} onClick={choose} className={`${BUTTON_CLASS} self-start`}>
+      <Button type="button" variant="secondary" pending={isBusy} onClick={choose} className="self-start">
         {t("choose")}
-      </button>
+      </Button>
       <form onSubmit={create} className="flex flex-col gap-2">
         <fieldset className="flex flex-col gap-2">
           <legend className="font-medium">{t("createLegend")}</legend>
@@ -151,9 +152,9 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
             {t("createHint", { currency })}
           </p>
           {nameError.errorParagraph}
-          <button type="submit" disabled={isBusy} className={`${BUTTON_CLASS} self-start`}>
+          <Button type="submit" variant="secondary" pending={isBusy} className="self-start">
             {t("create")}
-          </button>
+          </Button>
         </fieldset>
       </form>
     </section>

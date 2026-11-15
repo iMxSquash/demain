@@ -5,12 +5,12 @@ import Link from "next/link";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { Button } from "../../components/button";
 import type { AssertionLinks } from "../../domain/import-assertions";
 import type { RowDetails } from "../../domain/import-draft";
 import { isPendingAccount, pendingAccountName, type PendingOverflow } from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
 import type { AccountRef } from "../../domain/overflow";
-import { BUTTON_CLASS } from "../form-field";
 import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
 import { columnChoicesOf } from "./reread-file";
 import { describeSplit } from "./review-text";
@@ -366,16 +366,16 @@ export function FileCard({
                 {t("rereadFailed", { name: file.fileName, message: file.rereadError })}
               </p>
               {columns === null ? null : (
-                <button
+                <Button
                   ref={rereadButtonRef}
                   type="button"
+                  variant="secondary"
                   disabled={isLocked}
                   aria-describedby={rereadErrorId}
                   onClick={() => rereadFileAgain(columns)}
-                  className={BUTTON_CLASS}
                 >
                   {t("rereadFile")}
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -429,25 +429,24 @@ export function FileCard({
             <p id={waitId}>{t("importAfter", { name: waitFor })}</p>
           )}
           <div className="flex flex-wrap gap-3">
-            <button
+            <Button
               type="button"
               onClick={importFile}
               disabled={!canImport}
               aria-describedby={describedBy}
-              className={BUTTON_CLASS}
             >
               {t("importFile")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               onClick={() =>
                 dispatch({ type: "setPhase", file: fileIndex, phase: "cancelled" })
               }
               disabled={phase === "importing" || isReading}
-              className={BUTTON_CLASS}
             >
               {t("cancelFile")}
-            </button>
+            </Button>
           </div>
         </>
       ) : null}

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState, type ReactNode } from "react";
 
+import { Button, type ButtonVariant } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { AccountOption } from "./transaction-form";
@@ -27,9 +28,6 @@ interface TransferFormProps {
 // The transaction form sits on the same page and shares field names: the DOM
 // ids must stay unique for the labels to point at the right control.
 const fieldId = (field: TransferFormField) => `transfer-${field}`;
-
-const BUTTON_CLASS =
-  "min-h-11 rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60";
 
 export function TransferForm({ action, initialValues, accounts }: TransferFormProps) {
   const t = useTranslations("transactions.transferForm");
@@ -135,13 +133,14 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
           }
         />
       ) : (
-        <button
+        <Button
           type="submit"
-          disabled={isPending}
-          className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+          pending={isPending}
+          pendingLabel={t("submitPending")}
+          className="self-start"
         >
           {t("submit")}
-        </button>
+        </Button>
       )}
     </form>
   );
@@ -160,16 +159,11 @@ function SurplusChoiceFields({
   surplusField,
 }: SurplusChoiceFieldsProps) {
   const t = useTranslations("transactions.transferForm");
-  const decisionButton = (value: string, label: string) => (
-    <button
-      type="submit"
-      name="decision"
-      value={value}
-      disabled={isPending}
-      className={BUTTON_CLASS}
-    >
+  // Which of the three was pressed is not known here, so none changes its label while pending.
+  const decisionButton = (value: string, label: string, variant: ButtonVariant) => (
+    <Button type="submit" name="decision" value={value} variant={variant} pending={isPending}>
       {label}
-    </button>
+    </Button>
   );
 
   return (
@@ -186,12 +180,14 @@ function SurplusChoiceFields({
         {decisionButton(
           TRANSFER_DECISION.roomOnly,
           t("roomOnly", { deposited: choice.depositedText }),
+          "primary",
         )}
         {decisionButton(
           TRANSFER_DECISION.sendSurplus,
           t("sendSurplus"),
+          "secondary",
         )}
-        {decisionButton(TRANSFER_DECISION.cancel, t("cancel"))}
+        {decisionButton(TRANSFER_DECISION.cancel, t("cancel"), "secondary")}
       </div>
     </fieldset>
   );

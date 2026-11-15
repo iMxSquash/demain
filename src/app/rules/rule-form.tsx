@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { RULE_OPERATORS } from "../../domain/categorization-rule";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
@@ -98,13 +99,14 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
         </select>
       </FormField>
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={t("addSubmitPending")}
+        className="self-start"
       >
         {t("addSubmit")}
-      </button>
+      </Button>
     </form>
   );
 }

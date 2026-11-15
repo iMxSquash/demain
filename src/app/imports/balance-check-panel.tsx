@@ -3,7 +3,8 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 
-import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { Button } from "../../components/button";
+import { CONTROL_CLASS } from "../form-field";
 import { formatCalendarDate } from "../../i18n/dates";
 import {
   checkBatchBalanceAction,
@@ -78,19 +79,20 @@ export function BalanceCheckPanel({
           aria-describedby={isError ? `${hintId} ${resultId}` : hintId}
           className={`${CONTROL_CLASS} max-w-xs`}
         />
-        <button type="submit" disabled={isPending} className={BUTTON_CLASS}>
+        <Button type="submit" variant="secondary" pending={isPending}>
           {t("submit")}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          disabled={isPending || text.trim() === ""}
+          variant="secondary"
+          disabled={text.trim() === ""}
+          pending={isPending}
           onClick={() =>
             run(recordBatchBalanceAssertionAction, "recording", "recordFailed")
           }
-          className={BUTTON_CLASS}
         >
           {t("record")}
-        </button>
+        </Button>
       </form>
       <div role="status">
         {isPending ? <p>{t(pendingKey)}</p> : null}

@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { Button } from "../../components/button";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listRules } from "../../ledger/categorization-rules";
@@ -92,22 +93,14 @@ export default async function RulesPage() {
                     <td className="py-2">
                       <div className="flex gap-2">
                         <form action={moveRuleAction.bind(null, rule.id, "up")}>
-                          <button
-                            type="submit"
-                            disabled={index === 0}
-                            className="min-h-11 px-2 underline disabled:opacity-60"
-                          >
+                          <Button type="submit" variant="link" disabled={index === 0}>
                             {t("moveUp")}<span className="sr-only"> {subject}</span>
-                          </button>
+                          </Button>
                         </form>
                         <form action={moveRuleAction.bind(null, rule.id, "down")}>
-                          <button
-                            type="submit"
-                            disabled={index === rules.length - 1}
-                            className="min-h-11 px-2 underline disabled:opacity-60"
-                          >
+                          <Button type="submit" variant="link" disabled={index === rules.length - 1}>
                             {t("moveDown")}<span className="sr-only"> {subject}</span>
-                          </button>
+                          </Button>
                         </form>
                         <ConfirmActionButton
                           action={deleteRuleAction.bind(null, rule.id)}

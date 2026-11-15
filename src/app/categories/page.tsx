@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { Button } from "../../components/button";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
@@ -111,10 +112,10 @@ export default async function CategoriesPage() {
               >
                 <span className="font-medium">{category.name}</span>
                 <form action={reactivateCategoryAction.bind(null, category.id)}>
-                  <button type="submit" className="min-h-11 px-2 underline">
+                  <Button type="submit" variant="link">
                     {t("reactivate")}
                     <span className="sr-only"> {category.name}</span>
-                  </button>
+                  </Button>
                 </form>
               </li>
             ))}

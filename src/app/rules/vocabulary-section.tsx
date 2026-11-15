@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { Button } from "../../components/button";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { VocabularyOverview } from "../../ledger/type-vocabulary";
 import { CONTROL_CLASS } from "../form-field";
@@ -68,14 +69,14 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
                           </option>
                         ))}
                       </select>
-                      <button type="submit" className="min-h-11 min-w-11 px-2 underline">
+                      <Button type="submit" variant="link">
                         {t("change")}<span className="sr-only"> {word}</span>
-                      </button>
+                      </Button>
                     </form>
                     <form action={removeVocabularyWordAction.bind(null, word)}>
-                      <button type="submit" className="min-h-11 min-w-11 px-2 underline">
+                      <Button type="submit" variant="link">
                         {t("remove")}<span className="sr-only"> {word}</span>
-                      </button>
+                      </Button>
                     </form>
                   </div>
                 </td>
@@ -96,9 +97,9 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
               <li key={word} className="flex items-center gap-2">
                 <span className="font-medium">{word}</span>
                 <form action={restoreVocabularyWordAction.bind(null, word)}>
-                  <button type="submit" className="min-h-11 min-w-11 px-2 underline">
+                  <Button type="submit" variant="link">
                     {t("restore")}<span className="sr-only"> {word}</span>
-                  </button>
+                  </Button>
                 </form>
               </li>
             ))}

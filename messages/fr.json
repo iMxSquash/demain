@@ -6,6 +6,7 @@
     "cancel": "Annuler",
     "none": "Aucun",
     "saveChanges": "Enregistrer les modifications",
+    "pending": "En cours…",
     "archive": "Archiver",
     "skipToContent": "Aller au contenu",
     "actions": "Actions",
@@ -110,6 +111,7 @@
     "regionLabel": "Soldes constatés, tableau défilable",
     "caption": "Soldes enregistrés pour {name}, du plus récent au plus ancien",
     "submit": "Enregistrer le solde",
+    "submitPending": "Enregistrement…",
     "form": {
       "date": "Date (fin de journée)",
       "amount": "Solde affiché par la banque",
@@ -157,7 +159,9 @@
     "yearLabel": "Année des mois (facultatif)",
     "yearHint": "Utile seulement quand les mois sont écrits sans année. Laissez vide si le fichier la donne.",
     "previewSubmit": "Aperçu",
+    "previewSubmitPending": "Lecture…",
     "commitSubmit": "Enregistrer les soldes",
+    "commitSubmitPending": "Enregistrement…",
     "replaceWarning": "Un jour qui a déjà un solde constaté est remplacé par le montant du Summary.",
     "noteHeading": "À lire",
     "balancesHeading": "Soldes constatés",
@@ -307,6 +311,7 @@
       "amount": "Montant",
       "label": "Libellé",
       "submit": "Enregistrer le virement",
+      "submitPending": "Enregistrement…",
       "surplusLegend": "Montant au-dessus du plafond",
       "surplusIntro": "{deposited} tient sous le plafond du compte de destination, {surplus} n'y tient pas. Choisissez ce qu'il faut faire du surplus.",
       "surplusAccount": "Compte qui reçoit le surplus",
@@ -339,6 +344,7 @@
     "categoryFor": "Catégorie pour {transaction}",
     "choose": "Choisir une catégorie",
     "categorize": "Catégoriser",
+    "categorizePending": "Catégorisation…",
     "columns": {
       "date": "Date",
       "account": "Compte",
@@ -357,6 +363,7 @@
     "empty": "Aucune règle pour l'instant. Ajoutez-en une ci-dessous, ou cochez l'option de règle en catégorisant une transaction.",
     "addHeading": "Ajouter une règle",
     "addSubmit": "Ajouter la règle",
+    "addSubmitPending": "Ajout…",
     "operator": "Condition",
     "operators": {
       "contains": "Le libellé contient",
@@ -418,7 +425,8 @@
       "word": "Mot",
       "wordHint": "Un seul mot, sans espace, 40 caractères au plus. Les accents et les majuscules ne comptent pas. Ajouter un mot qui existe déjà change son type.",
       "type": "Type",
-      "addSubmit": "Enregistrer le mot"
+      "addSubmit": "Enregistrer le mot",
+      "addSubmitPending": "Enregistrement…"
     }
   },
   "synthesis": {
@@ -445,6 +453,7 @@
     "referenceIntro": "Les totaux et la synthèse mensuelle sont exprimés dans cette devise. Les comptes dans une autre devise sont convertis avec les taux ci-dessous.",
     "referenceLabel": "Devise de référence (code ISO 4217, par exemple EUR)",
     "referenceSubmit": "Enregistrer la devise de référence",
+    "referenceSubmitPending": "Enregistrement…",
     "ratesHeading": "Taux de change",
     "ratesIntro": "Une unité de la devise de base vaut le taux dans la devise cotée. Un taux s'applique à partir de sa date jusqu'à ce qu'un plus récent soit saisi, dans les deux sens de la paire. Une devise sans taux est écartée des chiffres qui en ont besoin, et signalée.",
     "addRateHeading": "Saisir un taux",
@@ -453,6 +462,7 @@
     "regionLabel": "Taux de change, tableau défilant",
     "caption": "Taux de change enregistrés, par paire de devises puis par date",
     "rateSubmit": "Enregistrer le taux",
+    "rateSubmitPending": "Enregistrement…",
     "form": {
       "date": "Date de validité",
       "base": "Devise de base (par exemple EUR)",
@@ -478,7 +488,8 @@
     "ecbDisabled": "La récupération des taux de la BCE est désactivée.",
     "ecbEnable": "Activer la récupération BCE",
     "ecbDisable": "Désactiver la récupération BCE",
-    "ecbFetch": "Récupérer les taux de la BCE maintenant"
+    "ecbFetch": "Récupérer les taux de la BCE maintenant",
+    "ecbFetchPending": "Récupération…"
   },
   "imports": {
     "metaTitle": "Import | Demain",
@@ -489,7 +500,9 @@
     "noAccount": "Aucun compte actif pour l'instant. Ajoutez un compte avant d'importer.",
     "fileLabel": "Fichiers (CSV ou OFX, 20 Mo au plus chacun)",
     "previewSubmit": "Prévisualiser",
+    "previewSubmitPending": "Lecture…",
     "importSubmit": "Importer",
+    "importSubmitPending": "Import en cours…",
     "mappingHeading": "Colonnes du CSV",
     "mappingHint": "Les colonnes sont numérotées à partir de 1, de gauche à droite. Le mappage est mémorisé pour le prochain import sur ce compte.",
     "rawHeading": "Premières lignes du fichier",
@@ -612,6 +625,7 @@
         "empty": "Aucune règle à suggérer : toutes les lignes catégorisées de ce fichier sont déjà couvertes par une règle.",
         "noCategorizedRow": "Aucune règle à suggérer : aucune ligne de ce fichier n'a encore de catégorie. Catégorisez-en quelques-unes, puis revenez.",
         "submit": "Créer les règles cochées",
+        "submitPending": "Création…",
         "saving": "Création des règles en cours.",
         "noneSelected": "Aucune règle n'est cochée : rien n'a été créé.",
         "nothingCreated": "Aucune des règles cochées n'a pu être créée : elles existent peut-être déjà.",
@@ -975,6 +989,7 @@
       "secretLabel": "Ou saisissez cette clé dans l'application :",
       "code": "Code de l'application",
       "enable": "Activer",
+      "enablePending": "Activation…",
       "backupHeading": "Vos codes de secours",
       "backupIntro": "Conservez ces codes en lieu sûr. Chacun fonctionne une fois si vous perdez votre application. Ils ne seront plus affichés.",
       "disableHeading": "Désactiver",
