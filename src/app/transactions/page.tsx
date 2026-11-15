@@ -9,6 +9,7 @@ import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
+import { DataTable, EmptyState, Pill } from "../../components/data-display";
 import { ConfirmActionButton } from "../confirm-action-button";
 import {
   createTransactionAction,
@@ -45,9 +46,9 @@ export default async function TransactionsPage() {
     categories.map((category) => [category.id, category.name]),
   );
   // A transfer never has a category, any other one waits in the queue without it.
-  const categoryLabel = (row: Transaction) => {
+  const categoryCell = (row: Transaction) => {
     if (row.kind === "transfer") return "";
-    if (row.categoryId === null) return t("toCategorize");
+    if (row.categoryId === null) return <Pill tone="warning">{t("toCategorize")}</Pill>;
     return categoryNameById.get(row.categoryId);
   };
   const today = todayIn(timeZone, new Date());
@@ -64,19 +65,27 @@ export default async function TransactionsPage() {
           {t("listHeading")}
         </h2>
         {rows.length === 0 ? (
-          <p>{t("empty")}</p>
+          <EmptyState
+            action={
+              active.length === 0
+                ? undefined
+                : { href: "#new-heading", label: t("emptyAction") }
+            }
+          >
+            {t("empty")}
+          </EmptyState>
         ) : (
-          <table className="w-full border-collapse text-left">
+          <DataTable caption={t("caption")}>
             <thead>
-              <tr className="border-b border-border-control">
-                <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.label")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.type")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.category")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.paymentMode")}</th>
-                <th scope="col" className="py-2 pr-4 text-right">{t("columns.amount")}</th>
-                <th scope="col" className="py-2">{common("actions")}</th>
+              <tr>
+                <th scope="col">{t("columns.date")}</th>
+                <th scope="col">{t("columns.account")}</th>
+                <th scope="col">{t("columns.label")}</th>
+                <th scope="col">{t("columns.type")}</th>
+                <th scope="col">{t("columns.category")}</th>
+                <th scope="col">{t("columns.paymentMode")}</th>
+                <th scope="col" className="text-right">{t("columns.amount")}</th>
+                <th scope="col">{common("actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -88,29 +97,29 @@ export default async function TransactionsPage() {
                   );
                 }
                 return (
-                  <tr key={row.id} className="border-b border-divider">
-                    <td className="py-2 pr-4 tabular-nums">
+                  <tr key={row.id}>
+                    <td className="tabular-nums">
                       <time dateTime={row.date}>
                         {formatCalendarDate(row.date, locale)}
                       </time>
                     </td>
-                    <td className="py-2 pr-4">{account.name}</td>
-                    <th scope="row" className="py-2 pr-4 font-medium">
+                    <td>{account.name}</td>
+                    <th scope="row">
                       {row.label}
                     </th>
-                    <td className="py-2 pr-4">{t(`kinds.${row.kind}`)}</td>
-                    <td className="py-2 pr-4">{categoryLabel(row)}</td>
-                    <td className="py-2 pr-4">
+                    <td>{t(`kinds.${row.kind}`)}</td>
+                    <td>{categoryCell(row)}</td>
+                    <td>
                       {row.paymentMode === null
                         ? ""
                         : t(`paymentModes.${row.paymentMode}`)}
                     </td>
-                    <td className="py-2 pr-4 text-right tabular-nums">
+                    <td className="text-right">
                       {formatAmount(row.amount, account.currency, locale)}
                     </td>
-                    <td className="py-2">
+                    <td>
                       {account.archived ? (
-                        <span>{t("archivedAccount")}</span>
+                        <Pill>{t("archivedAccount")}</Pill>
                       ) : (
                         <div className="flex gap-2">
                           {row.kind === "transfer" ? null : (
@@ -144,7 +153,7 @@ export default async function TransactionsPage() {
                 );
               })}
             </tbody>
-          </table>
+          </DataTable>
         )}
       </section>
 

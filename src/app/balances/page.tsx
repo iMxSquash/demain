@@ -3,6 +3,7 @@ import { getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { EmptyState } from "../../components/data-display";
 import { todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { listAllBalanceAssertions } from "../../ledger/balance-assertions";
@@ -73,7 +74,14 @@ export default async function AllBalanceAssertionsPage() {
           {t("listHeading")}
         </h2>
         {assertions.length === 0 ? (
-          <p>{t("allEmpty")}</p>
+          // Without an active account the page shows no form to point at.
+          activeAccounts.length === 0 ? (
+            <EmptyState>{t("allEmptyNoAccount")}</EmptyState>
+          ) : (
+            <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+              {t("allEmpty")}
+            </EmptyState>
+          )
         ) : (
           <BalanceAssertionsTable
             assertions={assertions}

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { Button } from "../../components/button";
+import { DataTable, Pill } from "../../components/data-display";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { VocabularyOverview } from "../../ledger/type-vocabulary";
 import { CONTROL_CLASS } from "../form-field";
@@ -31,60 +32,59 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
         <li>{t("origins.history")}: {t("originHelp.history")}</li>
       </ul>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <caption className="pb-2 text-left">{t("caption")}</caption>
-          <thead>
-            <tr className="border-b border-border-control">
-              <th scope="col" className="py-2 pr-4">{t("columns.word")}</th>
-              <th scope="col" className="py-2 pr-4">{t("columns.type")}</th>
-              <th scope="col" className="py-2 pr-4">{t("columns.origin")}</th>
-              <th scope="col" className="py-2">{t("columns.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {overview.words.map(({ word, type, origin }) => (
-              <tr key={word} className="border-b border-divider">
-                <th scope="row" className="py-2 pr-4 font-medium">{word}</th>
-                <td className="py-2 pr-4">{t(`types.${type}`)}</td>
-                <td className="py-2 pr-4">{t(`origins.${origin}`)}</td>
-                <td className="py-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <form
-                      action={changeVocabularyTypeAction.bind(null, word)}
-                      className="flex items-center gap-2"
+      <DataTable caption={t("caption")}>
+        <thead>
+          <tr>
+            <th scope="col">{t("columns.word")}</th>
+            <th scope="col">{t("columns.type")}</th>
+            <th scope="col">{t("columns.origin")}</th>
+            <th scope="col">{t("columns.actions")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {overview.words.map(({ word, type, origin }) => (
+            <tr key={word}>
+              <th scope="row">{word}</th>
+              <td>{t(`types.${type}`)}</td>
+              <td>
+                <Pill>{t(`origins.${origin}`)}</Pill>
+              </td>
+              <td>
+                <div className="flex flex-wrap items-center gap-2">
+                  <form
+                    action={changeVocabularyTypeAction.bind(null, word)}
+                    className="flex items-center gap-2"
+                  >
+                    <label htmlFor={`type-${word}`} className="sr-only">
+                      {t("changeTypeOf", { word })}
+                    </label>
+                    <select
+                      id={`type-${word}`}
+                      name="type"
+                      defaultValue={type}
+                      className={`${CONTROL_CLASS} w-auto`}
                     >
-                      <label htmlFor={`type-${word}`} className="sr-only">
-                        {t("changeTypeOf", { word })}
-                      </label>
-                      <select
-                        id={`type-${word}`}
-                        name="type"
-                        defaultValue={type}
-                        className={`${CONTROL_CLASS} w-auto`}
-                      >
-                        {MOVEMENT_TYPES.map((option) => (
-                          <option key={option} value={option}>
-                            {t(`types.${option}`)}
-                          </option>
-                        ))}
-                      </select>
-                      <Button type="submit" variant="link">
-                        {t("change")}<span className="sr-only"> {word}</span>
-                      </Button>
-                    </form>
-                    <form action={removeVocabularyWordAction.bind(null, word)}>
-                      <Button type="submit" variant="link">
-                        {t("remove")}<span className="sr-only"> {word}</span>
-                      </Button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      {MOVEMENT_TYPES.map((option) => (
+                        <option key={option} value={option}>
+                          {t(`types.${option}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" variant="link">
+                      {t("change")}<span className="sr-only"> {word}</span>
+                    </Button>
+                  </form>
+                  <form action={removeVocabularyWordAction.bind(null, word)}>
+                    <Button type="submit" variant="link">
+                      {t("remove")}<span className="sr-only"> {word}</span>
+                    </Button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
 
       {overview.removed.length > 0 ? (
         <section aria-labelledby="removed-heading" className="flex flex-col gap-2">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { Button } from "../../components/button";
+import { DataTable, EmptyState } from "../../components/data-display";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listRules } from "../../ledger/categorization-rules";
@@ -58,16 +59,18 @@ export default async function RulesPage() {
           {t("listHeading")}
         </h2>
         {rules.length === 0 ? (
-          <p>{t("empty")}</p>
+          <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+            {t("empty")}
+          </EmptyState>
         ) : (
-          <table className="w-full border-collapse text-left">
+          <DataTable caption={t("caption")}>
             <thead>
-              <tr className="border-b border-border-control">
-                <th scope="col" className="py-2 pr-4">{t("columns.order")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.condition")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
-                <th scope="col" className="py-2 pr-4">{t("columns.category")}</th>
-                <th scope="col" className="py-2">{t("columns.actions")}</th>
+              <tr>
+                <th scope="col">{t("columns.order")}</th>
+                <th scope="col">{t("columns.condition")}</th>
+                <th scope="col">{t("columns.account")}</th>
+                <th scope="col">{t("columns.category")}</th>
+                <th scope="col">{t("columns.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -77,20 +80,20 @@ export default async function RulesPage() {
                   value: rule.value,
                 });
                 return (
-                  <tr key={rule.id} className="border-b border-divider">
-                    <td className="py-2 pr-4 tabular-nums">{index + 1}</td>
-                    <th scope="row" className="py-2 pr-4 font-medium">
+                  <tr key={rule.id}>
+                    <td className="tabular-nums">{index + 1}</td>
+                    <th scope="row">
                       {subject}
                     </th>
-                    <td className="py-2 pr-4">
+                    <td>
                       {rule.accountId === null
                         ? t("allAccounts")
                         : (accountName.get(rule.accountId) ?? "")}
                     </td>
-                    <td className="py-2 pr-4">
+                    <td>
                       {categoryName.get(rule.categoryId) ?? ""}
                     </td>
-                    <td className="py-2">
+                    <td>
                       <div className="flex gap-2">
                         <form action={moveRuleAction.bind(null, rule.id, "up")}>
                           <Button type="submit" variant="link" disabled={index === 0}>
@@ -116,7 +119,7 @@ export default async function RulesPage() {
                 );
               })}
             </tbody>
-          </table>
+          </DataTable>
         )}
       </section>
 

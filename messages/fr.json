@@ -138,7 +138,10 @@
       "depositCeilingHint": "Laissez vide s'il n'y en a pas.",
       "overflowAccount": "Compte de débordement"
     },
-    "balances": "Soldes"
+    "balances": "Soldes",
+    "activeCaption": "Comptes actifs avec leur solde et leur plafond de dépôt",
+    "archivedCaption": "Comptes archivés, conservés pour leur historique",
+    "emptyAction": "Ajouter un compte"
   },
   "balances": {
     "metaTitle": "Soldes constatés | Demain",
@@ -179,12 +182,14 @@
     "allTitle": "Soldes constatés de tous les comptes",
     "allIntro": "Tous les soldes enregistrés pour vos comptes, comptes archivés compris. Enregistrez-en un nouveau ci-dessous ; enregistrer un jour qui a déjà un solde le remplace.",
     "allEmpty": "Aucun solde enregistré pour l'instant. Utilisez le formulaire ci-dessus pour en enregistrer un.",
+    "allEmptyNoAccount": "Aucun solde enregistré pour l'instant.",
     "allCaption": "Soldes enregistrés pour tous les comptes, du plus récent au plus ancien",
     "accountColumn": "Compte",
     "accountBalancesLink": "Soldes du compte",
     "accountsLink": "Pour enregistrer un solde, ajoutez d'abord un compte.",
     "chooseAccount": "Choisir un compte",
-    "summaryLink": "Enregistrer les soldes de l'onglet Summary"
+    "summaryLink": "Enregistrer les soldes de l'onglet Summary",
+    "emptyAction": "Ajouter un solde"
   },
   "summaryBalances": {
     "metaTitle": "Soldes du Summary | Demain",
@@ -361,7 +366,9 @@
       "roomOnly": "Déposer seulement {deposited}",
       "sendSurplus": "Envoyer le surplus sur le compte choisi",
       "cancel": "Annuler le virement"
-    }
+    },
+    "caption": "Toutes les transactions enregistrées",
+    "emptyAction": "Ajouter une transaction"
   },
   "categories": {
     "metaTitle": "Catégories | Demain",
@@ -395,7 +402,8 @@
       "category": "Catégorie"
     },
     "ruleSummary": "Créer aussi une règle",
-    "ruleCreate": "Créer une règle pour les prochains imports"
+    "ruleCreate": "Créer une règle pour les prochains imports",
+    "queueCaption": "Transactions en attente d'une catégorie"
   },
   "rules": {
     "metaTitle": "Règles de catégorisation | Demain",
@@ -469,7 +477,9 @@
       "type": "Type",
       "addSubmit": "Enregistrer le mot",
       "addSubmitPending": "Enregistrement…"
-    }
+    },
+    "caption": "Règles de catégorisation, dans l'ordre",
+    "emptyAction": "Ajouter une règle"
   },
   "synthesis": {
     "metaTitle": "Synthèse mensuelle | Demain",
@@ -535,7 +545,8 @@
     "ecbEnable": "Activer la récupération BCE",
     "ecbDisable": "Désactiver la récupération BCE",
     "ecbFetch": "Récupérer les taux de la BCE maintenant",
-    "ecbFetchPending": "Récupération…"
+    "ecbFetchPending": "Récupération…",
+    "emptyAction": "Ajouter un taux"
   },
   "imports": {
     "metaTitle": "Import | Demain",

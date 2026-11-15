@@ -42,20 +42,6 @@
   }
 }
 
-.count {
-  display: inline-grid;
-  place-items: center;
-  min-width: 28px;
-  height: 28px;
-  margin-left: auto;
-  padding: 0 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-control);
-  color: var(--color-text);
-  font-size: var(--text-label);
-  line-height: 1;
-}
-
 @container (width < 900px) {
   /* The header and the navigation are laid out on their own. */
   .side {
