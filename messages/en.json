@@ -78,13 +78,22 @@
     "heading": "Month-end balances",
     "intro": "Checking and savings totals at the end of each complete month, in {currency}. Real values only: nothing is estimated.",
     "chartLabel": "Month-end balances of the checking and savings accounts",
-    "hint": "Use the left and right arrow keys to read a month, Home and End to jump to the first or the last one.",
+    "hint": "Focus the chart, then use the left and right arrow keys to read a month, Home and End to jump to the first or the last one, Escape to hide the reading.",
     "empty": "No complete month to show yet. The chart appears once an account has history up to the end of a month.",
     "unconverted": "Accounts in {currencies} have no exchange rate for their date: they are left out of the curves. Enter a rate on the currencies page.",
     "tableHeading": "Data table",
     "tableCaption": "Checking and savings totals at the end of each month, in {currency}.",
     "columns": {
-      "month": "Month"
+      "month": "Month",
+      "kind": "Kind"
+    },
+    "upToToday": "Up to today",
+    "plannedAhead": "Planned ahead",
+    "today": "Today",
+    "kinds": {
+      "real": "Real",
+      "realToday": "Real, today",
+      "planned": "Planned, dated"
     }
   },
   "accounts": {

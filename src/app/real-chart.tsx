@@ -1,6 +1,8 @@
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 
-import { LineChart } from "../charts/line-chart";
+import { TrajectoryChart } from "../charts/trajectory-chart";
+import { TrajectoryTable } from "../charts/trajectory-table";
+import type { TrajectoryMonth, TrajectorySeries } from "../charts/trajectory-types";
 import { formatAmount } from "../domain/money";
 import { lastCompleteMonth } from "../domain/synthesis";
 import { formatMonth, formatShortMonth, todayIn } from "../i18n/dates";
@@ -8,15 +10,18 @@ import { getReferenceCurrency } from "../ledger/exchange-rates";
 import { getMonthlySynthesis } from "../ledger/synthesis";
 import { withDatabase } from "../storage/with-database";
 
-// The kinds of account drawn, with the marker and tone that tell them apart.
+// The kinds of account drawn, with the tone that tells them apart (each line
+// also carries its name).
 const CHART_SERIES = [
-  { kind: "checking", marker: "circle", tone: "blue" },
-  { kind: "savings", marker: "square", tone: "orange" },
+  { kind: "checking", tone: "primary" },
+  { kind: "savings", tone: "secondary" },
 ] as const;
 
 /**
  * The main chart: month-end totals of the checking and savings accounts, real
  * values only, with the equivalent data table. See DOMAIN, the real chart.
+ * No dated planned item is available yet, so every month is real and today is
+ * the last one: the planned parts of the chart stay hidden (ADR-011).
  */
 export async function RealChart() {
   const [t, kinds, locale, timeZone] = await Promise.all([
@@ -39,6 +44,29 @@ export async function RealChart() {
     ...new Set(months.flatMap((month) => month.unconvertedCurrencies)),
   ].sort();
 
+  const chartMonths: TrajectoryMonth[] = months.map((month) => ({
+    key: month.month,
+    label: formatMonth(month.month, locale),
+    tickLabel: formatShortMonth(month.month, locale),
+  }));
+  // Today is the last month: nothing is planned yet.
+  const todayIndex = chartMonths.length - 1;
+  const chartSeries: TrajectorySeries[] = CHART_SERIES.map(({ kind, tone }) => ({
+    id: kind,
+    label: kinds(kind),
+    tone,
+    values: months.map((month) => month.totalByKind[kind]),
+    valueLabels: months.map((month) => money(month.totalByKind[kind])),
+  }));
+  const kindText = {
+    real: t("kinds.real"),
+    realToday: t("kinds.realToday"),
+    planned: t("kinds.planned"),
+    upToToday: t("upToToday"),
+    plannedAhead: t("plannedAhead"),
+    today: t("today"),
+  };
+
   return (
     <section aria-labelledby="real-chart-heading" className="mt-8 flex flex-col gap-4">
       <h2 id="real-chart-heading" className="text-title font-medium">
@@ -56,24 +84,15 @@ export async function RealChart() {
         <p>{t("empty")}</p>
       ) : (
         <>
-          <LineChart
+          <TrajectoryChart
             label={t("chartLabel")}
             hint={t("hint")}
             currency={referenceCurrency}
             locale={locale}
-            categories={months.map((month) => ({
-              key: month.month,
-              label: formatMonth(month.month, locale),
-              tickLabel: formatShortMonth(month.month, locale),
-            }))}
-            series={CHART_SERIES.map(({ kind, marker, tone }) => ({
-              id: kind,
-              label: kinds(kind),
-              marker,
-              tone,
-              values: months.map((month) => month.totalByKind[kind]),
-              valueLabels: months.map((month) => money(month.totalByKind[kind])),
-            }))}
+            months={chartMonths}
+            todayIndex={todayIndex}
+            series={chartSeries}
+            text={kindText}
           />
 
           <h3 className="text-title font-medium">{t("tableHeading")}</h3>
@@ -83,37 +102,17 @@ export async function RealChart() {
             tabIndex={0}
             className="overflow-x-auto"
           >
-            <table className="w-full border-collapse text-left">
-              <caption className="sr-only">
-                {t("tableCaption", { currency: referenceCurrency })}
-              </caption>
-              <thead>
-                <tr className="border-b border-border-control">
-                  <th scope="col" className="py-2 pr-4">{t("columns.month")}</th>
-                  {CHART_SERIES.map(({ kind }) => (
-                    <th key={kind} scope="col" className="py-2 pl-4 text-right">
-                      {kinds(kind)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {months.map((month) => (
-                  <tr key={month.month} className="border-b border-divider">
-                    <th scope="row" className="py-2 pr-4 font-medium">
-                      <time dateTime={month.month}>
-                        {formatMonth(month.month, locale)}
-                      </time>
-                    </th>
-                    {CHART_SERIES.map(({ kind }) => (
-                      <td key={kind} className="py-2 pl-4 text-right tabular-nums">
-                        {money(month.totalByKind[kind])}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <TrajectoryTable
+              months={chartMonths}
+              todayIndex={todayIndex}
+              series={chartSeries}
+              text={{
+                ...kindText,
+                caption: t("tableCaption", { currency: referenceCurrency }),
+                month: t("columns.month"),
+                kind: t("columns.kind"),
+              }}
+            />
           </div>
         </>
       )}

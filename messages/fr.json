@@ -78,13 +78,22 @@
     "heading": "Soldes de fin de mois",
     "intro": "Totaux des comptes courants et de l'épargne à la fin de chaque mois révolu, en {currency}. Valeurs réelles uniquement : rien n'est estimé.",
     "chartLabel": "Soldes de fin de mois des comptes courants et de l'épargne",
-    "hint": "Utilisez les flèches gauche et droite pour lire un mois, Début et Fin pour aller au premier ou au dernier.",
+    "hint": "Donnez le focus au graphique, puis utilisez les flèches gauche et droite pour lire un mois, Début et Fin pour aller au premier ou au dernier, Échap pour masquer la lecture.",
     "empty": "Aucun mois révolu à afficher pour l'instant. Le graphique apparaît dès qu'un compte a un historique jusqu'à la fin d'un mois.",
     "unconverted": "Les comptes en {currencies} n'ont pas de taux de change pour leur date : ils sont laissés de côté dans les courbes. Saisissez un taux sur la page des devises.",
     "tableHeading": "Tableau de données",
     "tableCaption": "Totaux des comptes courants et de l'épargne à la fin de chaque mois, en {currency}.",
     "columns": {
-      "month": "Mois"
+      "month": "Mois",
+      "kind": "Nature"
+    },
+    "upToToday": "Jusqu'à aujourd'hui",
+    "plannedAhead": "Prévu",
+    "today": "Aujourd'hui",
+    "kinds": {
+      "real": "Réel",
+      "realToday": "Réel, aujourd'hui",
+      "planned": "Prévu, daté"
     }
   },
   "accounts": {
