@@ -149,6 +149,45 @@
   animation: motion-enter var(--motion-duration-enter) var(--motion-ease-enter) backwards;
 }
 
+/* Loading skeleton block (DESIGN section 8, "Loading"). The shimmer is the one motion allowed to
+   repeat (section 6): a soft band of `control-hover` sweeps over the block in the reading
+   direction. The band rests outside its block, so with reduced motion (the duration is 0 in
+   tokens.css, and a zero active duration applies nothing) the block stays plain and static.
+   Pure CSS from the first paint; the animation ends with the element, when the content replaces it. */
+@keyframes shimmer {
+  to {
+    translate: 100% 0;
+  }
+}
+
+@layer components {
+  /* A block is `surface-sunken` on a card and `surface` on the page ground, where `surface-sunken`
+     would almost vanish in the light theme. The loading region sets the ground; a card inside it
+     sets the card. */
+  .skeleton-ground {
+    --skeleton-block: var(--color-surface);
+  }
+  .skeleton-card {
+    --skeleton-block: var(--color-surface-sunken);
+  }
+
+  .skeleton {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background-color: var(--skeleton-block, var(--color-surface-sunken));
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      translate: -100% 0;
+      background: linear-gradient(90deg, transparent, var(--color-control-hover), transparent);
+      animation: shimmer var(--motion-duration-shimmer) var(--motion-ease-move) infinite;
+    }
+  }
+}
+
 /* Segmented control of native radios (DESIGN section 8): the selected pill is one element under
    equal segments, moved by the index read from :has(), so the server-rendered radios work
    without JavaScript. The duration is 0 under reduced motion (tokens.css). */

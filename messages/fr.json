@@ -21,6 +21,23 @@
     "filesChosen": "{count} fichiers",
     "toastDismiss": "Fermer la notification"
   },
+  "loading": {
+    "overview": "Chargement de l'aperçu",
+    "transactions": "Chargement des transactions",
+    "accounts": "Chargement des comptes",
+    "balances": "Chargement des soldes constatés",
+    "balancesSummary": "Chargement du formulaire des soldes de l'onglet Summary",
+    "categories": "Chargement des catégories",
+    "rules": "Chargement des règles de catégorisation",
+    "synthesis": "Chargement de la synthèse mensuelle",
+    "currencies": "Chargement des devises et des taux de change",
+    "imports": "Chargement du formulaire d'import",
+    "accountBalances": "Chargement des soldes constatés du compte",
+    "accountEdit": "Chargement du compte",
+    "transactionEdit": "Chargement de la transaction",
+    "categoryEdit": "Chargement de la catégorie",
+    "chart": "Chargement du graphique de trajectoire"
+  },
   "errors": {
     "errorTitle": "Une erreur est survenue",
     "errorBody": "La requête n'a pas pu aboutir. Réessayez, et si le problème persiste, consultez les journaux du serveur.",
