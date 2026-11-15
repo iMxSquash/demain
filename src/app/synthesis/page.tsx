@@ -67,7 +67,10 @@ export default async function SynthesisPage() {
           })}
         </EmptyState>
       ) : (
-        <DataTable caption={t("caption", { currency: referenceCurrency })}>
+        <DataTable
+          caption={t("caption", { currency: referenceCurrency })}
+          regionLabel={t("regionLabel")}
+        >
           <thead>
             <tr>
               <th scope="col">{t("columns.month")}</th>

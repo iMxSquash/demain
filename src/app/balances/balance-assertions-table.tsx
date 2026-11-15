@@ -34,7 +34,7 @@ export async function BalanceAssertionsTable({
   ]);
 
   return (
-    <DataTable caption={caption}>
+    <DataTable caption={caption} regionLabel={t("regionLabel")}>
       <thead>
         <tr>
           <th scope="col">{t("columns.date")}</th>

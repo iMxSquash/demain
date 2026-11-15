@@ -90,7 +90,7 @@ export default async function CurrenciesPage() {
             {t("empty")}
           </EmptyState>
         ) : (
-          <DataTable caption={t("caption")}>
+          <DataTable caption={t("caption")} regionLabel={t("regionLabel")}>
             <thead>
               <tr>
                 <th scope="col">{t("columns.date")}</th>

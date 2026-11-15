@@ -19,6 +19,15 @@ describe("DataTable", () => {
     expect(markup).toContain('aria-label="Recorded rates"');
   });
 
+  it("names the scroll region with a shorter label when given one", () => {
+    const named = renderToStaticMarkup(
+      DataTable({ caption: "A long caption", regionLabel: "Short", children: createElement("tbody") }),
+    );
+
+    expect(named).toContain('aria-label="Short"');
+    expect(named).toContain("<caption>A long caption</caption>");
+  });
+
   it("aligns its caption left, since a caption is centred by default", () => {
     expect(markup).toContain("[&amp;_caption]:text-left");
   });

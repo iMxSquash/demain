@@ -16,8 +16,10 @@ const TABLE_CLASS = [
 ].join(" ");
 
 interface DataTableProps {
-  /** Visible, medium weight. It also names the scroll region. */
+  /** Visible, medium weight. It also names the scroll region unless `regionLabel` says otherwise. */
   caption: string;
+  /** A shorter name for the scroll region, for a caption that reads as a full sentence. */
+  regionLabel?: string;
   children: ReactNode;
 }
 
@@ -25,13 +27,13 @@ interface DataTableProps {
  * A table in its card. The card scrolls sideways when the table is wider than a phone, so
  * the page never does. The region is focusable and named: keyboard users must reach it.
  */
-export function DataTable({ caption, children }: DataTableProps) {
+export function DataTable({ caption, regionLabel = caption, children }: DataTableProps) {
   return (
     <div className="rounded-card bg-surface p-4 @3xl:p-6">
       {/* `relative`: the sr-only text of the cells is absolutely positioned and must be clipped here. */}
       <div
         role="region"
-        aria-label={caption}
+        aria-label={regionLabel}
         tabIndex={0}
         className="relative overflow-x-auto"
       >
