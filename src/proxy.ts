@@ -45,6 +45,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Static assets carry no data and must load on the sign-in pages.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Next.js reads the matcher at build time, so it must be a literal string. The
+  // icons and the manifest carry no data and are fetched before any sign-in, so
+  // they skip the session check. Their names are anchored: nothing that merely
+  // starts with one of them is exempt.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon\\.svg$|apple-icon\\.png$|manifest\\.webmanifest$|icons/[\\w-]+\\.png$).*)",
+  ],
 };
