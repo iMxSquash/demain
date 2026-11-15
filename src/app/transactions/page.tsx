@@ -9,7 +9,7 @@ import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
-import { DataTable, EmptyState, NUMBER_CELL, Pill } from "../../components/data-display";
+import { DataTable, EmptyState, Pill } from "../../components/data-display";
 import { ConfirmActionButton } from "../confirm-action-button";
 import {
   createTransactionAction,
@@ -114,7 +114,7 @@ export default async function TransactionsPage() {
                         ? ""
                         : t(`paymentModes.${row.paymentMode}`)}
                     </td>
-                    <td className={NUMBER_CELL}>
+                    <td className="text-right">
                       {formatAmount(row.amount, account.currency, locale)}
                     </td>
                     <td>

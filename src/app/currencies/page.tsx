@@ -12,7 +12,7 @@ import {
 } from "../../ledger/exchange-rates";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
-import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
+import { DataTable, EmptyState } from "../../components/data-display";
 import { ConfirmActionButton } from "../confirm-action-button";
 import {
   deleteExchangeRateAction,
@@ -109,7 +109,7 @@ export default async function CurrenciesPage() {
                       <time dateTime={rate.date}>{rate.date}</time>
                     </th>
                     <td>{pair}</td>
-                    <td className={NUMBER_CELL}>{formatRate(rate.rate, locale)}</td>
+                    <td className="text-right">{formatRate(rate.rate, locale)}</td>
                     <td>
                       {rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}
                     </td>

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 // "Feedback"). No hooks and no client code: server and client components can both use it.
 
 // The cells are styled from the table so that a screen writes plain `th` and `td`. Alignment
-// stays on the cell (`text-right`): a descendant selector here would win over it.
+// stays on the cell (`text-right` for figures): a descendant selector here would win over it.
 const TABLE_CLASS = [
   "w-full border-collapse text-left",
   "[&_caption]:pb-3 [&_caption]:text-left [&_caption]:font-medium",
@@ -14,9 +14,6 @@ const TABLE_CLASS = [
   "[&_tbody_td]:h-12 [&_tbody_td]:px-3 [&_tbody_td]:whitespace-nowrap",
   "[&_tbody_th]:h-12 [&_tbody_th]:px-3 [&_tbody_th]:whitespace-nowrap [&_tbody_th]:font-medium",
 ].join(" ");
-
-/** Header and cell classes for a column of figures: right-aligned, as the table specifies. */
-export const NUMBER_CELL = "text-right tabular-nums";
 
 interface DataTableProps {
   /** Visible, medium weight. It also names the scroll region. */

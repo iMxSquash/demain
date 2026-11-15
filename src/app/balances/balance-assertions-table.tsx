@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { DataTable, NUMBER_CELL, Pill } from "../../components/data-display";
+import { DataTable, Pill } from "../../components/data-display";
 import { gapDirection } from "../../domain/balance-assertion";
 import { formatAmount } from "../../domain/money";
 import type { AccountBalanceAssertion } from "../../ledger/balance-assertions";
@@ -72,8 +72,8 @@ export async function BalanceAssertionsTable({
                   ) : null}
                 </td>
               ) : null}
-              <td className={NUMBER_CELL}>{money(assertion.amount)}</td>
-              <td className={NUMBER_CELL}>{money(assertion.computedBalance)}</td>
+              <td className="text-right">{money(assertion.amount)}</td>
+              <td className="text-right">{money(assertion.computedBalance)}</td>
               <td className="tabular-nums">
                 {direction === "equal"
                   ? t("gapNone")

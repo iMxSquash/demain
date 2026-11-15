@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "../../../components/button";
-import { DataTable, NUMBER_CELL } from "../../../components/data-display";
+import { DataTable } from "../../../components/data-display";
 import {
   CONTROL_CLASS,
   FormField,
@@ -58,7 +58,7 @@ function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
                 {row.month}
               </th>
               <td className="tabular-nums">{row.date}</td>
-              <td className={NUMBER_CELL}>{row.balance}</td>
+              <td className="text-right">{row.balance}</td>
               <td>{row.status}</td>
             </tr>
           ))}
@@ -109,9 +109,9 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
                   {difference.month}
                 </th>
                 <td>{difference.figure}</td>
-                <td className={NUMBER_CELL}>{difference.sheet}</td>
-                <td className={NUMBER_CELL}>{difference.demain}</td>
-                <td className={NUMBER_CELL}>
+                <td className="text-right">{difference.sheet}</td>
+                <td className="text-right">{difference.demain}</td>
+                <td className="text-right">
                   {difference.difference}
                 </td>
               </tr>

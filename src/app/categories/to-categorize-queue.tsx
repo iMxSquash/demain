@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
+import { DataTable, EmptyState } from "../../components/data-display";
 import { formatAmount } from "../../domain/money";
 import type { Account } from "../../ledger/accounts";
 import type { Category } from "../../ledger/categories";
@@ -61,7 +61,7 @@ export async function ToCategorizeQueue({
               <th scope="row">
                 {row.label}
               </th>
-              <td className={NUMBER_CELL}>
+              <td className="text-right">
                 {formatAmount(row.amount, account.currency, locale)}
               </td>
               <td>

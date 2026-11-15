@@ -12,7 +12,7 @@ import {
   type Account,
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
-import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
+import { DataTable, EmptyState } from "../../components/data-display";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
@@ -173,13 +173,13 @@ async function AccountRow({
       <th scope="row">{account.name}</th>
       <td>{t(`kinds.${account.kind as AccountKind}`)}</td>
       <td>{account.currency}</td>
-      <td className={NUMBER_CELL}>
+      <td className="text-right">
         {formatAmount(account.openingBalance, account.currency, locale)}
       </td>
-      <td className={NUMBER_CELL}>
+      <td className="text-right">
         {formatAmount(balance, account.currency, locale)}
       </td>
-      <td className={NUMBER_CELL}>
+      <td className="text-right">
         {account.depositCeiling === null
           ? common("none")
           : formatAmount(account.depositCeiling, account.currency, locale)}

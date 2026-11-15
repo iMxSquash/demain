@@ -3,7 +3,7 @@ import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 
-import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
+import { DataTable, EmptyState } from "../../components/data-display";
 import { formatAmount } from "../../domain/money";
 import { monthOf } from "../../domain/synthesis";
 import { formatMonth, todayIn } from "../../i18n/dates";
@@ -96,25 +96,25 @@ export default async function SynthesisPage() {
                       {formatMonth(month.month, locale)}
                     </time>
                   </th>
-                  <td className={NUMBER_CELL}>{money(month.net)}</td>
-                  <td className={NUMBER_CELL}>{money(month.savings)}</td>
-                  <td className={NUMBER_CELL}>
+                  <td className="text-right">{money(month.net)}</td>
+                  <td className="text-right">{money(month.savings)}</td>
+                  <td className="text-right">
                     {money(month.cumulativeSavings)}
                   </td>
-                  <td className={NUMBER_CELL}>
+                  <td className="text-right">
                     {money(month.cumulativeAccount)}
                   </td>
                   {accounts.map((account) => {
                     const entry = balanceOf.get(account.id);
                     return (
-                      <td key={account.id} className={NUMBER_CELL}>
+                      <td key={account.id} className="text-right">
                         {entry === undefined
                           ? ""
                           : money(entry.balance, entry.currency)}
                       </td>
                     );
                   })}
-                  <td className={`${NUMBER_CELL} font-medium`}>
+                  <td className="text-right font-medium">
                     {money(month.total)}
                   </td>
                 </tr>
