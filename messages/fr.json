@@ -34,6 +34,23 @@
     "dark": "Sombre",
     "apply": "Appliquer l'apparence"
   },
+  "settings": {
+    "metaTitle": "Réglages | Demain",
+    "title": "Réglages",
+    "navLabel": "Réglages",
+    "appearance": "Apparence",
+    "language": "Langue",
+    "more": "Plus",
+    "moreLabel": "Autres pages",
+    "links": {
+      "balances": "Soldes",
+      "categories": "Catégories",
+      "rules": "Règles",
+      "currencies": "Devises",
+      "backup": "Sauvegarde",
+      "security": "Sécurité"
+    }
+  },
   "home": {
     "metaDescription": "Application web de budget personnel, auto-hébergée.",
     "navLabel": "Principale",
@@ -967,7 +984,6 @@
   },
   "auth": {
     "signOut": "Se déconnecter",
-    "security": "Sécurité",
     "login": {
       "metaTitle": "Connexion | Demain",
       "title": "Connexion",

@@ -201,7 +201,7 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
   - **Until Calendar (M2) and Simulations (M3) exist:** the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land.
   - **The other pages on a phone** (owner, 12 Nov 2026): a 44 px icon button with `GearSix` and the label "Settings" sits in the top bar next to "Add transaction". `/settings` ends with a "More" list of the pages that have no tab: Balances, Categories, Rules, Currencies, Backup, Security, each with its icon.
-- **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Until the navigation lands, the theme setting sits in the header next to the language switcher.
+- **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Both controls live on this page only; the header holds the Settings button and the sign-out button until the navigation lands.
 
   Use a container query on the app frame, not a media query.
 ### Motion

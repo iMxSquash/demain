@@ -255,7 +255,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Context.** The interface must exist in French and English from the first milestone, and a contributor must be able to add a language without touching the code. The domain is pure and must stay free of any language, yet its validation errors are shown to the user.
 
-**Decision.** One JSON file per language in `messages/`, named after its BCP 47 tag, `en.json` being the reference. The language of a request is the cookie set by the header selector, then the `Accept-Language` header, then English; there is no locale prefix in the URLs. The domain raises a message reference (a key of the `feedback` namespace plus values) next to its English log message, and the application translates it on the server. Calendar dates are shown as UTC days, and "today" follows the time zone of the server (`TZ`).
+**Decision.** One JSON file per language in `messages/`, named after its BCP 47 tag, `en.json` being the reference. The language of a request is the cookie set by the selector of the Settings page, then the `Accept-Language` header, then English; there is no locale prefix in the URLs. The domain raises a message reference (a key of the `feedback` namespace plus values) next to its English log message, and the application translates it on the server. Calendar dates are shown as UTC days, and "today" follows the time zone of the server (`TZ`).
 
 **Alternatives rejected.**
 
@@ -381,7 +381,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *`tailwind-merge` to let callers override the variant.* It is a new dependency for a case the component avoids by accepting layout classes only.
 - *A render prop or context to hand the ids to the control.* Every call site would change shape. Cloning the single control keeps the call sites as they were, and the type of `children` (one element) makes a second child a compile error.
 
-**Consequences.** A control with its own `aria-describedby` still works, since the ids are merged. A field with several controls (a group of radios) does not use `FormField`. The outlined header buttons (language, appearance) and the toast close button do not use `Button` yet: the navigation and feedback work of the identity takes them. Pending labels live next to the submit label, under the key `<submit>Pending`, in both message files.
+**Consequences.** A control with its own `aria-describedby` still works, since the ids are merged. A field with several controls (a group of radios) does not use `FormField`. The outlined apply buttons of the language and appearance forms and the toast close button do not use `Button` yet: the navigation and feedback work of the identity takes them. Pending labels live next to the submit label, under the key `<submit>Pending`, in both message files.
 
 ## Tooling
 
