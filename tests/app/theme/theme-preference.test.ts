@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isThemePreference, themeAttribute } from "../theme-preference";
+import { isThemePreference, themeAttribute } from "../../../src/app/theme/theme-preference";
 
 describe("isThemePreference", () => {
   it("accepts the three preferences", () => {

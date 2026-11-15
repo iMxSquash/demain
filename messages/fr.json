@@ -25,6 +25,13 @@
     "label": "Langue",
     "apply": "Changer de langue"
   },
+  "theme": {
+    "legend": "Apparence",
+    "system": "Système",
+    "light": "Clair",
+    "dark": "Sombre",
+    "apply": "Appliquer l'apparence"
+  },
   "home": {
     "metaDescription": "Application web de budget personnel, auto-hébergée.",
     "navLabel": "Principale",

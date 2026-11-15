@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { cookies } from "next/headers";
 import localFont from "next/font/local";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -11,6 +12,8 @@ import { ToastProvider, type Notice } from "./feedback/toast-provider";
 import { logoutAction } from "./login/actions";
 import { LocaleSwitcher } from "./locale/locale-switcher";
 import { MotionProvider } from "./motion-provider";
+import { THEME_COOKIE, themeAttribute } from "./theme/theme-preference";
+import { ThemeSwitcher } from "./theme/theme-switcher";
 import { getTranslator } from "./translator";
 
 import "./globals.css";
@@ -39,17 +42,22 @@ async function readNotice(): Promise<Notice | null> {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [locale, session, t, tCommon, notice] = await Promise.all([
+  const [locale, session, t, tCommon, notice, cookieStore] = await Promise.all([
     getLocale(),
     readSession(),
     getTranslations("auth"),
     getTranslations("common"),
     readNotice(),
+    cookies(),
   ]);
   const isSignedIn = session !== null && !session.mfaPending;
 
   return (
-    <html lang={locale} className={hostGrotesk.variable}>
+    <html
+      lang={locale}
+      className={hostGrotesk.variable}
+      data-theme={themeAttribute(cookieStore.get(THEME_COOKIE)?.value)}
+    >
       <body>
         <NextIntlClientProvider>
           <MotionProvider>
@@ -60,7 +68,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               >
                 {tCommon("skipToContent")}
               </a>
-              <header className="flex items-center justify-end gap-6 px-8 pt-4">
+              <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2 px-8 pt-4">
                 {isSignedIn ? (
                   <>
                     <Link href="/security" className="underline">
@@ -73,6 +81,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                     </form>
                   </>
                 ) : null}
+                <ThemeSwitcher />
                 <LocaleSwitcher />
               </header>
               {/* Focus target of the skip link; each page renders its own <main>. */}

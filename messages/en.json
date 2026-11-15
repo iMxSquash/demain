@@ -25,6 +25,13 @@
     "label": "Language",
     "apply": "Change language"
   },
+  "theme": {
+    "legend": "Appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "apply": "Apply appearance"
+  },
   "home": {
     "metaDescription": "Self-hosted personal budget web app.",
     "navLabel": "Main",
