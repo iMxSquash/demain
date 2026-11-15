@@ -200,6 +200,22 @@ Measured from `src/app/tokens.css` in both themes (WCAG 2.x relative luminance).
 | Today in calendar | `--color-accent` on `--color-surface` | 4.5 | 5.55 | 5.48 |
 | Chosen day | `--color-on-primary` on `--color-primary` | 4.5 | 20.03 | 19.91 |
 
+#### Data display in the app (#114)
+
+Tables, pills, the count badge and the empty state add no foreground and background pair: each one reuses a pair of the tables above, measured in both themes.
+
+| Use | Reused pair | Listed as | Light | Dark |
+| --- | --- | --- | --- | --- |
+| Column header and caption of a table on its card | `--color-text-muted` on `--color-surface` | Hint | 6.18 | 7.88 |
+| Row text on hover | `--color-text` on `--color-surface-sunken` | Row hover | 17.57 | 17.04 |
+| Neutral pill, count badge | `--color-text` on `--color-control` | Secondary | 17.57 | 15.52 |
+| Warning pill | `--color-warning` on `--color-warning-tint` | Warning word | 4.54 | 7.87 |
+| Empty state text | `--color-text-muted` on `--color-surface-sunken` | Disabled label | 5.42 | 7.42 |
+| Empty state action | `--color-text` on `--color-control` | Secondary | 17.57 | 15.52 |
+| Focus ring of the scroll region | `--color-focus` on `--color-surface` | Focus ring on card | 5.55 | 5.48 |
+
+The hairline between rows (`--color-divider`) is a separator, not a component boundary, and carries no information. In the light theme `--color-control` and `--color-surface-sunken` are the same tone (`#f0f0f0`), so a neutral pill on a hovered row loses its outline there while its word keeps the Secondary ratio.
+
 #### Add-transaction flow (`form-proposals.html`)
 
 | Use | Foreground on background | Needs | Light | Dark |
