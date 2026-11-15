@@ -34,6 +34,23 @@
     "dark": "Dark",
     "apply": "Apply appearance"
   },
+  "settings": {
+    "metaTitle": "Settings | Demain",
+    "title": "Settings",
+    "navLabel": "Settings",
+    "appearance": "Appearance",
+    "language": "Language",
+    "more": "More",
+    "moreLabel": "Other pages",
+    "links": {
+      "balances": "Balances",
+      "categories": "Categories",
+      "rules": "Rules",
+      "currencies": "Currencies",
+      "backup": "Backup",
+      "security": "Security"
+    }
+  },
   "home": {
     "metaDescription": "Self-hosted personal budget web app.",
     "navLabel": "Main",
@@ -967,7 +984,6 @@
   },
   "auth": {
     "signOut": "Sign out",
-    "security": "Security",
     "login": {
       "metaTitle": "Sign in | Demain",
       "title": "Sign in",

@@ -12,9 +12,9 @@ export async function ThemeSwitcher() {
   return (
     // The key remounts the form: React does not re-apply a changed defaultChecked after the
     // form reset that follows the action (same reason as LocaleSwitcher).
-    <form key={current} action={setThemeAction} className="flex flex-wrap items-center justify-end gap-2">
-      <fieldset className="flex flex-wrap items-center justify-end gap-2">
-        <legend className="float-left mr-2 flex min-h-11 items-center">{t("legend")}</legend>
+    <form key={current} action={setThemeAction} className="flex flex-wrap items-center gap-2">
+      <fieldset className="flex flex-wrap items-center gap-2">
+        <legend className="sr-only">{t("legend")}</legend>
         <div className="segmented">
           {THEME_PREFERENCES.map((preference) => (
             <label key={preference}>

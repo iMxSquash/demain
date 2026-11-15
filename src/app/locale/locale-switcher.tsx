@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { listLocales } from "../../i18n/message-files";
 import { setLocaleAction } from "./actions";
 
-// Not CONTROL_CLASS: that one is full width, the switcher sits in the header.
+// Not CONTROL_CLASS: that one is full width, the switcher sits on the settings page.
 const SELECT_CLASS =
   "min-h-11 rounded-control border border-border-control bg-surface px-3 text-text";
 
@@ -17,7 +17,7 @@ export async function LocaleSwitcher() {
 
   return (
     <form action={setLocaleAction} className="flex items-center gap-2">
-      <label htmlFor="locale">{t("label")}</label>
+      <label htmlFor="locale" className="sr-only">{t("label")}</label>
       {/* The key remounts the select: React does not re-apply a changed
           defaultValue after the form reset that follows the action. */}
       <select

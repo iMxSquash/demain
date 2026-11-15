@@ -4,16 +4,16 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import localFont from "next/font/local";
 import Link from "next/link";
+import { GearSix } from "@phosphor-icons/react/ssr";
 import type { ReactNode } from "react";
 
+import { Icon } from "../components/icon";
 import { readSession } from "./auth/session";
 import { readFlash } from "./feedback/flash";
 import { ToastProvider, type Notice } from "./feedback/toast-provider";
 import { logoutAction } from "./login/actions";
-import { LocaleSwitcher } from "./locale/locale-switcher";
 import { MotionProvider } from "./motion-provider";
 import { THEME_COOKIE, themeAttribute } from "./theme/theme-preference";
-import { ThemeSwitcher } from "./theme/theme-switcher";
 import { getTranslator } from "./translator";
 
 import "./globals.css";
@@ -42,10 +42,11 @@ async function readNotice(): Promise<Notice | null> {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [locale, session, t, tCommon, notice, cookieStore] = await Promise.all([
+  const [locale, session, t, tSettings, tCommon, notice, cookieStore] = await Promise.all([
     getLocale(),
     readSession(),
     getTranslations("auth"),
+    getTranslations("settings"),
     getTranslations("common"),
     readNotice(),
     cookies(),
@@ -71,8 +72,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2 px-8 pt-4">
                 {isSignedIn ? (
                   <>
-                    <Link href="/security" className="underline">
-                      {t("security")}
+                    <Link
+                      href="/settings"
+                      aria-label={tSettings("navLabel")}
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill bg-control hover:bg-control-hover"
+                    >
+                      <Icon icon={GearSix} />
                     </Link>
                     <form action={logoutAction}>
                       <button type="submit" className="min-h-11 rounded-pill border border-border-control px-3">
@@ -81,8 +86,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                     </form>
                   </>
                 ) : null}
-                <ThemeSwitcher />
-                <LocaleSwitcher />
               </header>
               {/* Focus target of the skip link; each page renders its own <main>. */}
               <div id={CONTENT_ID} tabIndex={-1}>

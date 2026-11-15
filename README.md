@@ -68,7 +68,7 @@ On a fresh instance every page redirects to `/setup`, which creates the single a
 
 A forgotten password is reset on the host, there is no e-mail reset: run `npm run auth:reset-password` (inside the container, `docker compose exec demain node scripts/reset-password.ts`) with `DEMAIN_DATA_DIR` set. The command asks for the new password without echoing it, replaces it and signs out every open session. It needs a Node.js that runs TypeScript natively (24, as in the image).
 
-The interface is available in French and English. The language is the one chosen with the selector in the page header (kept in a cookie), otherwise the first supported language of the browser, otherwise English. Calendar dates and "today" follow the time zone of the server: set `TZ` (for example `Europe/Paris`) when it differs from the one you live in.
+The interface is available in French and English. The language is the one chosen on the Settings page, the gear button of the header (kept in a cookie), otherwise the first supported language of the browser, otherwise English. Calendar dates and "today" follow the time zone of the server: set `TZ` (for example `Europe/Paris`) when it differs from the one you live in.
 
 | Script | Purpose |
 | --- | --- |
