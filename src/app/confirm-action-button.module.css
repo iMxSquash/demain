@@ -1,0 +1,22 @@
+/* A native backdrop cannot be animated by Motion, so it fades with the stylesheet. The dialog
+   carries `data-closing` from the moment the exit starts until the native close (DESIGN section 6).
+   The durations are 0 under reduced motion (tokens.css). */
+.dialog::backdrop {
+  animation: backdrop-in var(--motion-duration-enter) var(--motion-ease-enter) backwards;
+}
+
+.dialog[data-closing]::backdrop {
+  animation: backdrop-out var(--motion-duration-exit) var(--motion-ease-exit) forwards;
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
