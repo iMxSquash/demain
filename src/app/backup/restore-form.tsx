@@ -5,7 +5,8 @@ import { useActionState, useId } from "react";
 
 import { ConfirmActionButton } from "../confirm-action-button";
 import { FileInput } from "../../components/file-input";
-import { CONTROL_CLASS, FormField } from "../form-field";
+import { FormField } from "../form-field";
+import { PasswordInput } from "../password-input";
 import { restoreSnapshotAction } from "./actions";
 
 export function RestoreForm() {
@@ -19,28 +20,10 @@ export function RestoreForm() {
         <FileInput id="snapshot" name="snapshot" required />
       </FormField>
       <FormField id="snapshotPassword" label={t("snapshotPassword")}>
-        <input
-          id="snapshotPassword"
-          name="snapshotPassword"
-          type="password"
-          required
-          defaultValue=""
-          autoComplete="off"
-          spellCheck={false}
-          className={CONTROL_CLASS}
-        />
+        <PasswordInput id="snapshotPassword" name="snapshotPassword" required autoComplete="off" />
       </FormField>
       <FormField id="password" label={t("accountPassword")}>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          defaultValue=""
-          autoComplete="current-password"
-          spellCheck={false}
-          className={CONTROL_CLASS}
-        />
+        <PasswordInput id="password" name="password" required autoComplete="current-password" />
       </FormField>
       {/* The confirm button of the dialog submits this form through its `form` attribute. */}
       <ConfirmActionButton
