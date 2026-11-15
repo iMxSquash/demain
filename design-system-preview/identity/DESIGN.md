@@ -201,7 +201,7 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
   - **Until Calendar (M2) and Simulations (M3) exist:** the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land.
   - **The other pages on a phone** (owner, 12 Nov 2026): a 44 px icon button with `GearSix` and the label "Settings" sits in the top bar next to "Add transaction". `/settings` ends with a "More" list of the pages that have no tab: Balances, Categories, Rules, Currencies, Backup, Security, each with its icon.
-- **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Both controls live on this page only; the header holds the Settings button and the sign-out button until the navigation lands.
+- **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Both controls live on this page only. Sign out sits at the end of this page, an interim place until the owner decides one.
 
   Use a container query on the app frame, not a media query.
 ### Motion
@@ -616,7 +616,6 @@ With `tailwind.css`, Tailwind's default palette, sizes, weights, radii and shado
 
 These need action before the related work lands in `src/` (details in DECISIONS.md, "Open questions for the owner"):
 
-- **Roadmap:** record in `docs/ROADMAP.md` that the dark theme and the phone navigation are decided, when the work lands.
 - **Motion on the references:** `components.html` shows the CSS part of section 6 (states, popovers, dialog, disclosure, step editor, flow steps, progress bar, toast in and out). The trajectory line drawing and the page entrance are specified but not drawn: `brand-board.html` would need its bundle rebuilt. They are checked in the app when the chart and the layout land.
 - **Values to confirm:** the motion tokens are proposed by role, since the references are still images. The owner confirms them on `components.html` (DECISIONS.md, "Motion").
 - **Icons of `form-proposals.html`:** it keeps its hand-drawn icons, as the record of the proposals of 11 Nov 2026. `components.html` and `brand-board.html` use Phosphor.
