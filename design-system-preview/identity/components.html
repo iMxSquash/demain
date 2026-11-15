@@ -309,6 +309,29 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 #flow[data-dir="forward"]{--step-shift:var(--motion-offset-step)}
 #flow[data-dir="back"]{--step-shift:calc(-1 * var(--motion-offset-step))}
 #flow:not(.wide)[data-dir] .step:not([hidden]){animation:step-in var(--motion-duration-step) var(--motion-ease-move)}
+
+/* loading skeleton (DESIGN section 8). The shimmer is the one motion that repeats. The band rests
+   outside its block (translate -100%), so with reduced motion (--motion-duration-shimmer is 0 in
+   tokens.css, and a zero active duration applies nothing) the block stays plain and static. */
+@keyframes shimmer{to{translate:100% 0}}
+.sk{display:block;position:relative;overflow:hidden;background:var(--color-surface-sunken)}
+.sk::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--sk-band,var(--color-control-hover)),transparent);animation:shimmer var(--motion-duration-shimmer) var(--motion-ease-move) infinite}
+.sk.as-written{--sk-band:var(--color-control)}
+.sk-line{height:16px;margin-block:3px;border-radius:var(--radius-control)}
+.sk-label{height:10px;margin-block:4px;border-radius:var(--radius-control)}
+.sk-pill{height:var(--target-min);width:120px;border-radius:var(--radius-pill)}
+.sk-tile{height:96px;border-radius:var(--radius-card)}
+.sk-plot{height:280px;border-radius:var(--radius-control)}
+.sk-bar{height:var(--target-min);border-radius:var(--radius-control)}
+.sk.w-30{width:30%}.sk.w-50{width:50%}.sk.w-60{width:60%}.sk.w-80{width:80%}.sk.w-100{width:100%}
+.sk.p-72{width:72px}.sk.p-88{width:88px}.sk.p-140{width:140px}.sk.p-64{width:64px}.sk.p-220{width:220px}
+.data .r .sk{margin-left:auto}
+.stack{display:grid;gap:var(--space-3)}
+/* both states share one grid cell, so the card is as tall as the taller of the two and the swap cannot move anything */
+.swap{display:grid}
+.swap>*{grid-area:1/1;min-width:0}
+.swap .is-off{visibility:hidden}
+.swap .loaded:not(.is-off){animation:motion-enter var(--motion-duration-enter) var(--motion-ease-enter) backwards}
 </style>
 </head>
 <body>
@@ -559,6 +582,75 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 <dialog class="dialog" id="dlg" aria-labelledby="dlg-title"><h3 id="dlg-title">Delete Groceries?</h3><p>The transaction is deleted and the balance of its account goes back.</p><form method="dialog" class="actions"><button class="btn secondary" value="cancel" autofocus>Cancel</button><button class="btn danger" value="delete">Delete</button></form></dialog>
 </section>
 
+<section aria-labelledby="h-load">
+<h2 id="h-load">Loading</h2>
+<p class="why">A skeleton stands for the shape of what is coming, in the place where it will appear, and nothing else: no figure, no label, no amount. What the page already knows (the card, its heading level, the column count) stays real; what comes from the data becomes a block. Blocks are <code>surface-sunken</code> on a card, with the radius of what they stand for: <code>rounded-control</code> for a line, <code>rounded-pill</code> for a button, <code>rounded-card</code> for a tile. A soft band sweeps over each block in the reading direction, once every <code>--motion-duration-shimmer</code> (1.5 s, proposed), only while the content is loading, and is gone when the content replaces the skeleton. It is the one motion that repeats. With reduced motion the blocks stay still. The region carries <code>aria-busy="true"</code> and one visually hidden status message in words; the blocks are <code>aria-hidden</code>. The content then replaces the skeleton with the <code>motion-enter</code> fade.</p>
+
+<h3>Same size, no shift</h3>
+<p><button class="btn secondary" type="button" id="toggle-load">Show the loaded content</button></p>
+<div class="card scroll">
+<div class="swap" id="load-demo">
+  <div class="skeleton" aria-busy="true">
+    <p class="sr" role="status">Loading transactions</p>
+    <div aria-hidden="true">
+      <table class="data">
+        <caption><span class="sk sk-line p-220"></span></caption>
+        <thead><tr><th scope="col"><span class="sk sk-label p-64"></span></th><th scope="col"><span class="sk sk-label p-64"></span></th><th scope="col"><span class="sk sk-label p-64"></span></th><th scope="col" class="r"><span class="sk sk-label p-64"></span></th></tr></thead>
+        <tbody>
+          <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td><span class="sk sk-line p-72"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
+          <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td><span class="sk sk-line p-72"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
+          <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td><span class="sk sk-line p-72"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="loaded is-off">
+    <table class="data">
+      <caption>Current account, November 2026</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Label</th><th scope="col">Category</th><th scope="col" class="r">Amount</th></tr></thead>
+      <tbody>
+        <tr><td class="num">11 Nov 2026</td><td>Groceries</td><td><span class="pill neutral">Food</span></td><td class="r num">-&euro;42.00</td></tr>
+        <tr><td class="num">10 Nov 2026</td><td>Card payment 0412</td><td><span class="pill warn">To categorize</span></td><td class="r num">-&euro;18.90</td></tr>
+        <tr><td class="num">1 Nov 2026</td><td>Salary</td><td><span class="pill neutral">Income</span></td><td class="r num in">+&euro;2,450.00</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+<p class="hint" id="load-measure" style="margin-top:var(--space-3)"></p>
+
+<h3 style="margin-top:var(--space-8)">Shapes</h3>
+<div class="grid g3">
+  <div class="card"><p class="label">Line, rounded-control</p><div class="stack" aria-hidden="true"><span class="sk sk-line w-100"></span><span class="sk sk-line w-80"></span><span class="sk sk-line w-50"></span></div></div>
+  <div class="card"><p class="label">Button, rounded-pill</p><div aria-hidden="true"><span class="sk sk-pill"></span></div></div>
+  <div class="card"><p class="label">Tile, rounded-card</p><div aria-hidden="true"><span class="sk sk-tile"></span></div></div>
+</div>
+
+<h3 style="margin-top:var(--space-8)">Chart and its table</h3>
+<div class="card scroll" aria-busy="true">
+  <p class="sr" role="status">Loading the trajectory chart</p>
+  <div aria-hidden="true">
+    <div class="stack" style="margin-bottom:var(--space-4)"><span class="sk sk-line w-30"></span></div>
+    <span class="sk sk-plot"></span>
+    <table class="data" style="margin-top:var(--space-4)">
+      <caption><span class="sk sk-line p-220"></span></caption>
+      <tbody>
+        <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
+        <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
+        <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h3 style="margin-top:var(--space-8)">Band colour: the owner's call</h3>
+<p class="why">The issue asks for a band of <code>control</code> over <code>surface-sunken</code>. In the light theme both tokens are <code>gray-50</code>, so that band measures 1.00:1 and cannot be seen. The proposal is <code>control-hover</code>, the next tone up (<code>gray-200</code> in light, <code>night-5</code> in dark), an existing token in both themes. In the dark theme the two readings differ only slightly.</p>
+<div class="grid g2">
+  <div class="card"><p class="label">Band as written: control</p><div aria-hidden="true"><span class="sk sk-bar as-written w-100"></span></div></div>
+  <div class="card"><p class="label">Band proposed: control-hover</p><div aria-hidden="true"><span class="sk sk-bar w-100"></span></div></div>
+</div>
+</section>
+
 <section aria-labelledby="h-table">
 <h2 id="h-table">Table</h2>
 <p class="why">Rows 48 px (01), hairlines between rows, figures right-aligned and tabular (11:54). Income carries a plus sign and the positive colour, expenses stay in ink with their minus: the sign says it, the colour repeats it. A missing category is a word in a pill (11:54, 13:08).</p>
@@ -757,6 +849,16 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
     var t=toastModel.cloneNode(true);t.removeAttribute("role");toastDemo.appendChild(t);
   });
 
+  /* loading demo: both states share one grid cell, so the heights below are those of the same box */
+  var loadDemo=document.getElementById("load-demo"),loadBtn=document.getElementById("toggle-load"),
+      loadSk=loadDemo.querySelector(".skeleton"),loadDone=loadDemo.querySelector(".loaded");
+  document.getElementById("load-measure").textContent="Skeleton "+Math.round(loadSk.getBoundingClientRect().height)+" px tall, loaded content "+Math.round(loadDone.getBoundingClientRect().height)+" px tall.";
+  loadBtn.addEventListener("click",function(){
+    var loaded=loadDone.classList.toggle("is-off");
+    loadSk.classList.toggle("is-off",!loaded);
+    loadBtn.textContent=loaded?"Show the loaded content":"Show the skeleton again";
+  });
+
   function money(minor,loc,signed){return new Intl.NumberFormat(loc,{style:"currency",currency:"EUR",signDisplay:signed?"exceptZero":"auto"}).format(minor+"E-2");}
   function day(iso,loc,opts){opts.timeZone="UTC";return new Intl.DateTimeFormat(loc,opts).format(new Date(iso+"T00:00:00Z"));}
   var TEXT={
@@ -781,21 +883,24 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
     ["Primary hover","--color-on-primary","--color-primary-hover",4.5],["Secondary","--color-text","--color-control",4.5],["Secondary hover","--color-text","--color-control-hover",4.5],
     ["Disabled label","--color-text-muted","--color-surface-sunken",4.5],["Destructive button","--color-on-danger","--color-danger",4.5],
     ["Success word","--color-positive","--color-surface",4.5],["Toast disc mark","--color-positive","--color-positive-tint",3],["Error disc mark","--color-negative","--color-negative-tint",3],
-    ["Warning notice text","--color-text","--color-warning-tint",4.5],["Warning word","--color-warning","--color-warning-tint",4.5],["Row hover","--color-text","--color-surface-sunken",4.5],["Active option","--color-text","--color-control",4.5],["Today in calendar","--color-accent","--color-surface",4.5],["Chosen day","--color-on-primary","--color-primary",4.5]
+    ["Warning notice text","--color-text","--color-warning-tint",4.5],["Warning word","--color-warning","--color-warning-tint",4.5],["Row hover","--color-text","--color-surface-sunken",4.5],["Active option","--color-text","--color-control",4.5],["Today in calendar","--color-accent","--color-surface",4.5],["Chosen day","--color-on-primary","--color-primary",4.5],
+    ["Skeleton block on card","--color-surface-sunken","--color-surface",null],["Skeleton band on block, proposed","--color-control-hover","--color-surface-sunken",null],["Skeleton band on block, as written","--color-control","--color-surface-sunken",null],["Skeleton block on page ground","--color-surface-sunken","--color-bg",null]
   ];
   function rgb(v){v=v.trim();if(v.charAt(0)!=="#")return null;if(v.length===4)v="#"+v[1]+v[1]+v[2]+v[2]+v[3]+v[3];return [1,3,5].map(function(i){return parseInt(v.substr(i,2),16)/255;});}
   function lum(c){var l=c.map(function(x){return x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4);});return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2];}
   function ratio(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
   function read(theme){var prev=root.getAttribute("data-theme");root.setAttribute("data-theme",theme);var cs=getComputedStyle(root);var out=PAIRS.map(function(p){return [cs.getPropertyValue(p[1]).trim(),cs.getPropertyValue(p[2]).trim()];});if(prev===null)root.removeAttribute("data-theme");else root.setAttribute("data-theme",prev);return out;}
-  var L=read("light"),D=read("dark"),fails=0,tb=document.getElementById("contrast");
+  var L=read("light"),D=read("dark"),fails=0,decorative=0,tb=document.getElementById("contrast");
+  /* a null threshold marks a decorative pair (aria-hidden blocks): its ratio is shown, nothing is required of it */
   PAIRS.forEach(function(p,i){
-    var a=ratio(rgb(L[i][0]),rgb(L[i][1])),b=ratio(rgb(D[i][0]),rgb(D[i][1]));
-    if(a<p[3])fails++;if(b<p[3])fails++;
+    var a=ratio(rgb(L[i][0]),rgb(L[i][1])),b=ratio(rgb(D[i][0]),rgb(D[i][1])),deco=p[3]===null;
+    if(deco)decorative++;else{if(a<p[3])fails++;if(b<p[3])fails++;}
+    function cell(v){return "<td class='r'>"+v.toFixed(2)+":1"+(deco?"":(v>=p[3]?" Pass":" Fail"))+"</td>";}
     var tr=document.createElement("tr");
-    tr.innerHTML="<td>"+p[0]+"</td><td><code>"+p[1].slice(2)+"</code> on <code>"+p[2].slice(2)+"</code></td><td class='r'>"+a.toFixed(2)+":1 "+(a>=p[3]?"Pass":"Fail")+"</td><td class='r'>"+b.toFixed(2)+":1 "+(b>=p[3]?"Pass":"Fail")+"</td><td class='r'>"+p[3]+":1</td>";
+    tr.innerHTML="<td>"+p[0]+"</td><td><code>"+p[1].slice(2)+"</code> on <code>"+p[2].slice(2)+"</code></td>"+cell(a)+cell(b)+"<td class='r'>"+(deco?"none (decorative)":p[3]+":1")+"</td>";
     tb.appendChild(tr);
   });
-  document.getElementById("contrast-summary").textContent=PAIRS.length*2+" pairs checked, "+fails+" below threshold.";
+  document.getElementById("contrast-summary").textContent=(PAIRS.length-decorative)*2+" pairs checked, "+fails+" below threshold. "+decorative+" decorative pairs show their ratio only.";
   root.setAttribute("data-contrast-fails",String(fails));
 })();
 </script>

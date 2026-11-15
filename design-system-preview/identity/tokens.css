@@ -119,6 +119,7 @@
   --motion-duration-enter: 200ms; /* a layer or a page that arrives */
   --motion-duration-step: 260ms;  /* a step of the add-transaction flow, the progress bar, the selected segment sliding */
   --motion-duration-draw: 600ms;  /* the trajectory line drawn once, the longest motion allowed */
+  --motion-duration-shimmer: 1500ms; /* one sweep of the loading skeleton, the only repeating motion; proposed, the owner confirms it on components.html */
   --motion-ease-enter: cubic-bezier(0.2, 0, 0, 1); /* decelerates: arrives fast, settles */
   --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);  /* accelerates: leaves without lingering */
   --motion-ease-move: cubic-bezier(0.4, 0, 0.2, 1); /* from one place or tone to another */
@@ -244,6 +245,7 @@
     --motion-duration-enter: 0ms;
     --motion-duration-step: 0ms;
     --motion-duration-draw: 0ms;
+    --motion-duration-shimmer: 0ms; /* a zero active duration, even repeated, applies nothing: the band stays outside its block */
     --motion-offset: 0px;
     --motion-offset-step: 0px;
   }

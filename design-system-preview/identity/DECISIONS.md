@@ -2,6 +2,8 @@
 
 One line per choice, with the evidence that justifies it. Reference IDs are those of [00-reference-audit.md](00-reference-audit.md) (`01` to `03`, then capture times such as `07:20`). `DOMAIN` and `PRODUCT` point to `docs/DOMAIN.md` and `docs/PRODUCT.md`. "Owner" means a decision taken by the owner during review.
 
+Version 0.7 (16 Nov 2026): the loading skeleton and its shimmer, the one motion allowed to repeat (owner's decision of 12 Nov 2026, issue #126). The band tone and the 1500 ms cycle are proposed and wait for the owner's validation on `components.html`.
+
 Version 0.6 (12 Nov 2026): the owner's answers to the open points of the integration plan. Phosphor icons, a Settings page, an interim phone tab bar, Credit and Debit for balances, the import review as a page, a step for a transfer above a ceiling, the chart without planned items, a WOFF2 font, the migration in one pull request, `src/app/tokens.css` as the source after integration.
 
 Version 0.5 (12 Nov 2026): motion. The owner asked for it, with the `motion` library, on states, floating layers, the add-transaction flow, the chart and pages; reduced motion turns it all off; content rendered by the server never starts in a hidden state that would make the page jump.
@@ -199,6 +201,10 @@ Measured from `src/app/tokens.css` in both themes (WCAG 2.x relative luminance).
 | Active option | `--color-text` on `--color-control` | 4.5 | 17.57 | 15.52 |
 | Today in calendar | `--color-accent` on `--color-surface` | 4.5 | 5.55 | 5.48 |
 | Chosen day | `--color-on-primary` on `--color-primary` | 4.5 | 20.03 | 19.91 |
+| Skeleton block on card (decorative) | `--color-surface-sunken` on `--color-surface` | none | 1.14 | 1.06 |
+| Skeleton band on block, proposed (decorative) | `--color-control-hover` on `--color-surface-sunken` | none | 1.20 | 1.25 |
+| Skeleton band on block, as written in the issue (decorative) | `--color-control` on `--color-surface-sunken` | none | 1.00 | 1.10 |
+| Skeleton block on the page ground (decorative) | `--color-surface-sunken` on `--color-bg` | none | 1.05 | 1.17 |
 
 #### Data display in the app (#114)
 
@@ -373,11 +379,17 @@ Asked by the owner on 12 Nov 2026, after the plan to apply the identity had kept
 | State, 120 ms | Hover, press, check, selection fade from one tone to the next | Short enough to read as the answer to the action, long enough to soften a tone step that used to snap |
 | Exit 140 ms, enter 200 ms | Layers leave faster than they arrive | What leaves no longer matters; what arrives is read |
 | Step 260 ms, offset 24 px | A flow step slides from the side the user goes to | The direction says forward or back; 24 px is visible on a 375 px phone without crossing the screen |
-| Draw 600 ms | The trajectory line drawn once, left to right, real then planned | Reads the timeline in its own order, once: the longest motion allowed, so nothing else lasts more |
+| Draw 600 ms | The trajectory line drawn once, left to right, real then planned | Reads the timeline in its own order, once: the longest motion allowed, so nothing else lasts more, except the cycle of the shimmer, which repeats |
+| Shimmer 1500 ms (proposed) | One sweep of a soft band over a loading skeleton, with `--motion-ease-move`, repeated while the content loads. The only repeating motion | Owner, 12 Nov 2026: a skeleton that does not move reads as a broken page, one that moves says the app is working. 1.5 s is slow enough to stay calm and read as a sweep, fast enough that a load of one or two seconds shows a full pass; under 5 s so the cycle is never mistaken for a long autoplay. No new easing: the standard one already eases both ends, which leaves a short rest between sweeps. Limits: it runs only while loading and ends when the content replaces the skeleton; no other colour, no glow, no holographic tint; pure CSS from the first paint; never beside content being read; at 0 ms under reduced motion, where a zero active duration applies nothing and the band stays outside its block, so the skeleton is static |
+| Shimmer band tone (proposed) | `--color-control-hover` over `--color-surface-sunken` | The issue asks for `control`, but `control` and `surface-sunken` are both `gray-50` in the light theme: the band would measure 1.00:1 and never show. `control-hover` is the next tone up in both themes (`gray-200`, `night-5`) and already exists. The owner confirms or chooses another token on `components.html`, which draws both |
+| Skeleton content | Shapes only: no figure, label or amount, not even a real column heading; known structure (card, column count) stays real | No invented data (DOMAIN, `CLAUDE.md`); the page must not look as if it says something it does not know yet |
+| Skeleton size | Same as the final content: table in the real markup with 48 px rows, chart with its 280 px plot | The content replaces the skeleton without moving anything (CLS under 0.1) |
+| Skeleton accessibility | `aria-busy="true"` on the region, one visually hidden polite status message in words, blocks `aria-hidden`, focus never moved | Meaning never rests on the motion or the tone alone (WCAG 2.3.3, 1.4.1) |
+| No pause control | None for the shimmer | WCAG 2.2.2 exempts motion that is essential, and a loading indicator shown while the content cannot be used is. The cycle itself is under 5 s, but a slow load lasts longer, so the argument rests on the exception, not on the cycle. Open point for the owner |
 | Easings | Decelerate in, accelerate out, standard between two states | The usual pairing for things that arrive and leave; no spring, no overshoot, to stay calm |
 | Offset 8 px | Layers and pages rise as they fade in | Says where the layer comes from without travelling |
 | Reduced motion | Every duration and offset at 0, fades included | Owner's rule: motion is off under reduced motion, not merely softened. Nothing carries meaning through motion alone (WCAG 2.3.3) |
-| Never | Counting figures, bounce, parallax, scroll motion, loops, motion on the holographic signature or the chart glow, input that waits for a motion | A real amount is shown as it is (principle 1); a loop or an autoplay over 5 seconds would need a pause control (WCAG 2.2.2) |
+| Never | Counting figures, bounce, parallax, scroll motion, loops (except the shimmer above), motion on the holographic signature or the chart glow, input that waits for a motion | A real amount is shown as it is (principle 1); a loop or an autoplay over 5 seconds would need a pause control (WCAG 2.2.2), which the shimmer does not because it is essential while loading |
 | Tailwind | Default easings and animations reset; `transition-*` utilities read the state tokens | An off-system easing fails to compile, like an off-system colour; `duration-*` still compiles and is refused in review |
 
 ## Voice, five rules

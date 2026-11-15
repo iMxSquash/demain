@@ -216,7 +216,8 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | `--motion-duration-exit` | 140 ms | A layer that leaves |
 | `--motion-duration-enter` | 200 ms | A layer or a page that arrives |
 | `--motion-duration-step` | 260 ms | A step of the add-transaction flow, the progress bar, the selected segment sliding |
-| `--motion-duration-draw` | 600 ms | The trajectory line, drawn once; the longest motion allowed |
+| `--motion-duration-draw` | 600 ms | The trajectory line, drawn once; the longest motion allowed, apart from the cycle of the shimmer |
+| `--motion-duration-shimmer` | 1500 ms (proposed, the owner confirms it on `components.html`) | One sweep of the loading skeleton, the only motion that repeats |
 | `--motion-ease-enter` | `cubic-bezier(0.2, 0, 0, 1)` | Entrances: arrive fast, settle |
 | `--motion-ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Exits: leave without lingering |
 | `--motion-ease-move` | `cubic-bezier(0.4, 0, 0.2, 1)` | From one tone or place to another |
@@ -240,19 +241,20 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | Trajectory line | Drawn once from left to right when the chart first appears, real part then planned part; markers, labels and the zone appear at once | draw, move |
 | Chart reading | The marker, the crosshair and the tooltip move to the month being read | state, move |
 | Page | On load and on navigation inside the app, the content of `<main>` fades in and rises `--motion-offset` | enter |
+| Loading skeleton | A soft band sweeps over each block from the start of the line to its end, in the reading direction, and repeats while the content loads. It stops when the content replaces the skeleton, which enters with the page fade | shimmer, move |
 
 **Never**
 
 - An initial state rendered by the server, in a `style` attribute or in Motion's `initial`, for content that is in the HTML: the content security policy blocks style attributes, so the page would show its final state and then jump. Content rendered by the server enters with a CSS animation from the stylesheet (the `motion-enter` utility of `tailwind.css`, or a keyframe in a CSS module), which runs from the first paint. Motion's components rendered on the server take `initial={false}`; Motion animates only what the browser mounts after the page is shown.
 - A figure that counts up or rolls: a real amount is shown as it is (principle 1).
-- Bounce, overshoot, springs that oscillate, parallax, motion tied to scroll, loops, or anything that moves for more than `--motion-duration-draw`.
+- Bounce, overshoot, springs that oscillate, parallax, motion tied to scroll, loops, or anything that moves for more than `--motion-duration-draw`. The one exception is the shimmer of a loading skeleton (owner, 12 Nov 2026): the only motion allowed to repeat, with the limits of the "Loading" entry of section 8.
 - Motion on the holographic signature or on the glow of the chart lines.
 - Waiting for a motion to finish before accepting input: focus moves at once (the heading of a new step, the trigger of a closed picker) and the motion plays around it.
 
 **Reduced motion**
 
 - With `prefers-reduced-motion: reduce`, every duration and offset is 0: each change is instant, fades included (owner, 12 Nov 2026).
-  - For CSS, `tokens.css` does it.
+  - For CSS, `tokens.css` does it. A shimmer of 0 ms applies nothing, so a skeleton stays a plain static block.
   - For Motion, `src/app/motion.ts` does it. `MotionConfig reducedMotion="user"` alone is not enough, since it keeps fades.
 - Nothing carries meaning through motion alone: a step, an error or a new toast is also a heading, a live region, a word.
 
@@ -338,6 +340,19 @@ Open `components.html` next to this section: every state below is drawn there in
   - timing: a success has `role="status"` and leaves after 8 seconds unless pointed at or focused. An error has `role="alert"` and stays until closed.
 - **Notice:** `bg-warning-tint text-text`, `rounded-control`, padding 12 16, starting with "Warning:" in `text-warning font-medium`.
 - **Empty state:** `bg-surface-sunken`, `rounded-control`, centred muted text of 36 characters at most per line, one secondary action.
+- **Loading (skeleton):** shows the shape of what is coming, in its place, and nothing else.
+  - Content: shapes only. No figure, label or amount, not even a real column heading. What the page already knows (the card, the column count) stays real; what comes from the data is a block.
+  - Blocks: `bg-surface-sunken` on a card, with the radius of what they stand for: `rounded-control` for a line of text, `rounded-pill` for a button, `rounded-card` for a tile. A card itself is never a block: the card stays and its content becomes blocks.
+  - Size: the same as the final content, so nothing moves when it arrives. A table skeleton is built in the real table markup with 48 px rows; a chart skeleton keeps the 280 px plot (section 11).
+  - Shimmer (owner, 12 Nov 2026, the only motion allowed to repeat):
+    - a soft band sweeps over the block in the reading direction, one sweep per `--motion-duration-shimmer`, with `--motion-ease-move`;
+    - the band is a gradient from transparent to a tone and back to transparent: no other colour, no glow, no holographic tint;
+    - the band tone is **proposed** as `control-hover`, since `control` equals `surface-sunken` in the light theme (1.00:1, invisible); the owner confirms it on `components.html`;
+    - it runs only while the content loads and ends when the content replaces the skeleton;
+    - pure CSS (keyframes in the stylesheet, a `translate` on a pseudo-element), no JavaScript, from the first paint;
+    - under reduced motion the band stays outside its block (see section 6);
+    - it never runs next to content the user is reading.
+  - Accessibility: the region has `aria-busy="true"` and one visually hidden polite status message in words ("Loading transactions"); the blocks are `aria-hidden`. Focus is not moved, and stays where it was when the content arrives. No pause control: a loading indicator shown while the content cannot be used is essential under WCAG 2.2.2 (open point for the owner, DECISIONS.md "Loading skeleton").
 - **Dialog:**
   - the native `<dialog>` with `rounded-card`, `shadow-overlay`, padding 24, at most 420 px wide, and a `bg-backdrop` backdrop;
   - title in `text-title`, actions on the right: Cancel (secondary, focused first), then the confirming action;
@@ -488,6 +503,7 @@ The add-transaction form becomes a three-step flow (`form-proposals.html`, "Reta
 - The vertical axis of a balance always includes zero.
 - Charts are drawn at the element's real pixel width (`useElementWidth`), not by scaling a viewBox, so text stays 12 px and phones never scroll sideways.
 - Hand-written SVG with `d3-scale` and `d3-shape` only (ADR-012).
+- While a chart loads, its skeleton keeps the size of the whole chart as rendered, plot of 280 px included, and its data table keeps 48 px rows (section 8, "Loading").
 
 ### The trajectory chart
 
@@ -579,6 +595,7 @@ Run through it for every new screen or component (WCAG 2.2 AA):
 - [ ] Amounts and dates come from `Intl`, from minor units.
 - [ ] Works at 375 px wide with no horizontal page scroll, at 200 % zoom, and in both themes.
 - [ ] Forms post without JavaScript; custom controls enhance native ones.
+- [ ] A loading state shows shapes only, keeps the final size, sets `aria-busy` with one status message in words, hides its blocks with `aria-hidden`, and never moves the focus.
 - [ ] Motion follows [section 6](#motion): tokens only, nothing rendered by the server starts hidden or offset in a `style` attribute, everything instant with `prefers-reduced-motion: reduce`, focus never waits for a motion.
 
 ## 16. Migrating the current classes
