@@ -6,6 +6,8 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { Button } from "../../components/button";
+import { Checkbox } from "../../components/checkbox";
+import { Notice } from "../../components/notice";
 import type { AssertionLinks } from "../../domain/import-assertions";
 import type { RowDetails } from "../../domain/import-draft";
 import { isPendingAccount, pendingAccountName, type PendingOverflow } from "../../domain/import-overflow";
@@ -86,16 +88,12 @@ function RowsTable({
           <thead>
             <tr className="border-b border-border-control">
               <th scope="col">
-                <label className="flex min-h-11 min-w-11 items-center justify-center">
-                  <input
-                    ref={allRef}
-                    type="checkbox"
-                    checked={areAllSelected}
-                    aria-label={t("selectAllShown", { name: file.fileName })}
-                    onChange={(event) => onSelectAllShown(event.currentTarget.checked)}
-                    className="size-6"
-                  />
-                </label>
+                <Checkbox
+                  ref={allRef}
+                  checked={areAllSelected}
+                  aria-label={t("selectAllShown", { name: file.fileName })}
+                  onChange={(event) => onSelectAllShown(event.currentTarget.checked)}
+                />
               </th>
               <th scope="col" className="py-2 pr-2 text-right">
                 {t("row")}
@@ -379,15 +377,11 @@ export function FileCard({
               )}
             </div>
           )}
-          <label className="flex min-h-11 items-center gap-2">
-            <input
-              type="checkbox"
-              checked={onlyToConfirm}
-              onChange={(event) => setOnlyToConfirm(event.currentTarget.checked)}
-              className="size-6"
-            />
-            {t("filterToConfirm", { count: confirmCount })}
-          </label>
+          <Checkbox
+            checked={onlyToConfirm}
+            onChange={(event) => setOnlyToConfirm(event.currentTarget.checked)}
+            label={t("filterToConfirm", { count: confirmCount })}
+          />
           <BulkEdit
             lookups={lookups}
             selectedCount={selectedShown.length}
@@ -464,9 +458,11 @@ export function FileCard({
               </ul>
             ) : null}
             {outcome.warnings.length > 0 ? (
-              <ul className="list-disc pl-6">
+              <ul className="flex flex-col gap-2">
                 {outcome.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
+                  <li key={warning}>
+                    <Notice>{warning}</Notice>
+                  </li>
                 ))}
               </ul>
             ) : null}

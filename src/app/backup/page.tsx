@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import { Notice } from "../../components/notice";
 import { requireSession } from "../auth/session";
 import { DownloadForm } from "./download-form";
 import { RestoreForm } from "./restore-form";
@@ -43,7 +44,7 @@ export default async function BackupPage() {
           {t("jsonHeading")}
         </h2>
         <p className="max-w-prose">{t("jsonIntro")}</p>
-        <p className="max-w-prose font-medium">{t("jsonWarning")}</p>
+        <Notice className="max-w-prose">{t("jsonWarning")}</Notice>
         <DownloadForm
           endpoint="/backup/json"
           passwordLabel={t("jsonPassword")}
@@ -59,7 +60,7 @@ export default async function BackupPage() {
         <h2 id="restore-heading" className="text-title font-medium">
           {t("restoreHeading")}
         </h2>
-        <p className="max-w-prose font-medium">{t("restoreWarning")}</p>
+        <Notice className="max-w-prose">{t("restoreWarning")}</Notice>
         <RestoreForm />
       </section>
     </main>

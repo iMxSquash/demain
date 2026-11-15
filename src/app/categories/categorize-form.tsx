@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { Button } from "../../components/button";
+import { Checkbox } from "../../components/checkbox";
+import { Disclosure } from "../../components/disclosure";
 import { RULE_OPERATORS } from "../../domain/categorization-rule";
 import { CONTROL_CLASS } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
@@ -69,20 +71,13 @@ export function CategorizeForm({
           {t("categorize")}<span className="sr-only"> {transactionLabel}</span>
         </Button>
       </div>
-      <details open={state?.field === "rule" ? true : undefined}>
-        <summary className="inline-flex min-h-11 cursor-pointer items-center">
-          {t("ruleSummary")}
-        </summary>
+      <Disclosure summary={t("ruleSummary")} open={state?.field === "rule"}>
         <div className="flex flex-col gap-2 py-1">
-          <label className="inline-flex min-h-11 items-center gap-2">
-            <input
-              type="checkbox"
-              name="createRule"
-              defaultChecked={state?.values?.createRule ?? false}
-              className="size-5"
-            />
-            {t("ruleCreate")}
-          </label>
+          <Checkbox
+            name="createRule"
+            defaultChecked={state?.values?.createRule ?? false}
+            label={t("ruleCreate")}
+          />
           <label htmlFor={operatorId}>{rules("operator")}</label>
           <select
             id={operatorId}
@@ -106,7 +101,7 @@ export function CategorizeForm({
             aria-describedby={state?.field === "rule" ? errorId : undefined}
           />
         </div>
-      </details>
+      </Disclosure>
       {state ? (
         <p id={errorId} role="alert" className="font-medium text-negative">
           {common("error", { message: state.message })}
