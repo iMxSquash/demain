@@ -10,9 +10,12 @@ export const MOTION = {
   offset: { rise: 8, step: 24 },
 } as const;
 
+// A cubic bezier tuple, the shape Motion accepts for `ease` (a plain `readonly number[]` is refused).
+type Bezier = readonly [number, number, number, number];
+
 export type MotionValues = {
   duration: { [Name in keyof typeof MOTION.duration]: number };
-  ease: { [Name in keyof typeof MOTION.ease]: readonly number[] };
+  ease: { [Name in keyof typeof MOTION.ease]: Bezier };
   offset: { [Name in keyof typeof MOTION.offset]: number };
 };
 
