@@ -327,6 +327,8 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 .sk.p-72{width:72px}.sk.p-88{width:88px}.sk.p-140{width:140px}.sk.p-64{width:64px}.sk.p-220{width:220px}
 .data .r .sk{margin-left:auto}
 .stack{display:grid;gap:var(--space-3)}
+/* a block on the page ground, outside any card: surface, since surface-sunken would almost vanish in the light theme */
+.sk-ground .sk{background:var(--color-surface)}
 /* both states share one grid cell, so the card is as tall as the taller of the two and the swap cannot move anything */
 .swap{display:grid}
 .swap>*{grid-area:1/1;min-width:0}
@@ -584,7 +586,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 
 <section aria-labelledby="h-load">
 <h2 id="h-load">Loading</h2>
-<p class="why">A skeleton stands for the shape of what is coming, in the place where it will appear, and nothing else: no figure, no label, no amount. What the page already knows (the card, its heading level, the column count) stays real; what comes from the data becomes a block. Blocks are <code>surface-sunken</code> on a card, with the radius of what they stand for: <code>rounded-control</code> for a line, <code>rounded-pill</code> for a button, <code>rounded-card</code> for a tile. A soft band sweeps over each block in the reading direction, once every <code>--motion-duration-shimmer</code> (1.5 s, proposed), only while the content is loading, and is gone when the content replaces the skeleton. It is the one motion that repeats. With reduced motion the blocks stay still. The region carries <code>aria-busy="true"</code> and one visually hidden status message in words; the blocks are <code>aria-hidden</code>. The content then replaces the skeleton with the <code>motion-enter</code> fade.</p>
+<p class="why">A skeleton stands for the shape of what is coming, in the place where it will appear, and nothing else: no figure, no label, no amount. What the page already knows (the card, its heading level, the column count) stays real; what comes from the data becomes a block. Blocks are <code>surface-sunken</code> on a card and <code>surface</code> on the page ground, with the radius of what they stand for: <code>rounded-control</code> for a line, <code>rounded-pill</code> for a button, <code>rounded-card</code> for a tile. A soft band sweeps over each block in the reading direction, once every <code>--motion-duration-shimmer</code> (1.5 s, proposed), only while the content is loading, and is gone when the content replaces the skeleton. It is the one motion that repeats. With reduced motion the blocks stay still. The region carries <code>aria-busy="true"</code> and one visually hidden status message in words; the blocks are <code>aria-hidden</code>. The content then replaces the skeleton with the <code>motion-enter</code> fade.</p>
 
 <h3>Same size, no shift</h3>
 <p><button class="btn secondary" type="button" id="toggle-load">Show the loaded content</button></p>
@@ -625,6 +627,9 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
   <div class="card"><p class="label">Button, rounded-pill</p><div aria-hidden="true"><span class="sk sk-pill"></span></div></div>
   <div class="card"><p class="label">Tile, rounded-card</p><div aria-hidden="true"><span class="sk sk-tile"></span></div></div>
 </div>
+
+<h3 style="margin-top:var(--space-8)">On the page ground</h3>
+<div class="stack sk-ground" aria-hidden="true" style="max-width:420px"><span class="sk sk-line w-50"></span><span class="sk sk-bar w-100"></span><span class="sk sk-bar w-100"></span></div>
 
 <h3 style="margin-top:var(--space-8)">Chart and its table</h3>
 <div class="card scroll" aria-busy="true">
@@ -884,7 +889,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
     ["Disabled label","--color-text-muted","--color-surface-sunken",4.5],["Destructive button","--color-on-danger","--color-danger",4.5],
     ["Success word","--color-positive","--color-surface",4.5],["Toast disc mark","--color-positive","--color-positive-tint",3],["Error disc mark","--color-negative","--color-negative-tint",3],
     ["Warning notice text","--color-text","--color-warning-tint",4.5],["Warning word","--color-warning","--color-warning-tint",4.5],["Row hover","--color-text","--color-surface-sunken",4.5],["Active option","--color-text","--color-control",4.5],["Today in calendar","--color-accent","--color-surface",4.5],["Chosen day","--color-on-primary","--color-primary",4.5],
-    ["Skeleton block on card","--color-surface-sunken","--color-surface",null],["Skeleton band on block, proposed","--color-control-hover","--color-surface-sunken",null],["Skeleton band on block, as written","--color-control","--color-surface-sunken",null],["Skeleton block on page ground","--color-surface-sunken","--color-bg",null]
+    ["Skeleton block on card","--color-surface-sunken","--color-surface",null],["Skeleton band on block, proposed","--color-control-hover","--color-surface-sunken",null],["Skeleton band on block, as written","--color-control","--color-surface-sunken",null],["Skeleton block on page ground","--color-surface","--color-bg",null],["Skeleton band on a ground block","--color-control-hover","--color-surface",null]
   ];
   function rgb(v){v=v.trim();if(v.charAt(0)!=="#")return null;if(v.length===4)v="#"+v[1]+v[1]+v[2]+v[2]+v[3]+v[3];return [1,3,5].map(function(i){return parseInt(v.substr(i,2),16)/255;});}
   function lum(c){var l=c.map(function(x){return x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4);});return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2];}

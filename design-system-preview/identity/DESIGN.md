@@ -342,7 +342,7 @@ Open `components.html` next to this section: every state below is drawn there in
 - **Empty state:** `bg-surface-sunken`, `rounded-control`, centred muted text of 36 characters at most per line, one secondary action.
 - **Loading (skeleton):** shows the shape of what is coming, in its place, and nothing else.
   - Content: shapes only. No figure, label or amount, not even a real column heading. What the page already knows (the card, the column count) stays real; what comes from the data is a block.
-  - Blocks: `bg-surface-sunken` on a card, with the radius of what they stand for: `rounded-control` for a line of text, `rounded-pill` for a button, `rounded-card` for a tile. A card itself is never a block: the card stays and its content becomes blocks.
+  - Blocks: `bg-surface-sunken` on a card, with the radius of what they stand for: `rounded-control` for a line of text, `rounded-pill` for a button, `rounded-card` for a tile. A card itself is never a block: the card stays and its content becomes blocks. A block that sits on the page ground, outside any card (a page title, a form field), is `bg-surface`, since `surface-sunken` would almost vanish there in the light theme (1.05:1, against 1.19:1 for `surface`).
   - Size: the same as the final content, so nothing moves when it arrives. A table skeleton is built in the real table markup with 48 px rows; a chart skeleton keeps the 280 px plot (section 11).
   - Shimmer (owner, 12 Nov 2026, the only motion allowed to repeat):
     - a soft band sweeps over the block in the reading direction, one sweep per `--motion-duration-shimmer`, with `--motion-ease-move`;
@@ -635,5 +635,6 @@ These need action before the related work lands in `src/` (details in DECISIONS.
 
 - **Motion on the references:** `components.html` shows the CSS part of section 6 (states, popovers, dialog, disclosure, step editor, flow steps, progress bar, toast in and out). The trajectory line drawing and the page entrance are specified but not drawn: `brand-board.html` would need its bundle rebuilt. They are checked in the app when the chart and the layout land.
 - **Values to confirm:** the motion tokens are proposed by role, since the references are still images. The owner confirms them on `components.html` (DECISIONS.md, "Motion").
+- **Shimmer values to confirm:** the 1500 ms cycle, the band tone (`control-hover`, since `control` equals `surface-sunken` in the light theme) and the `surface` tone of a block on the page ground are proposed; the owner confirms them on `components.html` (DECISIONS.md, "Motion").
 - **Icons of `form-proposals.html`:** it keeps its hand-drawn icons, as the record of the proposals of 11 Nov 2026. `components.html` and `brand-board.html` use Phosphor.
 - **Phosphor at 20 px:** its Regular stroke is 1.25 px at that size (1.5 px at 24 px). The owner judges it on `components.html`; drawing icons at 24 px would change the layouts.
