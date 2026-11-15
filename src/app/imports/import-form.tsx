@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
+import { Button } from "../../components/button";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
 import {
@@ -12,7 +13,7 @@ import {
   type PendingOverflow,
 } from "../../domain/import-overflow";
 import type { AccountRef, OverflowAccount } from "../../domain/overflow";
-import { BUTTON_CLASS, CONTROL_CLASS, FormField } from "../form-field";
+import { CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
 import {
   AMOUNT_KINDS,
@@ -400,7 +401,7 @@ export function ImportForm({
             ))}
           </select>
         </FormField>
-        <FormField id="file" label={t("fileLabel")}>
+        <FormField id="file" label={t("fileLabel")} hint={t("fileHint")}>
           <input
             id="file"
             name="file"
@@ -492,25 +493,27 @@ export function ImportForm({
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button
+          <Button
             type="submit"
+            variant="secondary"
             name="intent"
             value="preview"
-            disabled={isPending || isDone || staging !== null}
-            className={BUTTON_CLASS}
+            disabled={isDone || staging !== null}
+            pending={isPending}
+            pendingLabel={t("previewSubmitPending")}
           >
             {t("previewSubmit")}
-          </button>
+          </Button>
           {state?.canImport === true && !isDone ? (
-            <button
+            <Button
               type="submit"
               name="intent"
               value="import"
-              disabled={isPending}
-              className={BUTTON_CLASS}
+              pending={isPending}
+              pendingLabel={t("importSubmitPending")}
             >
               {t("importSubmit")}
-            </button>
+            </Button>
           ) : null}
           {isDone ? (
             <Link

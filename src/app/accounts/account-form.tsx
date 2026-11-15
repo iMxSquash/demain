@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { ACCOUNT_KINDS, type AccountField } from "../../domain/account";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
@@ -43,17 +44,12 @@ export function AccountForm({
 
   const errorOf = (field: AccountField) =>
     state?.field === field ? state.message : undefined;
-  const controlProps = (field: AccountField) => {
-    const hasError = errorOf(field) !== undefined;
-    return {
-      id: field,
-      name: field,
-      defaultValue: values[field],
-      className: CONTROL_CLASS,
-      "aria-invalid": hasError ? true : undefined,
-      "aria-describedby": hasError ? `${field}-error` : undefined,
-    };
-  };
+  const controlProps = (field: AccountField) => ({
+    id: field,
+    name: field,
+    defaultValue: values[field],
+    className: CONTROL_CLASS,
+  });
   const fieldProps = (field: AccountField, label: string) => ({
     id: field,
     label,
@@ -78,7 +74,7 @@ export function AccountForm({
         </select>
       </FormField>
 
-      <FormField {...fieldProps("currency", t("form.currency"))}>
+      <FormField {...fieldProps("currency", t("form.currency"))} hint={t("form.currencyHint")}>
         <input
           {...controlProps("currency")}
           type="text"
@@ -104,6 +100,8 @@ export function AccountForm({
 
       <FormField
         {...fieldProps("depositCeiling", t("form.depositCeiling"))}
+        optional
+        hint={t("form.depositCeilingHint")}
       >
         <input
           {...controlProps("depositCeiling")}
@@ -113,7 +111,7 @@ export function AccountForm({
         />
       </FormField>
 
-      <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))}>
+      <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))} optional>
         {/* Same remount trick as the kind select above. */}
         <select
           key={values.overflowAccountId}
@@ -128,13 +126,14 @@ export function AccountForm({
         </select>
       </FormField>
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
       >
         {submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

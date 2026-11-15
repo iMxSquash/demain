@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../../../components/button";
 import { CONTROL_CLASS, FormField } from "../../../form-field";
 import { useFocusFirstError } from "../../../use-focus-first-error";
 import type {
@@ -33,17 +34,12 @@ export function BalanceAssertionForm({
 
   const errorOf = (field: keyof BalanceAssertionFormValues) =>
     state?.field === field ? state.message : undefined;
-  const controlProps = (field: keyof BalanceAssertionFormValues) => {
-    const hasError = errorOf(field) !== undefined;
-    return {
-      id: field,
-      name: field,
-      defaultValue: values[field],
-      className: CONTROL_CLASS,
-      "aria-invalid": hasError ? true : undefined,
-      "aria-describedby": hasError ? `${field}-error` : undefined,
-    };
-  };
+  const controlProps = (field: keyof BalanceAssertionFormValues) => ({
+    id: field,
+    name: field,
+    defaultValue: values[field],
+    className: CONTROL_CLASS,
+  });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -64,7 +60,7 @@ export function BalanceAssertionForm({
         </FormField>
       )}
 
-      <FormField id="date" label={t("form.date")} error={errorOf("date")}>
+      <FormField id="date" label={t("form.date")} hint={t("form.dateHint")} error={errorOf("date")}>
         <input {...controlProps("date")} type="date" required />
       </FormField>
 
@@ -78,17 +74,18 @@ export function BalanceAssertionForm({
         />
       </FormField>
 
-      <FormField id="note" label={t("form.note")}>
+      <FormField id="note" label={t("form.note")} optional>
         <input {...controlProps("note")} type="text" autoComplete="off" />
       </FormField>
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={t("submitPending")}
+        className="self-start"
       >
         {t("submit")}
-      </button>
+      </Button>
     </form>
   );
 }

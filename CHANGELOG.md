@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Buttons: one shared `Button` with the four variants of the identity (primary, secondary, link, destructive). A disabled button is drawn with explicit colours, never with opacity, and a running action keeps its fill, shows the ongoing verb (for example "Adding...") and is announced with `aria-busy`, without losing the focus. Every button that used `disabled:opacity` now uses it.
+- Fields: `FormField` takes a hint, an optional marker and an error, links the hint and the error to its control with `aria-describedby` (forms no longer build that attribute) and draws the error with an alert icon after "Error:". The control is 48 px tall with the hover, focus, invalid, disabled and read-only states of the identity. Labels that carried a parenthesis are split into a short label and a hint in both languages. See ADR-022.
 - Appearance setting: System (default), Light or Dark, chosen with a segmented control in the header that works without JavaScript. The choice is kept in a `theme` cookie and rendered by the server as `data-theme` on `<html>`, so the first paint is right and a tampered cookie is ignored.
 - Icons: the `@phosphor-icons/react` package (pinned) and a server-safe `Icon` component that draws a Phosphor Regular icon at 20 px in `currentColor`, hidden from assistive technology unless it has a label. No screen uses it yet. See ADR-021.
 - Motion foundation: the `motion` library (pinned) behind a `LazyMotion` provider with the `domAnimation` feature set, and `src/app/motion.ts`, which mirrors the motion tokens and returns 0 for every duration and offset under reduced motion, fades included. No component uses it yet. See ADR-020.

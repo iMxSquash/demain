@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { RULE_OPERATORS } from "../../domain/categorization-rule";
 import { CONTROL_CLASS } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
@@ -59,13 +60,14 @@ export function CategorizeForm({
             </option>
           ))}
         </select>
-        <button
+        <Button
           type="submit"
-          disabled={isPending}
-          className="min-h-11 px-2 underline disabled:opacity-60"
+          variant="link"
+          pending={isPending}
+          pendingLabel={t("categorizePending")}
         >
           {t("categorize")}<span className="sr-only"> {transactionLabel}</span>
-        </button>
+        </Button>
       </div>
       <details open={state?.field === "rule" ? true : undefined}>
         <summary className="inline-flex min-h-11 cursor-pointer items-center">

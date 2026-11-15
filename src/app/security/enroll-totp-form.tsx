@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState, type ReactNode } from "react";
 
+import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { enableTotpAction } from "./actions";
 
@@ -61,13 +62,14 @@ export function EnrollTotpForm({ secret, children }: EnrollTotpFormProps) {
             className={CONTROL_CLASS}
           />
         </FormField>
-        <button
+        <Button
           type="submit"
-          disabled={isPending}
-          className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+          pending={isPending}
+          pendingLabel={t("enablePending")}
+          className="self-start"
         >
           {t("enable")}
-        </button>
+        </Button>
       </form>
     </>
   );

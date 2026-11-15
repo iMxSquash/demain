@@ -368,6 +368,21 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** One runtime dependency. Components import icons from `@phosphor-icons/react/ssr`, never from the package root, which relies on a React context and is meant for client components. Only the `Icon` type is imported from the root, as a type-only import that is erased at build time. A new icon is picked from Phosphor Regular and added to the table of DESIGN.md, section 7. The package declares `sideEffects: false` and one module per icon, so importing a named icon keeps the bundle to the icons in use, out of about 1,500. Its MIT license is compatible with the AGPL-3.0 of the repository.
 
+### ADR-022: One Button, and a FormField that owns the links between a field and its text
+
+**Context.** Every form wrote its own button classes, 17 of them with `disabled:opacity-60`, which DESIGN.md (section 8) forbids since opacity cannot be measured against a contrast ratio. Every form also built `aria-describedby` by hand for its errors, and the hints that existed (`wordHint`, `fileHint`) were paragraphs inside the field with ids the caller had to remember to list.
+
+**Decision.** `src/components/button.tsx` is the one button: a client component with four variants (primary, secondary, link, destructive), `type` required, and layout-only extra classes. A disabled button changes fill and text colour. A pending button (`pending`, optional `pendingLabel`) is not disabled: it keeps its fill and its focus, shows the ongoing verb, sets `aria-busy` and `aria-disabled`, and cancels the click, which also stops a second submit from the Enter key. `FormField` takes `hint`, `error` and `optional`, renders the hint above the control and the error under it, and clones its single control child to set `aria-describedby` (merged with any value the child already has, without repeating an id) and `aria-invalid`. Callers no longer build either attribute. `CONTROL_CLASS` carries the 48 px control and its hover, focus, invalid, disabled and read-only states.
+
+**Alternatives rejected.**
+
+- *`disabled` for a pending button.* It would turn the button grey while it works, against DESIGN.md ("keep the fill"), and a native `disabled` drops the focus in the middle of a submit.
+- *A class-string helper instead of a component.* The pending behaviour (label, `aria-busy`, cancelled click) cannot be expressed in classes, and a helper would still let a caller forget it.
+- *`tailwind-merge` to let callers override the variant.* It is a new dependency for a case the component avoids by accepting layout classes only.
+- *A render prop or context to hand the ids to the control.* Every call site would change shape. Cloning the single control keeps the call sites as they were, and the type of `children` (one element) makes a second child a compile error.
+
+**Consequences.** A control with its own `aria-describedby` still works, since the ids are merged. A field with several controls (a group of radios) does not use `FormField`. The outlined header buttons (language, appearance) and the toast close button do not use `Button` yet: the navigation and feedback work of the identity takes them. Pending labels live next to the submit label, under the key `<submit>Pending`, in both message files.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.
@@ -386,6 +401,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | Charting | Hand-written SVG components with `d3-scale` and `d3-shape` | See ADR-012. |
 | Motion | `motion` behind `LazyMotion`, CSS for server-rendered content | See ADR-020. |
 | Icons | Phosphor Regular through `@phosphor-icons/react`, one `Icon` component | See ADR-021. |
+| Buttons and fields | One `Button` (four variants, pending state), `FormField` owns `aria-describedby` | See ADR-022. |
 
 ## Deployment
 

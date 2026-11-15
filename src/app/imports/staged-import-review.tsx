@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 
+import { Button } from "../../components/button";
 import { linkReviewAssertions, type AssertionLinkSnapshot } from "../../domain/import-assertions";
 import {
   choicesForShortfalls,
@@ -37,7 +38,7 @@ import type {
   ImportCategoryOption,
   StagedFile,
 } from "./import-form-data";
-import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { CONTROL_CLASS } from "../form-field";
 import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
 import { isOwnCloseEvent } from "./review-dialog-close";
@@ -389,13 +390,14 @@ export function StagedImportReview({
             onAccountChange(accountId);
           }}
         />
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => dialogRef.current?.close()}
-          className={`${BUTTON_CLASS} self-start`}
+          className="self-start"
         >
           {t("close")}
-        </button>
+        </Button>
       </div>
     </dialog>
   );

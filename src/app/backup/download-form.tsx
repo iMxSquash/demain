@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 
+import { Button } from "../../components/button";
 import { useNotify } from "../feedback/toast-provider";
 import { CONTROL_CLASS, FormField } from "../form-field";
 
@@ -10,6 +11,7 @@ interface DownloadFormProps {
   /** Route handler that builds the file. */
   endpoint: string;
   passwordLabel: string;
+  passwordHint: string;
   confirmationLabel: string;
   submitLabel: string;
   doneMessage: string;
@@ -34,6 +36,7 @@ type Outcome =
 export function DownloadForm({
   endpoint,
   passwordLabel,
+  passwordHint,
   confirmationLabel,
   submitLabel,
   doneMessage,
@@ -65,7 +68,7 @@ export function DownloadForm({
 
   return (
     <form onSubmit={download} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id={passwordId} label={passwordLabel}>
+      <FormField id={passwordId} label={passwordLabel} optional={isPasswordOptional} hint={passwordHint}>
         <input
           id={passwordId}
           name="password"
@@ -76,7 +79,7 @@ export function DownloadForm({
           className={CONTROL_CLASS}
         />
       </FormField>
-      <FormField id={confirmationId} label={confirmationLabel}>
+      <FormField id={confirmationId} label={confirmationLabel} optional={isPasswordOptional}>
         <input
           id={confirmationId}
           name="passwordConfirmation"
@@ -87,13 +90,14 @@ export function DownloadForm({
           className={CONTROL_CLASS}
         />
       </FormField>
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={t("working")}
+        className="self-start"
       >
         {submitLabel}
-      </button>
+      </Button>
       <p role="status">{isPending ? t("working") : null}</p>
     </form>
   );

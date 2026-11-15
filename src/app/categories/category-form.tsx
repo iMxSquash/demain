@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { CategoryFormState } from "./category-form-data";
@@ -22,6 +23,7 @@ export function CategoryForm({
   submitLabel,
 }: CategoryFormProps) {
   const t = useTranslations("categories");
+  const common = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const name = state?.name ?? initialName;
@@ -38,18 +40,17 @@ export function CategoryForm({
           required
           autoComplete="off"
           className={CONTROL_CLASS}
-          aria-invalid={nameError ? true : undefined}
-          aria-describedby={nameError ? "name-error" : undefined}
         />
       </FormField>
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
       >
         {submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
 import { ConfirmActionButton } from "../confirm-action-button";
-import { BUTTON_CLASS } from "../form-field";
 import { undoImportBatchAction } from "./checks-actions";
 import type { UndoImportState } from "./import-form-data";
 
@@ -50,7 +49,7 @@ export function UndoImportPanel({
           title={t("title", { name: fileName })}
           message={t("message")}
           confirmLabel={t("confirm")}
-          buttonClassName={BUTTON_CLASS}
+          variant="secondary"
         />
       )}
       <div role="status">

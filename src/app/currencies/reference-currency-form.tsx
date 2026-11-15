@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { ReferenceCurrencyFormState } from "./currency-form-data";
@@ -25,7 +26,12 @@ export function ReferenceCurrencyForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id="currency" label={t("referenceLabel")} error={state?.message}>
+      <FormField
+        id="currency"
+        label={t("referenceLabel")}
+        hint={t("referenceHint")}
+        error={state?.message}
+      >
         <input
           id="currency"
           name="currency"
@@ -35,17 +41,16 @@ export function ReferenceCurrencyForm({
           maxLength={3}
           required
           autoComplete="off"
-          aria-invalid={state ? true : undefined}
-          aria-describedby={state ? "currency-error" : undefined}
         />
       </FormField>
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={t("referenceSubmitPending")}
+        className="self-start"
       >
         {t("referenceSubmit")}
-      </button>
+      </Button>
     </form>
   );
 }

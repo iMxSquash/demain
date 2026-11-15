@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useState, useTransition } from "react";
 
-import { BUTTON_CLASS } from "../form-field";
+import { Button } from "../../components/button";
 import {
   listRuleProposalsAction,
   saveRuleProposalsAction,
@@ -112,9 +112,9 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
               );
             })}
           </fieldset>
-          <button type="submit" disabled={isPending} className={BUTTON_CLASS}>
+          <Button type="submit" pending={isPending} pendingLabel={t("submitPending")} className="self-start">
             {t("submit")}
-          </button>
+          </Button>
         </form>
       ) : null}
       <div role="status">

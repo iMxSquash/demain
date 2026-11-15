@@ -3,6 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useId, useRef } from "react";
 
+import { Button, type ButtonVariant } from "../components/button";
+
+
 type ConfirmTarget =
   | {
       /** The server action to run once the user confirms. */
@@ -23,11 +26,11 @@ type ConfirmActionButtonProps = ConfirmTarget & {
   title: string;
   message: string;
   confirmLabel: string;
-  /** Replaces the link-like style of the opening button. */
-  buttonClassName?: string;
+  /** Look of the button that opens the confirmation: a link, unless it is the main action of its form. */
+  variant?: ButtonVariant;
+  /** Layout of the opening button (for example `self-start`). */
+  className?: string;
 };
-
-const LINK_BUTTON_CLASS = "min-h-11 px-2 underline";
 
 /**
  * Asks before an action the user cannot undo from the app. The native dialog
@@ -41,7 +44,8 @@ export function ConfirmActionButton({
   title,
   message,
   confirmLabel,
-  buttonClassName = LINK_BUTTON_CLASS,
+  variant = "link",
+  className,
 }: ConfirmActionButtonProps) {
   const t = useTranslations("common");
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -55,36 +59,37 @@ export function ConfirmActionButton({
       <p>{message}</p>
       <div className="flex gap-2">
         {/* Cancel takes the initial focus: the safe answer comes first. */}
-        <button
+        <Button
           type="button"
+          variant="secondary"
           autoFocus
           onClick={() => dialogRef.current?.close()}
-          className="min-h-11 rounded-pill border border-border-control px-4"
         >
           {t("cancel")}
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          variant="destructive"
           form={formId}
           onClick={() => dialogRef.current?.close()}
-          className="min-h-11 rounded-pill bg-danger px-4 font-medium text-on-danger"
         >
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </>
   );
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant={variant}
         onClick={() => dialogRef.current?.showModal()}
-        className={buttonClassName}
+        className={className}
       >
         {label}
         <span className="sr-only"> {subject}</span>
-      </button>
+      </Button>
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}

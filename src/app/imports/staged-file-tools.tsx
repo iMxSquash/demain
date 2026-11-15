@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Button } from "../../components/button";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
-import { BUTTON_CLASS, CONTROL_CLASS } from "../form-field";
+import { CONTROL_CLASS } from "../form-field";
 import {
   bulkPatch,
   DEFAULT_SAVINGS_CHOICE,
@@ -202,10 +203,11 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
           </select>
         </div>
       </div>
-      <button
+      <Button
         type="button"
+        variant="secondary"
         disabled={!canApply}
-        className={`${BUTTON_CLASS} self-start`}
+        className="self-start"
         onClick={() => {
           onApply(patch);
           setChoice(NO_CHOICE);
@@ -214,7 +216,7 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
         }}
       >
         {t("bulkApply")}
-      </button>
+      </Button>
     </fieldset>
   );
 }

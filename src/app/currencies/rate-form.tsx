@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { RateFormState, RateFormValues } from "./currency-form-data";
@@ -24,17 +25,12 @@ export function RateForm({ action, initialValues }: RateFormProps) {
 
   const errorOf = (field: keyof RateFormValues) =>
     state?.field === field ? state.message : undefined;
-  const controlProps = (field: keyof RateFormValues) => {
-    const hasError = errorOf(field) !== undefined;
-    return {
-      id: field,
-      name: field,
-      defaultValue: values[field],
-      className: CONTROL_CLASS,
-      "aria-invalid": hasError ? true : undefined,
-      "aria-describedby": hasError ? `${field}-error` : undefined,
-    };
-  };
+  const controlProps = (field: keyof RateFormValues) => ({
+    id: field,
+    name: field,
+    defaultValue: values[field],
+    className: CONTROL_CLASS,
+  });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -42,25 +38,41 @@ export function RateForm({ action, initialValues }: RateFormProps) {
         <input {...controlProps("date")} type="date" required />
       </FormField>
 
-      <FormField id="base" label={t("form.base")} error={errorOf("base")}>
+      <FormField
+        id="base"
+        label={t("form.base")}
+        hint={t("form.baseHint")}
+        error={errorOf("base")}
+      >
         <input {...controlProps("base")} type="text" maxLength={3} required autoComplete="off" />
       </FormField>
 
-      <FormField id="quote" label={t("form.quote")} error={errorOf("quote")}>
+      <FormField
+        id="quote"
+        label={t("form.quote")}
+        hint={t("form.quoteHint")}
+        error={errorOf("quote")}
+      >
         <input {...controlProps("quote")} type="text" maxLength={3} required autoComplete="off" />
       </FormField>
 
-      <FormField id="rate" label={t("form.rate")} error={errorOf("rate")}>
+      <FormField
+        id="rate"
+        label={t("form.rate")}
+        hint={t("form.rateHint")}
+        error={errorOf("rate")}
+      >
         <input {...controlProps("rate")} type="text" inputMode="decimal" required autoComplete="off" />
       </FormField>
 
-      <button
+      <Button
         type="submit"
-        disabled={isPending}
-        className="min-h-11 self-start rounded-pill bg-primary px-4 font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60"
+        pending={isPending}
+        pendingLabel={t("rateSubmitPending")}
+        className="self-start"
       >
         {t("rateSubmit")}
-      </button>
+      </Button>
     </form>
   );
 }
