@@ -25,9 +25,17 @@ function flatten(tree: Tree, prefix = ""): Record<string, string> {
   );
 }
 
+// `{name}` and the argument of `{name, plural, ...}`.
 function valuesOf(text: string): string[] {
-  return [...new Set([...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1] ?? ""))];
+  return [...new Set([...text.matchAll(/\{(\w+)(?:\}|,)/g)].map((m) => m[1] ?? ""))];
 }
+
+function pluralsOf(text: string): string[] {
+  return [...text.matchAll(/\{(\w+),\s*plural,/g)].map((m) => m[1] ?? "");
+}
+
+// A plural argument needs a number; any other value is shown as `[name]`.
+const PLURAL_SAMPLE = 2;
 
 function tagsOf(text: string): string[] {
   return [...new Set([...text.matchAll(/<(\w+)>/g)].map((m) => m[1] ?? ""))];
@@ -81,8 +89,11 @@ describe("translation files", () => {
     });
 
     for (const [key, text] of Object.entries(flatten(messages))) {
+      const plurals = pluralsOf(text);
+      const sampleOf = (name: string) =>
+        plurals.includes(name) ? PLURAL_SAMPLE : `[${name}]`;
       const values = Object.fromEntries(
-        valuesOf(text).map((name) => [name, `[${name}]`]),
+        valuesOf(text).map((name) => [name, sampleOf(name)]),
       );
       // A tag is rendered as its content.
       const tags = Object.fromEntries(
@@ -98,7 +109,7 @@ describe("translation files", () => {
 
       // An apostrophe before a brace would silently swallow a value.
       for (const name of valuesOf(text)) {
-        expect(output, key).toContain(`[${name}]`);
+        expect(output, key).toContain(String(sampleOf(name)));
       }
     }
   });
