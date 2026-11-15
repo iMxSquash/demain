@@ -31,15 +31,13 @@ export function FileInput({ onChange, ...rest }: FileInputProps) {
     return () => form?.removeEventListener("reset", clear);
   }, []);
 
+  function describeFiles(files: FileList | null): string | null {
+    if (files === null || files.length === 0) return null;
+    return files.length === 1 ? (files[0]?.name ?? null) : t("filesChosen", { count: files.length });
+  }
+
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.currentTarget.files ?? []);
-    setSummary(
-      files.length === 0
-        ? null
-        : files.length === 1
-          ? (files[0]?.name ?? null)
-          : t("filesChosen", { count: files.length }),
-    );
+    setSummary(describeFiles(event.currentTarget.files));
     onChange?.(event);
   }
 

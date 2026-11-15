@@ -62,7 +62,7 @@ export function Button({
       onClick={handleClick}
       aria-busy={pending ? true : undefined}
       aria-disabled={pending ? true : undefined}
-      className={[BASE_CLASS, VARIANT_CLASS[variant], className].filter(Boolean).join(" ")}
+      className={[buttonClass(variant), className].filter(Boolean).join(" ")}
     >
       {pending && pendingLabel ? pendingLabel : children}
     </button>

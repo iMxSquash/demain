@@ -6,7 +6,7 @@ import { Icon } from "./icon";
 interface DisclosureProps {
   summary: ReactNode;
   /** Opens it from the server, for example to show a field the last submit rejected. */
-  open?: boolean | undefined;
+  open?: boolean;
   children?: ReactNode;
 }
 

@@ -71,7 +71,7 @@ export function CategorizeForm({
           {t("categorize")}<span className="sr-only"> {transactionLabel}</span>
         </Button>
       </div>
-      <Disclosure summary={t("ruleSummary")} open={state?.field === "rule" ? true : undefined}>
+      <Disclosure summary={t("ruleSummary")} open={state?.field === "rule"}>
         <div className="flex flex-col gap-2 py-1">
           <Checkbox
             name="createRule"

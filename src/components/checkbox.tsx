@@ -22,7 +22,7 @@ type CheckboxProps = Omit<ComponentPropsWithRef<"input">, "type" | "className" |
 
 export function Checkbox({ label, ...rest }: CheckboxProps) {
   return (
-    <label className={`${ROW_CLASS} ${label === undefined ? "min-w-11 justify-center" : ""}`}>
+    <label className={label === undefined ? `${ROW_CLASS} min-w-11 justify-center` : ROW_CLASS}>
       <span className="relative grid size-5 shrink-0 place-items-center">
         <input {...rest} type="checkbox" className={BOX_CLASS} />
         <span aria-hidden="true" className={TICK_CLASS} />
