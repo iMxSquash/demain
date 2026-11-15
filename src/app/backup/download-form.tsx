@@ -5,7 +5,8 @@ import { useId, useState, type FormEvent } from "react";
 
 import { Button } from "../../components/button";
 import { useNotify } from "../feedback/toast-provider";
-import { CONTROL_CLASS, FormField } from "../form-field";
+import { FormField } from "../form-field";
+import { PasswordInput } from "../password-input";
 
 interface DownloadFormProps {
   /** Route handler that builds the file. */
@@ -69,25 +70,19 @@ export function DownloadForm({
   return (
     <form onSubmit={download} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField id={passwordId} label={passwordLabel} optional={isPasswordOptional} hint={passwordHint}>
-        <input
+        <PasswordInput
           id={passwordId}
           name="password"
-          type="password"
           required={!isPasswordOptional}
           autoComplete="new-password"
-          spellCheck={false}
-          className={CONTROL_CLASS}
         />
       </FormField>
       <FormField id={confirmationId} label={confirmationLabel} optional={isPasswordOptional}>
-        <input
+        <PasswordInput
           id={confirmationId}
           name="passwordConfirmation"
-          type="password"
           required={!isPasswordOptional}
           autoComplete="new-password"
-          spellCheck={false}
-          className={CONTROL_CLASS}
         />
       </FormField>
       <Button

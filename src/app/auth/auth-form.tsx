@@ -5,12 +5,14 @@ import { useActionState } from "react";
 
 import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { PasswordInput } from "../password-input";
 import type { AuthFormAction } from "./auth-form-data";
 
 export interface AuthFormField {
   name: string;
   label: string;
-  type: "text" | "password";
+  /** `password` gets a show or hide button; `masked` is hidden input without one (a setup token). */
+  type: "text" | "password" | "masked";
   autoComplete: string;
 }
 
@@ -39,18 +41,28 @@ export function AuthForm({ action, fields, submitLabel, hidden = {} }: AuthFormP
 
       {fields.map((field, index) => (
         <FormField key={field.name} id={field.name} label={field.label}>
-          <input
-            id={field.name}
-            name={field.name}
-            type={field.type}
-            required
-            // The values are credentials: never kept across a failed submit.
-            defaultValue=""
-            autoComplete={field.autoComplete}
-            autoFocus={index === 0}
-            spellCheck={false}
-            className={CONTROL_CLASS}
-          />
+          {field.type === "password" ? (
+            <PasswordInput
+              id={field.name}
+              name={field.name}
+              required
+              autoComplete={field.autoComplete}
+              autoFocus={index === 0}
+            />
+          ) : (
+            <input
+              id={field.name}
+              name={field.name}
+              type={field.type === "masked" ? "password" : field.type}
+              required
+              // The values are credentials: never kept across a failed submit.
+              defaultValue=""
+              autoComplete={field.autoComplete}
+              autoFocus={index === 0}
+              spellCheck={false}
+              className={CONTROL_CLASS}
+            />
+          )}
         </FormField>
       ))}
 

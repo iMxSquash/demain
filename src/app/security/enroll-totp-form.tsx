@@ -5,6 +5,7 @@ import { useActionState, type ReactNode } from "react";
 
 import { Button } from "../../components/button";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { PasswordInput } from "../password-input";
 import { enableTotpAction } from "./actions";
 
 interface EnrollTotpFormProps {
@@ -40,15 +41,7 @@ export function EnrollTotpForm({ secret, children }: EnrollTotpFormProps) {
       <form action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
         <input type="hidden" name="secret" value={secret} />
         <FormField id="password" label={t("password")}>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            defaultValue=""
-            autoComplete="current-password"
-            className={CONTROL_CLASS}
-          />
+          <PasswordInput id="password" name="password" required autoComplete="current-password" />
         </FormField>
         <FormField id="code" label={t("code")}>
           <input
