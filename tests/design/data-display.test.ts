@@ -19,10 +19,14 @@ describe("DataTable", () => {
     expect(markup).toContain('aria-label="Recorded rates"');
   });
 
+  it("aligns its caption left, since a caption is centred by default", () => {
+    expect(markup).toContain("[&amp;_caption]:text-left");
+  });
+
   it("scrolls inside a focusable region, never the page", () => {
     expect(markup).toContain('role="region"');
     expect(markup).toContain('tabindex="0"');
-    expect(markup).toContain("overflow-x-auto");
+    expect(markup).toContain("relative overflow-x-auto");
   });
 
   it("sits in a card with narrow padding of 16 and wide padding of 24", () => {

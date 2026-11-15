@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 // stays on the cell (`text-right`): a descendant selector here would win over it.
 const TABLE_CLASS = [
   "w-full border-collapse text-left",
-  "[&_caption]:pb-3 [&_caption]:font-medium",
+  "[&_caption]:pb-3 [&_caption]:text-left [&_caption]:font-medium",
   "[&_thead_th]:px-3 [&_thead_th]:pb-2 [&_thead_th]:text-label [&_thead_th]:font-medium [&_thead_th]:uppercase [&_thead_th]:text-text-muted",
   "[&_tbody_tr]:border-t [&_tbody_tr]:border-divider [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-surface-sunken",
   "[&_tbody_td]:h-12 [&_tbody_td]:px-3 [&_tbody_td]:whitespace-nowrap",
@@ -31,7 +31,13 @@ interface DataTableProps {
 export function DataTable({ caption, children }: DataTableProps) {
   return (
     <div className="rounded-card bg-surface p-4 @3xl:p-6">
-      <div role="region" aria-label={caption} tabIndex={0} className="overflow-x-auto">
+      {/* `relative`: the sr-only text of the cells is absolutely positioned and must be clipped here. */}
+      <div
+        role="region"
+        aria-label={caption}
+        tabIndex={0}
+        className="relative overflow-x-auto"
+      >
         <table className={TABLE_CLASS}>
           <caption>{caption}</caption>
           {children}
