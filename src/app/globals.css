@@ -14,9 +14,9 @@
 @import "tailwindcss" source("../");
 @import "./tokens.css";
 
-/* Until the theme setting lands (DESIGN.md section 3), the system setting decides; it will
-   then render `data-theme="light"` or `"dark"` on <html>. The semantic tokens already switch,
-   so `dark:` should almost never be needed; it follows the same rule as tokens.css. */
+/* The root layout renders `data-theme="light"` or `"dark"` from the theme cookie and nothing for
+   the system setting. The semantic tokens already switch, so `dark:` should almost never be
+   needed; it follows the same rule as tokens.css. */
 @custom-variant dark {
   @media (prefers-color-scheme: dark) {
     &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
@@ -147,6 +147,81 @@
 
 @utility motion-enter {
   animation: motion-enter var(--motion-duration-enter) var(--motion-ease-enter) backwards;
+}
+
+/* Segmented control of native radios (DESIGN section 8): the selected pill is one element under
+   equal segments, moved by the index read from :has(), so the server-rendered radios work
+   without JavaScript. The duration is 0 under reduced motion (tokens.css). */
+@layer components {
+  .segmented {
+    --n: 3;
+    --i: 0;
+    position: relative;
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 2px;
+    padding: 3px;
+    max-width: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--color-control);
+
+    &:has(> label:nth-child(2) input:checked) {
+      --i: 1;
+    }
+    &:has(> label:nth-child(3) input:checked) {
+      --i: 2;
+    }
+    &:not(:has(input:checked))::before {
+      opacity: 0;
+    }
+    &::before {
+      content: "";
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      width: calc((100% - 6px - (var(--n) - 1) * 2px) / var(--n));
+      border-radius: var(--radius-pill);
+      background: var(--color-primary);
+      translate: calc(var(--i) * (100% + 2px)) 0;
+      transition: translate var(--motion-duration-step) var(--motion-ease-move);
+    }
+
+    & label {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--target-min);
+      padding: 0 var(--space-4);
+      border-radius: var(--radius-pill);
+      color: var(--color-text-muted);
+      font-weight: var(--weight-medium);
+      cursor: pointer;
+      transition: color var(--motion-duration-state) var(--motion-ease-move);
+
+      &:hover {
+        color: var(--color-text);
+      }
+      &:has(input:checked) {
+        color: var(--color-on-primary);
+      }
+      /* The radio is visually hidden: the ring goes on its label. */
+      &:has(input:focus-visible) {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
+      }
+    }
+
+    & input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+  }
 }
 
 @layer base {
