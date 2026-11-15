@@ -74,15 +74,14 @@ export default async function AllBalanceAssertionsPage() {
           {t("listHeading")}
         </h2>
         {assertions.length === 0 ? (
-          <EmptyState
-            action={
-              activeAccounts.length === 0
-                ? undefined
-                : { href: "#new-heading", label: t("emptyAction") }
-            }
-          >
-            {t("allEmpty")}
-          </EmptyState>
+          // Without an active account the page shows no form to point at.
+          activeAccounts.length === 0 ? (
+            <EmptyState>{t("allEmptyNoAccount")}</EmptyState>
+          ) : (
+            <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+              {t("allEmpty")}
+            </EmptyState>
+          )
         ) : (
           <BalanceAssertionsTable
             assertions={assertions}

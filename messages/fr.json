@@ -182,6 +182,7 @@
     "allTitle": "Soldes constatés de tous les comptes",
     "allIntro": "Tous les soldes enregistrés pour vos comptes, comptes archivés compris. Enregistrez-en un nouveau ci-dessous ; enregistrer un jour qui a déjà un solde le remplace.",
     "allEmpty": "Aucun solde enregistré pour l'instant. Utilisez le formulaire ci-dessus pour en enregistrer un.",
+    "allEmptyNoAccount": "Aucun solde enregistré pour l'instant.",
     "allCaption": "Soldes enregistrés pour tous les comptes, du plus récent au plus ancien",
     "accountColumn": "Compte",
     "accountBalancesLink": "Soldes du compte",

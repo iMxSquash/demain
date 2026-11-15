@@ -182,6 +182,7 @@
     "allTitle": "Balance assertions of all accounts",
     "allIntro": "Every balance recorded for your accounts, archived accounts included. Record a new one below; recording a day that already has one replaces it.",
     "allEmpty": "No balance recorded yet. Use the form above to record one.",
+    "allEmptyNoAccount": "No balance recorded yet.",
     "allCaption": "Balances recorded for all accounts, most recent first",
     "accountColumn": "Account",
     "accountBalancesLink": "Balances of the account",
