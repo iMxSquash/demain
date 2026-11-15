@@ -37,7 +37,6 @@
   "settings": {
     "metaTitle": "Settings | Demain",
     "title": "Settings",
-    "navLabel": "Settings",
     "appearance": "Appearance",
     "language": "Language",
     "more": "More",
@@ -51,9 +50,20 @@
       "security": "Security"
     }
   },
+  "navigation": {
+    "label": "Main",
+    "overview": "Overview",
+    "transactions": "Transactions",
+    "accounts": "Accounts",
+    "imports": "Imports",
+    "toCategorize": "To categorize",
+    "queueCount": "{count, plural, one {# transaction} other {# transactions}}",
+    "settings": "Settings",
+    "addTransaction": "Add transaction"
+  },
   "home": {
     "metaDescription": "Self-hosted personal budget web app.",
-    "navLabel": "Main",
+    "navLabel": "All pages",
     "accounts": "Accounts",
     "transactions": "Transactions",
     "categories": "Categories",

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, ne } from "drizzle-orm";
 
 import { assertCategoryAssignable } from "../domain/category";
 import { validateRuleValue, type RuleOperator } from "../domain/categorization-rule";
@@ -355,14 +355,22 @@ function writeCategory(
     .get();
 }
 
-/** Entered transactions that still need a category: transfers never do. */
+// Entered transactions that still need a category: transfers never do.
+const IS_UNCATEGORIZED = and(isNull(transactions.categoryId), ne(transactions.kind, "transfer"));
+
+/** The to-categorize queue, oldest first. */
 export function listUncategorizedTransactions(db: AppDatabase): Transaction[] {
   return db
     .select()
     .from(transactions)
-    .where(and(isNull(transactions.categoryId), ne(transactions.kind, "transfer")))
+    .where(IS_UNCATEGORIZED)
     .orderBy(asc(transactions.date), asc(transactions.id))
     .all();
+}
+
+/** Size of the to-categorize queue, for the navigation badge. */
+export function countUncategorizedTransactions(db: AppDatabase): number {
+  return db.select({ value: count() }).from(transactions).where(IS_UNCATEGORIZED).get()?.value ?? 0;
 }
 
 /** Deleting one leg of a transfer deletes the other (DOMAIN, invariant 3). */

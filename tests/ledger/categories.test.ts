@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { archiveAccount, createAccount } from "../../src/ledger/accounts";
 import {
   createTransaction,
+  countUncategorizedTransactions,
   createTransfer,
   listUncategorizedTransactions,
   setTransactionCategory,
@@ -231,6 +232,28 @@ describe("categories", () => {
       });
 
       expect(listUncategorizedTransactions(db)).toEqual([waiting]);
+    });
+
+    it("counts the queue without the categorized rows and the transfers", () => {
+      const checking = createAccount(db, ACCOUNT_INPUT);
+      const savings = createAccount(db, { ...ACCOUNT_INPUT, name: "Livret A" });
+      const groceries = createCategory(db, { name: "Groceries" });
+      createTransaction(db, entry(checking.id));
+      createTransaction(db, entry(checking.id, { kind: "income", amount: 2_000 }));
+      createTransaction(db, entry(checking.id, { categoryId: groceries.id }));
+      createTransfer(db, {
+        sourceId: checking.id,
+        destinationId: savings.id,
+        amount: 500,
+        date: "2026-02-11",
+        label: "Savings",
+      });
+
+      expect(countUncategorizedTransactions(db)).toBe(2);
+    });
+
+    it("counts an empty queue as zero", () => {
+      expect(countUncategorizedTransactions(db)).toBe(0);
     });
 
     it("assigns then clears the category of a transaction", () => {

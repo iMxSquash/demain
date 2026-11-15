@@ -37,7 +37,6 @@
   "settings": {
     "metaTitle": "Réglages | Demain",
     "title": "Réglages",
-    "navLabel": "Réglages",
     "appearance": "Apparence",
     "language": "Langue",
     "more": "Plus",
@@ -51,9 +50,20 @@
       "security": "Sécurité"
     }
   },
+  "navigation": {
+    "label": "Principale",
+    "overview": "Aperçu",
+    "transactions": "Transactions",
+    "accounts": "Comptes",
+    "imports": "Imports",
+    "toCategorize": "À catégoriser",
+    "queueCount": "{count, plural, one {# transaction} other {# transactions}}",
+    "settings": "Réglages",
+    "addTransaction": "Ajouter une transaction"
+  },
   "home": {
     "metaDescription": "Application web de budget personnel, auto-hébergée.",
-    "navLabel": "Principale",
+    "navLabel": "Toutes les pages",
     "accounts": "Comptes",
     "transactions": "Transactions",
     "categories": "Catégories",

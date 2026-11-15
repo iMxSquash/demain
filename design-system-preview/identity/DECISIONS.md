@@ -408,4 +408,4 @@ Since version 0.3 the board shows the React trajectory chart (`react/preview/boa
 
 1. **Trademark.** No clearance search was done for the symbol or the name.
 2. **Gradient in print.** The colour symbol uses four gradients; print and embroidery should use the black, white or mono masters.
-3. **Roadmap.** The dark theme is recorded as decided in `docs/ROADMAP.md` (#107). "Phone layout details" stays an open question of M2.
+3. **Roadmap.** The dark theme (#107) and the phone navigation (#112) are recorded as decided in `docs/ROADMAP.md`.

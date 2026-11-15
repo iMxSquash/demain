@@ -1,0 +1,22 @@
+/* Colours of the logo, read from the tokens so the stem switches with the theme. */
+.ink {
+  fill: var(--logo-ink);
+}
+.sky {
+  stop-color: var(--holo-sky);
+}
+.blue {
+  stop-color: var(--holo-blue);
+}
+.aqua {
+  stop-color: var(--holo-aqua);
+}
+.rose {
+  stop-color: var(--holo-rose);
+}
+.peach {
+  stop-color: var(--holo-peach);
+}
+.sand {
+  stop-color: var(--holo-sand);
+}

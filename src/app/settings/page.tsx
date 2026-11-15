@@ -10,8 +10,10 @@ import {
   Tag,
 } from "@phosphor-icons/react/ssr";
 
+import { Button } from "../../components/button";
 import { Icon } from "../../components/icon";
 import { requireSession } from "../auth/session";
+import { logoutAction } from "../login/actions";
 import { LocaleSwitcher } from "../locale/locale-switcher";
 import { ThemeSwitcher } from "../theme/theme-switcher";
 
@@ -31,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage() {
   await requireSession();
-  const t = await getTranslations("settings");
+  const [t, tAuth] = await Promise.all([getTranslations("settings"), getTranslations("auth")]);
 
   return (
     <main className="flex max-w-2xl flex-col gap-8 p-8">
@@ -68,6 +70,12 @@ export default async function SettingsPage() {
           </ul>
         </nav>
       </section>
+      {/* Interim place of sign out, reachable on every width, until the owner decides one. */}
+      <form action={logoutAction}>
+        <Button type="submit" variant="secondary">
+          {tAuth("signOut")}
+        </Button>
+      </form>
     </main>
   );
 }

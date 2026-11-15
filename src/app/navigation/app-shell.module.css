@@ -1,0 +1,175 @@
+/*
+ * App shell (DESIGN section 6, Navigation). The frame is the query container, so the shell
+ * follows the room it is given, not the viewport. Narrow: a top bar and a floating tab bar.
+ * From 900 px: a sidebar with the queue and Settings at its foot.
+ */
+.frame {
+  container-type: inline-size;
+}
+
+/* A focused element is scrolled clear of the floating tab bar (WCAG 2.4.11). A container
+   query cannot reach the root, so the room is kept on every width of a signed-in page. */
+:global(html):has(.nav) {
+  scroll-padding-bottom: var(--tab-bar-clearance);
+}
+
+/* The toasts sit outside the frame, where the container query cannot reach them. The frame
+   spans the viewport, so a viewport query mirrors it and lifts them above the tab bar. */
+@media (width < 900px) {
+  :global(html):has(.nav) :global([data-toast-region]) {
+    bottom: var(--tab-bar-clearance);
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  transition: color var(--motion-duration-state) var(--motion-ease-move),
+    background-color var(--motion-duration-state) var(--motion-ease-move);
+
+  &:hover {
+    color: var(--color-text);
+  }
+}
+
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-control);
+  color: var(--color-text);
+  font-size: var(--text-label);
+  line-height: 1;
+}
+
+@container (width < 900px) {
+  /* The header and the navigation are laid out on their own. */
+  .side {
+    display: contents;
+  }
+
+  .bar {
+    padding: var(--space-3) var(--space-4) 0;
+  }
+
+  .narrowOnly {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .wideOnly {
+    display: none;
+  }
+
+  /* Fixed to the viewport, above the content, which keeps room for it below. */
+  .nav {
+    position: fixed;
+    z-index: 1;
+    inset-inline: 0;
+    bottom: var(--tab-bar-offset);
+    width: min(var(--tab-bar-width), 100% - 2 * var(--space-4));
+    margin-inline: auto;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-1);
+    padding: var(--tab-bar-padding);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-overlay);
+  }
+
+  .item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--tab-bar-item);
+    font-size: var(--text-label);
+
+    /* The current tab is ink: blue only marks today (DESIGN section 4). */
+    &[aria-current="page"] {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+    }
+  }
+
+  .content {
+    padding-bottom: var(--tab-bar-clearance);
+  }
+}
+
+@container (width >= 900px) {
+  /* A container cannot query itself: the grid sits on the element inside it. */
+  .shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    gap: var(--space-6);
+    padding-left: var(--space-4);
+  }
+
+  .side {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    height: 100dvh;
+    overflow-y: auto;
+    padding-block: var(--space-6) var(--space-4);
+  }
+
+  .bar {
+    padding: 0 var(--space-3);
+  }
+
+  .narrowOnly {
+    display: none;
+  }
+
+  .nav {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* Selected item raised on white, with ink text (DESIGN section 6). */
+  .item {
+    gap: var(--space-3);
+    min-height: var(--target-min);
+    padding: 0 var(--space-3);
+
+    &[aria-current="page"] {
+      background: var(--color-surface);
+      color: var(--color-text);
+    }
+  }
+
+  .foot {
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-divider);
+  }
+}
