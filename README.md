@@ -172,7 +172,7 @@ demain/
 │   ├── auth/                 Password hashing, TOTP, backup codes, sessions, rate limiting, the single account
 │   ├── proxy.ts              Deny-by-default access check for every page
 │   ├── i18n/                 Language negotiation, calendar date formatting, next-intl request setup
-│   ├── charts/               SVG chart components and their pure geometry (d3-scale, d3-shape)
+│   ├── charts/               SVG chart components (trajectory chart and its data table) and their pure geometry (d3-scale, d3-shape)
 │   ├── domain/               Pure domain logic, no clock, database or network (money core, account, transaction and overflow rules)
 │   ├── ledger/               Account and transaction use cases on top of the storage layer
 │   ├── export/               Encrypted snapshot and its restoration, JSON export and its schema
