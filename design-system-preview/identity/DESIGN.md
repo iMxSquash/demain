@@ -341,7 +341,7 @@ Open `components.html` next to this section: every state below is drawn there in
 - **Notice:** `bg-warning-tint text-text`, `rounded-control`, padding 12 16, starting with "Warning:" in `text-warning font-medium`.
 - **Empty state:** `bg-surface-sunken`, `rounded-control`, centred muted text of 36 characters at most per line, one secondary action.
 - **Loading (skeleton):** shows the shape of what is coming, in its place, and nothing else.
-  - Content: shapes only. No figure, label or amount, not even a real column heading. What the page already knows (the card, the column count) stays real; what comes from the data is a block.
+  - Content (owner, 16 Nov 2026): a block stands only for data that is really loading, and the data is loaded as fast as it can be, never held back to show the skeleton. What does not depend on the data stays as it is, never a block: a page title, a section heading, a back link, an intro, a caption, a column heading, a hint. A heading or caption that holds data (an account name, a currency) is a block. Blocks are shapes only: no figure, label or amount.
   - Blocks: `bg-surface-sunken` on a card, with the radius of what they stand for: `rounded-control` for a line of text, `rounded-pill` for a button, `rounded-card` for a tile. A card itself is never a block: the card stays and its content becomes blocks. A block that sits on the page ground, outside any card (a page title, a form field), is `bg-surface`, since `surface-sunken` would almost vanish there in the light theme (1.05:1, against 1.19:1 for `surface`).
   - Size: the same as the final content, so nothing moves when it arrives. A table skeleton is built in the real table markup with 48 px rows; a chart skeleton keeps the 280 px plot (section 11).
   - Shimmer (owner, 12 Nov 2026, the only motion allowed to repeat):
@@ -503,7 +503,7 @@ The add-transaction form becomes a three-step flow (`form-proposals.html`, "Reta
 - The vertical axis of a balance always includes zero.
 - Charts are drawn at the element's real pixel width (`useElementWidth`), not by scaling a viewBox, so text stays 12 px and phones never scroll sideways.
 - Hand-written SVG with `d3-scale` and `d3-shape` only (ADR-012).
-- While a chart loads, its skeleton keeps the size of the whole chart as rendered, plot of 280 px included, and its data table keeps 48 px rows (section 8, "Loading").
+- While a chart loads, its skeleton keeps the size of the whole chart as rendered, plot of 280 px included, and its data table keeps its rows (section 8, "Loading"). The headings, the hint and the column headings are shown as they are.
 
 ### The trajectory chart
 

@@ -6,12 +6,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   SkeletonBlock,
+  SkeletonDataTable,
   SkeletonFields,
   SkeletonLine,
-  SkeletonPageHead,
   SkeletonRegion,
   SkeletonRows,
-  SkeletonSection,
+  SkeletonTableBody,
   SkeletonTable,
 } from "../../src/components/skeleton";
 
@@ -35,6 +35,11 @@ function textOutsideHiddenParts(markup: string): string {
 }
 
 describe("SkeletonLine", () => {
+  it("right-aligns its block for a figure", () => {
+    expect(render(createElement(SkeletonLine, { align: "end" }))).toContain("justify-end");
+    expect(render(createElement(SkeletonLine))).not.toContain("justify-end");
+  });
+
   it("is hidden from assistive technology and holds no text", () => {
     const markup = render(createElement(SkeletonLine));
 
@@ -142,29 +147,54 @@ describe("SkeletonRows", () => {
   });
 });
 
-describe("SkeletonPageHead", () => {
-  it("draws a back link and a title, each one line of text", () => {
-    const markup = render(createElement(SkeletonPageHead));
+describe("SkeletonTableBody", () => {
+  const markup = render(
+    createElement("table", null, createElement(SkeletonTableBody, { columns: ["start", "end"], rows: 3 })),
+  );
 
-    expect(markup).toContain("w-32 self-start");
-    expect(markup).toContain("text-heading");
+  it("draws one hidden block per cell", () => {
+    expect(countOf(markup, "<tr")).toBe(3);
+    expect(countOf(markup, 'class="skeleton rounded-control')).toBe(6);
+    expect(markup).toContain('<tbody aria-hidden="true">');
   });
 
-  it("leaves out the back link for a page that has none", () => {
-    const markup = render(createElement(SkeletonPageHead, { backLink: false }));
+  it("right-aligns the blocks of a figure column", () => {
+    expect(countOf(markup, "justify-end")).toBe(3);
+  });
 
-    expect(markup).not.toContain("self-start");
-    expect(markup).toContain("text-heading");
+  it("holds no text", () => {
+    expect(markup.replace(/<[^>]+>/g, "")).toBe("");
   });
 });
 
-describe("SkeletonSection", () => {
-  it("is a section with the title line of a heading, then its content", () => {
-    const markup = render(createElement(SkeletonSection, null, createElement(SkeletonBlock, { className: "h-12" })));
+describe("SkeletonDataTable", () => {
+  const markup = render(
+    createElement(SkeletonDataTable, {
+      caption: "Every recorded transaction",
+      regionLabel: "Transactions",
+      headers: [{ label: "Date" }, { label: "Amount", end: true }],
+      rows: 2,
+    }),
+  );
 
-    expect(markup.startsWith("<section")).toBe(true);
-    expect(markup.indexOf("text-title")).toBeLessThan(markup.indexOf("h-12"));
-    expect(markup.replace(/<[^>]+>/g, "")).toBe("");
+  it("shows its caption and its column headings as they are: they do not depend on the data", () => {
+    expect(markup).toContain("<caption>Every recorded transaction</caption>");
+    expect(markup).toContain(">Date</th>");
+    expect(markup).toContain(">Amount</th>");
+  });
+
+  it("right-aligns the heading of a figure column", () => {
+    expect(markup).toContain('class="text-right">Amount</th>');
+  });
+
+  it("draws only the rows as blocks", () => {
+    expect(countOf(markup, 'class="skeleton rounded-control')).toBe(4);
+    expect(textOutsideHiddenParts(markup)).toContain("Every recorded transaction");
+  });
+
+  it("is a data table: a named scroll region in its card, so a swap moves nothing", () => {
+    expect(markup).toContain('aria-label="Transactions"');
+    expect(markup).toContain("rounded-card bg-surface p-4 @3xl:p-6");
   });
 });
 

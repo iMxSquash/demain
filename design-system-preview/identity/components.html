@@ -318,7 +318,6 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 .sk::after{content:"";position:absolute;inset:0;translate:-100% 0;background:linear-gradient(90deg,transparent,var(--sk-band,var(--color-control-hover)),transparent);animation:shimmer var(--motion-duration-shimmer) var(--motion-ease-move) infinite}
 .sk.as-written{--sk-band:var(--color-control)}
 .sk-line{height:16px;margin-block:3px;border-radius:var(--radius-control)}
-.sk-label{height:10px;margin-block:4px;border-radius:var(--radius-control)}
 .sk-pill{height:var(--target-min);width:120px;border-radius:var(--radius-pill)}
 .sk-tile{height:96px;border-radius:var(--radius-card)}
 .sk-plot{height:280px;border-radius:var(--radius-control)}
@@ -586,7 +585,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 
 <section aria-labelledby="h-load">
 <h2 id="h-load">Loading</h2>
-<p class="why">A skeleton stands for the shape of what is coming, in the place where it will appear, and nothing else: no figure, no label, no amount. What the page already knows (the card, its heading level, the column count) stays real; what comes from the data becomes a block. Blocks are <code>surface-sunken</code> on a card and <code>surface</code> on the page ground, with the radius of what they stand for: <code>rounded-control</code> for a line, <code>rounded-pill</code> for a button, <code>rounded-card</code> for a tile. A soft band sweeps over each block in the reading direction, once every <code>--motion-duration-shimmer</code> (1.5 s, proposed), only while the content is loading, and is gone when the content replaces the skeleton. It is the one motion that repeats. With reduced motion the blocks stay still. The region carries <code>aria-busy="true"</code> and one visually hidden status message in words; the blocks are <code>aria-hidden</code>. The content then replaces the skeleton with the <code>motion-enter</code> fade.</p>
+<p class="why">A skeleton stands only for data that is really loading, in the place where it will appear: no figure, no label, no amount. What does not depend on the data (a title, a section heading, a caption, a column heading) is shown as it is, never as a block; a heading or caption that holds data (an account name) is a block. Blocks are <code>surface-sunken</code> on a card and <code>surface</code> on the page ground, with the radius of what they stand for: <code>rounded-control</code> for a line, <code>rounded-pill</code> for a button, <code>rounded-card</code> for a tile. A soft band sweeps over each block in the reading direction, once every <code>--motion-duration-shimmer</code> (1.5 s, proposed), only while the content is loading, and is gone when the content replaces the skeleton. It is the one motion that repeats. With reduced motion the blocks stay still. The region carries <code>aria-busy="true"</code> and one visually hidden status message in words; the blocks are <code>aria-hidden</code>. The content then replaces the skeleton with the <code>motion-enter</code> fade.</p>
 
 <h3>Same size, no shift</h3>
 <p><button class="btn secondary" type="button" id="toggle-load">Show the loaded content</button></p>
@@ -594,11 +593,11 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 <div class="swap" id="load-demo">
   <div class="skeleton" aria-busy="true">
     <p class="sr" role="status">Loading transactions</p>
-    <div aria-hidden="true">
+    <div>
       <table class="data">
-        <caption><span class="sk sk-line p-220"></span></caption>
-        <thead><tr><th scope="col"><span class="sk sk-label p-64"></span></th><th scope="col"><span class="sk sk-label p-64"></span></th><th scope="col"><span class="sk sk-label p-64"></span></th><th scope="col" class="r"><span class="sk sk-label p-64"></span></th></tr></thead>
-        <tbody>
+        <caption>Current account, November 2026</caption>
+        <thead><tr><th scope="col">Date</th><th scope="col">Label</th><th scope="col">Category</th><th scope="col" class="r">Amount</th></tr></thead>
+        <tbody aria-hidden="true">
           <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td><span class="sk sk-line p-72"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
           <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td><span class="sk sk-line p-72"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
           <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td><span class="sk sk-line p-72"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
@@ -634,25 +633,17 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
 <h3 style="margin-top:var(--space-8)">Chart and its table</h3>
 <div class="card scroll" aria-busy="true">
   <p class="sr" role="status">Loading the trajectory chart</p>
-  <div aria-hidden="true">
-    <div class="stack" style="margin-bottom:var(--space-4)"><span class="sk sk-line w-30"></span></div>
-    <span class="sk sk-plot"></span>
-    <table class="data" style="margin-top:var(--space-4)">
-      <caption><span class="sk sk-line p-220"></span></caption>
-      <tbody>
-        <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
-        <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
-        <tr><td><span class="sk sk-line p-88"></span></td><td><span class="sk sk-line p-140"></span></td><td class="r"><span class="sk sk-line p-72"></span></td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<h3 style="margin-top:var(--space-8)">Band colour: the owner's call</h3>
-<p class="why">The issue asks for a band of <code>control</code> over <code>surface-sunken</code>. In the light theme both tokens are <code>gray-50</code>, so that band measures 1.00:1 and cannot be seen. The proposal is <code>control-hover</code>, the next tone up (<code>gray-200</code> in light, <code>night-5</code> in dark), an existing token in both themes. In the dark theme the two readings differ only slightly.</p>
-<div class="grid g2">
-  <div class="card"><p class="label">Band as written: control</p><div aria-hidden="true"><span class="sk sk-bar as-written w-100"></span></div></div>
-  <div class="card"><p class="label">Band proposed: control-hover</p><div aria-hidden="true"><span class="sk sk-bar w-100"></span></div></div>
+  <h3>Month-end balances</h3>
+  <span class="sk sk-plot" aria-hidden="true"></span>
+  <table class="data" style="margin-top:var(--space-4)">
+    <caption class="sr">Month-end totals</caption>
+    <thead><tr><th scope="col">Month</th><th scope="col" class="r">Checking</th><th scope="col">Kind</th></tr></thead>
+    <tbody aria-hidden="true">
+      <tr><td><span class="sk sk-line p-88"></span></td><td class="r"><span class="sk sk-line p-72"></span></td><td><span class="sk sk-line p-72"></span></td></tr>
+      <tr><td><span class="sk sk-line p-88"></span></td><td class="r"><span class="sk sk-line p-72"></span></td><td><span class="sk sk-line p-72"></span></td></tr>
+      <tr><td><span class="sk sk-line p-88"></span></td><td class="r"><span class="sk sk-line p-72"></span></td><td><span class="sk sk-line p-72"></span></td></tr>
+    </tbody>
+  </table>
 </div>
 </section>
 
