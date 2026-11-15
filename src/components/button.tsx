@@ -17,6 +17,11 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   link: "px-2 underline underline-offset-3 enabled:hover:decoration-2 disabled:text-text-muted disabled:no-underline",
 };
 
+/** The classes of a variant, for an element that looks like a button but is not one (a label). */
+export function buttonClass(variant: ButtonVariant): string {
+  return `${BASE_CLASS} ${VARIANT_CLASS[variant]}`;
+}
+
 type ButtonProps = Omit<ComponentPropsWithRef<"button">, "type" | "className"> & {
   // No default: a button that submits a form by accident is worse than a missing prop.
   type: "button" | "submit" | "reset";
