@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { memo, useId, type ActionDispatch, type ChangeEvent } from "react";
 
+import { Checkbox } from "../../components/checkbox";
 import type { RowProblem } from "../../domain/import-draft";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { RowDetails } from "../../domain/import-draft";
@@ -115,16 +116,11 @@ export const RowEditor = memo(function RowEditor({
   return (
     <tr className="border-b border-divider align-top">
       <td>
-        {/* The label makes the whole 44 px square a target; the input names itself. */}
-        <label className="flex min-h-11 min-w-11 items-center justify-center">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            aria-label={t("selectRow", { line: row.line })}
-            onChange={(event) => onSelect(rowIndex, event.currentTarget.checked)}
-            className="size-6"
-          />
-        </label>
+        <Checkbox
+          checked={isSelected}
+          aria-label={t("selectRow", { line: row.line })}
+          onChange={(event) => onSelect(rowIndex, event.currentTarget.checked)}
+        />
       </td>
       <th scope="row" className="py-2 pr-2 text-right font-regular tabular-nums">
         {row.line}

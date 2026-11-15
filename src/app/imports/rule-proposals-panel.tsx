@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useState, useTransition } from "react";
 
 import { Button } from "../../components/button";
+import { Checkbox } from "../../components/checkbox";
+import { Notice } from "../../components/notice";
 import {
   listRuleProposalsAction,
   saveRuleProposalsAction,
@@ -90,23 +92,18 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
               const warningId = `${warningIdPrefix}-${proposal.key}`;
               return (
                 <div key={proposal.key} className="flex flex-col gap-1">
-                  <label className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(proposal.key)}
-                      aria-describedby={
-                        proposal.shadowingCategoryName === null ? undefined : warningId
-                      }
-                      onChange={(event) => toggle(proposal.key, event.currentTarget.checked)}
-                    />
-                    <span>
-                      {t("option", { label: proposal.label, category: proposal.categoryName })}
-                    </span>
-                  </label>
+                  <Checkbox
+                    checked={selected.has(proposal.key)}
+                    aria-describedby={
+                      proposal.shadowingCategoryName === null ? undefined : warningId
+                    }
+                    onChange={(event) => toggle(proposal.key, event.currentTarget.checked)}
+                    label={t("option", { label: proposal.label, category: proposal.categoryName })}
+                  />
                   {proposal.shadowingCategoryName === null ? null : (
-                    <p id={warningId} className="ml-6 text-caption">
+                    <Notice id={warningId} className="ml-8">
                       {t("shadowed", { category: proposal.shadowingCategoryName })}
-                    </p>
+                    </Notice>
                   )}
                 </div>
               );

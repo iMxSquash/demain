@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../../components/button";
+import { Disclosure } from "../../components/disclosure";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import { CONTROL_CLASS } from "../form-field";
 import {
@@ -62,10 +63,7 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
   };
 
   return (
-    <details className="rounded-control border border-border-control p-3">
-      <summary className="min-h-11 cursor-pointer py-2 font-medium">
-        {t("columnsHeading")}
-      </summary>
+    <Disclosure summary={t("columnsHeading")}>
       <p id={hintId} className="pb-3">
         {t("columnsHint")}
       </p>
@@ -111,7 +109,7 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
           );
         })}
       </div>
-    </details>
+    </Disclosure>
   );
 }
 

@@ -5,6 +5,8 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "../../../components/button";
 import { DataTable } from "../../../components/data-display";
+import { FileInput } from "../../../components/file-input";
+import { Notice } from "../../../components/notice";
 import {
   CONTROL_CLASS,
   FormField,
@@ -168,13 +170,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
         hint={t("fileHint", { size: MAX_FILE_BYTES / BYTES_PER_KILOBYTE })}
         error={errorFor("summary")}
       >
-        <input
-          id="summary"
-          name="summary"
-          type="file"
-          accept=".csv,.txt,text/csv"
-          className={CONTROL_CLASS}
-        />
+        <FileInput id="summary" name="summary" accept=".csv,.txt,text/csv" />
       </FormField>
       <FormField
         id="accountId"
@@ -236,7 +232,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
       </div>
 
       {state?.canCommit === true && !isDone ? (
-        <p>{t("replaceWarning")}</p>
+        <Notice>{t("replaceWarning")}</Notice>
       ) : null}
 
       <div className="flex flex-wrap gap-3">

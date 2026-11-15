@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useId } from "react";
 
 import { ConfirmActionButton } from "../confirm-action-button";
+import { FileInput } from "../../components/file-input";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { restoreSnapshotAction } from "./actions";
 
@@ -15,7 +16,7 @@ export function RestoreForm() {
   return (
     <form id={formId} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField id="snapshot" label={t("snapshotFile")} hint={t("snapshotFileHint")}>
-        <input id="snapshot" name="snapshot" type="file" required className={CONTROL_CLASS} />
+        <FileInput id="snapshot" name="snapshot" required />
       </FormField>
       <FormField id="snapshotPassword" label={t("snapshotPassword")}>
         <input

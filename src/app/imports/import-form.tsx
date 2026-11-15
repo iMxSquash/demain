@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "../../components/button";
+import { Checkbox } from "../../components/checkbox";
+import { FileInput } from "../../components/file-input";
+import { Notice } from "../../components/notice";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
 import {
@@ -104,15 +107,11 @@ function MappingFieldset({ fields }: { fields: MappingFields }) {
         defaultValue={fields.delimiter}
         optionLabel={(value) => t(`delimiters.${DELIMITER_KEY[value]}`)}
       />
-      <label className="flex min-h-11 items-center gap-2">
-        <input
-          type="checkbox"
-          name="hasHeader"
-          defaultChecked={fields.hasHeader}
-          className="size-5"
-        />
-        {t("hasHeader")}
-      </label>
+      <Checkbox
+        name="hasHeader"
+        defaultChecked={fields.hasHeader}
+        label={t("hasHeader")}
+      />
       <ColumnInput name="dateColumn" fields={fields} />
       <ChoiceSelect
         name="dateFormat"
@@ -138,10 +137,13 @@ function MessageList({
   id,
   heading,
   items,
+  asNotices = false,
 }: {
   id: string;
   heading: string;
   items: string[];
+  /** Each item is a warning: it opens with "Warning:" instead of a bullet. */
+  asNotices?: boolean;
 }) {
   if (items.length === 0) return null;
 
@@ -150,9 +152,9 @@ function MessageList({
       <h2 id={id} className="text-title font-medium">
         {heading}
       </h2>
-      <ul className="list-disc pl-6">
+      <ul className="flex flex-col gap-2 pt-2">
         {items.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item}>{asNotices ? <Notice>{item}</Notice> : item}</li>
         ))}
       </ul>
     </section>
@@ -402,14 +404,12 @@ export function ImportForm({
           </select>
         </FormField>
         <FormField id="file" label={t("fileLabel")} hint={t("fileHint")}>
-          <input
+          <FileInput
             id="file"
             name="file"
-            type="file"
             multiple
             accept=".csv,.ofx,.qfx,.txt,text/csv,application/x-ofx"
             onChange={discardPreview}
-            className={CONTROL_CLASS}
           />
         </FormField>
 
@@ -454,6 +454,7 @@ export function ImportForm({
                 id="warnings-heading"
                 heading={t("warningsHeading")}
                 items={state.warnings}
+                asNotices
               />
             </>
           )}
