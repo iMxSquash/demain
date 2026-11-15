@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
+import { EmptyState } from "../../../../components/data-display";
 import { todayIn } from "../../../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../../../ledger/accounts";
 import { listBalanceAssertions } from "../../../../ledger/balance-assertions";
@@ -90,7 +91,15 @@ export default async function BalanceAssertionsPage({
           {t("listHeading")}
         </h2>
         {assertions.length === 0 ? (
-          <p>{t("empty")}</p>
+          <EmptyState
+            action={
+              account.archived
+                ? undefined
+                : { href: "#new-heading", label: t("emptyAction") }
+            }
+          >
+            {t("empty")}
+          </EmptyState>
         ) : (
           <BalanceAssertionsTable
             assertions={assertions}

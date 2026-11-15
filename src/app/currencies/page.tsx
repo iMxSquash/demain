@@ -12,6 +12,7 @@ import {
 } from "../../ledger/exchange-rates";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
 import { ConfirmActionButton } from "../confirm-action-button";
 import {
   deleteExchangeRateAction,
@@ -28,9 +29,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("currencies");
   return { title: t("metaTitle") };
 }
-
-const NUMBER_HEADER = "py-2 pr-4 text-right";
-const NUMBER_CELL = "py-2 pr-4 text-right tabular-nums";
 
 export default async function CurrenciesPage() {
   await requireSession();
@@ -88,56 +86,48 @@ export default async function CurrenciesPage() {
           {t("listHeading")}
         </h2>
         {rates.length === 0 ? (
-          <p>{t("empty")}</p>
+          <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+            {t("empty")}
+          </EmptyState>
         ) : (
-          // A focusable region: the table is wider than a phone, and keyboard
-          // users must be able to scroll it.
-          <div
-            role="region"
-            aria-label={t("regionLabel")}
-            tabIndex={0}
-            className="overflow-x-auto"
-          >
-            <table className="w-full border-collapse text-left">
-              <caption className="sr-only">{t("caption")}</caption>
-              <thead>
-                <tr className="border-b border-border-control">
-                  <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
-                  <th scope="col" className="py-2 pr-4">{t("columns.pair")}</th>
-                  <th scope="col" className={NUMBER_HEADER}>{t("columns.rate")}</th>
-                  <th scope="col" className="py-2 pr-4">{t("columns.source")}</th>
-                  <th scope="col" className="py-2">{t("columns.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rates.map((rate) => {
-                  const pair = `${rate.base}/${rate.quote}`;
-                  return (
-                    <tr key={rate.id} className="border-b border-divider">
-                      <th scope="row" className="py-2 pr-4 font-medium tabular-nums">
-                        <time dateTime={rate.date}>{rate.date}</time>
-                      </th>
-                      <td className="py-2 pr-4">{pair}</td>
-                      <td className={NUMBER_CELL}>{formatRate(rate.rate, locale)}</td>
-                      <td className="py-2 pr-4">
-                        {rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}
-                      </td>
-                      <td className="py-2">
-                        <ConfirmActionButton
-                          action={deleteExchangeRateAction.bind(null, rate.id)}
-                          label={t("delete")}
-                          subject={`${pair} ${rate.date}`}
-                          title={t("deleteTitle", { pair, date: rate.date })}
-                          message={t("deleteMessage")}
-                          confirmLabel={t("deleteConfirm")}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable caption={t("caption")}>
+            <thead>
+              <tr>
+                <th scope="col">{t("columns.date")}</th>
+                <th scope="col">{t("columns.pair")}</th>
+                <th scope="col" className="text-right">{t("columns.rate")}</th>
+                <th scope="col">{t("columns.source")}</th>
+                <th scope="col">{t("columns.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rates.map((rate) => {
+                const pair = `${rate.base}/${rate.quote}`;
+                return (
+                  <tr key={rate.id}>
+                    <th scope="row" className="tabular-nums">
+                      <time dateTime={rate.date}>{rate.date}</time>
+                    </th>
+                    <td>{pair}</td>
+                    <td className={NUMBER_CELL}>{formatRate(rate.rate, locale)}</td>
+                    <td>
+                      {rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}
+                    </td>
+                    <td>
+                      <ConfirmActionButton
+                        action={deleteExchangeRateAction.bind(null, rate.id)}
+                        label={t("delete")}
+                        subject={`${pair} ${rate.date}`}
+                        title={t("deleteTitle", { pair, date: rate.date })}
+                        message={t("deleteMessage")}
+                        confirmLabel={t("deleteConfirm")}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </DataTable>
         )}
       </section>
 

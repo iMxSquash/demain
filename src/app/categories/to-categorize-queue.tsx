@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
 import { formatAmount } from "../../domain/money";
 import type { Account } from "../../ledger/accounts";
 import type { Category } from "../../ledger/categories";
@@ -26,19 +27,19 @@ export async function ToCategorizeQueue({
     getLocale(),
   ]);
   if (queue.length === 0) {
-    return <p>{t("queueEmpty")}</p>;
+    return <EmptyState>{t("queueEmpty")}</EmptyState>;
   }
   const accountById = new Map(accounts.map((account) => [account.id, account]));
 
   return (
-    <table className="w-full border-collapse text-left">
+    <DataTable caption={t("queueCaption")}>
       <thead>
-        <tr className="border-b border-border-control">
-          <th scope="col" className="py-2 pr-4">{t("columns.date")}</th>
-          <th scope="col" className="py-2 pr-4">{t("columns.account")}</th>
-          <th scope="col" className="py-2 pr-4">{t("columns.label")}</th>
-          <th scope="col" className="py-2 pr-4 text-right">{t("columns.amount")}</th>
-          <th scope="col" className="py-2">{t("columns.category")}</th>
+        <tr>
+          <th scope="col">{t("columns.date")}</th>
+          <th scope="col">{t("columns.account")}</th>
+          <th scope="col">{t("columns.label")}</th>
+          <th scope="col" className="text-right">{t("columns.amount")}</th>
+          <th scope="col">{t("columns.category")}</th>
         </tr>
       </thead>
       <tbody>
@@ -50,20 +51,20 @@ export async function ToCategorizeQueue({
             );
           }
           return (
-            <tr key={row.id} className="border-b border-divider">
-              <td className="py-2 pr-4 tabular-nums">
+            <tr key={row.id}>
+              <td className="tabular-nums">
                 <time dateTime={row.date}>
                   {formatCalendarDate(row.date, locale)}
                 </time>
               </td>
-              <td className="py-2 pr-4">{account.name}</td>
-              <th scope="row" className="py-2 pr-4 font-medium">
+              <td>{account.name}</td>
+              <th scope="row">
                 {row.label}
               </th>
-              <td className="py-2 pr-4 text-right tabular-nums">
+              <td className={NUMBER_CELL}>
                 {formatAmount(row.amount, account.currency, locale)}
               </td>
-              <td className="py-2">
+              <td>
                 <CategorizeForm
                   action={categorizeTransactionAction.bind(null, row.id)}
                   transactionLabel={row.label}
@@ -75,6 +76,6 @@ export async function ToCategorizeQueue({
           );
         })}
       </tbody>
-    </table>
+    </DataTable>
   );
 }

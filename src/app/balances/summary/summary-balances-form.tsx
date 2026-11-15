@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "../../../components/button";
+import { DataTable, NUMBER_CELL } from "../../../components/data-display";
 import {
   CONTROL_CLASS,
   FormField,
@@ -23,9 +24,6 @@ export interface AccountOption {
   name: string;
 }
 
-const HEADER_CELL = "py-2 pr-4";
-const NUMBER_HEADER = "py-2 pr-4 text-right";
-const NUMBER_CELL = "py-2 pr-4 text-right tabular-nums";
 
 function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
   const t = useTranslations("summaryBalances");
@@ -36,45 +34,36 @@ function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
       <h2 id="balances-heading" className="text-title font-medium">
         {t("balancesHeading")}
       </h2>
-      {/* A focusable region: the table is wider than a phone. */}
-      <div
-        role="region"
-        aria-labelledby="balances-heading"
-        tabIndex={0}
-        className="overflow-x-auto"
-      >
-        <table className="w-full border-collapse text-left">
-          <caption className="pb-2 text-left">{t("balancesCaption")}</caption>
-          <thead>
-            <tr className="border-b border-border-control">
-              <th scope="col" className={HEADER_CELL}>
-                {t("balancesColumns.month")}
+      <DataTable caption={t("balancesCaption")}>
+        <thead>
+          <tr>
+            <th scope="col">
+              {t("balancesColumns.month")}
+            </th>
+            <th scope="col">
+              {t("balancesColumns.date")}
+            </th>
+            <th scope="col" className="text-right">
+              {t("balancesColumns.balance")}
+            </th>
+            <th scope="col">
+              {t("balancesColumns.status")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.date}>
+              <th scope="row">
+                {row.month}
               </th>
-              <th scope="col" className={HEADER_CELL}>
-                {t("balancesColumns.date")}
-              </th>
-              <th scope="col" className={NUMBER_HEADER}>
-                {t("balancesColumns.balance")}
-              </th>
-              <th scope="col" className="py-2">
-                {t("balancesColumns.status")}
-              </th>
+              <td className="tabular-nums">{row.date}</td>
+              <td className={NUMBER_CELL}>{row.balance}</td>
+              <td>{row.status}</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.date} className="border-b border-divider">
-                <th scope="row" className={`${HEADER_CELL} font-medium`}>
-                  {row.month}
-                </th>
-                <td className={`${HEADER_CELL} tabular-nums`}>{row.date}</td>
-                <td className={NUMBER_CELL}>{row.balance}</td>
-                <td className="py-2">{row.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </DataTable>
     </section>
   );
 }
@@ -90,53 +79,45 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
       {state.isMatching ? <p>{t("comparisonMatches")}</p> : null}
       {state.hasComparison ? null : <p>{t("comparisonNone")}</p>}
       {state.differences.length === 0 ? null : (
-        <div
-          role="region"
-          aria-labelledby="comparison-heading"
-          tabIndex={0}
-          className="overflow-x-auto"
-        >
-          <table className="w-full border-collapse text-left">
-            <caption className="pb-2 text-left">{t("comparisonCaption")}</caption>
-            <thead>
-              <tr className="border-b border-border-control">
-                <th scope="col" className={HEADER_CELL}>
-                  {t("comparisonColumns.month")}
+        <DataTable caption={t("comparisonCaption")}>
+          <thead>
+            <tr>
+              <th scope="col">
+                {t("comparisonColumns.month")}
+              </th>
+              <th scope="col">
+                {t("comparisonColumns.figure")}
+              </th>
+              <th scope="col" className="text-right">
+                {t("comparisonColumns.sheet")}
+              </th>
+              <th scope="col" className="text-right">
+                {t("comparisonColumns.demain")}
+              </th>
+              <th scope="col" className="text-right">
+                {t("comparisonColumns.difference")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.differences.map((difference) => (
+              <tr
+                key={`${difference.month}-${difference.figure}`}
+                className="border-b border-divider"
+              >
+                <th scope="row">
+                  {difference.month}
                 </th>
-                <th scope="col" className={HEADER_CELL}>
-                  {t("comparisonColumns.figure")}
-                </th>
-                <th scope="col" className={NUMBER_HEADER}>
-                  {t("comparisonColumns.sheet")}
-                </th>
-                <th scope="col" className={NUMBER_HEADER}>
-                  {t("comparisonColumns.demain")}
-                </th>
-                <th scope="col" className="py-2 text-right">
-                  {t("comparisonColumns.difference")}
-                </th>
+                <td>{difference.figure}</td>
+                <td className={NUMBER_CELL}>{difference.sheet}</td>
+                <td className={NUMBER_CELL}>{difference.demain}</td>
+                <td className={NUMBER_CELL}>
+                  {difference.difference}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {state.differences.map((difference) => (
-                <tr
-                  key={`${difference.month}-${difference.figure}`}
-                  className="border-b border-divider"
-                >
-                  <th scope="row" className={`${HEADER_CELL} font-medium`}>
-                    {difference.month}
-                  </th>
-                  <td className={HEADER_CELL}>{difference.figure}</td>
-                  <td className={NUMBER_CELL}>{difference.sheet}</td>
-                  <td className={NUMBER_CELL}>{difference.demain}</td>
-                  <td className="py-2 text-right tabular-nums">
-                    {difference.difference}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </DataTable>
       )}
     </section>
   );
