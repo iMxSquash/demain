@@ -23,13 +23,18 @@ async function renderShell(currentPath: string, toCategorizeCount = 3): Promise<
   return renderToStaticMarkup(await AppShell({ toCategorizeCount, children: createElement("main") }));
 }
 
+/** The text nodes of a fragment, in order: each one sits between a `>` and the next `<`. */
+function textOf(fragment: string): string {
+  return [...`${fragment}<`.matchAll(/>([^<]+)</g)].map((match) => match[1]).join("");
+}
+
 /** Every link of the markup with its target, its accessible text and whether it is current. */
 function linksOf(html: string): { href: string; text: string; isCurrent: boolean; label?: string }[] {
   return [...html.matchAll(/<a ([^>]*)>(.*?)<\/a>/g)].map((match) => {
     const attributes = match[1] ?? "";
     return {
       href: /href="([^"]+)"/.exec(attributes)?.[1] ?? "",
-      text: (match[2] ?? "").replace(/<[^>]+>/g, "").trim(),
+      text: textOf(match[2] ?? "").trim(),
       isCurrent: attributes.includes('aria-current="page"'),
       label: /aria-label="([^"]+)"/.exec(attributes)?.[1],
     };
