@@ -11,6 +11,7 @@ import {
 } from "@phosphor-icons/react/ssr";
 import type { ReactNode } from "react";
 
+import { CountBadge } from "../../components/data-display";
 import { Icon } from "../../components/icon";
 import { Logo } from "../../components/logo";
 import styles from "./app-shell.module.css";
@@ -86,9 +87,7 @@ export async function AppShell({ toCategorizeCount, children }: AppShellProps) {
                 <NavLink href={QUEUE_HREF} className={styles.item}>
                   <Icon icon={Tray} />
                   {t("toCategorize")}
-                  <span aria-hidden="true" className={styles.count}>
-                    {toCategorizeCount}
-                  </span>
+                  <CountBadge decorative count={toCategorizeCount} className="ml-auto" />
                   <span className="sr-only">, {t("queueCount", { count: toCategorizeCount })}</span>
                 </NavLink>
               </li>
