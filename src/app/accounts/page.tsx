@@ -12,6 +12,7 @@ import {
   type Account,
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
+import { DataTable, EmptyState, NUMBER_CELL } from "../../components/data-display";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
@@ -55,9 +56,16 @@ export default async function AccountsPage() {
           {t("activeHeading")}
         </h2>
         {active.length === 0 ? (
-          <p>{t("empty")}</p>
+          <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+            {t("empty")}
+          </EmptyState>
         ) : (
-          <AccountTable accounts={active} allAccounts={all} balances={balances} />
+          <AccountTable
+            caption={t("activeCaption")}
+            accounts={active}
+            allAccounts={all}
+            balances={balances}
+          />
         )}
       </section>
 
@@ -78,7 +86,12 @@ export default async function AccountsPage() {
           <h2 id="archived-heading" className="text-title font-medium">
             {t("archivedHeading")}
           </h2>
-          <AccountTable accounts={archived} allAccounts={all} balances={balances} />
+          <AccountTable
+            caption={t("archivedCaption")}
+            accounts={archived}
+            allAccounts={all}
+            balances={balances}
+          />
         </section>
       ) : null}
     </main>
@@ -86,6 +99,7 @@ export default async function AccountsPage() {
 }
 
 interface AccountTableProps {
+  caption: string;
   accounts: Account[];
   /** Every account, archived ones included: overflow links can point to any of them. */
   allAccounts: Account[];
@@ -94,6 +108,7 @@ interface AccountTableProps {
 }
 
 async function AccountTable({
+  caption,
   accounts,
   allAccounts,
   balances,
@@ -104,17 +119,17 @@ async function AccountTable({
   ]);
 
   return (
-    <table className="w-full border-collapse text-left">
+    <DataTable caption={caption}>
       <thead>
-        <tr className="border-b border-border-control">
-          <th scope="col" className="py-2 pr-4">{t("columns.name")}</th>
-          <th scope="col" className="py-2 pr-4">{t("columns.kind")}</th>
-          <th scope="col" className="py-2 pr-4">{t("columns.currency")}</th>
-          <th scope="col" className="py-2 pr-4 text-right">{t("columns.openingBalance")}</th>
-          <th scope="col" className="py-2 pr-4 text-right">{t("columns.balance")}</th>
-          <th scope="col" className="py-2 pr-4 text-right">{t("columns.depositCeiling")}</th>
-          <th scope="col" className="py-2 pr-4">{t("columns.overflowAccount")}</th>
-          <th scope="col" className="py-2">{common("actions")}</th>
+        <tr>
+          <th scope="col">{t("columns.name")}</th>
+          <th scope="col">{t("columns.kind")}</th>
+          <th scope="col">{t("columns.currency")}</th>
+          <th scope="col" className="text-right">{t("columns.openingBalance")}</th>
+          <th scope="col" className="text-right">{t("columns.balance")}</th>
+          <th scope="col" className="text-right">{t("columns.depositCeiling")}</th>
+          <th scope="col">{t("columns.overflowAccount")}</th>
+          <th scope="col">{common("actions")}</th>
         </tr>
       </thead>
       <tbody>
@@ -127,7 +142,7 @@ async function AccountTable({
           />
         ))}
       </tbody>
-    </table>
+    </DataTable>
   );
 }
 
@@ -154,23 +169,23 @@ async function AccountRow({
   );
 
   return (
-    <tr className="border-b border-divider">
-      <th scope="row" className="py-2 pr-4 font-medium">{account.name}</th>
-      <td className="py-2 pr-4">{t(`kinds.${account.kind as AccountKind}`)}</td>
-      <td className="py-2 pr-4">{account.currency}</td>
-      <td className="py-2 pr-4 text-right tabular-nums">
+    <tr>
+      <th scope="row">{account.name}</th>
+      <td>{t(`kinds.${account.kind as AccountKind}`)}</td>
+      <td>{account.currency}</td>
+      <td className={NUMBER_CELL}>
         {formatAmount(account.openingBalance, account.currency, locale)}
       </td>
-      <td className="py-2 pr-4 text-right tabular-nums">
+      <td className={NUMBER_CELL}>
         {formatAmount(balance, account.currency, locale)}
       </td>
-      <td className="py-2 pr-4 text-right tabular-nums">
+      <td className={NUMBER_CELL}>
         {account.depositCeiling === null
           ? common("none")
           : formatAmount(account.depositCeiling, account.currency, locale)}
       </td>
-      <td className="py-2 pr-4">{overflowName}</td>
-      <td className="py-2">
+      <td>{overflowName}</td>
+      <td>
         {account.archived ? null : (
           <div className="flex gap-2">
             <Link

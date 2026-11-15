@@ -138,7 +138,10 @@
       "depositCeilingHint": "Leave empty for none.",
       "overflowAccount": "Overflow account"
     },
-    "balances": "Balances"
+    "balances": "Balances",
+    "activeCaption": "Active accounts with their balance and deposit ceiling",
+    "archivedCaption": "Archived accounts, kept for their history",
+    "emptyAction": "Add an account"
   },
   "balances": {
     "metaTitle": "Balance assertions | Demain",
@@ -184,7 +187,8 @@
     "accountBalancesLink": "Balances of the account",
     "accountsLink": "To record a balance, add an account first.",
     "chooseAccount": "Choose an account",
-    "summaryLink": "Record the balances of the Summary tab"
+    "summaryLink": "Record the balances of the Summary tab",
+    "emptyAction": "Add a balance"
   },
   "summaryBalances": {
     "metaTitle": "Balances from the Summary | Demain",
@@ -361,7 +365,9 @@
       "roomOnly": "Deposit only {deposited}",
       "sendSurplus": "Send the surplus to the chosen account",
       "cancel": "Cancel the transfer"
-    }
+    },
+    "caption": "Every recorded transaction",
+    "emptyAction": "Add a transaction"
   },
   "categories": {
     "metaTitle": "Categories | Demain",
@@ -395,7 +401,8 @@
       "category": "Category"
     },
     "ruleSummary": "Also create a rule",
-    "ruleCreate": "Create a rule for the next imports"
+    "ruleCreate": "Create a rule for the next imports",
+    "queueCaption": "Transactions waiting for a category"
   },
   "rules": {
     "metaTitle": "Categorization rules | Demain",
@@ -469,7 +476,9 @@
       "type": "Type",
       "addSubmit": "Save the word",
       "addSubmitPending": "Saving…"
-    }
+    },
+    "caption": "Categorization rules, in order",
+    "emptyAction": "Add a rule"
   },
   "synthesis": {
     "metaTitle": "Monthly synthesis | Demain",
@@ -535,7 +544,8 @@
     "ecbEnable": "Enable ECB fetch",
     "ecbDisable": "Disable ECB fetch",
     "ecbFetch": "Fetch the ECB rates now",
-    "ecbFetchPending": "Fetching…"
+    "ecbFetchPending": "Fetching…",
+    "emptyAction": "Add a rate"
   },
   "imports": {
     "metaTitle": "Import | Demain",
