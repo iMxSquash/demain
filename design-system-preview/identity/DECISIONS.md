@@ -155,6 +155,19 @@ Every pair is computed from the tokens in both themes. The three pages compute t
 | Planned line | `--chart-planned` on `--color-surface` | 3 | 6.18 | 7.88 |
 | Logo stem | `--logo-ink` on `--color-bg` | 3 | 16.80 | 19.91 |
 
+#### Appearance setting in the app (#107)
+
+Measured from `src/app/tokens.css` in both themes (WCAG 2.x relative luminance). The first four rows reuse pairs already listed above (Idle segment, Body text on control, Primary button); they are repeated because the segmented control is the first screen to use them together. The focus ring pairs are new: its 2 px offset plus its 2 px width are wider than the 3 px track padding, so the ring lands on the track and on the ground around it.
+
+| Use | Foreground on background | Needs | Light | Dark |
+| --- | --- | --- | --- | --- |
+| Idle segment label | `--color-text-muted` on `--color-control` | 4.5 | 5.42 | 6.76 |
+| Hovered segment label | `--color-text` on `--color-control` | 4.5 | 17.57 | 15.52 |
+| Selected segment label | `--color-on-primary` on `--color-primary` | 4.5 | 20.03 | 19.91 |
+| Selected pill against the track | `--color-primary` on `--color-control` | 3 | 17.57 | 15.52 |
+| Focus ring over the track | `--color-focus` on `--color-control` | 3 | 4.87 | 4.70 |
+| Focus ring over the ground | `--color-focus` on `--color-bg` | 3 | 4.66 | 6.03 |
+
 #### Components (`components.html`)
 
 | Use | Foreground on background | Needs | Light | Dark |
@@ -325,7 +338,7 @@ The React reference in `react/` (hand-written SVG with `d3-scale` and `d3-shape`
 | Spacing | Not mapped: Tailwind's 0.25rem step is the 4 px grid (`p-6` is 24 px, `min-h-11` is 44 px) | Nothing to translate |
 | `dark:` variant | Same selectors as `tokens.css` (system preference unless `data-theme="light"`, or `data-theme="dark"`) | Should almost never be needed |
 | Checked | 41 utilities compared with their token in six states (system light or dark, attribute absent, light or dark): no difference | Browser check of a demo page |
-| Theme preference code | `theme/theme-preference.ts` (allowlist, attribute for `<html>`) and `theme/actions.ts` (server action, as `setLocaleAction`), with tests | Reference code: the setting does not exist in `src/` yet |
+| Theme preference code | `src/app/theme/theme-preference.ts` (allowlist, attribute for `<html>`), `actions.ts` (server action, as `setLocaleAction`) and `theme-switcher.tsx` (the control, rendered in the header), with tests in `tests/app/theme/` | Landed in #107; the root layout reads the cookie and renders `data-theme` |
 | Token names | Kept, so utilities read `bg-bg`, `text-text`, `text-text-muted` | Owner, 12 Nov 2026: each utility names its token, at the cost of some repetition |
 | Migration | Adopting the mapping is a migration: 40 classes of `src/` stop compiling (`font-mono` now compiles). DESIGN.md lists their replacements. It lands in the same pull request as `tailwind.css` | Counted by compiling `src/` against both stylesheets, 12 Nov 2026. Tailwind drops an unknown class silently, so the build would pass on an unstyled app; owner, 12 Nov 2026: one pull request rather than a transitional stylesheet |
 | Font file | A WOFF2 subset of the shipped TTF, with U+202F still mapped to the thin space | Owner, 12 Nov 2026, as DESIGN.md preferred; the mapping is checked after conversion |
@@ -395,4 +408,4 @@ Since version 0.3 the board shows the React trajectory chart (`react/preview/boa
 
 1. **Trademark.** No clearance search was done for the symbol or the name.
 2. **Gradient in print.** The colour symbol uses four gradients; print and embroidery should use the black, white or mono masters.
-3. **Roadmap.** "Dark theme and phone layout details" is an open question of M2 in `docs/ROADMAP.md`. The appearance setting and the phone navigation are now decided here; the roadmap should record it when the work lands in `src/`.
+3. **Roadmap.** The dark theme is recorded as decided in `docs/ROADMAP.md` (#107). "Phone layout details" stays an open question of M2.

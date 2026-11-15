@@ -146,4 +146,4 @@ These are intentionally left undecided. Each will be resolved when its milestone
 | Which aggregator to use for bank sync, under which terms. | M4 |
 | Exact CSV column mappings per bank (beyond the owner's bank, Societe Generale). The importer is bank-agnostic; preset mappings can be contributed. | M1 and ongoing |
 | Whether to add notifications later, and in which form (local web push is the candidate). | After M3 |
-| Dark theme and phone layout details. | M2 |
+| Phone layout details. The dark theme is decided: System, Light and Dark, stored in a `theme` cookie and rendered on the server (#107, recorded in `design-system-preview/identity/DECISIONS.md`). | M2 |
