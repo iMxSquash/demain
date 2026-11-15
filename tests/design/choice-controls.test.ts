@@ -100,8 +100,13 @@ describe("FileInput", () => {
       createElement(FileInput, { id: "f", "aria-describedby": "f-hint", "aria-invalid": true }),
     );
 
-    expect(linked).toContain('aria-describedby="f-hint"');
+    expect(linked).toContain('aria-describedby="f-hint f-name"');
     expect(linked).toContain('aria-invalid="true"');
+  });
+
+  it("describes the input with the chosen file name, which is shown next to the button", () => {
+    expect(markup).toContain('aria-describedby="file-name"');
+    expect(markup).toContain('id="file-name"');
   });
 
   it("marks a disabled button with colours, never with opacity", () => {

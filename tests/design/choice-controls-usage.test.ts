@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import frMessages from "../../messages/fr.json";
 import messages from "../../messages/en.json";
 
 describe("the four forms use the shared choice controls", () => {
@@ -47,9 +48,12 @@ describe("warnings use the Notice", () => {
     expect(source).toContain("<Notice");
   });
 
-  it("no message that a Notice shows starts with the word itself", () => {
-    const text = JSON.stringify(messages);
+  it.each([
+    ["en", "Warning:", messages],
+    ["fr", "Attention :", frMessages],
+  ])("no %s message that a Notice shows starts with the word itself", (_locale, word, tree) => {
+    const text = JSON.stringify(tree);
 
-    expect(text).not.toMatch(/"(?:shadowed|jsonWarning|restoreWarning)": "Warning:/);
+    expect(text).not.toMatch(new RegExp(`"(?:shadowed|jsonWarning|restoreWarning)": "${word}`));
   });
 });

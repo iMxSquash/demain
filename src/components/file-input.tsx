@@ -10,7 +10,7 @@ import { buttonClass } from "./button";
 // the button (DESIGN section 8, "File input").
 const BUTTON_CLASS =
   `${buttonClass("secondary")} cursor-pointer shrink-0 ` +
-  "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus " +
+  "hover:bg-control-hover peer-disabled:hover:bg-surface-sunken peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus " +
   "peer-disabled:cursor-not-allowed peer-disabled:bg-surface-sunken peer-disabled:text-text-muted";
 
 type FileInputProps = Omit<ComponentPropsWithoutRef<"input">, "type" | "className" | "children"> & {
@@ -18,8 +18,9 @@ type FileInputProps = Omit<ComponentPropsWithoutRef<"input">, "type" | "classNam
   id: string;
 };
 
-export function FileInput({ onChange, ...rest }: FileInputProps) {
+export function FileInput({ onChange, "aria-describedby": describedBy, ...rest }: FileInputProps) {
   const t = useTranslations("common");
+  const nameId = `${rest.id}-name`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [summary, setSummary] = useState<string | null>(null);
 
@@ -43,11 +44,18 @@ export function FileInput({ onChange, ...rest }: FileInputProps) {
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <input {...rest} ref={inputRef} type="file" onChange={handleChange} className="peer sr-only" />
+      <input
+        {...rest}
+        ref={inputRef}
+        type="file"
+        aria-describedby={[describedBy, nameId].filter(Boolean).join(" ")}
+        onChange={handleChange}
+        className="peer sr-only"
+      />
       <label htmlFor={rest.id} className={BUTTON_CLASS}>
         {t("chooseFile")}
       </label>
-      <span className={`min-w-0 truncate ${summary === null ? "text-text-muted" : "text-text"}`}>
+      <span id={nameId} className={`min-w-0 truncate ${summary === null ? "text-text-muted" : "text-text"}`}>
         {summary ?? t("noFileChosen")}
       </span>
     </div>

@@ -231,9 +231,9 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
         )}
       </div>
 
-      {state?.canCommit === true && !isDone ? (
-        <Notice>{t("replaceWarning")}</Notice>
-      ) : null}
+      <div aria-live="polite">
+        {state?.canCommit === true && !isDone ? <Notice>{t("replaceWarning")}</Notice> : null}
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <Button
