@@ -26,7 +26,12 @@ export function ReferenceCurrencyForm({
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id="currency" label={t("referenceLabel")} error={state?.message}>
+      <FormField
+        id="currency"
+        label={t("referenceLabel")}
+        hint={t("referenceHint")}
+        error={state?.message}
+      >
         <input
           id="currency"
           name="currency"
@@ -36,8 +41,6 @@ export function ReferenceCurrencyForm({
           maxLength={3}
           required
           autoComplete="off"
-          aria-invalid={state ? true : undefined}
-          aria-describedby={state ? "currency-error" : undefined}
         />
       </FormField>
       <Button

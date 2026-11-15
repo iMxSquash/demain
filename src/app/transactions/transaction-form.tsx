@@ -53,17 +53,12 @@ export function TransactionForm({
 
   const errorOf = (field: TransactionFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const controlProps = (field: TransactionFormField) => {
-    const hasError = errorOf(field) !== undefined;
-    return {
-      id: field,
-      name: field,
-      defaultValue: values[field],
-      className: CONTROL_CLASS,
-      "aria-invalid": hasError ? true : undefined,
-      "aria-describedby": hasError ? `${field}-error` : undefined,
-    };
-  };
+  const controlProps = (field: TransactionFormField) => ({
+    id: field,
+    name: field,
+    defaultValue: values[field],
+    className: CONTROL_CLASS,
+  });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -106,6 +101,7 @@ export function TransactionForm({
       <FormField
         id="amount"
         label={t("form.amount")}
+        hint={t("form.amountHint")}
         error={errorOf("amount")}
       >
         <input
@@ -124,6 +120,7 @@ export function TransactionForm({
       <FormField
         id="description"
         label={t("form.note")}
+        optional
         error={errorOf("description")}
       >
         <input {...controlProps("description")} type="text" autoComplete="off" />
@@ -132,6 +129,8 @@ export function TransactionForm({
       <FormField
         id="categoryId"
         label={t("form.category")}
+        optional
+        hint={t("form.categoryHint")}
         error={errorOf("categoryId")}
       >
         <select key={values.categoryId} {...controlProps("categoryId")}>
@@ -147,6 +146,7 @@ export function TransactionForm({
       <FormField
         id="paymentMode"
         label={t("form.paymentMode")}
+        optional
         error={errorOf("paymentMode")}
       >
         <select key={values.paymentMode} {...controlProps("paymentMode")}>

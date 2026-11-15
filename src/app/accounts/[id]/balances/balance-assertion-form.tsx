@@ -34,17 +34,12 @@ export function BalanceAssertionForm({
 
   const errorOf = (field: keyof BalanceAssertionFormValues) =>
     state?.field === field ? state.message : undefined;
-  const controlProps = (field: keyof BalanceAssertionFormValues) => {
-    const hasError = errorOf(field) !== undefined;
-    return {
-      id: field,
-      name: field,
-      defaultValue: values[field],
-      className: CONTROL_CLASS,
-      "aria-invalid": hasError ? true : undefined,
-      "aria-describedby": hasError ? `${field}-error` : undefined,
-    };
-  };
+  const controlProps = (field: keyof BalanceAssertionFormValues) => ({
+    id: field,
+    name: field,
+    defaultValue: values[field],
+    className: CONTROL_CLASS,
+  });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -65,7 +60,7 @@ export function BalanceAssertionForm({
         </FormField>
       )}
 
-      <FormField id="date" label={t("form.date")} error={errorOf("date")}>
+      <FormField id="date" label={t("form.date")} hint={t("form.dateHint")} error={errorOf("date")}>
         <input {...controlProps("date")} type="date" required />
       </FormField>
 
@@ -79,7 +74,7 @@ export function BalanceAssertionForm({
         />
       </FormField>
 
-      <FormField id="note" label={t("form.note")}>
+      <FormField id="note" label={t("form.note")} optional>
         <input {...controlProps("note")} type="text" autoComplete="off" />
       </FormField>
 

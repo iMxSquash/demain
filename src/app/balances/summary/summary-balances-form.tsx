@@ -27,11 +27,6 @@ const HEADER_CELL = "py-2 pr-4";
 const NUMBER_HEADER = "py-2 pr-4 text-right";
 const NUMBER_CELL = "py-2 pr-4 text-right tabular-nums";
 
-function describedBy(id: string, hasError: boolean, hasHint: boolean) {
-  const ids = [hasHint ? `${id}-hint` : null, hasError ? `${id}-error` : null];
-  return ids.filter((value) => value !== null).join(" ") || undefined;
-}
-
 function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
   const t = useTranslations("summaryBalances");
   if (rows.length === 0) return null;
@@ -176,11 +171,6 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
   const errorFor = (field: SummaryField) =>
     isError && state.errorField === field ? state.message : undefined;
   const hasFieldError = isError && state.errorField !== null;
-  const fieldProps = (field: SummaryField, hasHint: boolean) => ({
-    "aria-invalid": errorFor(field) === undefined ? undefined : true,
-    "aria-describedby": describedBy(field, errorFor(field) !== undefined, hasHint),
-    className: CONTROL_CLASS,
-  });
 
   return (
     <form
@@ -191,16 +181,18 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
       className="flex max-w-3xl flex-col gap-6"
       noValidate
     >
-      <FormField id="summary" label={t("fileLabel")} error={errorFor("summary")}>
-        <p id="summary-hint" className="text-text-muted">
-          {t("fileHint", { size: MAX_FILE_BYTES / BYTES_PER_KILOBYTE })}
-        </p>
+      <FormField
+        id="summary"
+        label={t("fileLabel")}
+        hint={t("fileHint", { size: MAX_FILE_BYTES / BYTES_PER_KILOBYTE })}
+        error={errorFor("summary")}
+      >
         <input
           id="summary"
           name="summary"
           type="file"
           accept=".csv,.txt,text/csv"
-          {...fieldProps("summary", true)}
+          className={CONTROL_CLASS}
         />
       </FormField>
       <FormField
@@ -212,7 +204,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
           id="accountId"
           name="accountId"
           defaultValue=""
-          {...fieldProps("accountId", false)}
+          className={CONTROL_CLASS}
         >
           <option value="">{t("chooseAccount")}</option>
           {accounts.map((account) => (
@@ -222,17 +214,14 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
           ))}
         </select>
       </FormField>
-      <FormField id="year" label={t("yearLabel")} error={errorFor("year")}>
-        <p id="year-hint" className="text-text-muted">
-          {t("yearHint")}
-        </p>
+      <FormField id="year" label={t("yearLabel")} optional hint={t("yearHint")} error={errorFor("year")}>
         <input
           id="year"
           name="year"
           inputMode="numeric"
           maxLength={4}
           autoComplete="off"
-          {...fieldProps("year", true)}
+          className={CONTROL_CLASS}
         />
       </FormField>
 

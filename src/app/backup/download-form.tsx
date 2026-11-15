@@ -11,6 +11,7 @@ interface DownloadFormProps {
   /** Route handler that builds the file. */
   endpoint: string;
   passwordLabel: string;
+  passwordHint: string;
   confirmationLabel: string;
   submitLabel: string;
   doneMessage: string;
@@ -35,6 +36,7 @@ type Outcome =
 export function DownloadForm({
   endpoint,
   passwordLabel,
+  passwordHint,
   confirmationLabel,
   submitLabel,
   doneMessage,
@@ -66,7 +68,7 @@ export function DownloadForm({
 
   return (
     <form onSubmit={download} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id={passwordId} label={passwordLabel}>
+      <FormField id={passwordId} label={passwordLabel} optional={isPasswordOptional} hint={passwordHint}>
         <input
           id={passwordId}
           name="password"
@@ -77,7 +79,7 @@ export function DownloadForm({
           className={CONTROL_CLASS}
         />
       </FormField>
-      <FormField id={confirmationId} label={confirmationLabel}>
+      <FormField id={confirmationId} label={confirmationLabel} optional={isPasswordOptional}>
         <input
           id={confirmationId}
           name="passwordConfirmation"

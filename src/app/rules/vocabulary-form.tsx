@@ -24,12 +24,15 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
   const values = state?.values;
   const errorOf = (field: VocabularyField) =>
     state?.field === field ? state.message : undefined;
-  const describedBy = (field: VocabularyField) =>
-    errorOf(field) ? `vocabulary-${field}-error` : undefined;
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id="vocabulary-word" label={t("word")} error={errorOf("word")}>
+      <FormField
+        id="vocabulary-word"
+        label={t("word")}
+        hint={t("wordHint")}
+        error={errorOf("word")}
+      >
         <input
           id="vocabulary-word"
           name="word"
@@ -38,10 +41,7 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
           required
           autoComplete="off"
           className={CONTROL_CLASS}
-          aria-invalid={errorOf("word") ? true : undefined}
-          aria-describedby={["vocabulary-word-hint", describedBy("word")].filter(Boolean).join(" ")}
         />
-        <p id="vocabulary-word-hint">{t("wordHint")}</p>
       </FormField>
 
       <FormField id="vocabulary-type" label={t("type")} error={errorOf("type")}>
@@ -50,8 +50,6 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
           name="type"
           defaultValue={values?.type ?? "income"}
           className={CONTROL_CLASS}
-          aria-invalid={errorOf("type") ? true : undefined}
-          aria-describedby={describedBy("type")}
         >
           {MOVEMENT_TYPES.map((type) => (
             <option key={type} value={type}>

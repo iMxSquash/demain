@@ -14,7 +14,7 @@ export function RestoreForm() {
 
   return (
     <form id={formId} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id="snapshot" label={t("snapshotFile")}>
+      <FormField id="snapshot" label={t("snapshotFile")} hint={t("snapshotFileHint")}>
         <input id="snapshot" name="snapshot" type="file" required className={CONTROL_CLASS} />
       </FormField>
       <FormField id="snapshotPassword" label={t("snapshotPassword")}>

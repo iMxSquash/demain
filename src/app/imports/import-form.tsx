@@ -401,7 +401,7 @@ export function ImportForm({
             ))}
           </select>
         </FormField>
-        <FormField id="file" label={t("fileLabel")}>
+        <FormField id="file" label={t("fileLabel")} hint={t("fileHint")}>
           <input
             id="file"
             name="file"

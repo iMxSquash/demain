@@ -31,6 +31,7 @@ export default async function BackupPage() {
         <DownloadForm
           endpoint="/backup/snapshot"
           passwordLabel={t("password")}
+          passwordHint={t("passwordHint")}
           confirmationLabel={t("passwordConfirmation")}
           submitLabel={t("snapshotSubmit")}
           doneMessage={t("snapshotDone")}
@@ -46,6 +47,7 @@ export default async function BackupPage() {
         <DownloadForm
           endpoint="/backup/json"
           passwordLabel={t("jsonPassword")}
+          passwordHint={t("passwordHint")}
           confirmationLabel={t("passwordConfirmation")}
           submitLabel={t("jsonSubmit")}
           doneMessage={t("jsonDone")}

@@ -40,8 +40,6 @@ export function CategoryForm({
           required
           autoComplete="off"
           className={CONTROL_CLASS}
-          aria-invalid={nameError ? true : undefined}
-          aria-describedby={nameError ? "name-error" : undefined}
         />
       </FormField>
 

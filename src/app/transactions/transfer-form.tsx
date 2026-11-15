@@ -38,17 +38,12 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
 
   const errorOf = (field: TransferFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const controlProps = (field: TransferFormField, defaultValue: string) => {
-    const hasError = errorOf(field) !== undefined;
-    return {
-      id: fieldId(field),
-      name: field,
-      defaultValue,
-      className: CONTROL_CLASS,
-      "aria-invalid": hasError ? true : undefined,
-      "aria-describedby": hasError ? `${fieldId(field)}-error` : undefined,
-    };
-  };
+  const controlProps = (field: TransferFormField, defaultValue: string) => ({
+    id: fieldId(field),
+    name: field,
+    defaultValue,
+    className: CONTROL_CLASS,
+  });
   const accountOptions = accounts.map((account) => (
     <option key={account.id} value={account.id}>
       {account.name} ({account.currency})
