@@ -24,7 +24,7 @@ WORKDIR /app
 
 # The full source tree is not needed to serve the app, but `scripts/`, `src/` and
 # `drizzle/` must ship so that `node scripts/reset-password.ts` works inside the
-# container (Node 24 runs TypeScript natively). `messages/` is read at runtime.
+# container (Node 24 runs TypeScript natively). `messages/` is read at runtime and `public/` holds the app icons.
 COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/next.config.ts ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
@@ -33,6 +33,7 @@ COPY --from=build --chown=node:node /app/src ./src
 COPY --from=build --chown=node:node /app/scripts ./scripts
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
 COPY --from=build --chown=node:node /app/messages ./messages
+COPY --from=build --chown=node:node /app/public ./public
 
 # A named volume mounted here inherits this ownership on first use.
 RUN mkdir /data && chown node:node /data
