@@ -160,6 +160,7 @@ export function ToastProvider({ notice, children }: { notice: Notice | null; chi
       {children}
       <section
         aria-label={t("toastRegion")}
+        data-toast-region
         className="fixed bottom-4 right-4 z-20 flex w-[calc(100%-2rem)] max-w-105 flex-col gap-2"
       >
         {/* Without `initial={false}` the toast of the first render would start hidden in the HTML. */}

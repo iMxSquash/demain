@@ -13,6 +13,14 @@
   scroll-padding-bottom: var(--tab-bar-clearance);
 }
 
+/* The toasts sit outside the frame, where the container query cannot reach them. The frame
+   spans the viewport, so a viewport query mirrors it and lifts them above the tab bar. */
+@media (width < 900px) {
+  :global(html):has(.nav) :global([data-toast-region]) {
+    bottom: var(--tab-bar-clearance);
+  }
+}
+
 .bar {
   display: flex;
   align-items: center;
