@@ -13,6 +13,7 @@ import type {
   TransactionFormState,
   TransactionFormValues,
 } from "./transaction-form-data";
+import { Select } from "../../components/select";
 
 export interface AccountOption {
   id: number;
@@ -76,13 +77,13 @@ export function TransactionForm({
       >
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
-        <select key={values.accountId} {...controlProps("accountId")}>
+        <Select key={values.accountId} {...controlProps("accountId")}>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
               {account.name} ({account.currency})
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField id="date" label={t("form.date")} error={errorOf("date")}>
@@ -90,13 +91,13 @@ export function TransactionForm({
       </FormField>
 
       <FormField id="kind" label={t("form.type")} error={errorOf("kind")}>
-        <select key={values.kind} {...controlProps("kind")}>
+        <Select key={values.kind} {...controlProps("kind")}>
           {ENTERED_TRANSACTION_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField
@@ -128,14 +129,14 @@ export function TransactionForm({
         hint={t("form.categoryHint")}
         error={errorOf("categoryId")}
       >
-        <select key={values.categoryId} {...controlProps("categoryId")}>
+        <Select key={values.categoryId} {...controlProps("categoryId")}>
           <option value="">{common("none")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField
@@ -144,14 +145,14 @@ export function TransactionForm({
         optional
         error={errorOf("paymentMode")}
       >
-        <select key={values.paymentMode} {...controlProps("paymentMode")}>
+        <Select key={values.paymentMode} {...controlProps("paymentMode")}>
           <option value="">{common("none")}</option>
           {PAYMENT_MODES.map((mode) => (
             <option key={mode} value={mode}>
               {t(`paymentModes.${mode}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <Button
