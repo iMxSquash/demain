@@ -70,7 +70,7 @@ export function BalanceAssertionForm({
         <AmountInput {...controlProps("amount")} required />
       </FormField>
 
-      <BalanceSideField name="side" value={values.side} />
+      <BalanceSideField name="side" value={values.side} error={errorOf("side")} />
 
       <FormField id="note" label={t("form.note")} optional>
         <input {...controlProps("note")} type="text" autoComplete="off" />

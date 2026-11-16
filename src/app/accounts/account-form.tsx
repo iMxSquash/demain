@@ -94,7 +94,11 @@ export function AccountForm({
         <AmountInput {...controlProps("openingBalance")} required />
       </FormField>
 
-      <BalanceSideField name="openingBalanceSide" value={values.openingBalanceSide} />
+      <BalanceSideField
+        name="openingBalanceSide"
+        value={values.openingBalanceSide}
+        error={state?.field === "openingBalanceSide" ? state.message : undefined}
+      />
 
       <FormField
         {...fieldProps("depositCeiling", t("form.depositCeiling"))}

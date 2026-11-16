@@ -7,6 +7,8 @@ interface BalanceSideFieldProps {
   name: string;
   /** What the form last held: anything but "debit" shows credit, the server's default. */
   value: string;
+  /** Only a tampered form can refuse a side: the radios offer no other. */
+  error?: string | undefined;
 }
 
 /**
@@ -14,8 +16,9 @@ interface BalanceSideFieldProps {
  * a sign and the server turns Debit into a negative amount. Native radios, so it posts
  * without JavaScript.
  */
-export function BalanceSideField({ name, value }: BalanceSideFieldProps) {
+export function BalanceSideField({ name, value, error }: BalanceSideFieldProps) {
   const t = useTranslations("common.balanceSide");
+  const common = useTranslations("common");
   const current: BalanceSide = value === "debit" ? "debit" : "credit";
 
   return (
@@ -32,6 +35,11 @@ export function BalanceSideField({ name, value }: BalanceSideFieldProps) {
           </label>
         ))}
       </div>
+      {error ? (
+        <p role="alert" className="text-caption font-medium text-negative">
+          {common("error", { message: error })}
+        </p>
+      ) : null}
     </fieldset>
   );
 }
