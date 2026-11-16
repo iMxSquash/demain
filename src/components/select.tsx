@@ -361,6 +361,8 @@ export function Select({
                   ref={listRef}
                   id={listId}
                   role="listbox"
+                  // A scrolling list is a tab stop in some browsers: Tab must leave the combobox, not enter the list.
+                  tabIndex={-1}
                   aria-labelledby={ariaLabelledby ?? triggerId}
                   // Keeps the focus on the combobox while the pointer picks an option.
                   onMouseDown={(event) => event.preventDefault()}
