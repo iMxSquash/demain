@@ -42,6 +42,11 @@ export interface SelectHandle {
   focus: () => void;
 }
 
+// The top layer lifts the list above any ancestor that clips or scrolls, and above an open dialog.
+function showAsPopover(element: HTMLElement | null) {
+  if (element !== null && !element.matches(":popover-open")) element.showPopover();
+}
+
 type NativeProps = Omit<ComponentProps<"select">, "className" | "style" | "multiple" | "size" | "ref">;
 
 export interface SelectProps extends NativeProps {
@@ -83,7 +88,8 @@ function useIsEnhanced(): boolean {
   return useSyncExternalStore(subscribeToNothing, () => true, () => false);
 }
 
-type Placement = "below" | "above";
+// Where the popover sits, in viewport pixels: it is in the top layer, so no ancestor clips it.
+type Anchor = { left: number; width: number } & ({ top: number } | { bottom: number });
 
 export function Select({
   inline = false,
@@ -111,6 +117,7 @@ export function Select({
   const nativeRef = useRef<HTMLSelectElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const typeaheadRef = useRef("");
   const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -122,7 +129,7 @@ export function Select({
   const [activeIndex, setActiveIndex] = useState(-1);
   // The ring of the active option is for keyboard users: a pointer already shows where it is.
   const [isKeyboardActive, setIsKeyboardActive] = useState(false);
-  const [placement, setPlacement] = useState<Placement>("below");
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
 
   const currentValue = isControlled ? String(value) : uncontrolledValue;
   const selectedIndex = options.findIndex((option) => option.value === currentValue);
@@ -155,6 +162,21 @@ export function Select({
     return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
   }, [isListShown]);
 
+  // The popover does not follow its trigger: a scroll outside the list or a resize closes it, as a native select does.
+  useEffect(() => {
+    if (!isListShown) return;
+    const closeOnMove = (event: Event) => {
+      if (event.target instanceof Node && listRef.current?.contains(event.target)) return;
+      setIsOpen(false);
+    };
+    window.addEventListener("scroll", closeOnMove, { capture: true, passive: true });
+    window.addEventListener("resize", closeOnMove);
+    return () => {
+      window.removeEventListener("scroll", closeOnMove, { capture: true });
+      window.removeEventListener("resize", closeOnMove);
+    };
+  }, [isListShown]);
+
   useEffect(() => {
     if (!isListShown || activeIndex < 0) return;
     document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView({ block: "nearest" });
@@ -172,7 +194,14 @@ export function Select({
       const rect = trigger.getBoundingClientRect();
       const listHeight = Math.min(options.length * OPTION_HEIGHT, LIST_MAX_HEIGHT) + LIST_PADDING + POPOVER_GAP;
       const spaceBelow = window.innerHeight - rect.bottom;
-      setPlacement(spaceBelow < listHeight && rect.top > spaceBelow ? "above" : "below");
+      const isAbove = spaceBelow < listHeight && rect.top > spaceBelow;
+      setAnchor({
+        left: rect.left,
+        width: rect.width,
+        ...(isAbove
+          ? { bottom: window.innerHeight - rect.top + POPOVER_GAP }
+          : { top: rect.bottom + POPOVER_GAP }),
+      });
     }
     setActiveIndex(index);
     setIsKeyboardActive(isKeyboard);
@@ -240,6 +269,12 @@ export function Select({
     }
   }
 
+  const popoverAnchor: Anchor = anchor ?? { left: 0, width: 0, top: 0 };
+  const popoverStyle = {
+    left: popoverAnchor.left,
+    width: popoverAnchor.width,
+    ...("top" in popoverAnchor ? { top: popoverAnchor.top } : { bottom: popoverAnchor.bottom }),
+  };
   const selectedLabel = options[selectedIndex]?.label ?? "";
   const widthClass = inline ? "w-auto" : "w-full";
 
@@ -302,7 +337,10 @@ export function Select({
             {isListShown ? (
               <m.div
                 key="popover"
-                initial={{ opacity: 0, y: placement === "below" ? motion.offset.rise : -motion.offset.rise }}
+                ref={showAsPopover}
+                popover="manual"
+                style={popoverStyle}
+                initial={{ opacity: 0, y: "top" in popoverAnchor ? motion.offset.rise : -motion.offset.rise }}
                 animate={{
                   opacity: 1,
                   y: 0,
@@ -312,11 +350,10 @@ export function Select({
                   opacity: 0,
                   transition: { duration: motion.duration.exit, ease: motion.ease.exit },
                 }}
-                className={`absolute inset-x-0 z-20 rounded-control border border-divider bg-surface p-1.5 shadow-overlay ${
-                  placement === "below" ? "top-full mt-1.5" : "bottom-full mb-1.5"
-                }`}
+                className="m-0 inset-auto overflow-visible rounded-control border border-divider bg-surface p-1.5 text-text shadow-overlay"
               >
                 <ul
+                  ref={listRef}
                   id={listId}
                   role="listbox"
                   aria-labelledby={ariaLabelledby ?? triggerId}
