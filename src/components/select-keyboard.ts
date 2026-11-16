@@ -1,3 +1,5 @@
+import { foldAccents } from "../domain/fold-accents";
+
 // Keyboard rules of the select (DESIGN.md, section 9, "Custom pickers"), after the WAI-ARIA
 // select-only combobox. Pure functions: no DOM, no clock. The component owns the state, the focus
 // and the timer that empties the type-ahead buffer.
@@ -65,10 +67,6 @@ function jump(options: readonly SelectOption[], from: number, delta: number): nu
   return nearestEnabled(options, target, towardFrom);
 }
 
-function fold(text: string): string {
-  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-}
-
 function isRepeatedLetter(buffer: string): boolean {
   const letters = [...buffer];
   return letters.length > 1 && letters.every((letter) => letter === letters[0]);
@@ -86,13 +84,13 @@ export function findTypeaheadMatch(
 ): number {
   if (buffer === "" || options.length === 0) return -1;
   const repeated = isRepeatedLetter(buffer);
-  const needle = fold(repeated ? [...buffer][0] ?? "" : buffer);
+  const needle = foldAccents(repeated ? [...buffer][0] ?? "" : buffer);
   const firstOffset = repeated || [...buffer].length === 1 ? 1 : 0;
 
   for (let offset = firstOffset; offset < options.length + firstOffset; offset += 1) {
     const index = (((activeIndex + offset) % options.length) + options.length) % options.length;
     const option = options[index];
-    if (option !== undefined && option.disabled !== true && fold(option.label).startsWith(needle)) {
+    if (option !== undefined && option.disabled !== true && foldAccents(option.label).startsWith(needle)) {
       return index;
     }
   }

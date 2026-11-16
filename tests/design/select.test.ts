@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -43,5 +43,28 @@ describe("Select on the server", () => {
 
   it("carries no inline style, which the content security policy blocks", () => {
     expect(render({ id: "letter" })).not.toContain("style=");
+  });
+
+  it("refuses a child that is not an option, since the list could not show it", () => {
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(Select, { id: "letter" }, createElement("optgroup", { label: "Group" }, createElement("option", { value: "a" }, "Alpha"))),
+      );
+
+    expect(render).toThrow("Select only accepts <option> children");
+  });
+
+  it("reads options from arrays and fragments", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        Select,
+        { id: "letter" },
+        [createElement("option", { key: "a", value: "a" }, "Alpha")],
+        createElement(Fragment, null, createElement("option", { value: "b" }, "Bravo")),
+      ),
+    );
+
+    expect(markup).toContain("Alpha");
+    expect(markup).toContain("Bravo");
   });
 });

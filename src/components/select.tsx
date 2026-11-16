@@ -11,17 +11,19 @@ import {
   useImperativeHandle,
   useRef,
   useState,
-  useSyncExternalStore,
   type ComponentProps,
   type KeyboardEvent,
   type ReactNode,
   type Ref,
+  type SyntheticEvent,
 } from "react";
 
 import { CONTROL_CLASS } from "../app/form-field";
 import { useMotion } from "../app/motion-provider";
 import { Icon } from "./icon";
 import { firstEnabled, resolveSelectKey, type SelectOption } from "./select-keyboard";
+import { useFormReset } from "./use-form-reset";
+import { useIsHydrated } from "./use-is-hydrated";
 
 // DESIGN.md, section 9: the server renders the native select, and this component swaps it for a
 // select-only combobox once the page is interactive. The native select stays in the DOM, hidden:
@@ -33,6 +35,7 @@ const LIST_MAX_HEIGHT = 296;
 const LIST_PADDING = 12;
 const POPOVER_GAP = 6;
 const OPTION_HEIGHT = 44;
+const VIEWPORT_MARGIN = 8;
 
 interface LabelledOption extends SelectOption {
   lang?: string;
@@ -64,6 +67,9 @@ function textOf(node: ReactNode): string {
   return "";
 }
 
+// Only <option> (alone, in arrays or in fragments) is read: the list is drawn from them. Anything
+// else, an <optgroup> or a component that returns options, would be in the native select and
+// missing from the list, so it is refused loudly instead of dropped.
 function readOptions(children: ReactNode): LabelledOption[] {
   const options: LabelledOption[] = [];
   Children.forEach(children, (child) => {
@@ -72,7 +78,9 @@ function readOptions(children: ReactNode): LabelledOption[] {
       options.push(...readOptions(child.props.children));
       return;
     }
-    if (child.type !== "option") return;
+    if (child.type !== "option") {
+      throw new Error("Select only accepts <option> children, alone, in arrays or in fragments.");
+    }
     const label = textOf(child.props.children);
     options.push({
       value: child.props.value === undefined ? label : String(child.props.value),
@@ -84,14 +92,9 @@ function readOptions(children: ReactNode): LabelledOption[] {
   return options;
 }
 
-// False on the server and during hydration, so the first client render matches the HTML.
-const subscribeToNothing = () => () => undefined;
-function useIsEnhanced(): boolean {
-  return useSyncExternalStore(subscribeToNothing, () => true, () => false);
-}
-
 // Where the popover sits, in viewport pixels: it is in the top layer, so no ancestor clips it.
-type Anchor = { left: number; width: number } & ({ top: number } | { bottom: number });
+// `maxHeight` is the room left on its side, so the list scrolls instead of leaving the screen.
+type Anchor = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
 
 export function Select({
   inline = false,
@@ -109,7 +112,7 @@ export function Select({
   "aria-labelledby": ariaLabelledby,
   ...nativeProps
 }: SelectProps) {
-  const isEnhanced = useIsEnhanced();
+  const isEnhanced = useIsHydrated();
   const motion = useMotion();
   const generatedId = useId();
   const triggerId = id ?? `${generatedId}-select`;
@@ -133,7 +136,12 @@ export function Select({
   const [isKeyboardActive, setIsKeyboardActive] = useState(false);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
 
-  const currentValue = isControlled ? String(value) : uncontrolledValue;
+  // An uncontrolled select whose options changed falls back on the first one, as the native select does.
+  const currentValue = isControlled
+    ? String(value)
+    : options.some((option) => option.value === uncontrolledValue)
+      ? uncontrolledValue
+      : (options[firstEnabled(options)]?.value ?? "");
   const selectedIndex = options.findIndex((option) => option.value === currentValue);
   const isListShown = isOpen && !disabled;
 
@@ -141,23 +149,8 @@ export function Select({
     focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
   }), []);
 
-  // A form reset (React 19 resets the form after an action) puts the native select back on its
-  // default; the combobox follows once the browser has done it.
-  useEffect(() => {
-    const native = nativeRef.current;
-    if (!isEnhanced || isControlled || native === null) return;
-    const form = native.form;
-    if (form === null) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const syncAfterReset = () => {
-      timer = setTimeout(() => setUncontrolledValue(native.value), 0);
-    };
-    form.addEventListener("reset", syncAfterReset);
-    return () => {
-      clearTimeout(timer);
-      form.removeEventListener("reset", syncAfterReset);
-    };
-  }, [isEnhanced, isControlled]);
+  // A form reset (React 19 resets the form after an action) puts the native select back on its default.
+  useFormReset(nativeRef, () => setUncontrolledValue(nativeRef.current?.value ?? ""), isEnhanced && !isControlled);
 
   // A pointer press outside closes the list; the focus is not moved.
   useEffect(() => {
@@ -195,9 +188,11 @@ export function Select({
       const listHeight = Math.min(options.length * OPTION_HEIGHT, LIST_MAX_HEIGHT) + LIST_PADDING + POPOVER_GAP;
       const spaceBelow = window.innerHeight - rect.bottom;
       const isAbove = spaceBelow < listHeight && rect.top > spaceBelow;
+      const room = (isAbove ? rect.top : spaceBelow) - POPOVER_GAP - LIST_PADDING - VIEWPORT_MARGIN;
       setAnchor({
         left: rect.left,
         width: rect.width,
+        maxHeight: Math.max(room, OPTION_HEIGHT),
         ...(isAbove
           ? { bottom: window.innerHeight - rect.top + POPOVER_GAP }
           : { top: rect.bottom + POPOVER_GAP }),
@@ -286,10 +281,18 @@ export function Select({
         {...nativeProps}
         ref={nativeRef}
         {...(isEnhanced
-          ? { hidden: true, tabIndex: -1, "aria-hidden": true }
+          ? {
+              hidden: true,
+              tabIndex: -1,
+              "aria-hidden": true,
+              // A hidden control cannot show the browser's message: the focus goes to the combobox instead.
+              onInvalid: (event: SyntheticEvent<HTMLSelectElement>) => {
+                event.preventDefault();
+                triggerRef.current?.focus();
+              },
+            }
           : {
               id,
-              required,
               className: `${CONTROL_CLASS} ${widthClass}`,
               "aria-describedby": ariaDescribedby,
               "aria-invalid": ariaInvalid,
@@ -297,6 +300,7 @@ export function Select({
               "aria-labelledby": ariaLabelledby,
             })}
         {...(isControlled ? { value } : { defaultValue })}
+        required={required}
         disabled={disabled}
         onChange={onChange}
       >
@@ -360,18 +364,19 @@ export function Select({
                   aria-labelledby={ariaLabelledby ?? triggerId}
                   // Keeps the focus on the combobox while the pointer picks an option.
                   onMouseDown={(event) => event.preventDefault()}
-                  className="max-h-74 overflow-y-auto"
+                  style={{ maxHeight: Math.min(LIST_MAX_HEIGHT, anchor.maxHeight) }}
+                  className="overflow-y-auto"
                 >
                   {options.map((option, index) => (
                     <li
-                      key={option.value}
+                      key={index}
                       id={`${listId}-${index}`}
                       role="option"
                       lang={option.lang}
                       aria-selected={index === selectedIndex}
                       aria-disabled={option.disabled === true ? true : undefined}
                       onMouseMove={() => {
-                        if (option.disabled === true) return;
+                        if (option.disabled === true || (index === activeIndex && !isKeyboardActive)) return;
                         activate(index, false);
                       }}
                       onClick={() => {

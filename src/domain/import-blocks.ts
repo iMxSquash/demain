@@ -5,6 +5,7 @@
  * dropped silently.
  */
 
+import { foldAccents } from "./fold-accents";
 import {
   datesLackYear,
   parseDate,
@@ -72,10 +73,7 @@ const TOTAL_WORDS: ReadonlySet<string> = new Set([
  * as one, since "Sous-total" and "Sub total" are written either way.
  */
 function startsWithTotalWord(cell: string): boolean {
-  const [first = "", second = ""] = cell
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
+  const [first = "", second = ""] = foldAccents(cell)
     .split(/[^a-z0-9]+/)
     .filter((word) => word !== "");
   return TOTAL_WORDS.has(first) || TOTAL_WORDS.has(first + second);

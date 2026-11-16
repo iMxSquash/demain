@@ -427,7 +427,7 @@ Selects and dates use custom pickers, never the browser's.
 - **Select:**
   - built on the WAI-ARIA select-only combobox: a button with `role="combobox"` that opens a listbox, plus the native select, hidden, which keeps posting the value under its own name (ADR-024);
   - the list is a native popover in the top layer, so no scrolling ancestor clips it and it stays above a dialog; it closes on a scroll outside the list;
-  - options are 44 px tall, the active one on `control` with a 2 px `focus` ring while the keyboard drives it, the selected one medium with a check, a disabled one in `text-muted`, and the list scrolls past 296 px;
+  - options are 44 px tall, the active one on `control` with a 2 px `focus` ring while the keyboard drives it, the selected one medium with a check, a disabled one in `text-muted`, and the list scrolls past 296 px or past the room left on its side of the field;
   - keys: arrows, Home, End, Page Up and Page Down (10 options), Enter and Space, Escape, Tab, and type-ahead. The list stops at its ends. Tab closes the list without changing the value and moves the focus on, and Space always chooses the highlighted option (owner, 16 Nov 2026).
 - **Date:**
   - the WAI-ARIA date picker dialog: a 332 px popover centred under its field (at most the viewport minus 32 px), a month title with previous and next icon buttons, a weekday row, and 44 px round days;

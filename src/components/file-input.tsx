@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, type ChangeEvent, type ComponentPropsWithoutRef } from "react";
+import { useRef, useState, type ChangeEvent, type ComponentPropsWithoutRef } from "react";
 
 import { buttonClass } from "./button";
+import { useFormReset } from "./use-form-reset";
 
 // The button is the label of the input, so a click or a tap opens the native picker without
 // JavaScript. The input stays in the page, visually hidden, and the ring of its focus is drawn on
@@ -25,12 +26,7 @@ export function FileInput({ onChange, "aria-describedby": describedBy, ...rest }
   const [summary, setSummary] = useState<string | null>(null);
 
   // A form reset (the action of a form resets it) clears the files without a change event.
-  useEffect(() => {
-    const form = inputRef.current?.form;
-    const clear = () => setSummary(null);
-    form?.addEventListener("reset", clear);
-    return () => form?.removeEventListener("reset", clear);
-  }, []);
+  useFormReset(inputRef, () => setSummary(null));
 
   function describeFiles(files: FileList | null): string | null {
     if (files === null || files.length === 0) return null;

@@ -40,12 +40,11 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
 
   const errorOf = (field: TransferFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const selectProps = (field: TransferFormField, defaultValue: string) => ({
+  const controlProps = (field: TransferFormField, defaultValue: string) => ({
     id: fieldId(field),
     name: field,
     defaultValue,
   });
-  const controlProps = (field: TransferFormField, defaultValue: string) => ({ ...selectProps(field, defaultValue), className: CONTROL_CLASS });
   const accountOptions = accounts.map((account) => (
     <option key={account.id} value={account.id}>
       {account.name} ({account.currency})
@@ -63,7 +62,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       <FormField id={fieldId("sourceId")} label={t("from")} error={errorOf("sourceId")}>
         <Select
           key={values.sourceId}
-          {...selectProps("sourceId", values.sourceId)}
+          {...controlProps("sourceId", values.sourceId)}
         >
           {accountOptions}
         </Select>
@@ -76,7 +75,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       >
         <Select
           key={values.destinationId}
-          {...selectProps("destinationId", values.destinationId)}
+          {...controlProps("destinationId", values.destinationId)}
         >
           {accountOptions}
         </Select>
@@ -84,19 +83,19 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
 
       <FormField id={fieldId("date")} label={t("date")} error={errorOf("date")}>
         <input
-          {...controlProps("date", values.date)}
+          {...controlProps("date", values.date)} className={CONTROL_CLASS}
           type="date"
           required
         />
       </FormField>
 
       <FormField id={fieldId("amount")} label={t("amount")} error={errorOf("amount")}>
-        <AmountInput {...controlProps("amount", values.amount)} required />
+        <AmountInput {...controlProps("amount", values.amount)} className={CONTROL_CLASS} required />
       </FormField>
 
       <FormField id={fieldId("label")} label={t("label")} error={errorOf("label")}>
         <input
-          {...controlProps("label", values.label)}
+          {...controlProps("label", values.label)} className={CONTROL_CLASS}
           type="text"
           required
           autoComplete="off"
@@ -115,7 +114,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
             >
               <Select
                 key={choice.suggestedAccountId}
-                {...selectProps("surplusAccountId", choice.suggestedAccountId)}
+                {...controlProps("surplusAccountId", choice.suggestedAccountId)}
               >
                 <option value="">{t("chooseAccount")}</option>
                 {accountOptions}

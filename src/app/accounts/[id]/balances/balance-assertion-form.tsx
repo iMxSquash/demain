@@ -37,12 +37,11 @@ export function BalanceAssertionForm({
 
   const errorOf = (field: keyof BalanceAssertionFormValues) =>
     state?.field === field ? state.message : undefined;
-  const selectProps = (field: keyof BalanceAssertionFormValues) => ({
+  const controlProps = (field: keyof BalanceAssertionFormValues) => ({
     id: field,
     name: field,
     defaultValue: values[field],
   });
-  const controlProps = (field: keyof BalanceAssertionFormValues) => ({ ...selectProps(field), className: CONTROL_CLASS });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -52,7 +51,7 @@ export function BalanceAssertionForm({
           label={t("form.account")}
           error={errorOf("accountId")}
         >
-          <Select {...selectProps("accountId")} required>
+          <Select {...controlProps("accountId")} required>
             <option value="">{t("chooseAccount")}</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
@@ -64,17 +63,17 @@ export function BalanceAssertionForm({
       )}
 
       <FormField id="date" label={t("form.date")} hint={t("form.dateHint")} error={errorOf("date")}>
-        <input {...controlProps("date")} type="date" required />
+        <input {...controlProps("date")} className={CONTROL_CLASS} type="date" required />
       </FormField>
 
       <FormField id="amount" label={t("form.amount")} error={errorOf("amount")}>
-        <AmountInput {...controlProps("amount")} required />
+        <AmountInput {...controlProps("amount")} className={CONTROL_CLASS} required />
       </FormField>
 
       <BalanceSideField name="side" value={values.side} error={errorOf("side")} />
 
       <FormField id="note" label={t("form.note")} optional>
-        <input {...controlProps("note")} type="text" autoComplete="off" />
+        <input {...controlProps("note")} className={CONTROL_CLASS} type="text" autoComplete="off" />
       </FormField>
 
       <Button

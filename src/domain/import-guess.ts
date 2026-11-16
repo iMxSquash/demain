@@ -4,6 +4,7 @@
  * See DOMAIN, section Guessing the type of an imported row.
  */
 
+import { foldAccents } from "./fold-accents";
 import { readMovementType, type MovementType } from "./import-columns";
 import { normalizeLabel } from "./import-row";
 
@@ -114,10 +115,7 @@ export interface TypeGuess {
 
 // Lowercase, without accents, cut on anything that is not a letter or a digit.
 export function tokenize(text: string): string[] {
-  return text
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
+  return foldAccents(text)
     .split(/[^a-z0-9]+/)
     .filter((token) => token !== "");
 }

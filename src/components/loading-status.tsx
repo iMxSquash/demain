@@ -1,8 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-
-const NEVER_CHANGES = () => () => {};
+import { useIsHydrated } from "./use-is-hydrated";
 
 /**
  * The polite status of a loading region. A live region that already holds its text in the markup
@@ -11,11 +9,7 @@ const NEVER_CHANGES = () => () => {};
  * and the `aria-busy` of the region is then the only signal.
  */
 export function LoadingStatus({ label }: { label: string }) {
-  const text = useSyncExternalStore(
-    NEVER_CHANGES,
-    () => label,
-    () => "",
-  );
+  const text = useIsHydrated() ? label : "";
 
   return (
     <p role="status" className="sr-only">

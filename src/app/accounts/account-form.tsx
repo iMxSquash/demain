@@ -47,12 +47,11 @@ export function AccountForm({
 
   const errorOf = (field: AccountField) =>
     state?.field === field ? state.message : undefined;
-  const selectProps = (field: AccountField) => ({
+  const controlProps = (field: AccountField) => ({
     id: field,
     name: field,
     defaultValue: values[field],
   });
-  const controlProps = (field: AccountField) => ({ ...selectProps(field), className: CONTROL_CLASS });
   const fieldProps = (field: AccountField, label: string) => ({
     id: field,
     label,
@@ -62,13 +61,13 @@ export function AccountForm({
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField {...fieldProps("name", t("form.name"))}>
-        <input {...controlProps("name")} type="text" required autoComplete="off" />
+        <input {...controlProps("name")} className={CONTROL_CLASS} type="text" required autoComplete="off" />
       </FormField>
 
       <FormField {...fieldProps("kind", t("form.kind"))}>
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
-        <Select key={values.kind} {...selectProps("kind")}>
+        <Select key={values.kind} {...controlProps("kind")}>
           {ACCOUNT_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
@@ -79,7 +78,7 @@ export function AccountForm({
 
       <FormField {...fieldProps("currency", t("form.currency"))} hint={t("form.currencyHint")}>
         <input
-          {...controlProps("currency")}
+          {...controlProps("currency")} className={CONTROL_CLASS}
           type="text"
           required
           autoComplete="off"
@@ -88,11 +87,11 @@ export function AccountForm({
       </FormField>
 
       <FormField {...fieldProps("openingDate", t("form.openingDate"))}>
-        <input {...controlProps("openingDate")} type="date" required />
+        <input {...controlProps("openingDate")} className={CONTROL_CLASS} type="date" required />
       </FormField>
 
       <FormField {...fieldProps("openingBalance", t("form.openingBalance"))}>
-        <AmountInput {...controlProps("openingBalance")} required />
+        <AmountInput {...controlProps("openingBalance")} className={CONTROL_CLASS} required />
       </FormField>
 
       <BalanceSideField
@@ -106,14 +105,14 @@ export function AccountForm({
         optional
         hint={t("form.depositCeilingHint")}
       >
-        <AmountInput {...controlProps("depositCeiling")} />
+        <AmountInput {...controlProps("depositCeiling")} className={CONTROL_CLASS} />
       </FormField>
 
       <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))} optional>
         {/* Same remount trick as the kind select above. */}
         <Select
           key={values.overflowAccountId}
-          {...selectProps("overflowAccountId")}
+          {...controlProps("overflowAccountId")}
         >
           <option value="">{common("none")}</option>
           {overflowOptions.map((option) => (

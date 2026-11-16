@@ -55,12 +55,11 @@ export function TransactionForm({
 
   const errorOf = (field: TransactionFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const selectProps = (field: TransactionFormField) => ({
+  const controlProps = (field: TransactionFormField) => ({
     id: field,
     name: field,
     defaultValue: values[field],
   });
-  const controlProps = (field: TransactionFormField) => ({ ...selectProps(field), className: CONTROL_CLASS });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -77,7 +76,7 @@ export function TransactionForm({
       >
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
-        <Select key={values.accountId} {...selectProps("accountId")}>
+        <Select key={values.accountId} {...controlProps("accountId")}>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
               {account.name} ({account.currency})
@@ -87,11 +86,11 @@ export function TransactionForm({
       </FormField>
 
       <FormField id="date" label={t("form.date")} error={errorOf("date")}>
-        <input {...controlProps("date")} type="date" required />
+        <input {...controlProps("date")} className={CONTROL_CLASS} type="date" required />
       </FormField>
 
       <FormField id="kind" label={t("form.type")} error={errorOf("kind")}>
-        <Select key={values.kind} {...selectProps("kind")}>
+        <Select key={values.kind} {...controlProps("kind")}>
           {ENTERED_TRANSACTION_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
@@ -106,11 +105,11 @@ export function TransactionForm({
         hint={t("form.amountHint")}
         error={errorOf("amount")}
       >
-        <AmountInput {...controlProps("amount")} required />
+        <AmountInput {...controlProps("amount")} className={CONTROL_CLASS} required />
       </FormField>
 
       <FormField id="label" label={t("form.label")} error={errorOf("label")}>
-        <input {...controlProps("label")} type="text" required autoComplete="off" />
+        <input {...controlProps("label")} className={CONTROL_CLASS} type="text" required autoComplete="off" />
       </FormField>
 
       <FormField
@@ -119,7 +118,7 @@ export function TransactionForm({
         optional
         error={errorOf("description")}
       >
-        <input {...controlProps("description")} type="text" autoComplete="off" />
+        <input {...controlProps("description")} className={CONTROL_CLASS} type="text" autoComplete="off" />
       </FormField>
 
       <FormField
@@ -129,7 +128,7 @@ export function TransactionForm({
         hint={t("form.categoryHint")}
         error={errorOf("categoryId")}
       >
-        <Select key={values.categoryId} {...selectProps("categoryId")}>
+        <Select key={values.categoryId} {...controlProps("categoryId")}>
           <option value="">{common("none")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
@@ -145,7 +144,7 @@ export function TransactionForm({
         optional
         error={errorOf("paymentMode")}
       >
-        <Select key={values.paymentMode} {...selectProps("paymentMode")}>
+        <Select key={values.paymentMode} {...controlProps("paymentMode")}>
           <option value="">{common("none")}</option>
           {PAYMENT_MODES.map((mode) => (
             <option key={mode} value={mode}>
