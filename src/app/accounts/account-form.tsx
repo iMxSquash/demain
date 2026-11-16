@@ -91,10 +91,7 @@ export function AccountForm({
       </FormField>
 
       <FormField {...fieldProps("openingBalance", t("form.openingBalance"))}>
-        <AmountInput
-          {...controlProps("openingBalance")}
-          required
-        />
+        <AmountInput {...controlProps("openingBalance")} required />
       </FormField>
 
       <BalanceSideField name="openingBalanceSide" value={values.openingBalanceSide} />
@@ -104,8 +101,7 @@ export function AccountForm({
         optional
         hint={t("form.depositCeilingHint")}
       >
-        <AmountInput
-          {...controlProps("depositCeiling")} />
+        <AmountInput {...controlProps("depositCeiling")} />
       </FormField>
 
       <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))} optional>

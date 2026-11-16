@@ -90,10 +90,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       </FormField>
 
       <FormField id={fieldId("amount")} label={t("amount")} error={errorOf("amount")}>
-        <AmountInput
-          {...controlProps("amount", values.amount)}
-          required
-        />
+        <AmountInput {...controlProps("amount", values.amount)} required />
       </FormField>
 
       <FormField id={fieldId("label")} label={t("label")} error={errorOf("label")}>

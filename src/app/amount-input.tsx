@@ -10,7 +10,7 @@ import {
   isAmountDraft,
   stripAmountSpaces,
 } from "../domain/amount-syntax";
-import type { FeedbackKey } from "../domain/message";
+import { type MessageRef, messageRef } from "../domain/message";
 
 type AmountInputProps = Omit<
   ComponentPropsWithoutRef<"input">,
@@ -19,7 +19,7 @@ type AmountInputProps = Omit<
 
 const PASTE_INPUT_TYPES = new Set(["insertFromPaste", "insertFromDrop"]);
 
-type Message = { kind: "refusal" | "invalid"; key: FeedbackKey; values: Record<string, string> };
+type Message = { kind: "refusal" | "invalid"; ref: MessageRef };
 
 /** The first character of `incoming` that no amount can contain once typed at `start`. */
 function refusedCharacter(value: string, incoming: string, start: number, end: number) {
@@ -38,7 +38,7 @@ function refusedCharacter(value: string, incoming: string, start: number, end: n
  * incomplete value when the field is left. The server applies the same rule from
  * `domain/amount-syntax` and stays the authority.
  */
-export function AmountInput({ id, onBlur, className, ...rest }: AmountInputProps) {
+export function AmountInput({ id, onBlur, ...rest }: AmountInputProps) {
   const t = useTranslations("feedback");
   const common = useTranslations("common");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,16 +49,17 @@ export function AmountInput({ id, onBlur, className, ...rest }: AmountInputProps
   const isFlagged = message?.kind === "invalid";
 
   useEffect(() => {
-    const input = inputRef.current;
-    if (input === null) return;
+    const current = inputRef.current;
+    if (current === null) return;
+    // The narrowed type does not reach into `filter`: a constant that cannot be null does.
+    const input: HTMLInputElement = current;
 
     // A native listener: the synthetic React event has no `inputType` and misses drops.
     function filter(event: InputEvent) {
-      if (event.isComposing || event.inputType.startsWith("delete")) return;
-      if (event.inputType.startsWith("history")) return;
+      if (event.isComposing || /^(delete|history)/.test(event.inputType)) return;
       const isPaste = PASTE_INPUT_TYPES.has(event.inputType);
       const data = isPaste ? (event.dataTransfer?.getData("text/plain") ?? "") : (event.data ?? "");
-      if (data === "" || input === null) return;
+      if (data === "") return;
 
       const incoming = isPaste ? stripAmountSpaces(data) : data;
       const start = input.selectionStart ?? input.value.length;
@@ -67,7 +68,7 @@ export function AmountInput({ id, onBlur, className, ...rest }: AmountInputProps
 
       if (refused !== null) {
         event.preventDefault();
-        setMessage({ kind: "refusal", key: "amountCharacterRefused", values: { character: refused } });
+        setMessage({ kind: "refusal", ref: messageRef("amountCharacterRefused", { character: refused }) });
         return;
       }
       setMessage(null);
@@ -91,23 +92,12 @@ export function AmountInput({ id, onBlur, className, ...rest }: AmountInputProps
         type="text"
         inputMode="decimal"
         autoComplete="off"
-        className={className}
         aria-describedby={describedBy}
         aria-invalid={isInvalid || isFlagged ? true : undefined}
         onBlur={(event) => {
           onBlur?.(event);
           const check = checkAmountSyntax(event.currentTarget.value);
-          setMessage(
-            check.ok
-              ? null
-              : {
-                  kind: "invalid",
-                  key: check.ref.key,
-                  values: Object.fromEntries(
-                    Object.entries(check.ref.values ?? {}).map(([key, value]) => [key, String(value)]),
-                  ),
-                },
-          );
+          setMessage(check.ok ? null : { kind: "invalid", ref: check.ref });
         }}
       />
       {/* Present and empty from the first render: a polite region created with its text is
@@ -123,10 +113,10 @@ export function AmountInput({ id, onBlur, className, ...rest }: AmountInputProps
         {message === null ? null : isFlagged ? (
           <>
             <Icon icon={WarningCircle} />
-            <span>{common("error", { message: t(message.key, message.values) })}</span>
+            <span>{common("error", { message: t(message.ref.key, message.ref.values) })}</span>
           </>
         ) : (
-          t(message.key, message.values)
+          t(message.ref.key, message.ref.values)
         )}
       </p>
     </div>

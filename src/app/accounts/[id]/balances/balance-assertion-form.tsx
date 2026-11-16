@@ -67,10 +67,7 @@ export function BalanceAssertionForm({
       </FormField>
 
       <FormField id="amount" label={t("form.amount")} error={errorOf("amount")}>
-        <AmountInput
-          {...controlProps("amount")}
-          required
-        />
+        <AmountInput {...controlProps("amount")} required />
       </FormField>
 
       <BalanceSideField name="side" value={values.side} />

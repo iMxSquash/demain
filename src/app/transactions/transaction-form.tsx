@@ -105,10 +105,7 @@ export function TransactionForm({
         hint={t("form.amountHint")}
         error={errorOf("amount")}
       >
-        <AmountInput
-          {...controlProps("amount")}
-          required
-        />
+        <AmountInput {...controlProps("amount")} required />
       </FormField>
 
       <FormField id="label" label={t("form.label")} error={errorOf("label")}>
