@@ -1,9 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-const SOURCE_DIR = path.join(process.cwd(), "src");
+import { readSourceFiles } from "../source-files";
 
 // Everything that can talk to another machine, from Node or from the browser.
 const OUTBOUND_CALL =
@@ -24,31 +21,11 @@ const LOG_ALLOWED = new Set(["src/instrumentation-node.ts"]);
 // A constant message: nothing interpolated, so no label or amount can end up in a log.
 const CONSTANT_ERROR_LOG = /^console\.error\(\s*"[^"$`]*"/;
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return sourceFiles(full);
-    return /\.tsx?$/.test(entry.name) ? [full] : [];
-  });
-}
-
-interface SourceFile {
-  relative: string;
-  /** Code lines only: comments are prose, not calls. */
-  lines: { line: number; text: string }[];
-}
-
-const FILES: SourceFile[] = sourceFiles(SOURCE_DIR).map((file) => ({
-  relative: path.relative(process.cwd(), file),
-  lines: readFileSync(file, "utf8")
-    .split("\n")
-    .map((text, index) => ({ line: index + 1, text: text.trim() }))
-    .filter(({ text }) => !/^(\/\/|\/\*|\*)/.test(text)),
-}));
+const FILES = readSourceFiles("src");
 
 function offenders(allowed: Set<string>, isViolation: (text: string) => boolean): string[] {
-  return FILES.filter(({ relative }) => !allowed.has(relative)).flatMap(({ relative, lines }) =>
-    lines
+  return FILES.filter(({ relative }) => !allowed.has(relative)).flatMap(({ relative, codeLines }) =>
+    codeLines
       .filter(({ text }) => isViolation(text))
       .map(({ line, text }) => `${relative}:${line}: ${text}`),
   );
