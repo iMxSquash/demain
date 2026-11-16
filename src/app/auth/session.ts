@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 
 import { getSession, type SessionState } from "../../auth/sessions";
 import { withDatabase } from "../../storage/with-database";
@@ -41,6 +42,9 @@ export async function readSession(): Promise<SessionState | null> {
   if (!token) {
     return null;
   }
+  // A session is checked against the clock, so this read belongs to the request and never to a
+  // prerender (Cache Components, ADR-023).
+  await connection();
   return withDatabase((db) => getSession(db, token, new Date()));
 }
 

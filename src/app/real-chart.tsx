@@ -4,11 +4,12 @@ import { TrajectoryChart } from "../charts/trajectory-chart";
 import { TrajectoryTable } from "../charts/trajectory-table";
 import type { TrajectoryMonth, TrajectorySeries } from "../charts/trajectory-types";
 import { formatAmount } from "../domain/money";
-import { lastCompleteMonth } from "../domain/synthesis";
+import { lastCompleteMonth, type Month } from "../domain/synthesis";
 import { formatMonth, formatShortMonth, todayIn } from "../i18n/dates";
 import { getReferenceCurrency } from "../ledger/exchange-rates";
 import { getMonthlySynthesis } from "../ledger/synthesis";
 import { withDatabase } from "../storage/with-database";
+import { tagDataRead } from "./data-cache";
 
 // The kinds of account drawn, with the tone that tells them apart (each line
 // also carries its name).
@@ -16,6 +17,19 @@ const CHART_SERIES = [
   { kind: "checking", tone: "primary" },
   { kind: "savings", tone: "secondary" },
 ] as const;
+
+// The month is an argument, so the entry of last month is not served once the month changes.
+async function readChartMonths(throughMonth: Month) {
+  "use cache";
+  tagDataRead();
+  return withDatabase((db) => {
+    const referenceCurrency = getReferenceCurrency(db);
+    return {
+      months: getMonthlySynthesis(db, { referenceCurrency, throughMonth }),
+      referenceCurrency,
+    };
+  });
+}
 
 /**
  * The main chart: month-end totals of the checking and savings accounts, real
@@ -31,13 +45,7 @@ export async function RealChart() {
     getTimeZone(),
   ]);
   const throughMonth = lastCompleteMonth(todayIn(timeZone, new Date()));
-  const { months, referenceCurrency } = withDatabase((db) => {
-    const referenceCurrency = getReferenceCurrency(db);
-    return {
-      months: getMonthlySynthesis(db, { referenceCurrency, throughMonth }),
-      referenceCurrency,
-    };
-  });
+  const { months, referenceCurrency } = await readChartMonths(throughMonth);
   const money = (minorUnits: number) =>
     formatAmount(minorUnits, referenceCurrency, locale);
   const unconverted = [

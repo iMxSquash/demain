@@ -383,6 +383,28 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** A control with its own `aria-describedby` still works, since the ids are merged. A field with several controls (a group of radios) does not use `FormField`. The outlined apply buttons of the language and appearance forms and the toast close button do not use `Button` yet: the navigation and feedback work of the identity takes them. Pending labels live next to the submit label, under the key `<submit>Pending`, in both message files.
 
+### ADR-023: Database reads cached in memory behind one tag, refreshed by every write
+
+**Context.** Every page read SQLite on every request and every server action refreshed a list of paths. Nothing is slow yet, but the history grows every month and the synthesis, the chart and the to-categorize count of the layout are computed from all of it. The path lists were also incomplete: an account or a rate changes figures on pages the action did not refresh, which went unnoticed only because nothing was cached. Caching has to come before the pages multiply, while the writers can still be listed.
+
+**Decision.** Next.js Cache Components (`cacheComponents: true`, with `partialPrefetching`). Each list or computed read of the database is a `"use cache"` function that calls `tagDataRead()` (`src/app/data-cache.ts`), so every entry carries one tag, `data`, and a bounded lifetime (`src/cache-lifetime.ts`: refreshed after 15 minutes, dropped after an hour, 30 seconds in the browser). Every server action that writes the database calls `refreshData()` (`updateTag`), so the next render reads again and the user sees their own write. The rules that keep it right:
+
+- Session checks, cookies, the locale and the clock stay outside the cached functions. "Today" or the month is passed as an argument, so it is part of the key. `await connection()` stays before each cached call, so no read runs at build time against a database.
+- Translations and formatting stay outside: only raw data is cached, never JSX.
+- Reads of one record for a form (the edit pages, the balances of one account) and every read of the owner, the sessions or two-factor stay uncached. They are cheap and would bring error handling into the cache.
+- The root layout sets `lang` and `data-theme` on `<html>` from cookies (ADR-014), so it exports `instant = false`: every route still renders per request. What is cached is the data, not the page.
+- The browser keeps a page it already has for 30 seconds (`staleTimes.dynamic`). A server action that refreshes a tag clears that cache at once.
+- `tests/app/data-cache-guards.test.ts` fails when a server action module opens the database without calling `refreshData()` (the auth actions are listed as exceptions), or when a `"use cache"` read is not tagged.
+
+**Alternatives rejected.**
+
+- *One tag per domain (accounts, transactions, rates, rules).* The figures depend on each other, and the path lists already missed pages. With a cache, a missed dependency is a wrong balance on screen. Writes are rare next to reads in a personal app, so refreshing everything on each write costs little.
+- *Redis or another shared store, or `"use cache: remote"`.* The app is one container with one process (ADR-004), the default in-memory store fits, and an external store would be a new service and a dependency.
+- *Keeping the SQLite connection open per process.* It would keep SQLite's page cache warm, but restoring a snapshot replaces the database under an open handle, and cached reads already avoid most database hits. It reverses the choice recorded in `src/storage/with-database.ts`.
+- *Removing `instant = false` with an inline script that sets the theme before paint.* The content security policy only allows scripts with the nonce of the request, and the language also comes from a cookie. The gain, a prerendered shell, matters little for an app behind a sign-in.
+
+**Consequences.** A new server action that writes the database must call `refreshData()`, and a new cached read must call `tagDataRead()`; the guard test enforces both. A write made outside the app (editing the database by hand, `npm run auth:reset-password`) is not seen until the entry expires, at most an hour later, or a restart. The cache is per process and starts empty after a restart or a new build. With Cache Components, Next.js keeps up to three visited pages mounted and hidden (React `Activity`): form drafts survive a navigation away and back, and fixed element ids (`accountId`, `new-heading`) appear more than once in the document while those pages stay hidden.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.
@@ -402,6 +424,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | Motion | `motion` behind `LazyMotion`, CSS for server-rendered content | See ADR-020. |
 | Icons | Phosphor Regular through `@phosphor-icons/react`, one `Icon` component | See ADR-021. |
 | Buttons and fields | One `Button` (four variants, pending state), `FormField` owns `aria-describedby` | See ADR-022. |
+| Caching | Next.js Cache Components, in-memory `"use cache"` reads behind one `data` tag | See ADR-023. |
 
 ## Deployment
 

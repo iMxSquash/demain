@@ -9,6 +9,7 @@ import { SkeletonFields, SkeletonRegion } from "../../../components/skeleton";
 import { listAccounts } from "../../../ledger/accounts";
 import { withDatabase } from "../../../storage/with-database";
 import { requireSession } from "../../auth/session";
+import { tagDataRead } from "../../data-cache";
 import { SummaryBalancesForm } from "./summary-balances-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,11 +45,17 @@ function SummaryFormLoading() {
   );
 }
 
+async function readActiveAccounts() {
+  "use cache";
+  tagDataRead();
+  return withDatabase(listAccounts);
+}
+
 async function SummaryForm() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("summaryBalances");
-  const accounts = withDatabase((db) => listAccounts(db));
+  const accounts = await readActiveAccounts();
 
   if (accounts.length === 0) return <p>{t("noAccount")}</p>;
   return (

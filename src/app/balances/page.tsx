@@ -17,6 +17,7 @@ import { listAccounts } from "../../ledger/accounts";
 import { listAllBalanceAssertions } from "../../ledger/balance-assertions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 import { saveBalanceAssertionForChosenAccountAction } from "../accounts/[id]/balances/actions";
 import { BalanceAssertionForm } from "../accounts/[id]/balances/balance-assertion-form";
 import { BalanceAssertionsHead, BalanceAssertionsTable } from "./balance-assertions-table";
@@ -30,11 +31,17 @@ export async function generateMetadata(): Promise<Metadata> {
 const readBalances = cache(async () => {
   // The page reads the database: it must run per request.
   await connection();
+  return readBalancesFromDatabase();
+});
+
+async function readBalancesFromDatabase() {
+  "use cache";
+  tagDataRead();
   return withDatabase((db) => ({
     assertions: listAllBalanceAssertions(db),
     activeAccounts: listAccounts(db),
   }));
-});
+}
 
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page.

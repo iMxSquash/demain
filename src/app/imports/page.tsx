@@ -11,6 +11,7 @@ import { readAssertionLinkSnapshot } from "../../ledger/balance-assertions";
 import { listCategories } from "../../ledger/categories";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 import { toImportView } from "./import-form-data";
 import { ImportForm } from "./import-form";
 
@@ -50,14 +51,20 @@ function ImportFormLoading() {
   );
 }
 
+async function readImportContext() {
+  "use cache";
+  tagDataRead();
+  return withDatabase((db) => ({
+    view: toImportView(listAccounts(db), listCategories(db), listOverflowAccounts(db)),
+    assertionSnapshot: readAssertionLinkSnapshot(db),
+  }));
+}
+
 async function ImportSection() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("imports");
-  const { view, assertionSnapshot } = withDatabase((db) => ({
-    view: toImportView(listAccounts(db), listCategories(db), listOverflowAccounts(db)),
-    assertionSnapshot: readAssertionLinkSnapshot(db),
-  }));
+  const { view, assertionSnapshot } = await readImportContext();
 
   if (view.accounts.length === 0) return <p>{t("noAccount")}</p>;
   return <ImportForm {...view} assertionSnapshot={assertionSnapshot} />;

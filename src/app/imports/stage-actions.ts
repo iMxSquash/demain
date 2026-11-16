@@ -18,8 +18,8 @@ import { commitDrafts } from "../../ledger/staged-import";
 import { getTypeVocabulary } from "../../ledger/type-vocabulary";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess } from "../feedback/flash";
-import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
 import {
   commitRequestSchema,
@@ -232,7 +232,7 @@ export async function commitStagedFileAction(
       };
     }
 
-    revalidateLedger();
+    refreshData();
     await flashSuccess("importDone", {
       imported: outcome.newCount,
       duplicates: outcome.duplicateCount,

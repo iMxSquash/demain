@@ -1,16 +1,14 @@
-import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { readSourceFiles } from "../source-files";
 import { findIdentityViolations } from "./identity-guard";
 
-const SOURCE_DIRECTORY = "src";
-
-const SOURCE_FILES = readdirSync(SOURCE_DIRECTORY, { recursive: true, encoding: "utf8" })
-  .filter((file) => /\.tsx?$/.test(file))
-  .map((file) => path.join(SOURCE_DIRECTORY, file))
-  .map((file) => ({ file, source: readFileSync(file, "utf8") }));
+const SOURCE_FILES = readSourceFiles("src").map(({ relative, text }) => ({
+  file: relative,
+  source: text,
+}));
 
 describe("identity guard", () => {
   it("scans the components of src", () => {

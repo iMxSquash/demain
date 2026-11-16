@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { countUncategorizedTransactions } from "../ledger/transactions";
 import { withDatabase } from "../storage/with-database";
 import { readSession } from "./auth/session";
+import { tagDataRead } from "./data-cache";
 import { readFlash } from "./feedback/flash";
 import { ToastProvider, type Notice } from "./feedback/toast-provider";
 import { MotionProvider } from "./motion-provider";
@@ -16,6 +17,11 @@ import { THEME_COOKIE, themeAttribute } from "./theme/theme-preference";
 import { getTranslator } from "./translator";
 
 import "./globals.css";
+
+// The root layout sets `lang` and `data-theme` on <html> from cookies (ADR-014), so no part of a page
+// can be prerendered above it: every route renders per request, as it did before Cache Components.
+// Database reads are cached below this level instead (ADR-023).
+export const instant = false;
 
 const CONTENT_ID = "content";
 
@@ -31,6 +37,12 @@ const hostGrotesk = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("home");
   return { title: "Demain", description: t("metaDescription") };
+}
+
+async function readToCategorizeCount(): Promise<number> {
+  "use cache";
+  tagDataRead();
+  return withDatabase(countUncategorizedTransactions);
 }
 
 async function readNotice(): Promise<Notice | null> {
@@ -49,6 +61,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     cookies(),
   ]);
   const isSignedIn = session !== null && !session.mfaPending;
+  const toCategorizeCount = isSignedIn ? await readToCategorizeCount() : 0;
   // Focus target of the skip link; each page renders its own <main>.
   const content = (
     <div id={CONTENT_ID} tabIndex={-1}>
@@ -73,7 +86,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 {tCommon("skipToContent")}
               </a>
               {isSignedIn ? (
-                <AppShell toCategorizeCount={withDatabase(countUncategorizedTransactions)}>
+                <AppShell toCategorizeCount={toCategorizeCount}>
                   {content}
                 </AppShell>
               ) : (

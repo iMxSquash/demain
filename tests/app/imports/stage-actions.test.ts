@@ -37,7 +37,7 @@ vi.mock("next-intl/server", () => ({
 }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
 vi.mock("../../../src/app/translator", () => ({ getTranslator: async () => translateKey }));
-vi.mock("../../../src/app/revalidate-ledger", () => ({ revalidateLedger: () => undefined }));
+vi.mock("../../../src/app/data-cache", () => ({ refreshData: () => undefined }));
 vi.mock("../../../src/app/feedback/flash", () => ({
   flashSuccess: async () => undefined,
   flashError: async () => undefined,

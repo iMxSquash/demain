@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { messageRef, type FeedbackKey, type MessageRef } from "../../domain/message";
 import { AccountNotFoundError } from "../../ledger/accounts";
 import { CategoryNotFoundError } from "../../ledger/categories";
@@ -14,6 +12,7 @@ import {
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
@@ -21,8 +20,6 @@ import {
   readRuleFormValues,
   type RuleFormState,
 } from "./rule-form-data";
-
-const RULES_PATH = "/rules";
 
 export async function createRuleAction(
   _previous: RuleFormState | null,
@@ -60,7 +57,7 @@ export async function createRuleAction(
     return { message: translate(ref), values };
   }
 
-  revalidatePath(RULES_PATH);
+  refreshData();
   await flashSuccess("ruleCreated");
   return null;
 }
@@ -81,7 +78,7 @@ async function changeRules(
     success,
     describeFailure: describeChangeFailure,
   });
-  revalidatePath(RULES_PATH);
+  refreshData();
 }
 
 export async function moveRuleAction(

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 
 import { BalanceAssertionValidationError } from "../../../domain/balance-assertion";
@@ -17,6 +16,7 @@ import {
 } from "../../../ledger/summary-assertions";
 import { withDatabase } from "../../../storage/with-database";
 import { requireSession } from "../../auth/session";
+import { refreshData } from "../../data-cache";
 import { flashError, flashSuccess } from "../../feedback/flash";
 import { decodeImportFile } from "../../imports/import-form-data";
 import { getTranslator } from "../../translator";
@@ -26,8 +26,6 @@ import {
   type SummaryBalancesContext,
   type SummaryBalancesState,
 } from "./summary-balances-state";
-
-const BALANCES_PATH = "/balances";
 
 const NO_DETAILS = {
   errorField: null,
@@ -105,8 +103,7 @@ export async function summaryBalancesAction(
     const { saved } = withDatabase((db) =>
       saveSummaryAssertions(db, account.id, balances, today),
     );
-    revalidatePath(BALANCES_PATH);
-    revalidatePath(`/accounts/${account.id}/balances`);
+    refreshData();
     await flashSuccess("summaryBalancesSaved", { count: saved.length });
     return buildSummaryBalancesState(summary, { ...context, phase: "done" });
   } catch (error) {

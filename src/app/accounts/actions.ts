@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { AccountValidationError } from "../../domain/account";
@@ -15,6 +14,7 @@ import {
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
@@ -70,7 +70,7 @@ export async function createAccountAction(
     return await toFormState(error, formData, translate);
   }
 
-  revalidatePath(ACCOUNTS_PATH);
+  refreshData();
   await flashSuccess("accountCreated");
   return null;
 }
@@ -91,7 +91,7 @@ export async function updateAccountAction(
     return await toFormState(error, formData, translate);
   }
 
-  revalidatePath(ACCOUNTS_PATH);
+  refreshData();
   await flashSuccess("accountUpdated");
   // redirect throws, so it stays outside the try block.
   redirect(ACCOUNTS_PATH);
@@ -103,5 +103,5 @@ export async function archiveAccountAction(id: number): Promise<void> {
     success: "accountArchived",
     describeFailure: describeArchiveFailure,
   });
-  revalidatePath(ACCOUNTS_PATH);
+  refreshData();
 }

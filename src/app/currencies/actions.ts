@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { ExchangeRateValidationError } from "../../domain/exchange-rate";
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import {
@@ -14,8 +12,8 @@ import {
 } from "../../ledger/exchange-rates";
 import { withDatabase, withDatabaseAsync } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
-import { revalidateLedger } from "../revalidate-ledger";
 import { getTranslator } from "../translator";
 import {
   readCurrency,
@@ -23,14 +21,6 @@ import {
   type RateFormState,
   type ReferenceCurrencyFormState,
 } from "./currency-form-data";
-
-const CURRENCIES_PATH = "/currencies";
-
-// Rates change the figures of every page that converts, not only this one.
-function revalidateConversions(): void {
-  revalidatePath(CURRENCIES_PATH);
-  revalidateLedger();
-}
 
 export async function saveReferenceCurrencyAction(
   _previous: ReferenceCurrencyFormState | null,
@@ -50,7 +40,7 @@ export async function saveReferenceCurrencyAction(
     return { message: translate(messageRef("exchangeRateNotSaved")), value };
   }
 
-  revalidateConversions();
+  refreshData();
   await flashSuccess("referenceCurrencySaved");
   return null;
 }
@@ -85,7 +75,7 @@ export async function saveExchangeRateAction(
     return await toRateFormState(error, formData, translate);
   }
 
-  revalidateConversions();
+  refreshData();
   await flashSuccess("exchangeRateSaved");
   return null;
 }
@@ -101,7 +91,7 @@ export async function deleteExchangeRateAction(id: number): Promise<void> {
     success: "exchangeRateDeleted",
     describeFailure: describeSettingFailure,
   });
-  revalidateConversions();
+  refreshData();
 }
 
 export async function setEcbFetchEnabledAction(
@@ -112,7 +102,7 @@ export async function setEcbFetchEnabledAction(
     success: enabled ? "ecbFetchTurnedOn" : "ecbFetchTurnedOff",
     describeFailure: describeSettingFailure,
   });
-  revalidatePath(CURRENCIES_PATH);
+  refreshData();
 }
 
 function describeEcbFetchFailure(error: unknown): MessageRef {
@@ -131,6 +121,6 @@ export async function fetchEcbRatesAction(): Promise<void> {
     await flashError(describeEcbFetchFailure(error));
     return;
   }
-  revalidateConversions();
+  refreshData();
   await flashSuccess("ecbRatesStored", { count: storedCount });
 }

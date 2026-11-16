@@ -9,6 +9,7 @@ import { SkeletonDataTable, SkeletonRegion } from "../../components/skeleton";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import { getVocabularyOverview } from "../../ledger/type-vocabulary";
 import { withDatabase } from "../../storage/with-database";
+import { tagDataRead } from "../data-cache";
 import { CONTROL_CLASS } from "../form-field";
 import {
   addVocabularyWordAction,
@@ -81,11 +82,17 @@ function VocabularyWordsLoading() {
   );
 }
 
+async function readVocabularyOverview() {
+  "use cache";
+  tagDataRead();
+  return withDatabase(getVocabularyOverview);
+}
+
 async function VocabularyWords() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("rules.vocabulary");
-  const overview = withDatabase((db) => getVocabularyOverview(db));
+  const overview = await readVocabularyOverview();
 
   return (
     <>

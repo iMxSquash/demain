@@ -6,7 +6,7 @@ import type { MessageRef } from "../../../src/domain/message";
 
 const flashed = vi.hoisted(() => ({ errors: [] as MessageRef[] }));
 
-vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("../../../src/app/data-cache", () => ({ refreshData: () => undefined }));
 vi.mock("next/navigation", () => ({ redirect: () => undefined }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
 vi.mock("../../../src/app/feedback/flash", () => ({

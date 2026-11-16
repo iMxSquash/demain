@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 
@@ -28,7 +27,7 @@ import { TransactionValidationError } from "../../domain/transaction";
 import { BalanceAssertionOnArchivedAccountError } from "../../ledger/balance-assertions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
-import { revalidateLedger } from "../revalidate-ledger";
+import { refreshData } from "../data-cache";
 import { getTranslator } from "../translator";
 import type {
   BalanceCheckState,
@@ -149,7 +148,7 @@ export async function recordBatchBalanceAssertionAction(
       recordBatchBalanceAssertion(db, check.batchId, realBalance);
       return { check, realBalance };
     });
-    revalidatePath(`/accounts/${check.accountId}/balances`);
+    refreshData();
     const gap = batchBalanceGap(check, realBalance);
     const values = gapValues(check, gap, locale);
     return {
@@ -230,7 +229,7 @@ export async function saveRuleProposalsAction(
       saveRuleProposals(db, parsed.data.batchId, parsed.data.selectedKeys),
     );
     if (created === 0) return failText(t("nothingCreated"));
-    revalidatePath("/rules");
+    refreshData();
     return { status: "saved", message: t("saved", { count: created }) };
   } catch (error) {
     if (error instanceof ImportBatchNotFoundError) {
@@ -258,7 +257,7 @@ export async function undoImportBatchAction(
 
   try {
     const removed = withDatabase((db) => undoImportBatch(db, parsed.data));
-    revalidateLedger();
+    refreshData();
     return { status: "undone", message: t("done", { count: removed }) };
   } catch (error) {
     if (error instanceof ImportBatchNotFoundError) return fail("importBatchGone");

@@ -26,8 +26,8 @@ import {
 } from "../../ledger/transactions";
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
-import { revalidateLedger } from "../revalidate-ledger";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
@@ -148,7 +148,7 @@ export async function createTransactionAction(
     return await transactionFailure(error, formData, translate);
   }
 
-  revalidateLedger();
+  refreshData();
   await flashSuccess("transactionRecorded");
   // Keep account and date for the next entry, clear what is specific to this one.
   const values = {
@@ -188,7 +188,7 @@ export async function updateTransactionAction(
     return await transactionFailure(error, formData, translate);
   }
 
-  revalidateLedger();
+  refreshData();
   await flashSuccess("changesSaved");
   // redirect throws, so it stays outside the try block. A warning keeps the
   // user on the form, since a redirect would drop it.
@@ -209,7 +209,7 @@ export async function deleteTransactionAction(id: number): Promise<void> {
     success: "transactionDeleted",
     describeFailure: describeDeleteFailure,
   });
-  revalidateLedger();
+  refreshData();
 }
 
 // First submit of a transfer that does not fit: nothing is recorded, the form
@@ -256,7 +256,7 @@ function recordTransfer(
     }
   }
   const result = recordManualTransfer(db, request, decision);
-  revalidateLedger();
+  refreshData();
   const clearedValues = { ...values, amount: "", label: "" };
   // The unplaced surplus carries a figure, so it stays next to the form.
   const state: TransferFormState =

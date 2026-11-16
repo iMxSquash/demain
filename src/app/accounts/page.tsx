@@ -25,6 +25,7 @@ import { ConfirmActionButton } from "../confirm-action-button";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("accounts");
@@ -45,13 +46,19 @@ const NEW_ACCOUNT_DEFAULTS = {
 const readAccounts = cache(async () => {
   // The page reads the database: it must run per request, never at build time.
   await connection();
+  return readAccountsFromDatabase();
+});
+
+async function readAccountsFromDatabase() {
+  "use cache";
+  tagDataRead();
   return withDatabase((db) => ({
     all: listAccounts(db, { includeArchived: true }),
     balances: new Map(
       listOverflowAccounts(db).map((account) => [account.id, account.balance]),
     ),
   }));
-});
+}
 
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page.
