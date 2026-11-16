@@ -13,6 +13,11 @@ const AMOUNT_DRAFT = /^\d*[.,]?\d*$/;
 const AMOUNT_SHAPE = /^\d+(?:[.,]\d+)?$/;
 const AMOUNT_TRAILING_SEPARATOR = /^\d+[.,]$/;
 const CURRENCY_CODE = /^[A-Za-z]{3}$/;
+// A plus, a minus or the Unicode minus sign. Digits and separators never contain one, so a
+// match anywhere (before or after a currency symbol) is a typed sign.
+const TYPED_SIGN = /[+\-\u2212]/;
+const MINUS_SIGN = /[-\u2212]/;
+const NON_DIGIT_SIGNS = /[+\-\u2212]/g;
 
 export type AmountSyntaxCheck = { ok: true } | { ok: false; ref: MessageRef };
 
@@ -89,4 +94,25 @@ export function splitBalanceSide(minorUnits: number): { magnitude: number; side:
   return minorUnits < 0
     ? { magnitude: 0 - minorUnits, side: "debit" }
     : { magnitude: minorUnits, side: "credit" };
+}
+
+/** Whether the text holds a plus or a minus: where the side gives the sign, none is typed. */
+export function containsTypedSign(text: string): boolean {
+  return TYPED_SIGN.test(text);
+}
+
+/**
+ * The text of an amount cell split into what is typed and the side its sign gave. Text only:
+ * the amount is not read, so what is typed stays as it is.
+ */
+export function splitSignedAmountText(text: string): { magnitude: string; side: BalanceSide } {
+  return {
+    magnitude: text.replace(NON_DIGIT_SIGNS, "").trim(),
+    side: MINUS_SIGN.test(text) ? "debit" : "credit",
+  };
+}
+
+/** The inverse of `splitSignedAmountText`. A Debit keeps its minus before any amount is typed. */
+export function composeSignedAmountText(magnitude: string, side: BalanceSide): string {
+  return side === "debit" ? `-${magnitude}` : magnitude;
 }

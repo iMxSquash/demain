@@ -75,7 +75,7 @@ describe("checkBatchBalanceAction", () => {
   });
 
   it("says the balances match when the typed value is the computed balance", async () => {
-    const state = await checkBatchBalanceAction(batchId, "937,50");
+    const state = await checkBatchBalanceAction(batchId, "937,50", "credit");
 
     expect(COMPUTED_AT_END).toBe(93_750);
     expect(state.status).toBe("gap");
@@ -84,7 +84,7 @@ describe("checkBatchBalanceAction", () => {
   });
 
   it("says Demain holds more than the bank when the gap is positive", async () => {
-    const state = await checkBatchBalanceAction(batchId, "903,00");
+    const state = await checkBatchBalanceAction(batchId, "903,00", "credit");
 
     expect(state.status).toBe("gap");
     expect(state.message).toContain("gapMore");
@@ -92,34 +92,56 @@ describe("checkBatchBalanceAction", () => {
   });
 
   it("says Demain holds less than the bank when the gap is negative", async () => {
-    const state = await checkBatchBalanceAction(batchId, "1 143,88");
+    const state = await checkBatchBalanceAction(batchId, "1 143,88", "credit");
 
     expect(state.status).toBe("gap");
     expect(state.message).toContain("gapLess");
     expect(state.message).toContain("€206.38");
   });
 
+  it("reads a debit as a negative balance", async () => {
+    // Demain computes 937,50: a bank balance of -20,05 is 957,55 less.
+    const state = await checkBatchBalanceAction(batchId, "20,05", "debit");
+
+    expect(state.status).toBe("gap");
+    expect(state.message).toContain("gapMore");
+    expect(state.message).toContain("€957.55");
+  });
+
+  it("refuses a typed sign and computes nothing", async () => {
+    const state = await checkBatchBalanceAction(batchId, "-20,05", "credit");
+
+    expect(state.status).toBe("error");
+    expect(state).toEqual({ status: "error", message: "balanceUnsigned" });
+  });
+
+  it("refuses an unknown side", async () => {
+    const state = await checkBatchBalanceAction(batchId, "937,50", "up");
+
+    expect(state).toEqual({ status: "error", message: "balanceSideInvalid" });
+  });
+
   it("refuses an empty text and computes nothing", async () => {
-    const state = await checkBatchBalanceAction(batchId, "");
+    const state = await checkBatchBalanceAction(batchId, "", "credit");
 
     expect(state).toEqual({ status: "error", message: "realBalanceRequired" });
   });
 
   it("refuses an invalid text and computes nothing", async () => {
-    const state = await checkBatchBalanceAction(batchId, "abc");
+    const state = await checkBatchBalanceAction(batchId, "abc", "credit");
 
     expect(state.status).toBe("error");
     expect(state.message).not.toContain("gap");
   });
 
   it("refuses an unknown batch", async () => {
-    const state = await checkBatchBalanceAction(999, "937,50");
+    const state = await checkBatchBalanceAction(999, "937,50", "credit");
 
     expect(state).toEqual({ status: "error", message: "importBatchGone" });
   });
 
   it("refuses a batch id that is not a positive integer", async () => {
-    const state = await checkBatchBalanceAction(1.5, "937,50");
+    const state = await checkBatchBalanceAction(1.5, "937,50", "credit");
 
     expect(state).toEqual({ status: "error", message: "balanceCheckFailed" });
   });
@@ -127,8 +149,22 @@ describe("checkBatchBalanceAction", () => {
   describe("recordBatchBalanceAssertionAction", () => {
     const assertionRows = () => db.select().from(balanceAssertions).all();
 
+    it("records a debit as a negative balance assertion", async () => {
+      const state = await recordBatchBalanceAssertionAction(batchId, "20,05", "debit");
+
+      expect(state.status).toBe("recorded");
+      expect(assertionRows().map((row) => row.amount)).toEqual([-2_005]);
+    });
+
+    it("refuses a typed sign and records nothing", async () => {
+      const state = await recordBatchBalanceAssertionAction(batchId, "-20,05", "credit");
+
+      expect(state.status).toBe("error");
+      expect(assertionRows()).toHaveLength(0);
+    });
+
     it("records the typed balance on the end date of the file and says the date", async () => {
-      const state = await recordBatchBalanceAssertionAction(batchId, "1 143,88");
+      const state = await recordBatchBalanceAssertionAction(batchId, "1 143,88", "credit");
 
       expect(assertionRows()).toMatchObject([
         { accountId, date: "2026-03-30", amount: 114_388, note: null },
@@ -139,28 +175,28 @@ describe("checkBatchBalanceAction", () => {
     });
 
     it("shows a zero gap when the typed balance is the computed one", async () => {
-      const state = await recordBatchBalanceAssertionAction(batchId, "937,50");
+      const state = await recordBatchBalanceAssertionAction(batchId, "937,50", "credit");
 
       expect(state.status).toBe("recorded");
       expect(state.message).toContain("gapMatch");
     });
 
     it("refuses an empty text and writes nothing", async () => {
-      const state = await recordBatchBalanceAssertionAction(batchId, "");
+      const state = await recordBatchBalanceAssertionAction(batchId, "", "credit");
 
       expect(state).toEqual({ status: "error", message: "realBalanceRequired" });
       expect(assertionRows()).toHaveLength(0);
     });
 
     it("refuses an invalid text and writes nothing", async () => {
-      const state = await recordBatchBalanceAssertionAction(batchId, "abc");
+      const state = await recordBatchBalanceAssertionAction(batchId, "abc", "credit");
 
       expect(state.status).toBe("error");
       expect(assertionRows()).toHaveLength(0);
     });
 
     it("refuses an unknown batch and writes nothing", async () => {
-      const state = await recordBatchBalanceAssertionAction(999, "937,50");
+      const state = await recordBatchBalanceAssertionAction(999, "937,50", "credit");
 
       expect(state).toEqual({ status: "error", message: "importBatchGone" });
       expect(assertionRows()).toHaveLength(0);
@@ -177,7 +213,7 @@ describe("checkBatchBalanceAction", () => {
       });
       archiveAccount(db, accountId);
 
-      const state = await recordBatchBalanceAssertionAction(batchId, "937,50");
+      const state = await recordBatchBalanceAssertionAction(batchId, "937,50", "credit");
 
       expect(state).toEqual({ status: "error", message: "balanceAssertionOnArchivedAccount" });
       expect(assertionRows()).toHaveLength(0);

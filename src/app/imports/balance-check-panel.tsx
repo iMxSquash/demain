@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 
 import { Button } from "../../components/button";
+import { BalanceSideField } from "../balance-side-field";
 import { CONTROL_CLASS } from "../form-field";
 import { formatCalendarDate } from "../../i18n/dates";
 import {
@@ -11,6 +12,15 @@ import {
   recordBatchBalanceAssertionAction,
 } from "./checks-actions";
 import type { BalanceCheckState } from "./import-form-data";
+
+const SIDE_FIELD = "side";
+
+/** The side is posted by the radios of the form; a missing one reads as credit on the server. */
+function sideOf(form: HTMLFormElement | null): string {
+  if (form === null) return "";
+  const side = new FormData(form).get(SIDE_FIELD);
+  return typeof side === "string" ? side : "";
+}
 
 /** Asks for the real balance at the end of a recorded file and tells the gap in text. */
 export function BalanceCheckPanel({
@@ -33,13 +43,14 @@ export function BalanceCheckPanel({
 
   function run(
     action: typeof checkBatchBalanceAction,
+    form: HTMLFormElement | null,
     progress: "checking" | "recording",
     failure: "failed" | "recordFailed",
   ) {
     setPendingKey(progress);
     startTransition(async () => {
       try {
-        setResult(await action(batchId, text));
+        setResult(await action(batchId, text, sideOf(form)));
       } catch (error) {
         console.error("Balance check failed", error);
         setResult({ status: "error", message: t(failure) });
@@ -60,7 +71,7 @@ export function BalanceCheckPanel({
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          run(checkBatchBalanceAction, "checking", "failed");
+          run(checkBatchBalanceAction, event.currentTarget, "checking", "failed");
         }}
         className="flex w-full flex-col items-start gap-2"
       >
@@ -79,6 +90,7 @@ export function BalanceCheckPanel({
           aria-describedby={isError ? `${hintId} ${resultId}` : hintId}
           className={`${CONTROL_CLASS} max-w-xs`}
         />
+        <BalanceSideField name={SIDE_FIELD} value="credit" />
         <Button type="submit" variant="secondary" pending={isPending}>
           {t("submit")}
         </Button>
@@ -87,8 +99,13 @@ export function BalanceCheckPanel({
           variant="secondary"
           disabled={text.trim() === ""}
           pending={isPending}
-          onClick={() =>
-            run(recordBatchBalanceAssertionAction, "recording", "recordFailed")
+          onClick={(event) =>
+            run(
+              recordBatchBalanceAssertionAction,
+              event.currentTarget.form,
+              "recording",
+              "recordFailed",
+            )
           }
         >
           {t("record")}

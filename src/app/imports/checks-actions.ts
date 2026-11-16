@@ -3,6 +3,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 
+import { readBalanceSide } from "../../domain/amount-syntax";
 import { parseRealBalance, RealBalanceError } from "../../domain/batch-balance";
 import { messageRef, type FeedbackKey } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
@@ -99,6 +100,7 @@ function gapValues(check: BatchBalanceCheck, gap: number, locale: string) {
 export async function checkBatchBalanceAction(
   batchId: number,
   realBalanceText: string,
+  side: string,
 ): Promise<BalanceCheckState> {
   await requireSession();
   const { t, translate, locale, fail } = await loadActionContext(
@@ -107,10 +109,12 @@ export async function checkBatchBalanceAction(
 
   const parsed = requestSchema.safeParse({ batchId, realBalanceText });
   if (!parsed.success) return fail("balanceCheckFailed");
+  const balanceSide = readBalanceSide(side);
+  if (balanceSide === null) return fail("balanceSideInvalid");
 
   try {
     const check = withDatabase((db) => getBatchBalanceCheck(db, parsed.data.batchId));
-    const realBalance = parseRealBalance(parsed.data.realBalanceText, check.currency);
+    const realBalance = parseRealBalance(parsed.data.realBalanceText, check.currency, balanceSide);
     const gap = batchBalanceGap(check, realBalance);
     return { status: "gap", message: describeGap(t, gap, gapValues(check, gap, locale)) };
   } catch (error) {
@@ -132,6 +136,7 @@ export async function checkBatchBalanceAction(
 export async function recordBatchBalanceAssertionAction(
   batchId: number,
   realBalanceText: string,
+  side: string,
 ): Promise<BalanceCheckState> {
   await requireSession();
   const { t, translate, locale, fail } = await loadActionContext(
@@ -140,11 +145,13 @@ export async function recordBatchBalanceAssertionAction(
 
   const parsed = requestSchema.safeParse({ batchId, realBalanceText });
   if (!parsed.success) return fail("balanceAssertionNotSaved");
+  const balanceSide = readBalanceSide(side);
+  if (balanceSide === null) return fail("balanceSideInvalid");
 
   try {
     const { check, realBalance } = withDatabase((db) => {
       const check = getBatchBalanceCheck(db, parsed.data.batchId);
-      const realBalance = parseRealBalance(parsed.data.realBalanceText, check.currency);
+      const realBalance = parseRealBalance(parsed.data.realBalanceText, check.currency, balanceSide);
       recordBatchBalanceAssertion(db, check.batchId, realBalance);
       return { check, realBalance };
     });
