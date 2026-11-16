@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { useTranslations } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
+import { cache, Suspense } from "react";
 
 import type { AccountKind } from "../../domain/account";
 import { formatAmount } from "../../domain/money";
@@ -13,6 +15,12 @@ import {
 } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
 import { DataTable, EmptyState } from "../../components/data-display";
+import { PageSection } from "../../components/page-section";
+import {
+  SkeletonDataTable,
+  SkeletonFields,
+  SkeletonRegion,
+} from "../../components/skeleton";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
@@ -33,68 +41,149 @@ const NEW_ACCOUNT_DEFAULTS = {
   overflowAccountId: "",
 };
 
-export default async function AccountsPage() {
-  await requireSession();
+// One read for the whole request: every section below asks for it and gets the same answer.
+const readAccounts = cache(async () => {
   // The page reads the database: it must run per request, never at build time.
   await connection();
-  const t = await getTranslations("accounts");
-  const { all, balances } = withDatabase((db) => ({
+  return withDatabase((db) => ({
     all: listAccounts(db, { includeArchived: true }),
     balances: new Map(
       listOverflowAccounts(db).map((account) => [account.id, account.balance]),
     ),
   }));
-  const active = all.filter((account) => !account.archived);
-  const archived = all.filter((account) => account.archived);
+});
+
+// The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
+// never delays the rest of the page.
+export default async function AccountsPage() {
+  await requireSession();
+  const t = await getTranslations("accounts");
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-10 p-8">
       <h1 className="text-heading font-medium">{t("title")}</h1>
 
-      <section aria-labelledby="active-heading" className="flex flex-col gap-3">
-        <h2 id="active-heading" className="text-title font-medium">
-          {t("activeHeading")}
-        </h2>
-        {active.length === 0 ? (
-          <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
-            {t("empty")}
-          </EmptyState>
-        ) : (
-          <AccountTable
-            caption={t("activeCaption")}
-            accounts={active}
-            allAccounts={all}
-            balances={balances}
-          />
-        )}
-      </section>
+      <PageSection id="active-heading" heading={t("activeHeading")}>
+        <Suspense fallback={<ActiveAccountsLoading />}>
+          <ActiveAccounts />
+        </Suspense>
+      </PageSection>
 
-      <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-        <h2 id="new-heading" className="text-title font-medium">
-          {t("addHeading")}
-        </h2>
-        <AccountForm
-          action={createAccountAction}
-          initialValues={NEW_ACCOUNT_DEFAULTS}
-          overflowOptions={overflowTargetsOf(active)}
-          submitLabel={t("addSubmit")}
-        />
-      </section>
+      <PageSection id="new-heading" heading={t("addHeading")}>
+        <Suspense fallback={<NewAccountLoading />}>
+          <NewAccount />
+        </Suspense>
+      </PageSection>
 
-      {archived.length > 0 ? (
-        <section aria-labelledby="archived-heading" className="flex flex-col gap-3">
-          <h2 id="archived-heading" className="text-title font-medium">
-            {t("archivedHeading")}
-          </h2>
-          <AccountTable
-            caption={t("archivedCaption")}
-            accounts={archived}
-            allAccounts={all}
-            balances={balances}
-          />
-        </section>
-      ) : null}
+      {/* Nothing is drawn for it while it loads: most of the time there is no archived account. */}
+      <Suspense fallback={null}>
+        <ArchivedAccounts />
+      </Suspense>
     </main>
+  );
+}
+
+// The same `thead` for the loaded tables and for the skeleton.
+function AccountsHead() {
+  const t = useTranslations("accounts");
+  const common = useTranslations("common");
+
+  return (
+    <thead>
+      <tr>
+        <th scope="col">{t("columns.name")}</th>
+        <th scope="col">{t("columns.kind")}</th>
+        <th scope="col">{t("columns.currency")}</th>
+        <th scope="col" className="text-right">{t("columns.openingBalance")}</th>
+        <th scope="col" className="text-right">{t("columns.balance")}</th>
+        <th scope="col" className="text-right">{t("columns.depositCeiling")}</th>
+        <th scope="col">{t("columns.overflowAccount")}</th>
+        <th scope="col">{common("actions")}</th>
+      </tr>
+    </thead>
+  );
+}
+
+function ActiveAccountsLoading() {
+  const t = useTranslations("accounts");
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("table")}>
+      <SkeletonDataTable
+        caption={t("activeCaption")}
+        head={<AccountsHead />}
+        columns={["start", "start", "start", "end", "end", "end", "start", "start"]}
+        rows={3}
+      />
+    </SkeletonRegion>
+  );
+}
+
+async function ActiveAccounts() {
+  const [t, { all, balances }] = await Promise.all([
+    getTranslations("accounts"),
+    readAccounts(),
+  ]);
+  const active = all.filter((account) => !account.archived);
+
+  if (active.length === 0) {
+    return (
+      <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+        {t("empty")}
+      </EmptyState>
+    );
+  }
+  return (
+    <AccountTable
+      caption={t("activeCaption")}
+      accounts={active}
+      allAccounts={all}
+      balances={balances}
+    />
+  );
+}
+
+function NewAccountLoading() {
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("form")}>
+      <SkeletonFields count={7} />
+    </SkeletonRegion>
+  );
+}
+
+async function NewAccount() {
+  const [t, { all }] = await Promise.all([getTranslations("accounts"), readAccounts()]);
+
+  return (
+    <AccountForm
+      action={createAccountAction}
+      initialValues={NEW_ACCOUNT_DEFAULTS}
+      overflowOptions={overflowTargetsOf(all.filter((account) => !account.archived))}
+      submitLabel={t("addSubmit")}
+    />
+  );
+}
+
+async function ArchivedAccounts() {
+  const [t, { all, balances }] = await Promise.all([
+    getTranslations("accounts"),
+    readAccounts(),
+  ]);
+  const archived = all.filter((account) => account.archived);
+
+  if (archived.length === 0) return null;
+  return (
+    <PageSection id="archived-heading" heading={t("archivedHeading")}>
+      <AccountTable
+        caption={t("archivedCaption")}
+        accounts={archived}
+        allAccounts={all}
+        balances={balances}
+      />
+    </PageSection>
   );
 }
 
@@ -107,31 +196,10 @@ interface AccountTableProps {
   balances: ReadonlyMap<number, number>;
 }
 
-async function AccountTable({
-  caption,
-  accounts,
-  allAccounts,
-  balances,
-}: AccountTableProps) {
-  const [t, common] = await Promise.all([
-    getTranslations("accounts"),
-    getTranslations("common"),
-  ]);
-
+function AccountTable({ caption, accounts, allAccounts, balances }: AccountTableProps) {
   return (
     <DataTable caption={caption}>
-      <thead>
-        <tr>
-          <th scope="col">{t("columns.name")}</th>
-          <th scope="col">{t("columns.kind")}</th>
-          <th scope="col">{t("columns.currency")}</th>
-          <th scope="col" className="text-right">{t("columns.openingBalance")}</th>
-          <th scope="col" className="text-right">{t("columns.balance")}</th>
-          <th scope="col" className="text-right">{t("columns.depositCeiling")}</th>
-          <th scope="col">{t("columns.overflowAccount")}</th>
-          <th scope="col">{common("actions")}</th>
-        </tr>
-      </thead>
+      <AccountsHead />
       <tbody>
         {accounts.map((account) => (
           <AccountRow

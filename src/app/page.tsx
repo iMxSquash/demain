@@ -1,9 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
+import { Suspense } from "react";
 
 import { requireSession } from "./auth/session";
 import { RealChart } from "./real-chart";
+import { RealChartLoading } from "./real-chart-skeleton";
 
 export default async function HomePage() {
   await requireSession();
@@ -36,7 +38,9 @@ export default async function HomePage() {
           ))}
         </ul>
       </nav>
-      <RealChart />
+      <Suspense fallback={<RealChartLoading />}>
+        <RealChart />
+      </Suspense>
     </main>
   );
 }

@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { useTranslations } from "next-intl";
 import { getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { cache, Suspense } from "react";
 
 import { EmptyState } from "../../../../components/data-display";
+import { PageSection } from "../../../../components/page-section";
+import {
+  SkeletonFields,
+  SkeletonLine,
+  SkeletonRegion,
+  SkeletonTable,
+} from "../../../../components/skeleton";
 import { todayIn } from "../../../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../../../ledger/accounts";
 import { listBalanceAssertions } from "../../../../ledger/balance-assertions";
@@ -19,27 +28,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-export default async function BalanceAssertionsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  await requireSession();
+// One read for the whole request: every part below asks for it and gets the same answer.
+const readAccountBalances = cache(async (id: number) => {
   // The page reads the database and the clock: it must run per request.
   await connection();
-  const { id: rawId } = await params;
-  const id = Number(rawId);
-  if (!Number.isSafeInteger(id)) notFound();
-
-  const [t, accountsT, timeZone] = await Promise.all([
-    getTranslations("balances"),
-    getTranslations("accounts"),
-    getTimeZone(),
-  ]);
-
-  let data;
   try {
-    data = withDatabase((db) => {
+    return withDatabase((db) => {
       const account = getAccount(db, id);
       return {
         account,
@@ -55,59 +49,125 @@ export default async function BalanceAssertionsPage({
     if (error instanceof AccountNotFoundError) notFound();
     throw error;
   }
-  const { account, assertions } = data;
+});
+
+// The back link, the intro and the headings show at once; the title (the name of the account), the
+// form and the table wait for the database, each on its own.
+export default async function BalanceAssertionsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  await requireSession();
+  const [t, accountsT] = await Promise.all([
+    getTranslations("balances"),
+    getTranslations("accounts"),
+  ]);
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 p-8">
       <Link href="/accounts" className="self-start underline">
         {accountsT("backToAccounts")}
       </Link>
-      <h1 className="text-heading font-medium">
-        {t("title", { name: account.name })}
-      </h1>
+      <Suspense fallback={<SkeletonLine size="heading" width="1/3" />}>
+        <AccountTitle id={id} />
+      </Suspense>
       <p>{t("intro")}</p>
 
-      {account.archived ? (
-        <p>{t("archivedNote")}</p>
-      ) : (
-        <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-          <h2 id="new-heading" className="text-title font-medium">
-            {t("addHeading")}
-          </h2>
-          <BalanceAssertionForm
-            action={saveBalanceAssertionAction.bind(null, account.id)}
-            initialValues={{
-              accountId: "",
-              date: todayIn(timeZone, new Date()),
-              amount: "",
-              note: "",
-            }}
-          />
-        </section>
-      )}
+      <Suspense fallback={<NewAssertionLoading />}>
+        <NewAssertion id={id} />
+      </Suspense>
 
-      <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-title font-medium">
-          {t("listHeading")}
-        </h2>
-        {assertions.length === 0 ? (
-          <EmptyState
-            action={
-              account.archived
-                ? undefined
-                : { href: "#new-heading", label: t("emptyAction") }
-            }
-          >
-            {t("empty")}
-          </EmptyState>
-        ) : (
-          <BalanceAssertionsTable
-            assertions={assertions}
-            caption={t("caption", { name: account.name })}
-            showAccount={false}
-          />
-        )}
-      </section>
+      <PageSection id="list-heading" heading={t("listHeading")}>
+        <Suspense fallback={<AssertionListLoading />}>
+          <AssertionList id={id} />
+        </Suspense>
+      </PageSection>
     </main>
+  );
+}
+
+async function AccountTitle({ id }: { id: number }) {
+  const [t, { account }] = await Promise.all([
+    getTranslations("balances"),
+    readAccountBalances(id),
+  ]);
+
+  return <h1 className="text-heading font-medium">{t("title", { name: account.name })}</h1>;
+}
+
+function NewAssertionLoading() {
+  const t = useTranslations("balances");
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("form")}>
+      <PageSection id="new-heading" heading={t("addHeading")}>
+        <SkeletonFields count={4} />
+      </PageSection>
+    </SkeletonRegion>
+  );
+}
+
+async function NewAssertion({ id }: { id: number }) {
+  const [t, timeZone, { account }] = await Promise.all([
+    getTranslations("balances"),
+    getTimeZone(),
+    readAccountBalances(id),
+  ]);
+
+  if (account.archived) return <p>{t("archivedNote")}</p>;
+  return (
+    <PageSection id="new-heading" heading={t("addHeading")}>
+      <BalanceAssertionForm
+        action={saveBalanceAssertionAction.bind(null, account.id)}
+        initialValues={{
+          accountId: "",
+          date: todayIn(timeZone, new Date()),
+          amount: "",
+          note: "",
+        }}
+      />
+    </PageSection>
+  );
+}
+
+// The caption names the account, so the whole table is drawn as blocks.
+function AssertionListLoading() {
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("table")}>
+      <SkeletonTable columns={6} rows={3} />
+    </SkeletonRegion>
+  );
+}
+
+async function AssertionList({ id }: { id: number }) {
+  const [t, { account, assertions }] = await Promise.all([
+    getTranslations("balances"),
+    readAccountBalances(id),
+  ]);
+
+  if (assertions.length === 0) {
+    return (
+      <EmptyState
+        action={
+          account.archived ? undefined : { href: "#new-heading", label: t("emptyAction") }
+        }
+      >
+        {t("empty")}
+      </EmptyState>
+    );
+  }
+  return (
+    <BalanceAssertionsTable
+      assertions={assertions}
+      caption={t("caption", { name: account.name })}
+      showAccount={false}
+    />
   );
 }

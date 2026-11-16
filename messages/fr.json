@@ -21,6 +21,13 @@
     "filesChosen": "{count} fichiers",
     "toastDismiss": "Fermer la notification"
   },
+  "loading": {
+    "table": "Chargement du tableau",
+    "list": "Chargement de la liste",
+    "form": "Chargement du formulaire",
+    "forms": "Chargement des formulaires",
+    "chart": "Chargement du graphique de trajectoire"
+  },
   "errors": {
     "errorTitle": "Une erreur est survenue",
     "errorBody": "La requête n'a pas pu aboutir. Réessayez, et si le problème persiste, consultez les journaux du serveur.",

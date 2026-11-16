@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { Suspense } from "react";
 
+import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
 import { formatEditableAmount } from "../../../../domain/money";
 import { getAccount, listAccounts } from "../../../../ledger/accounts";
 import { listCategories } from "../../../../ledger/categories";
@@ -21,20 +24,51 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("editMetaTitle") };
 }
 
+const PAGE_GAP = "gap-6";
+
+// The back link shows at once; the title holds the label of the transaction, so it waits for the
+// database with the form.
 export default async function EditTransactionPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   await requireSession();
+  const t = await getTranslations("transactions");
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
+
+  return (
+    <main className={`mx-auto flex max-w-3xl flex-col ${PAGE_GAP} p-8`}>
+      <Link href="/transactions" className="self-start underline">
+        {t("backToTransactions")}
+      </Link>
+      <Suspense fallback={<EditTransactionLoading />}>
+        <EditTransaction id={id} />
+      </Suspense>
+    </main>
+  );
+}
+
+function EditTransactionLoading() {
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("form")} className={`flex flex-col ${PAGE_GAP}`}>
+      <SkeletonLine size="heading" width="1/3" />
+      <SkeletonFields count={8} />
+    </SkeletonRegion>
+  );
+}
+
+async function EditTransaction({ id }: { id: number }) {
+  // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common] = await Promise.all([
     getTranslations("transactions"),
     getTranslations("common"),
   ]);
-  const { id: rawId } = await params;
-  const id = Number(rawId);
-  if (!Number.isSafeInteger(id)) notFound();
 
   let transaction;
   let account;
@@ -59,34 +93,31 @@ export default async function EditTransactionPage({
   if (transaction.kind === "transfer" || account.archived) notFound();
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <Link href="/transactions" className="self-start underline">
-        {t("backToTransactions")}
-      </Link>
+    <>
       <h1 className="text-heading font-medium">
         {t("editTitle", { label: transaction.label })}
       </h1>
-      <TransactionForm
-        action={updateTransactionAction.bind(null, transaction.id)}
-        initialValues={{
-          accountId: String(transaction.accountId),
-          date: transaction.date,
-          kind: transaction.kind,
-          amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
-          label: transaction.label,
-          description: transaction.description ?? "",
-          paymentMode: transaction.paymentMode ?? "",
-          categoryId:
-            transaction.categoryId === null ? "" : String(transaction.categoryId),
-        }}
-        accounts={accounts}
-        // An archived category the transaction already has stays selectable,
-        // otherwise saving would silently clear it.
-        categories={categories.filter(
-          (category) => !category.archived || category.id === transaction.categoryId,
-        )}
-        submitLabel={common("saveChanges")}
-      />
-    </main>
+    <TransactionForm
+      action={updateTransactionAction.bind(null, transaction.id)}
+      initialValues={{
+        accountId: String(transaction.accountId),
+        date: transaction.date,
+        kind: transaction.kind,
+        amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
+        label: transaction.label,
+        description: transaction.description ?? "",
+        paymentMode: transaction.paymentMode ?? "",
+        categoryId:
+          transaction.categoryId === null ? "" : String(transaction.categoryId),
+      }}
+      accounts={accounts}
+      // An archived category the transaction already has stays selectable,
+      // otherwise saving would silently clear it.
+      categories={categories.filter(
+        (category) => !category.archived || category.id === transaction.categoryId,
+      )}
+      submitLabel={common("saveChanges")}
+    />
+    </>
   );
 }

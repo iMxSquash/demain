@@ -21,6 +21,13 @@
     "filesChosen": "{count} files",
     "toastDismiss": "Dismiss the notification"
   },
+  "loading": {
+    "table": "Loading the table",
+    "list": "Loading the list",
+    "form": "Loading the form",
+    "forms": "Loading the forms",
+    "chart": "Loading the trajectory chart"
+  },
   "errors": {
     "errorTitle": "Something went wrong",
     "errorBody": "The request could not be completed. Try again, and if the problem persists, check the server logs.",

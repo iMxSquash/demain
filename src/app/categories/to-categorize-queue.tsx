@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { DataTable, EmptyState } from "../../components/data-display";
@@ -17,6 +18,23 @@ interface ToCategorizeQueueProps {
   categories: Category[];
 }
 
+/** The same `thead` for the queue and for its skeleton. */
+export function ToCategorizeHead() {
+  const t = useTranslations("categories");
+
+  return (
+    <thead>
+      <tr>
+        <th scope="col">{t("columns.date")}</th>
+        <th scope="col">{t("columns.account")}</th>
+        <th scope="col">{t("columns.label")}</th>
+        <th scope="col" className="text-right">{t("columns.amount")}</th>
+        <th scope="col">{t("columns.category")}</th>
+      </tr>
+    </thead>
+  );
+}
+
 export async function ToCategorizeQueue({
   queue,
   accounts,
@@ -33,15 +51,7 @@ export async function ToCategorizeQueue({
 
   return (
     <DataTable caption={t("queueCaption")}>
-      <thead>
-        <tr>
-          <th scope="col">{t("columns.date")}</th>
-          <th scope="col">{t("columns.account")}</th>
-          <th scope="col">{t("columns.label")}</th>
-          <th scope="col" className="text-right">{t("columns.amount")}</th>
-          <th scope="col">{t("columns.category")}</th>
-        </tr>
-      </thead>
+      <ToCategorizeHead />
       <tbody>
         {queue.map((row) => {
           const account = accountById.get(row.accountId);

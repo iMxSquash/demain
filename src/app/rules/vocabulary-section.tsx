@@ -1,9 +1,14 @@
+import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { connection } from "next/server";
+import { Suspense } from "react";
 
 import { Button } from "../../components/button";
 import { DataTable, Pill } from "../../components/data-display";
+import { SkeletonDataTable, SkeletonRegion } from "../../components/skeleton";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
-import type { VocabularyOverview } from "../../ledger/type-vocabulary";
+import { getVocabularyOverview } from "../../ledger/type-vocabulary";
+import { withDatabase } from "../../storage/with-database";
 import { CONTROL_CLASS } from "../form-field";
 import {
   addVocabularyWordAction,
@@ -16,8 +21,10 @@ import { VocabularyForm } from "./vocabulary-form";
 /**
  * The words of a category that give the type of an imported row, with where
  * each one comes from written out: the origin is never carried by color alone.
+ * The explanation and the form to add a word do not depend on the data and show
+ * at once; the table of words and the removed ones wait for the database.
  */
-export async function VocabularySection({ overview }: { overview: VocabularyOverview }) {
+export async function VocabularySection() {
   const t = await getTranslations("rules.vocabulary");
 
   return (
@@ -32,15 +39,58 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
         <li>{t("origins.history")}: {t("originHelp.history")}</li>
       </ul>
 
+      <Suspense fallback={<VocabularyWordsLoading />}>
+        <VocabularyWords />
+      </Suspense>
+
+      <h3 className="text-title font-medium">{t("addHeading")}</h3>
+      <VocabularyForm action={addVocabularyWordAction} />
+    </section>
+  );
+}
+
+// The same `thead` for the loaded table and for its skeleton.
+function VocabularyHead() {
+  const t = useTranslations("rules.vocabulary");
+
+  return (
+    <thead>
+      <tr>
+        <th scope="col">{t("columns.word")}</th>
+        <th scope="col">{t("columns.type")}</th>
+        <th scope="col">{t("columns.origin")}</th>
+        <th scope="col">{t("columns.actions")}</th>
+      </tr>
+    </thead>
+  );
+}
+
+function VocabularyWordsLoading() {
+  const t = useTranslations("rules.vocabulary");
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("table")}>
+      <SkeletonDataTable
+        caption={t("caption")}
+        head={<VocabularyHead />}
+        columns={["start", "start", "start", "start"]}
+        rows={4}
+      />
+    </SkeletonRegion>
+  );
+}
+
+async function VocabularyWords() {
+  // The page reads the database: it must run per request, never at build time.
+  await connection();
+  const t = await getTranslations("rules.vocabulary");
+  const overview = withDatabase((db) => getVocabularyOverview(db));
+
+  return (
+    <>
       <DataTable caption={t("caption")}>
-        <thead>
-          <tr>
-            <th scope="col">{t("columns.word")}</th>
-            <th scope="col">{t("columns.type")}</th>
-            <th scope="col">{t("columns.origin")}</th>
-            <th scope="col">{t("columns.actions")}</th>
-          </tr>
-        </thead>
+        <VocabularyHead />
         <tbody>
           {overview.words.map(({ word, type, origin }) => (
             <tr key={word}>
@@ -106,9 +156,6 @@ export async function VocabularySection({ overview }: { overview: VocabularyOver
           </ul>
         </section>
       ) : null}
-
-      <h3 className="text-title font-medium">{t("addHeading")}</h3>
-      <VocabularyForm action={addVocabularyWordAction} />
-    </section>
+    </>
   );
 }

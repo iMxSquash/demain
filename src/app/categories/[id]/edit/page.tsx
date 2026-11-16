@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { Suspense } from "react";
 
+import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
 import {
   CategoryNotFoundError,
   getCategory,
@@ -18,20 +21,51 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("renameMetaTitle") };
 }
 
+const PAGE_GAP = "gap-6";
+
+// The back link shows at once; the title holds the name of the category, so it waits for the
+// database with the form.
 export default async function RenameCategoryPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   await requireSession();
+  const t = await getTranslations("categories");
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
+
+  return (
+    <main className={`mx-auto flex max-w-3xl flex-col ${PAGE_GAP} p-8`}>
+      <Link href="/categories" className="self-start underline">
+        {t("backToCategories")}
+      </Link>
+      <Suspense fallback={<RenameCategoryLoading />}>
+        <RenameCategory id={id} />
+      </Suspense>
+    </main>
+  );
+}
+
+function RenameCategoryLoading() {
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("form")} className={`flex flex-col ${PAGE_GAP}`}>
+      <SkeletonLine size="heading" width="1/3" />
+      <SkeletonFields count={1} />
+    </SkeletonRegion>
+  );
+}
+
+async function RenameCategory({ id }: { id: number }) {
+  // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common] = await Promise.all([
     getTranslations("categories"),
     getTranslations("common"),
   ]);
-  const { id: rawId } = await params;
-  const id = Number(rawId);
-  if (!Number.isSafeInteger(id)) notFound();
 
   let category;
   try {
@@ -44,18 +78,15 @@ export default async function RenameCategoryPage({
   if (category.archived) notFound();
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <Link href="/categories" className="self-start underline">
-        {t("backToCategories")}
-      </Link>
+    <>
       <h1 className="text-heading font-medium">
         {t("renameTitle", { name: category.name })}
       </h1>
-      <CategoryForm
-        action={renameCategoryAction.bind(null, category.id)}
-        initialName={category.name}
-        submitLabel={common("saveChanges")}
-      />
-    </main>
+    <CategoryForm
+      action={renameCategoryAction.bind(null, category.id)}
+      initialName={category.name}
+      submitLabel={common("saveChanges")}
+    />
+    </>
   );
 }
