@@ -1,6 +1,11 @@
 import type { AccountField, AccountInput } from "../../domain/account";
+import {
+  applyBalanceSide,
+  parseUnsignedAmount,
+  readBalanceSide,
+} from "../../domain/amount-syntax";
 import { messageRef, type Translate } from "../../domain/message";
-import { MoneyParseError, parseAmount } from "../../domain/money";
+import { MoneyParseError } from "../../domain/money";
 
 export interface AccountFormValues {
   name: string;
@@ -8,14 +13,18 @@ export interface AccountFormValues {
   currency: string;
   openingDate: string;
   openingBalance: string;
+  /** "credit" or "debit": the server turns a debit into a negative amount. */
+  openingBalanceSide: string;
   /** Blank means no ceiling. */
   depositCeiling: string;
   /** Account id as text, blank means no overflow account. */
   overflowAccountId: string;
 }
 
+export type AccountFormField = AccountField | "openingBalanceSide";
+
 export interface AccountFormState {
-  field?: AccountField;
+  field?: AccountFormField;
   message: string;
   /** What the user typed: React resets the form after an action, so it is sent back. */
   values: AccountFormValues;
@@ -37,6 +46,7 @@ export function readSubmittedValues(formData: FormData): AccountFormValues {
     currency: readText(formData, "currency"),
     openingDate: readText(formData, "openingDate"),
     openingBalance: readText(formData, "openingBalance"),
+    openingBalanceSide: readText(formData, "openingBalanceSide"),
     depositCeiling: readText(formData, "depositCeiling"),
     overflowAccountId: readText(formData, "overflowAccountId"),
   };
@@ -52,7 +62,7 @@ function readAmount(
   translate: Translate,
 ): AmountResult {
   try {
-    return { value: parseAmount(text, currency) };
+    return { value: parseUnsignedAmount(text, currency) };
   } catch (error) {
     // RangeError: Intl refuses a malformed currency code before any parsing.
     if (error instanceof RangeError) {
@@ -78,6 +88,18 @@ export function parseAccountForm(
 ): ParsedAccountForm {
   const values = readSubmittedValues(formData);
   const currency = values.currency.trim().toUpperCase();
+
+  const openingSide = readBalanceSide(values.openingBalanceSide);
+  if (openingSide === null) {
+    return {
+      ok: false,
+      error: {
+        field: "openingBalanceSide",
+        message: translate(messageRef("balanceSideInvalid")),
+        values,
+      },
+    };
+  }
 
   const opening = readAmount(
     "openingBalance",
@@ -123,7 +145,7 @@ export function parseAccountForm(
       kind: values.kind,
       currency,
       openingDate: values.openingDate,
-      openingBalance: opening.value,
+      openingBalance: applyBalanceSide(opening.value, openingSide),
       depositCeiling,
       overflowAccountId,
     },

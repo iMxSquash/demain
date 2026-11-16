@@ -38,6 +38,7 @@ const NEW_ACCOUNT_DEFAULTS = {
   currency: "EUR",
   openingDate: "",
   openingBalance: "0",
+  openingBalanceSide: "credit",
   depositCeiling: "",
   overflowAccountId: "",
 };

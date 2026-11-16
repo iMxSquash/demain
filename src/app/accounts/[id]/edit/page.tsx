@@ -7,6 +7,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
+import { splitBalanceSide } from "../../../../domain/amount-syntax";
 import { formatEditableAmount } from "../../../../domain/money";
 import { overflowTargetsOf } from "../../../../domain/overflow";
 import {
@@ -85,6 +86,8 @@ async function EditAccount({ params }: { params: Promise<{ id: string }> }) {
     throw error;
   }
 
+  const opening = splitBalanceSide(account.openingBalance);
+
   return (
     <>
       <h1 className="text-heading font-medium">
@@ -98,9 +101,10 @@ async function EditAccount({ params }: { params: Promise<{ id: string }> }) {
         currency: account.currency,
         openingDate: account.openingDate,
         openingBalance: formatEditableAmount(
-          account.openingBalance,
+          opening.magnitude,
           account.currency,
         ),
+        openingBalanceSide: opening.side,
         depositCeiling:
           account.depositCeiling === null
             ? ""

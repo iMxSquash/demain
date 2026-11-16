@@ -16,7 +16,7 @@ import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
-  readCurrency,
+  parseCurrencyCode,
   readRateValues,
   type RateFormState,
   type ReferenceCurrencyFormState,
@@ -28,7 +28,9 @@ export async function saveReferenceCurrencyAction(
 ): Promise<ReferenceCurrencyFormState | null> {
   await requireSession();
   const translate = await getTranslator();
-  const value = readCurrency(formData);
+  const reading = parseCurrencyCode(formData);
+  if (!reading.ok) return { message: translate(reading.ref), value: reading.value };
+  const value = reading.code;
 
   try {
     withDatabase((db) => setReferenceCurrency(db, value));

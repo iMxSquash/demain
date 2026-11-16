@@ -65,9 +65,9 @@ describe("parseTransactionForm", () => {
     });
   });
 
-  it("keeps an income positive and reads a formatted amount exactly", () => {
+  it("keeps an income positive and reads a plain amount exactly", () => {
     const parsed = parseTransactionForm(
-      transactionForm({ kind: "income", amount: "1 143,88 €" }),
+      transactionForm({ kind: "income", amount: "1143,88" }),
       CURRENCIES,
     );
 
@@ -84,6 +84,25 @@ describe("parseTransactionForm", () => {
       ok: false,
       error: { field: "amount", message: "amountUnsigned" },
     });
+  });
+
+  it.each([
+    ["a currency symbol", "12,50 €"],
+    ["a grouping separator", "1.143,88"],
+    ["a space as grouping", "1 143,88"],
+  ])("refuses %s", (_label, amount) => {
+    expect(
+      parseTransactionForm(transactionForm({ amount }), CURRENCIES),
+    ).toMatchObject({ ok: false, error: { field: "amount", message: "amountSyntax" } });
+    expect(
+      parseTransferForm(transferForm({ amount }), CURRENCIES),
+    ).toMatchObject({ ok: false, error: { field: "amount", message: "amountSyntax" } });
+  });
+
+  it("accepts a comma as the decimal separator", () => {
+    expect(
+      parseTransactionForm(transactionForm({ amount: "42,5" }), CURRENCIES),
+    ).toMatchObject({ ok: true, input: { amount: -4250 } });
   });
 
   it("reports an unreadable amount on the amount field", () => {
