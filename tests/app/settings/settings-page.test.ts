@@ -27,6 +27,12 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 vi.mock("next/server", () => ({ connection: async () => undefined }));
+// `resolve` below calls every component as a plain function, which a client component with hooks
+// does not survive. The stub is what the server renders before the picker is swapped in.
+vi.mock("../../../src/components/select", () => ({
+  Select: (props: Record<string, unknown>) =>
+    createElement("select", { id: props.id, name: props.name, defaultValue: props.defaultValue }, props.children as ReactNode),
+}));
 vi.mock("next-intl/server", () => ({
   getLocale: async () => LOCALE,
   getTranslations: async (namespace: string) =>
