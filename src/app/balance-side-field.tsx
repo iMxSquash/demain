@@ -1,5 +1,4 @@
 import { useTranslations } from "next-intl";
-import type { CSSProperties } from "react";
 
 import { BALANCE_SIDES, type BalanceSide } from "../domain/amount-syntax";
 
@@ -24,7 +23,8 @@ export function BalanceSideField({ name, value }: BalanceSideFieldProps) {
     // form reset that follows an action (same reason as ThemeSwitcher).
     <fieldset key={current} className="flex flex-col gap-1">
       <legend className="mb-1 text-caption font-medium text-text">{t("legend")}</legend>
-      <div className="segmented self-start" style={{ "--n": BALANCE_SIDES.length } as CSSProperties}>
+      {/* A utility class, not an inline style: the CSP forbids style attributes. */}
+      <div className="segmented self-start [--n:2]">
         {BALANCE_SIDES.map((side) => (
           <label key={side}>
             <input type="radio" name={name} value={side} defaultChecked={side === current} />
