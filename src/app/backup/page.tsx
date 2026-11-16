@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { Notice } from "../../components/notice";
 import { requireSession } from "../auth/session";
@@ -12,12 +13,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-export default async function BackupPage() {
+// The page shows no data, so nothing waits for the session: the check renders nothing in its own
+// `Suspense` and still sends an anonymous visitor to the login page if the proxy ever let one through.
+async function SessionCheck() {
   await requireSession();
+  return null;
+}
+
+export default async function BackupPage() {
   const [t, common] = await Promise.all([getTranslations("backup"), getTranslations("common")]);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
+      <Suspense fallback={null}>
+        <SessionCheck />
+      </Suspense>
       <Link href="/" className="self-start underline">
         {common("backToHome")}
       </Link>

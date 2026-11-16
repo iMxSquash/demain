@@ -1,4 +1,5 @@
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
+import { connection } from "next/server";
 
 import { TrajectoryChart } from "../charts/trajectory-chart";
 import { TrajectoryTable } from "../charts/trajectory-table";
@@ -9,6 +10,7 @@ import { formatMonth, formatShortMonth, todayIn } from "../i18n/dates";
 import { getReferenceCurrency } from "../ledger/exchange-rates";
 import { getMonthlySynthesis } from "../ledger/synthesis";
 import { withDatabase } from "../storage/with-database";
+import { requireSession } from "./auth/session";
 import { tagDataRead } from "./data-cache";
 
 // The kinds of account drawn, with the tone that tells them apart (each line
@@ -38,6 +40,9 @@ async function readChartMonths(throughMonth: Month) {
  * the last one: the planned parts of the chart stay hidden (ADR-011).
  */
 export async function RealChart() {
+  await requireSession();
+  // The chart reads the database and the clock: it must run per request.
+  await connection();
   const [t, kinds, locale, timeZone] = await Promise.all([
     getTranslations("realChart"),
     getTranslations("accounts.kinds"),

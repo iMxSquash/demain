@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   Archive,
   CurrencyEur,
@@ -31,12 +32,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-export default async function SettingsPage() {
+// The page shows no data, so nothing waits for the session: the check renders nothing in its own
+// `Suspense` and still sends an anonymous visitor to the login page if the proxy ever let one through.
+async function SessionCheck() {
   await requireSession();
+  return null;
+}
+
+export default async function SettingsPage() {
   const [t, tAuth] = await Promise.all([getTranslations("settings"), getTranslations("auth")]);
 
   return (
     <main className="flex max-w-2xl flex-col gap-8 p-8">
+      <Suspense fallback={null}>
+        <SessionCheck />
+      </Suspense>
       <h1 className="text-heading font-medium">{t("title")}</h1>
       <section aria-labelledby="appearance-heading" className="flex flex-col gap-4">
         <h2 id="appearance-heading" className="text-title font-medium">

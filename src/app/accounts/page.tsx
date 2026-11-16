@@ -44,6 +44,9 @@ const NEW_ACCOUNT_DEFAULTS = {
 
 // One read for the whole request: every section below asks for it and gets the same answer.
 const readAccounts = cache(async () => {
+  // Checked here, inside the `Suspense` of each section, so the page awaits nothing and its static
+  // parts are part of the prefetched App Shell (ADR-023).
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   return readAccountsFromDatabase();
@@ -63,7 +66,6 @@ async function readAccountsFromDatabase() {
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page.
 export default async function AccountsPage() {
-  await requireSession();
   const t = await getTranslations("accounts");
 
   return (

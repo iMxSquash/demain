@@ -9,6 +9,7 @@ import { SkeletonDataTable, SkeletonRegion } from "../../components/skeleton";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import { getVocabularyOverview } from "../../ledger/type-vocabulary";
 import { withDatabase } from "../../storage/with-database";
+import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 import { CONTROL_CLASS } from "../form-field";
 import {
@@ -89,6 +90,7 @@ async function readVocabularyOverview() {
 }
 
 async function VocabularyWords() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("rules.vocabulary");

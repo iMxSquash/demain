@@ -33,11 +33,7 @@ export default async function EditAccountPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireSession();
   const t = await getTranslations("accounts");
-  const { id: rawId } = await params;
-  const id = Number(rawId);
-  if (!Number.isSafeInteger(id)) notFound();
 
   return (
     <main className={`mx-auto flex max-w-3xl flex-col ${PAGE_GAP} p-8`}>
@@ -45,7 +41,7 @@ export default async function EditAccountPage({
         {t("backToAccounts")}
       </Link>
       <Suspense fallback={<EditAccountLoading />}>
-        <EditAccount id={id} />
+        <EditAccount params={params} />
       </Suspense>
     </main>
   );
@@ -62,7 +58,12 @@ function EditAccountLoading() {
   );
 }
 
-async function EditAccount({ id }: { id: number }) {
+async function EditAccount({ params }: { params: Promise<{ id: string }> }) {
+  await requireSession();
+  // The id comes from the URL, which the shared App Shell cannot hold: it is read here.
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common] = await Promise.all([

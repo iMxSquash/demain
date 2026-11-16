@@ -34,6 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // One read for the whole request: every section below asks for it and gets the same answer.
 const readCategories = cache(async () => {
+  // Checked here, inside the `Suspense` of each section, so the page awaits nothing and its static
+  // parts are part of the prefetched App Shell (ADR-023).
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   return readCategoriesFromDatabase();
@@ -61,7 +64,6 @@ const CATEGORY_ROW_HEIGHT = "min-h-[calc(var(--target-min)+0.5rem+1px)]";
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page. The form to add a category needs no data: it is drawn at once.
 export default async function CategoriesPage() {
-  await requireSession();
   const [t, common] = await Promise.all([
     getTranslations("categories"),
     getTranslations("common"),

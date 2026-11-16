@@ -30,11 +30,7 @@ export default async function RenameCategoryPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireSession();
   const t = await getTranslations("categories");
-  const { id: rawId } = await params;
-  const id = Number(rawId);
-  if (!Number.isSafeInteger(id)) notFound();
 
   return (
     <main className={`mx-auto flex max-w-3xl flex-col ${PAGE_GAP} p-8`}>
@@ -42,7 +38,7 @@ export default async function RenameCategoryPage({
         {t("backToCategories")}
       </Link>
       <Suspense fallback={<RenameCategoryLoading />}>
-        <RenameCategory id={id} />
+        <RenameCategory params={params} />
       </Suspense>
     </main>
   );
@@ -59,7 +55,12 @@ function RenameCategoryLoading() {
   );
 }
 
-async function RenameCategory({ id }: { id: number }) {
+async function RenameCategory({ params }: { params: Promise<{ id: string }> }) {
+  await requireSession();
+  // The id comes from the URL, which the shared App Shell cannot hold: it is read here.
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const [t, common] = await Promise.all([

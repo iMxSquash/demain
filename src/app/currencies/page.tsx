@@ -43,6 +43,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // One read for the whole request: every section below asks for it and gets the same answer.
 const readCurrencies = cache(async () => {
+  // Checked here, inside the `Suspense` of each section, so the page awaits nothing and its static
+  // parts are part of the prefetched App Shell (ADR-023).
+  await requireSession();
   // The page reads the database and the clock: it must run per request.
   await connection();
   return readCurrenciesFromDatabase();
@@ -61,7 +64,6 @@ async function readCurrenciesFromDatabase() {
 // The sections show their headings and their text at once and hold only the data in a `Suspense`,
 // so a slow read never delays the rest of the page.
 export default async function CurrenciesPage() {
-  await requireSession();
   const [t, common] = await Promise.all([
     getTranslations("currencies"),
     getTranslations("common"),
