@@ -6,7 +6,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "../../components/button";
 import { Disclosure } from "../../components/disclosure";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
-import { CONTROL_CLASS } from "../form-field";
 import {
   bulkPatch,
   DEFAULT_SAVINGS_CHOICE,
@@ -21,6 +20,7 @@ import {
 import { columnChoicesOf } from "./reread-file";
 import type { RowLookups } from "./staged-row-editor";
 import type { RowDetails } from "../../domain/import-draft";
+import { Select, type SelectHandle } from "../../components/select";
 
 const COLUMN_ROLES = [
   { role: "typeColumn", label: "columnRoleType" },
@@ -47,7 +47,7 @@ interface ColumnRolesProps {
 export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
   const t = useTranslations("imports.staged");
   const hintId = useId();
-  const refs = useRef(new Map<RoleField, HTMLSelectElement>());
+  const refs = useRef(new Map<RoleField, SelectHandle>());
   // Reading again disables the selects, which drops the focus: it is given back afterwards.
   const focusRole = useRef<RoleField | null>(null);
 
@@ -76,7 +76,7 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
           return (
             <div key={role} className="flex flex-col gap-1">
               <label htmlFor={id}>{t(label)}</label>
-              <select
+              <Select
                 id={id}
                 ref={(node) => {
                   if (node === null) refs.current.delete(role);
@@ -85,7 +85,6 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
                 value={current(role)}
                 disabled={isBusy}
                 aria-describedby={hintId}
-                className={CONTROL_CLASS}
                 onChange={(event) => {
                   focusRole.current = role;
                   onChange({
@@ -104,7 +103,7 @@ export function ColumnRoles({ columns, isBusy, onChange }: ColumnRolesProps) {
                         : t("columnOption", { number: column + 1, header })}
                     </option>
                   ))}
-              </select>
+              </Select>
             </div>
           );
         })}
@@ -129,7 +128,7 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
   const t = useTranslations("imports.staged");
   const id = useId();
   const hintId = `${id}-hint`;
-  const firstSelectRef = useRef<HTMLSelectElement>(null);
+  const firstSelectRef = useRef<SelectHandle>(null);
   const [choice, setChoice] = useState<BulkChoice>(NO_CHOICE);
   const patch = bulkPatch(choice);
   const isChosen = Object.keys(patch).length > 0;
@@ -144,12 +143,11 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <label htmlFor={`${id}-type`}>{t("columnType")}</label>
-          <select
+          <Select
             id={`${id}-type`}
             ref={firstSelectRef}
             value={choice.type}
             aria-describedby={hintId}
-            className={CONTROL_CLASS}
             onChange={(event) => set("type")(event.currentTarget.value)}
           >
             <option value={KEEP}>{t("keepAsIs")}</option>
@@ -158,15 +156,14 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
                 {t(`types.${type}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor={`${id}-category`}>{t("columnCategory")}</label>
-          <select
+          <Select
             id={`${id}-category`}
             value={choice.category}
             aria-describedby={hintId}
-            className={CONTROL_CLASS}
             onChange={(event) => set("category")(event.currentTarget.value)}
           >
             <option value={KEEP}>{t("keepAsIs")}</option>
@@ -176,15 +173,14 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
                 {category.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor={`${id}-savings`}>{t("columnSavingsAccount")}</label>
-          <select
+          <Select
             id={`${id}-savings`}
             value={choice.savingsAccount}
             aria-describedby={hintId}
-            className={CONTROL_CLASS}
             onChange={(event) => set("savingsAccount")(event.currentTarget.value)}
           >
             <option value={KEEP}>{t("keepAsIs")}</option>
@@ -198,7 +194,7 @@ export function BulkEdit({ lookups, selectedCount, isBusy, onApply }: BulkEditPr
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
       <Button

@@ -16,7 +16,6 @@ import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { RowDetails } from "../../domain/import-draft";
 import { PAYMENT_MODES } from "../../domain/transaction";
 import type { ImportCategoryOption } from "./import-form-data";
-import { CONTROL_CLASS } from "../form-field";
 import { describeConfirmReasons } from "./review-text";
 import {
   parseOptionalId,
@@ -24,6 +23,7 @@ import {
   type ReviewAction,
   type ReviewRow,
 } from "./review-state";
+import { Select } from "../../components/select";
 
 type InvalidField = EditableField | "type" | "savingsAccountId";
 
@@ -208,10 +208,9 @@ export const RowEditor = memo(function RowEditor({
         ) : null}
       </td>
       <td className="min-w-36">
-        <select
+        <Select
           {...control("type", t("columnType"))}
           value={details.type}
-          className={CONTROL_CLASS}
           onChange={(event) => {
             const type = MOVEMENT_TYPES.find(
               (candidate) => candidate === event.currentTarget.value,
@@ -224,19 +223,18 @@ export const RowEditor = memo(function RowEditor({
               {t(`types.${type}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </td>
       <td className="min-w-44">
         {isSavings ? (
           t("notApplicable")
         ) : (
-          <select
+          <Select
             aria-label={t("cellLabel", {
               column: t("columnCategory"),
               line: row.line,
             })}
             value={details.categoryId ?? ""}
-            className={CONTROL_CLASS}
             onChange={(event) =>
               setDetails({ categoryId: parseOptionalId(event.currentTarget.value) })
             }
@@ -247,17 +245,16 @@ export const RowEditor = memo(function RowEditor({
                 {category.name}
               </option>
             ))}
-          </select>
+          </Select>
         )}
       </td>
       <td className="min-w-40">
-        <select
+        <Select
           aria-label={t("cellLabel", {
             column: t("columnPaymentMode"),
             line: row.line,
           })}
           value={details.paymentMode ?? ""}
-          className={CONTROL_CLASS}
           onChange={(event) =>
             setDetails({
               paymentMode:
@@ -272,14 +269,13 @@ export const RowEditor = memo(function RowEditor({
               {modes(mode)}
             </option>
           ))}
-        </select>
+        </Select>
       </td>
       <td className="min-w-48">
         {isSavings ? (
-          <select
+          <Select
             {...control("savingsAccountId", t("columnSavingsAccount"))}
             value={details.savingsAccountId ?? ""}
-            className={CONTROL_CLASS}
             onChange={(event) =>
               setDetails({
                 savingsAccountId: parseOptionalId(event.currentTarget.value),
@@ -292,7 +288,7 @@ export const RowEditor = memo(function RowEditor({
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
         ) : (
           t("notApplicable")
         )}
