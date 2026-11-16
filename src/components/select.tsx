@@ -170,19 +170,15 @@ export function Select({
     return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
   }, [isListShown]);
 
-  // The popover does not follow its trigger: a scroll outside the list or a resize closes it, as a native select does.
+  // The popover does not follow its trigger: a scroll outside the list closes it, as a native select does.
   useEffect(() => {
     if (!isListShown) return;
-    const closeOnMove = (event: Event) => {
+    const closeOnScroll = (event: Event) => {
       if (event.target instanceof Node && listRef.current?.contains(event.target)) return;
       setIsOpen(false);
     };
-    window.addEventListener("scroll", closeOnMove, { capture: true, passive: true });
-    window.addEventListener("resize", closeOnMove);
-    return () => {
-      window.removeEventListener("scroll", closeOnMove, { capture: true });
-      window.removeEventListener("resize", closeOnMove);
-    };
+    window.addEventListener("scroll", closeOnScroll, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", closeOnScroll, { capture: true });
   }, [isListShown]);
 
   useEffect(() => {
