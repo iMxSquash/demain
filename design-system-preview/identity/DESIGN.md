@@ -418,7 +418,7 @@ When a field expects an exact syntax, restrict it on both sides with the same ru
 - **Amount:** digits and one comma or point, at most the decimals of the currency. Spaces of a pasted value are removed (space, no-break space, narrow no-break space).
 - **Balance:** a value that can be negative (an opening balance, a balance check, a row of an imported file) keeps the amount syntax, without a sign. A segmented control next to it, "Credit" or "Debit", gives the side, and the server turns Debit into a negative amount (owner, 12 Nov 2026).
 - **Currency code:** three letters, uppercased as typed.
-- The server's `parseAmount` currently accepts more (signs, symbols, grouping). Narrow it per field when the forms are rebuilt.
+- The server's `parseAmount` accepts more (signs, symbols, grouping) and does not change: the form schemas narrow it field by field with the shared rule of `src/domain/amount-syntax.ts`, which the browser also applies. Done for the amount of a transaction or transfer, the opening balance and deposit ceiling of an account and the balance check of an account. The import review rows and balance check panel still use `parseAmount` as it is.
 
 ### Custom pickers
 
