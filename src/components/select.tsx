@@ -148,9 +148,15 @@ export function Select({
     if (!isEnhanced || isControlled || native === null) return;
     const form = native.form;
     if (form === null) return;
-    const syncAfterReset = () => setTimeout(() => setUncontrolledValue(native.value), 0);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const syncAfterReset = () => {
+      timer = setTimeout(() => setUncontrolledValue(native.value), 0);
+    };
     form.addEventListener("reset", syncAfterReset);
-    return () => form.removeEventListener("reset", syncAfterReset);
+    return () => {
+      clearTimeout(timer);
+      form.removeEventListener("reset", syncAfterReset);
+    };
   }, [isEnhanced, isControlled]);
 
   // A pointer press outside closes the list; the focus is not moved.
@@ -205,6 +211,12 @@ export function Select({
     setIsOpen(true);
   }
 
+  // A search never outlives the list it was typed in.
+  function closeList() {
+    typeaheadRef.current = "";
+    setIsOpen(false);
+  }
+
   function activate(index: number, isKeyboard: boolean) {
     setActiveIndex(index);
     setIsKeyboardActive(isKeyboard);
@@ -213,7 +225,7 @@ export function Select({
   function choose(index: number) {
     const option = options[index];
     const native = nativeRef.current;
-    setIsOpen(false);
+    closeList();
     if (option === undefined || option.disabled === true || native === null) return;
     if (native.value !== option.value) {
       native.value = option.value;
@@ -256,7 +268,9 @@ export function Select({
         choose(action.activeIndex);
         break;
       case "close":
-        setIsOpen(false);
+        // The Escape that closes the list is not meant for a dialog around it.
+        event.stopPropagation();
+        closeList();
         break;
       case "typeahead":
         rememberTypeahead(action.buffer);
