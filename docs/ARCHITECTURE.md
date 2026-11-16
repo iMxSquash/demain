@@ -409,6 +409,21 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Consequences.** A new server action that writes the database must call `refreshData()`, and a new cached read must call `tagDataRead()`; the guard test enforces both. A write made outside the app (editing the database by hand, `npm run auth:reset-password`) is not seen until the entry expires, at most an hour later, or a restart. The cache is per process and starts empty after a restart or a new build. A new page or data section calls `requireSession()` inside its `Suspense` boundary and never above it, or `next dev` reports the navigation as blocking. A click before the App Shell of a link is prefetched (a link that has just appeared, the first seconds on a slow network) still waits for the server; a pending state on the clicked item (`useLinkStatus`) is not built. A not-found `id` is answered inside the streamed page, with status 200 and the not-found page, as a missing record already was. With Cache Components, Next.js keeps up to three visited pages mounted and hidden (React `Activity`): form drafts survive a navigation away and back, and fixed element ids (`accountId`, `new-heading`) appear more than once in the document while those pages stay hidden.
 
+### ADR-024: One Select that swaps a select-only combobox in for the native select
+
+**Context.** The identity forbids the browser's own picker (DESIGN.md, section 9) and the app had 32 native selects in 15 files, all styled by the same class. The forms post without JavaScript, so the native select cannot disappear from the HTML, and callers rely on `name`, `defaultValue`, `value`, `onChange`, `required` and a `ref` to move the focus. The list must open above any ancestor that scrolls (the import review table) and inside a dialog, with an exit motion (ADR-020).
+
+**Decision.** `src/components/select.tsx` takes the props and the `<option>` children of a native select, so a caller changes the tag and drops its class. The server renders the native select. Once the page is interactive (`useSyncExternalStore`, false on the server and during hydration), the same element is hidden and keeps the name, the value, the form reset and the caller's `onChange`; a button with `role="combobox"` takes the id, the label, `aria-describedby` and `aria-invalid`, and opens a listbox. Choosing an option sets the native value and dispatches a bubbling `change`, so the caller's handler runs on a real event. The ref is a `SelectHandle` with `focus()`, which reaches the combobox. The list is a native `popover="manual"`, shown in the top layer at the trigger's rectangle, so no ancestor clips it and it stays above an open dialog; it closes on a scroll outside the list, on a resize, on a press outside and on blur. It enters in 200 ms and leaves in 140 ms through `useMotion`. The keys live in `src/components/select-keyboard.ts` as pure functions of the state, the key and the options, with no DOM or clock: the component owns the state, the focus and the timer that empties the type-ahead buffer (500 ms). `tests/design/select-usage.test.ts` fails when a native select appears anywhere but in the fallback.
+
+**Alternatives rejected.**
+
+- *A hidden input that posts the value (DESIGN.md's first wording).* The caller's `value`, `defaultValue`, form reset and `onChange` would each need a copy of the native behaviour. Keeping the native select gets them for free and keeps the server and the browser on one field.
+- *An absolutely positioned list.* The import review table scrolls and sits in a dialog: the list would be cut off. A portal to `document.body` would fall behind a modal dialog, which makes the rest of the page inert.
+- *A library (Radix, Headless UI, Downshift).* A dependency for one component whose rules are a page of pure functions, and none of them keeps a native select as the source of the form value.
+- *Wrapping Page Up and Down, or the arrows, at the ends.* The list stops at its ends, as a native select does, so holding a key never loops.
+
+**Consequences.** `required` is not passed to the hidden select once swapped (a hidden required control blocks a submit without showing a message); the combobox carries `aria-required`, and the server stays the authority. Every form of the app is `noValidate` already. The popover is internal to `Select`: the date picker (#120) has a different anatomy and no shared primitive was extracted. Tab commits the highlighted option and Space inside a running search is a letter, as in the APG select-only example; the owner confirms them on issue #119.
+
 ## Tooling
 
 Default choices for the implementation. They can be revisited when a milestone starts; none is exotic.
@@ -429,6 +444,7 @@ Default choices for the implementation. They can be revisited when a milestone s
 | Icons | Phosphor Regular through `@phosphor-icons/react`, one `Icon` component | See ADR-021. |
 | Buttons and fields | One `Button` (four variants, pending state), `FormField` owns `aria-describedby` | See ADR-022. |
 | Caching | Next.js Cache Components, in-memory `"use cache"` reads behind one `data` tag | See ADR-023. |
+| Selects | One `Select` that swaps a combobox in for the native select on load; keyboard rules as pure functions | See ADR-024. |
 
 ## Deployment
 
