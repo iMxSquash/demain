@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { useTranslations } from "next-intl";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
+import { cache, Suspense } from "react";
 
 import { formatRate } from "../../domain/exchange-rate";
 import { todayIn } from "../../i18n/dates";
@@ -13,6 +15,14 @@ import {
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { DataTable, EmptyState } from "../../components/data-display";
+import { PageSection } from "../../components/page-section";
+import {
+  SkeletonBlock,
+  SkeletonDataTable,
+  SkeletonFields,
+  SkeletonLine,
+  SkeletonRegion,
+} from "../../components/skeleton";
 import { ConfirmActionButton } from "../confirm-action-button";
 import {
   deleteExchangeRateAction,
@@ -30,21 +40,25 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-export default async function CurrenciesPage() {
-  await requireSession();
+// One read for the whole request: every section below asks for it and gets the same answer.
+const readCurrencies = cache(async () => {
   // The page reads the database and the clock: it must run per request.
   await connection();
-  const [t, common, locale, timeZone] = await Promise.all([
-    getTranslations("currencies"),
-    getTranslations("common"),
-    getLocale(),
-    getTimeZone(),
-  ]);
-  const { referenceCurrency, rates, isEcbEnabled } = withDatabase((db) => ({
+  return withDatabase((db) => ({
     referenceCurrency: getReferenceCurrency(db),
     rates: listExchangeRates(db),
     isEcbEnabled: isEcbFetchEnabled(db),
   }));
+});
+
+// The sections show their headings and their text at once and hold only the data in a `Suspense`,
+// so a slow read never delays the rest of the page.
+export default async function CurrenciesPage() {
+  await requireSession();
+  const [t, common] = await Promise.all([
+    getTranslations("currencies"),
+    getTranslations("common"),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 p-8">
@@ -53,95 +67,180 @@ export default async function CurrenciesPage() {
       </Link>
       <h1 className="text-heading font-medium">{t("title")}</h1>
 
-      <section aria-labelledby="reference-heading" className="flex flex-col gap-3">
-        <h2 id="reference-heading" className="text-title font-medium">
-          {t("referenceHeading")}
-        </h2>
+      <PageSection id="reference-heading" heading={t("referenceHeading")}>
         <p>{t("referenceIntro")}</p>
-        <ReferenceCurrencyForm
-          action={saveReferenceCurrencyAction}
-          currentCurrency={referenceCurrency}
-        />
-      </section>
+        <Suspense fallback={<FormLoading count={1} />}>
+          <ReferenceCurrency />
+        </Suspense>
+      </PageSection>
 
-      <section aria-labelledby="new-heading" className="flex flex-col gap-3">
-        <h2 id="new-heading" className="text-title font-medium">
-          {t("ratesHeading")}
-        </h2>
+      <PageSection id="new-heading" heading={t("ratesHeading")}>
         <p>{t("ratesIntro")}</p>
         <h3 className="text-title font-medium">{t("addRateHeading")}</h3>
-        <RateForm
-          action={saveExchangeRateAction}
-          initialValues={{
-            date: todayIn(timeZone, new Date()),
-            base: referenceCurrency,
-            quote: "",
-            rate: "",
-          }}
-        />
-      </section>
+        <Suspense fallback={<FormLoading count={4} />}>
+          <NewRate />
+        </Suspense>
+      </PageSection>
 
-      <section aria-labelledby="list-heading" className="flex flex-col gap-3">
-        <h2 id="list-heading" className="text-title font-medium">
-          {t("listHeading")}
-        </h2>
-        {rates.length === 0 ? (
-          <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
-            {t("empty")}
-          </EmptyState>
-        ) : (
-          <DataTable caption={t("caption")} regionLabel={t("regionLabel")}>
-            <thead>
-              <tr>
-                <th scope="col">{t("columns.date")}</th>
-                <th scope="col">{t("columns.pair")}</th>
-                <th scope="col" className="text-right">{t("columns.rate")}</th>
-                <th scope="col">{t("columns.source")}</th>
-                <th scope="col">{t("columns.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rates.map((rate) => {
-                const pair = `${rate.base}/${rate.quote}`;
-                return (
-                  <tr key={rate.id}>
-                    <th scope="row" className="tabular-nums">
-                      <time dateTime={rate.date}>{rate.date}</time>
-                    </th>
-                    <td>{pair}</td>
-                    <td className="text-right">{formatRate(rate.rate, locale)}</td>
-                    <td>
-                      {rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}
-                    </td>
-                    <td>
-                      <ConfirmActionButton
-                        action={deleteExchangeRateAction.bind(null, rate.id)}
-                        label={t("delete")}
-                        subject={`${pair} ${rate.date}`}
-                        title={t("deleteTitle", { pair, date: rate.date })}
-                        message={t("deleteMessage")}
-                        confirmLabel={t("deleteConfirm")}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </DataTable>
-        )}
-      </section>
+      <PageSection id="list-heading" heading={t("listHeading")}>
+        <Suspense fallback={<RateListLoading />}>
+          <RateList />
+        </Suspense>
+      </PageSection>
 
-      <section aria-labelledby="ecb-heading" className="flex flex-col gap-3">
-        <h2 id="ecb-heading" className="text-title font-medium">
-          {t("ecbHeading")}
-        </h2>
+      <PageSection id="ecb-heading" heading={t("ecbHeading")}>
         <p>{t("ecbIntro")}</p>
-        <EcbPanel
-          isEnabled={isEcbEnabled}
-          setEnabled={setEcbFetchEnabledAction}
-          fetchRates={fetchEcbRatesAction}
-        />
-      </section>
+        <Suspense fallback={<EcbLoading />}>
+          <Ecb />
+        </Suspense>
+      </PageSection>
     </main>
+  );
+}
+
+function FormLoading({ count }: { count: number }) {
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("form")}>
+      <SkeletonFields count={count} />
+    </SkeletonRegion>
+  );
+}
+
+async function ReferenceCurrency() {
+  const { referenceCurrency } = await readCurrencies();
+
+  return (
+    <ReferenceCurrencyForm
+      action={saveReferenceCurrencyAction}
+      currentCurrency={referenceCurrency}
+    />
+  );
+}
+
+async function NewRate() {
+  const [timeZone, { referenceCurrency }] = await Promise.all([
+    getTimeZone(),
+    readCurrencies(),
+  ]);
+
+  return (
+    <RateForm
+      action={saveExchangeRateAction}
+      initialValues={{
+        date: todayIn(timeZone, new Date()),
+        base: referenceCurrency,
+        quote: "",
+        rate: "",
+      }}
+    />
+  );
+}
+
+// The same `thead` for the loaded table and for its skeleton.
+function RatesHead() {
+  const t = useTranslations("currencies");
+
+  return (
+    <thead>
+      <tr>
+        <th scope="col">{t("columns.date")}</th>
+        <th scope="col">{t("columns.pair")}</th>
+        <th scope="col" className="text-right">{t("columns.rate")}</th>
+        <th scope="col">{t("columns.source")}</th>
+        <th scope="col">{t("columns.actions")}</th>
+      </tr>
+    </thead>
+  );
+}
+
+function RateListLoading() {
+  const t = useTranslations("currencies");
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("table")}>
+      <SkeletonDataTable
+        caption={t("caption")}
+        regionLabel={t("regionLabel")}
+        head={<RatesHead />}
+        columns={["start", "start", "end", "start", "start"]}
+        rows={3}
+      />
+    </SkeletonRegion>
+  );
+}
+
+async function RateList() {
+  const [t, locale, { rates }] = await Promise.all([
+    getTranslations("currencies"),
+    getLocale(),
+    readCurrencies(),
+  ]);
+
+  if (rates.length === 0) {
+    return (
+      <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+        {t("empty")}
+      </EmptyState>
+    );
+  }
+
+  return (
+    <DataTable caption={t("caption")} regionLabel={t("regionLabel")}>
+      <RatesHead />
+      <tbody>
+      {rates.map((rate) => {
+        const pair = `${rate.base}/${rate.quote}`;
+        return (
+          <tr key={rate.id}>
+            <th scope="row" className="tabular-nums">
+              <time dateTime={rate.date}>{rate.date}</time>
+            </th>
+            <td>{pair}</td>
+            <td className="text-right">{formatRate(rate.rate, locale)}</td>
+            <td>
+              {rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}
+            </td>
+            <td>
+              <ConfirmActionButton
+                action={deleteExchangeRateAction.bind(null, rate.id)}
+                label={t("delete")}
+                subject={`${pair} ${rate.date}`}
+                title={t("deleteTitle", { pair, date: rate.date })}
+                message={t("deleteMessage")}
+                confirmLabel={t("deleteConfirm")}
+              />
+            </td>
+          </tr>
+        );
+      })}
+      </tbody>
+    </DataTable>
+  );
+}
+
+// A line saying whether the daily fetch is on, and the button that changes it.
+function EcbLoading() {
+  const loading = useTranslations("loading");
+
+  return (
+    <SkeletonRegion label={loading("form")} className="flex flex-col gap-4">
+      <SkeletonLine width="1/2" />
+      <SkeletonBlock className="h-11 w-48 rounded-pill" />
+    </SkeletonRegion>
+  );
+}
+
+async function Ecb() {
+  const { isEcbEnabled } = await readCurrencies();
+
+  return (
+    <EcbPanel
+      isEnabled={isEcbEnabled}
+      setEnabled={setEcbFetchEnabledAction}
+      fetchRates={fetchEcbRatesAction}
+    />
   );
 }

@@ -241,7 +241,7 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | Trajectory line | Drawn once from left to right when the chart first appears, real part then planned part; markers, labels and the zone appear at once | draw, move |
 | Chart reading | The marker, the crosshair and the tooltip move to the month being read | state, move |
 | Page | On load and on navigation inside the app, the content of `<main>` fades in and rises `--motion-offset` | enter |
-| Loading skeleton | A soft band sweeps over each block from the start of the line to its end, in the reading direction, and repeats while the content loads. It stops when the content replaces the skeleton, which enters with the page fade | shimmer, move |
+| Loading skeleton | A soft band sweeps over each block from left to right (the app has no right-to-left language), and repeats while the content loads. It stops when the content replaces the skeleton, which enters with the page fade | shimmer, move |
 
 **Never**
 
@@ -345,14 +345,14 @@ Open `components.html` next to this section: every state below is drawn there in
   - Blocks: `bg-surface-sunken` on a card, with the radius of what they stand for: `rounded-control` for a line of text, `rounded-pill` for a button, `rounded-card` for a tile. A card itself is never a block: the card stays and its content becomes blocks. A block that sits on the page ground, outside any card (a page title, a form field), is `bg-surface`, since `surface-sunken` would almost vanish there in the light theme (1.05:1, against 1.19:1 for `surface`).
   - Size: the same as the final content, so nothing moves when it arrives. A table skeleton is built in the real table markup with 48 px rows; a chart skeleton keeps the 280 px plot (section 11).
   - Shimmer (owner, 12 Nov 2026, the only motion allowed to repeat):
-    - a soft band sweeps over the block in the reading direction, one sweep per `--motion-duration-shimmer`, with `--motion-ease-move`;
+    - a soft band sweeps over the block from left to right (the app has no right-to-left language), one sweep per `--motion-duration-shimmer`, with `--motion-ease-move`;
     - the band is a gradient from transparent to a tone and back to transparent: no other colour, no glow, no holographic tint;
     - the band tone is **proposed** as `control-hover`, since `control` equals `surface-sunken` in the light theme (1.00:1, invisible); the owner confirms it on `components.html`;
     - it runs only while the content loads and ends when the content replaces the skeleton;
     - pure CSS (keyframes in the stylesheet, a `translate` on a pseudo-element), no JavaScript, from the first paint;
     - under reduced motion the band stays outside its block (see section 6);
     - it never runs next to content the user is reading.
-  - Accessibility: the region has `aria-busy="true"` and one visually hidden polite status message in words ("Loading transactions"); the blocks are `aria-hidden`. Focus is not moved, and stays where it was when the content arrives. No pause control: a loading indicator shown while the content cannot be used is essential under WCAG 2.2.2 (open point for the owner, DECISIONS.md "Loading skeleton").
+  - Accessibility: the loading region (the fallback of one section of data, never the whole `main`) has `aria-busy="true"` and one visually hidden polite status message in words ("Loading the table"), added once the page is hydrated because a live region already filled in the first markup is usually not announced; the blocks are `aria-hidden`. Focus is not moved, and stays where it was when the content arrives. No pause control: a loading indicator shown while the content cannot be used is essential under WCAG 2.2.2 (open point for the owner, DECISIONS.md "Loading skeleton").
 - **Dialog:**
   - the native `<dialog>` with `rounded-card`, `shadow-overlay`, padding 24, at most 420 px wide, and a `bg-backdrop` backdrop;
   - title in `text-title`, actions on the right: Cancel (secondary, focused first), then the confirming action;

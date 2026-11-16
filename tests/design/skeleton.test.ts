@@ -71,7 +71,7 @@ describe("SkeletonRegion", () => {
   const markup = render(
     createElement(
       SkeletonRegion,
-      { label: "Loading transactions", as: "main", className: "p-8" },
+      { label: "Loading transactions", className: "p-8" },
       createElement(SkeletonLine),
       createElement(SkeletonBlock, { className: "h-12" }),
     ),
@@ -82,23 +82,23 @@ describe("SkeletonRegion", () => {
     expect(markup).toContain("skeleton-ground p-8");
   });
 
-  it("is busy and says so in words, once, in a polite status", () => {
+  it("is busy and has one polite status, visually hidden", () => {
     expect(markup).toContain('aria-busy="true"');
     expect(countOf(markup, 'role="status"')).toBe(1);
-    expect(markup).toContain("Loading transactions");
+    expect(markup).toMatch(/<p[^>]*class="sr-only"[^>]*>/);
   });
 
-  it("keeps the status text visually hidden", () => {
-    expect(markup).toMatch(/<p[^>]*class="sr-only"[^>]*>Loading transactions<\/p>/);
+  it("leaves the status empty in the markup of the first load: the words arrive once it is hydrated, which is what is announced", () => {
+    expect(markup).toMatch(/<p role="status" class="sr-only"><\/p>/);
+    expect(markup).not.toContain("Loading transactions");
   });
 
-  it("renders the element asked for, a main for a page", () => {
-    expect(markup.startsWith("<main")).toBe(true);
-    expect(render(createElement(SkeletonRegion, { label: "Loading" })).startsWith("<div")).toBe(true);
+  it("is a div inside the page, never a landmark of its own", () => {
+    expect(markup.startsWith("<div")).toBe(true);
   });
 
-  it("shows no text but the status: no invented figure or label", () => {
-    expect(textOutsideHiddenParts(markup)).toBe("Loading transactions");
+  it("shows no text at all: no invented figure or label", () => {
+    expect(textOutsideHiddenParts(markup)).toBe("");
   });
 
   it("never moves the focus", () => {
@@ -172,7 +172,17 @@ describe("SkeletonDataTable", () => {
     createElement(SkeletonDataTable, {
       caption: "Every recorded transaction",
       regionLabel: "Transactions",
-      headers: [{ label: "Date" }, { label: "Amount", end: true }],
+      head: createElement(
+        "thead",
+        null,
+        createElement(
+          "tr",
+          null,
+          createElement("th", { scope: "col" }, "Date"),
+          createElement("th", { scope: "col", className: "text-right" }, "Amount"),
+        ),
+      ),
+      columns: ["start", "end"],
       rows: 2,
     }),
   );
@@ -183,11 +193,12 @@ describe("SkeletonDataTable", () => {
     expect(markup).toContain(">Amount</th>");
   });
 
-  it("right-aligns the heading of a figure column", () => {
-    expect(markup).toContain('class="text-right">Amount</th>');
+  it("right-aligns the blocks of a figure column", () => {
+    expect(countOf(markup, "justify-end")).toBe(2);
   });
 
-  it("draws only the rows as blocks", () => {
+  it("draws only the rows as blocks, on the tone of a card", () => {
+    expect(markup).toContain('<tbody aria-hidden="true" class="skeleton-card">');
     expect(countOf(markup, 'class="skeleton rounded-control')).toBe(4);
     expect(textOutsideHiddenParts(markup)).toContain("Every recorded transaction");
   });
@@ -199,10 +210,15 @@ describe("SkeletonDataTable", () => {
 });
 
 describe("SkeletonFields", () => {
-  it("draws a label line and a 48 px field per field", () => {
+  it("draws a label line and a 48 px field per field, then the submit button", () => {
     const markup = render(createElement(SkeletonFields, { count: 3 }));
 
     expect(countOf(markup, "h-12 rounded-control")).toBe(3);
+    expect(countOf(markup, "h-11 w-32 rounded-pill")).toBe(1);
+  });
+
+  it("sizes its labels like the label of a field", () => {
+    expect(render(createElement(SkeletonFields, { count: 1 }))).toContain("text-caption");
   });
 });
 

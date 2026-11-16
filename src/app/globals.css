@@ -150,8 +150,8 @@
 }
 
 /* Loading skeleton block (DESIGN section 8, "Loading"). The shimmer is the one motion allowed to
-   repeat (section 6): a soft band of `control-hover` sweeps over the block in the reading
-   direction. The band rests outside its block, so with reduced motion (the duration is 0 in
+   repeat (section 6): a soft band of `control-hover` sweeps over the block from left to right
+   (the app has no right-to-left language). The band rests outside its block, so with reduced motion (the duration is 0 in
    tokens.css, and a zero active duration applies nothing) the block stays plain and static.
    Pure CSS from the first paint; the animation ends with the element, when the content replaces it. */
 @keyframes shimmer {

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { DataTable, Pill } from "../../components/data-display";
@@ -19,6 +20,27 @@ interface BalanceAssertionsTableProps {
   showAccount: boolean;
 }
 
+/** The same `thead` for the loaded table and for its skeleton. */
+export function BalanceAssertionsHead({ showAccount }: { showAccount: boolean }) {
+  const t = useTranslations("balances");
+
+  return (
+    <thead>
+      <tr>
+        <th scope="col">{t("columns.date")}</th>
+        {showAccount ? (
+          <th scope="col">{t("accountColumn")}</th>
+        ) : null}
+        <th scope="col" className="text-right">{t("columns.asserted")}</th>
+        <th scope="col" className="text-right">{t("columns.computed")}</th>
+        <th scope="col">{t("columns.gap")}</th>
+        <th scope="col">{t("columns.note")}</th>
+        <th scope="col">{t("columns.actions")}</th>
+      </tr>
+    </thead>
+  );
+}
+
 /**
  * The recorded balances with their gap. The gap is a sentence and a signed
  * amount, never a color, and an archived account has no delete button.
@@ -35,19 +57,7 @@ export async function BalanceAssertionsTable({
 
   return (
     <DataTable caption={caption} regionLabel={t("regionLabel")}>
-      <thead>
-        <tr>
-          <th scope="col">{t("columns.date")}</th>
-          {showAccount ? (
-            <th scope="col">{t("accountColumn")}</th>
-          ) : null}
-          <th scope="col" className="text-right">{t("columns.asserted")}</th>
-          <th scope="col" className="text-right">{t("columns.computed")}</th>
-          <th scope="col">{t("columns.gap")}</th>
-          <th scope="col">{t("columns.note")}</th>
-          <th scope="col">{t("columns.actions")}</th>
-        </tr>
-      </thead>
+      <BalanceAssertionsHead showAccount={showAccount} />
       <tbody>
         {assertions.map((assertion) => {
           const money = (minorUnits: number) =>

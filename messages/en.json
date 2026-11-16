@@ -22,20 +22,10 @@
     "toastDismiss": "Dismiss the notification"
   },
   "loading": {
-    "overview": "Loading the overview",
-    "transactions": "Loading transactions",
-    "accounts": "Loading accounts",
-    "balances": "Loading balance assertions",
-    "balancesSummary": "Loading the summary balances form",
-    "categories": "Loading categories",
-    "rules": "Loading categorization rules",
-    "synthesis": "Loading the monthly synthesis",
-    "currencies": "Loading currencies and exchange rates",
-    "imports": "Loading the import form",
-    "accountBalances": "Loading the balance assertions of the account",
-    "accountEdit": "Loading the account",
-    "transactionEdit": "Loading the transaction",
-    "categoryEdit": "Loading the category",
+    "table": "Loading the table",
+    "list": "Loading the list",
+    "form": "Loading the form",
+    "forms": "Loading the forms",
     "chart": "Loading the trajectory chart"
   },
   "errors": {
