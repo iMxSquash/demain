@@ -652,7 +652,7 @@
       "balanceCheck": {
         "heading": "Balance at the end of the file",
         "label": "Balance at the end of the file, on {date}",
-        "hint": "Enter the balance your bank shows after the last movement of this file, for example 1,143.88.",
+        "hint": "Enter the balance your bank shows after the last movement of this file, without a sign, for example 1,143.88, then choose Credit or Debit.",
         "submit": "Show the gap",
         "record": "Record this balance as a balance assertion",
         "recording": "Recording the balance.",
@@ -911,6 +911,7 @@
     "amountCharacterRefused": "\"{character}\" is not accepted: digits and one comma or point only.",
     "currencyCodeSyntax": "Invalid currency code \"{text}\": three letters expected",
     "balanceSideInvalid": "Choose credit or debit",
+    "balanceUnsigned": "Enter the balance without a sign: Credit or Debit gives the side",
     "amountExpectedDigits": "Invalid amount \"{text}\": expected digits with optional separators",
     "amountMoreThanOneSign": "Invalid amount \"{text}\": more than one sign",
     "amountMoreThanOneCurrency": "Invalid amount \"{text}\": more than one currency symbol or code",

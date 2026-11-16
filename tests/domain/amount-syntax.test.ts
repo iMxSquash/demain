@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applyBalanceSide,
   checkAmountSyntax,
   isAmountDraft,
   isCurrencyCode,
   normalizeCurrencyCode,
   parseUnsignedAmount,
+  readBalanceSide,
+  splitBalanceSide,
   stripAmountSpaces,
 } from "../../src/domain/amount-syntax";
 import { MoneyParseError } from "../../src/domain/money";
@@ -100,5 +103,31 @@ describe("currency code", () => {
 
   it.each(["EU", "EURO", "E1R", "€UR", ""])("refuses %j", (text) => {
     expect(isCurrencyCode(text)).toBe(false);
+  });
+});
+
+describe("balance side", () => {
+  it("turns a debit into negative minor units and keeps a credit positive", () => {
+    expect(applyBalanceSide(1_250, "debit")).toBe(-1_250);
+    expect(applyBalanceSide(1_250, "credit")).toBe(1_250);
+  });
+
+  it("keeps a zero debit at positive zero", () => {
+    expect(Object.is(applyBalanceSide(0, "debit"), 0)).toBe(true);
+  });
+
+  it("splits a negative balance into its magnitude and Debit, so that it edits back as Debit", () => {
+    expect(splitBalanceSide(-1_250)).toEqual({ magnitude: 1_250, side: "debit" });
+  });
+
+  it("splits a positive balance and zero as Credit", () => {
+    expect(splitBalanceSide(1_250)).toEqual({ magnitude: 1_250, side: "credit" });
+    expect(splitBalanceSide(0)).toEqual({ magnitude: 0, side: "credit" });
+  });
+
+  it("reads a missing side as credit and refuses an unknown one", () => {
+    expect(readBalanceSide("")).toBe("credit");
+    expect(readBalanceSide("debit")).toBe("debit");
+    expect(readBalanceSide("up")).toBeNull();
   });
 });

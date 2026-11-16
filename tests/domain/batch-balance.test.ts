@@ -17,27 +17,36 @@ describe("lastMovementDate", () => {
 });
 
 describe("parseRealBalance", () => {
-  it("reads a grouped amount with a decimal comma to exact minor units", () => {
-    expect(parseRealBalance("1 143,88", "EUR")).toBe(114_388);
+  it("reads a credit as positive minor units", () => {
+    expect(parseRealBalance("12,50", "EUR", "credit")).toBe(1_250);
   });
 
-  it("reads a negative balance", () => {
-    expect(parseRealBalance("-20,05", "EUR")).toBe(-2_005);
+  it("reads a debit as negative minor units", () => {
+    expect(parseRealBalance("12,50", "EUR", "debit")).toBe(-1_250);
+  });
+
+  it("reads a grouped amount with a decimal comma to exact minor units", () => {
+    expect(parseRealBalance("1 143,88", "EUR", "credit")).toBe(114_388);
+  });
+
+  it.each(["-12,50", "+12,50", "\u221212,50", "\u20ac-12,50", "-\u20ac12,50", "\u20ac +12,50", "-0,00"])("refuses the typed sign of %j", (text) => {
+    expect(() => parseRealBalance(text, "EUR", "credit")).toThrow(RealBalanceError);
+    expect(() => parseRealBalance(text, "EUR", "debit")).toThrow(RealBalanceError);
   });
 
   it("refuses an empty text", () => {
-    expect(() => parseRealBalance("", "EUR")).toThrow(RealBalanceError);
+    expect(() => parseRealBalance("", "EUR", "credit")).toThrow(RealBalanceError);
   });
 
   it("refuses a text with only spaces", () => {
-    expect(() => parseRealBalance("   ", "EUR")).toThrow(RealBalanceError);
+    expect(() => parseRealBalance("   ", "EUR", "credit")).toThrow(RealBalanceError);
   });
 
   it.each(["abc", "12,34,5"])("refuses the invalid text %j", (text) => {
-    expect(() => parseRealBalance(text, "EUR")).toThrow(RealBalanceError);
+    expect(() => parseRealBalance(text, "EUR", "credit")).toThrow(RealBalanceError);
   });
 
   it("never rounds a value with more decimals than the currency has", () => {
-    expect(() => parseRealBalance("10,5551", "EUR")).toThrow(RealBalanceError);
+    expect(() => parseRealBalance("10,5551", "EUR", "credit")).toThrow(RealBalanceError);
   });
 });
