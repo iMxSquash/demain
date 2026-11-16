@@ -641,6 +641,7 @@
       "stateNew": "Nouvelle",
       "stateDuplicate": "Déjà dans ce compte",
       "cellLabel": "{column}, ligne {line}",
+      "amountSide": "Côté du montant, ligne {line}",
       "importFile": "Importer ce fichier",
       "cancelFile": "Annuler ce fichier",
       "fixFirst": "Corrigez les lignes signalées comme problèmes pour importer ce fichier.",

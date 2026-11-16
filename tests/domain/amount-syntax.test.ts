@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   applyBalanceSide,
   checkAmountSyntax,
+  composeSignedAmountText,
+  containsTypedSign,
   isAmountDraft,
   isCurrencyCode,
   normalizeCurrencyCode,
   parseUnsignedAmount,
   readBalanceSide,
   splitBalanceSide,
+  splitSignedAmountText,
   stripAmountSpaces,
 } from "../../src/domain/amount-syntax";
 import { MoneyParseError } from "../../src/domain/money";
@@ -129,5 +132,46 @@ describe("balance side", () => {
     expect(readBalanceSide("")).toBe("credit");
     expect(readBalanceSide("debit")).toBe("debit");
     expect(readBalanceSide("up")).toBeNull();
+  });
+});
+
+describe("containsTypedSign", () => {
+  it.each(["-12,50", "+12,50", "\u221212,50", "\u20ac-12,50", "-\u20ac12", "12,50-"])(
+    "finds the sign of %j",
+    (text) => {
+      expect(containsTypedSign(text)).toBe(true);
+    },
+  );
+
+  it.each(["12,50", "", "\u20ac12.5", "1 143,88"])("finds no sign in %j", (text) => {
+    expect(containsTypedSign(text)).toBe(false);
+  });
+});
+
+describe("signed amount text of a cell", () => {
+  it("splits a minus into the amount and Debit", () => {
+    expect(splitSignedAmountText("-12,50")).toEqual({ magnitude: "12,50", side: "debit" });
+    expect(splitSignedAmountText("\u221212.50")).toEqual({ magnitude: "12.50", side: "debit" });
+  });
+
+  it("splits a plus or no sign into the amount and Credit", () => {
+    expect(splitSignedAmountText("+12,50")).toEqual({ magnitude: "12,50", side: "credit" });
+    expect(splitSignedAmountText("12,50")).toEqual({ magnitude: "12,50", side: "credit" });
+  });
+
+  it("keeps the side of a Debit chosen before any amount is typed", () => {
+    expect(splitSignedAmountText("-")).toEqual({ magnitude: "", side: "debit" });
+  });
+
+  it("composes the text back, as typed and without arithmetic", () => {
+    expect(composeSignedAmountText("12,50", "debit")).toBe("-12,50");
+    expect(composeSignedAmountText("12,50", "credit")).toBe("12,50");
+    expect(composeSignedAmountText("", "debit")).toBe("-");
+    expect(composeSignedAmountText("", "credit")).toBe("");
+  });
+
+  it("round-trips the text of a stored negative amount", () => {
+    const { magnitude, side } = splitSignedAmountText("-1250.00");
+    expect(composeSignedAmountText(magnitude, side)).toBe("-1250.00");
   });
 });

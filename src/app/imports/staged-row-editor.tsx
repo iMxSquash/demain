@@ -1,9 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { memo, useId, type ActionDispatch, type ChangeEvent } from "react";
+import { memo, useId, useState, type ActionDispatch, type ChangeEvent } from "react";
 
 import { Checkbox } from "../../components/checkbox";
+import {
+  BALANCE_SIDES,
+  composeSignedAmountText,
+  containsTypedSign,
+  splitSignedAmountText,
+  type BalanceSide,
+} from "../../domain/amount-syntax";
 import type { RowProblem } from "../../domain/import-draft";
 import { MOVEMENT_TYPES } from "../../domain/import-columns";
 import type { RowDetails } from "../../domain/import-draft";
@@ -75,7 +82,11 @@ export const RowEditor = memo(function RowEditor({
   const t = useTranslations("imports.staged");
   const imports = useTranslations("imports");
   const modes = useTranslations("transactions.paymentModes");
+  const feedback = useTranslations("feedback");
+  const sides = useTranslations("common.balanceSide");
   const problemId = useId();
+  const signNoticeId = useId();
+  const [isSignRefused, setIsSignRefused] = useState(false);
   const { problem, details } = row;
   const invalidField = problem === null ? null : FIELD_OF_PROBLEM[problem];
 
@@ -108,6 +119,22 @@ export const RowEditor = memo(function RowEditor({
   const setDetails = (patch: Partial<RowDetails>) =>
     dispatch({ type: "setDetails", file: fileIndex, row: rowIndex, details: patch });
   const isSavings = details.type === "savings";
+  // The amount is typed without a sign. An expense or an income takes its direction from the
+  // Type; a savings row (deposit or withdrawal) from its own Credit or Debit choice.
+  const { magnitude, side: shownSide } = splitSignedAmountText(row.draft.amount);
+  const amountSide: BalanceSide = isSavings
+    ? shownSide
+    : details.type === "expense"
+      ? "debit"
+      : "credit";
+  const editAmount = (text: string, side: BalanceSide) =>
+    dispatch({
+      type: "edit",
+      file: fileIndex,
+      row: rowIndex,
+      field: "amount",
+      value: composeSignedAmountText(text, side),
+    });
   const sameAsFile =
     lookups.defaultSavingsName === null
       ? t("chooseSavingsAccount")
@@ -135,10 +162,50 @@ export const RowEditor = memo(function RowEditor({
         <input
           type="text"
           inputMode="decimal"
-          {...textCell("amount", imports("columns.amount"))}
-          onBlur={() => dispatch({ type: "settleAmount", file: fileIndex, row: rowIndex })}
+          {...control("amount", imports("columns.amount"))}
+          aria-describedby={
+            [invalidField === "amount" ? problemId : null, isSignRefused ? signNoticeId : null]
+              .filter((id) => id !== null)
+              .join(" ") || undefined
+          }
+          value={magnitude}
+          onChange={(event) => {
+            const text = event.currentTarget.value;
+            // A sign typed by hand is refused: the side gives it.
+            const hasSign = containsTypedSign(text);
+            setIsSignRefused(hasSign);
+            if (!hasSign) editAmount(text, amountSide);
+          }}
+          onBlur={() => {
+            setIsSignRefused(false);
+            dispatch({ type: "settleAmount", file: fileIndex, row: rowIndex });
+          }}
           className={`${CELL_CLASS} text-right tabular-nums`}
         />
+        {isSignRefused ? (
+          <p id={signNoticeId} role="status" className="text-caption">
+            {feedback("amountUnsigned")}
+          </p>
+        ) : null}
+        {isSavings ? (
+          <fieldset className="mt-1">
+            <legend className="sr-only">{t("amountSide", { line: row.line })}</legend>
+            <div className="segmented [--n:2]">
+              {BALANCE_SIDES.map((candidate) => (
+                <label key={candidate}>
+                  <input
+                    type="radio"
+                    name={`amount-side-${fileIndex}-${rowIndex}`}
+                    value={candidate}
+                    checked={candidate === amountSide}
+                    onChange={() => editAmount(magnitude, candidate)}
+                  />
+                  {sides(candidate)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
       </td>
       <td className="min-w-36">
         <select
