@@ -23,7 +23,7 @@ import { translateKey } from "../translate-key";
 
 const holder = vi.hoisted(() => ({ db: null as unknown }));
 
-vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("../../../src/app/data-cache", () => ({ refreshData: () => undefined }));
 vi.mock("next-intl/server", () => ({
   getLocale: async () => "en",
   getTranslations: async () => (key: string, values?: Record<string, unknown>) =>

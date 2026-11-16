@@ -8,13 +8,14 @@ import { Suspense } from "react";
 import { DataTable, EmptyState } from "../../components/data-display";
 import { SkeletonRegion, SkeletonTable } from "../../components/skeleton";
 import { formatAmount } from "../../domain/money";
-import { monthOf } from "../../domain/synthesis";
+import { monthOf, type Month } from "../../domain/synthesis";
 import { formatMonth, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { getReferenceCurrency } from "../../ledger/exchange-rates";
 import { getMonthlySynthesis } from "../../ledger/synthesis";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("synthesis");
@@ -55,6 +56,20 @@ function SynthesisLoading() {
   );
 }
 
+// The month is an argument, so the entry of last month is not served once the month changes.
+async function readSynthesis(throughMonth: Month) {
+  "use cache";
+  tagDataRead();
+  return withDatabase((db) => {
+    const referenceCurrency = getReferenceCurrency(db);
+    return {
+      accounts: listAccounts(db, { includeArchived: true }),
+      months: getMonthlySynthesis(db, { referenceCurrency, throughMonth }),
+      referenceCurrency,
+    };
+  });
+}
+
 async function Synthesis() {
   // The page reads the database and the clock: it must run per request.
   await connection();
@@ -64,14 +79,7 @@ async function Synthesis() {
     getTimeZone(),
   ]);
   const throughMonth = monthOf(todayIn(timeZone, new Date()));
-  const { accounts, months, referenceCurrency } = withDatabase((db) => {
-    const referenceCurrency = getReferenceCurrency(db);
-    return {
-      accounts: listAccounts(db, { includeArchived: true }),
-      months: getMonthlySynthesis(db, { referenceCurrency, throughMonth }),
-      referenceCurrency,
-    };
-  });
+  const { accounts, months, referenceCurrency } = await readSynthesis(throughMonth);
   const money = (minorUnits: number, currency = referenceCurrency) =>
     formatAmount(minorUnits, currency, locale);
   const unconverted = [

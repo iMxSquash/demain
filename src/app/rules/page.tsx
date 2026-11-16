@@ -18,6 +18,7 @@ import { listCategories } from "../../ledger/categories";
 import { listRules } from "../../ledger/categorization-rules";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { deleteRuleAction, createRuleAction, moveRuleAction } from "./actions";
 import { RuleForm } from "./rule-form";
@@ -32,13 +33,19 @@ export async function generateMetadata(): Promise<Metadata> {
 const readRules = cache(async () => {
   // The page reads the database: it must run per request, never at build time.
   await connection();
+  return readRulesFromDatabase();
+});
+
+async function readRulesFromDatabase() {
+  "use cache";
+  tagDataRead();
   return withDatabase((db) => ({
     rules: listRules(db),
     // Archived ones are kept to name the rules that still point to them.
     accounts: listAccounts(db, { includeArchived: true }),
     categories: listCategories(db, { includeArchived: true }),
   }));
-});
+}
 
 const PAGE_GAP = "gap-10";
 

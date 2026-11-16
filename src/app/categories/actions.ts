@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { CategoryValidationError } from "../../domain/category";
@@ -16,6 +15,7 @@ import {
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import { parseRuleSuggestion } from "../rules/rule-form-data";
@@ -28,8 +28,6 @@ import {
 } from "./category-form-data";
 
 const CATEGORIES_PATH = "/categories";
-const TRANSACTIONS_PATH = "/transactions";
-const RULES_PATH = "/rules";
 
 /** A failure that no field explains is told in a toast, the typed name comes back with it. */
 async function toFormState(
@@ -64,7 +62,7 @@ export async function createCategoryAction(
     return await toFormState(error, name, await getTranslator());
   }
 
-  revalidatePath(CATEGORIES_PATH);
+  refreshData();
   await flashSuccess("categoryCreated");
   return null;
 }
@@ -82,8 +80,7 @@ export async function renameCategoryAction(
     return await toFormState(error, name, await getTranslator());
   }
 
-  revalidatePath(CATEGORIES_PATH);
-  revalidatePath(TRANSACTIONS_PATH);
+  refreshData();
   await flashSuccess("categoryRenamed");
   // redirect throws, so it stays outside the try block.
   redirect(CATEGORIES_PATH);
@@ -95,7 +92,7 @@ export async function archiveCategoryAction(id: number): Promise<void> {
     success: "categoryArchived",
     describeFailure: describeArchiveFailure,
   });
-  revalidatePath(CATEGORIES_PATH);
+  refreshData();
 }
 
 function describeArchiveFailure(error: unknown): MessageRef {
@@ -113,7 +110,7 @@ export async function reactivateCategoryAction(id: number): Promise<void> {
     },
     { success: "categoryReactivated", describeFailure: describeReactivateFailure },
   );
-  revalidatePath(CATEGORIES_PATH);
+  refreshData();
 }
 
 function describeReactivateFailure(error: unknown): MessageRef {
@@ -160,9 +157,7 @@ export async function categorizeTransactionAction(
     return { field: "category", message: translate(messageRef("nothingSaved")) };
   }
 
-  revalidatePath(CATEGORIES_PATH);
-  revalidatePath(TRANSACTIONS_PATH);
-  revalidatePath(RULES_PATH);
+  refreshData();
   await flashSuccess("categoryAssigned");
   return null;
 }

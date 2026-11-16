@@ -27,6 +27,7 @@ import {
 import { TransactionForm } from "./transaction-form";
 import { TransferForm } from "./transfer-form";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("transactions");
@@ -37,12 +38,18 @@ export async function generateMetadata(): Promise<Metadata> {
 const readTransactions = cache(async () => {
   // The page reads the database: it must run per request, never at build time.
   await connection();
+  return readTransactionsFromDatabase();
+});
+
+async function readTransactionsFromDatabase() {
+  "use cache";
+  tagDataRead();
   return withDatabase((db) => ({
     accounts: listAccounts(db, { includeArchived: true }),
     categories: listCategories(db, { includeArchived: true }),
     rows: listTransactions(db),
   }));
-});
+}
 
 const PAGE_GAP = "gap-10";
 

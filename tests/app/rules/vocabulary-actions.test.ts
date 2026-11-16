@@ -16,7 +16,7 @@ import { translateKey } from "../translate-key";
 
 const holder = vi.hoisted(() => ({ db: null as unknown }));
 
-vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("../../../src/app/data-cache", () => ({ refreshData: () => undefined }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
 vi.mock("../../../src/app/translator", () => ({ getTranslator: async () => translateKey }));
 vi.mock("../../../src/app/feedback/flash", () => ({

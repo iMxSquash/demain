@@ -13,8 +13,8 @@ import {
   type ImportFormat,
 } from "../../ledger/imports";
 import { withDatabase } from "../../storage/with-database";
-import { revalidateLedger } from "../revalidate-ledger";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
@@ -160,7 +160,7 @@ export async function importAction(
       };
     }
 
-    revalidateLedger();
+    refreshData();
     await flashSuccess("importDone", {
       imported: outcome.newCount,
       duplicates: outcome.duplicateCount,

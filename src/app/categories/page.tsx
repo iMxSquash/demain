@@ -25,6 +25,7 @@ import {
 import { CategoryForm } from "./category-form";
 import { ToCategorizeHead, ToCategorizeQueue } from "./to-categorize-queue";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("categories");
@@ -35,6 +36,12 @@ export async function generateMetadata(): Promise<Metadata> {
 const readCategories = cache(async () => {
   // The page reads the database: it must run per request, never at build time.
   await connection();
+  return readCategoriesFromDatabase();
+});
+
+async function readCategoriesFromDatabase() {
+  "use cache";
+  tagDataRead();
   return withDatabase((db) => {
     const all = listCategories(db, { includeArchived: true });
     return {
@@ -44,7 +51,7 @@ const readCategories = cache(async () => {
       queue: listUncategorizedTransactions(db),
     };
   });
-});
+}
 
 // One row of a list of categories: the loaded list and its skeleton have the same box. The height
 // is that of the buttons (the minimum target size) with the padding and the hairline of the row.

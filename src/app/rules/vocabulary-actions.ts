@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { messageRef, type FeedbackKey, type MessageRef } from "../../domain/message";
 import {
   removeVocabularyWord,
@@ -12,11 +10,10 @@ import {
 import type { AppDatabase } from "../../storage/database";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import { readVocabularyFormValues, type VocabularyFormState } from "./vocabulary-form-data";
-
-const RULES_PATH = "/rules";
 
 export async function addVocabularyWordAction(
   _previous: VocabularyFormState | null,
@@ -39,7 +36,7 @@ export async function addVocabularyWordAction(
     return { message: translate(ref), values };
   }
 
-  revalidatePath(RULES_PATH);
+  refreshData();
   await flashSuccess("vocabularyWordSaved");
   return null;
 }
@@ -59,7 +56,7 @@ async function changeVocabulary(
     success,
     describeFailure: describeChangeFailure,
   });
-  revalidatePath(RULES_PATH);
+  refreshData();
 }
 
 export async function changeVocabularyTypeAction(word: string, formData: FormData): Promise<void> {

@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { BalanceAssertionValidationError } from "../../../../domain/balance-assertion";
 import { messageRef, type MessageRef, type Translate } from "../../../../domain/message";
 import { AccountNotFoundError, getAccount } from "../../../../ledger/accounts";
@@ -14,6 +12,7 @@ import {
 } from "../../../../ledger/balance-assertions";
 import { withDatabase } from "../../../../storage/with-database";
 import { requireSession } from "../../../auth/session";
+import { refreshData } from "../../../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../../../feedback/flash";
 import { getTranslator } from "../../../translator";
 import {
@@ -22,14 +21,6 @@ import {
   readSubmittedValues,
   type BalanceAssertionFormState,
 } from "./balance-assertion-form-data";
-
-const ALL_BALANCES_PATH = "/balances";
-const balancesPath = (accountId: number) => `/accounts/${accountId}/balances`;
-
-function revalidateBalances(accountId: number): void {
-  revalidatePath(balancesPath(accountId));
-  revalidatePath(ALL_BALANCES_PATH);
-}
 
 /** A failure that no field explains is told in a toast. */
 async function toFormState(
@@ -84,7 +75,7 @@ export async function saveBalanceAssertionAction(
     return await toFormState(error, formData, translate);
   }
 
-  revalidateBalances(accountId);
+  refreshData();
   // Replacing a balance is told, so that nobody believes a second one was added.
   if (saved.replaced) {
     await flashSuccess("balanceAssertionReplaced", { date: saved.date });
@@ -136,5 +127,5 @@ export async function deleteBalanceAssertionAction(
     },
     { success: "balanceAssertionDeleted", describeFailure: describeDeleteFailure },
   );
-  revalidateBalances(accountId);
+  refreshData();
 }

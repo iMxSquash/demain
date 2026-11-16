@@ -91,6 +91,7 @@ Start from an empty instance, signed in.
 - TypeScript in strict mode, no `any` (use `unknown` and narrow).
 - Amounts are integers in minor units, never floating-point numbers. See [docs/DOMAIN.md](docs/DOMAIN.md#invariants).
 - Estimation of unplanned spending exists only in simulations. See [ADR-011](docs/ARCHITECTURE.md#adr-011-estimation-only-inside-simulations).
+- Database reads for pages are cached. A server action that writes the database calls `refreshData()`, and a new `"use cache"` read calls `tagDataRead()` and gets "today" as an argument, never from the clock. See [ADR-023](docs/ARCHITECTURE.md#adr-023-database-reads-cached-in-memory-behind-one-tag-refreshed-by-every-write).
 - Comments explain why, not what. No commented-out code.
 - Accessibility target is WCAG 2.2 level AA.
 - Never commit personal financial data, secrets or real bank exports. Test fixtures must be synthetic and live in `tests/fixtures/`.

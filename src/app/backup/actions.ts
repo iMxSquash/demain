@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { messageRef } from "../../domain/message";
@@ -10,6 +9,7 @@ import { readText } from "../auth/auth-form-data";
 import { confirmPassword } from "../auth/confirm-password";
 import { refuse } from "../auth/refuse";
 import { requireSession } from "../auth/session";
+import { refreshData } from "../data-cache";
 import { flashSuccess } from "../feedback/flash";
 import {
   backupFailureRef,
@@ -49,7 +49,7 @@ export async function restoreSnapshotAction(_previous: null, formData: FormData)
     return refuse(backupFailureRef(error));
   }
 
-  revalidatePath("/", "layout");
+  refreshData();
   await flashSuccess("backupRestored");
   redirect(LOGIN_PATH);
 }

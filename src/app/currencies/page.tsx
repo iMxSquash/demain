@@ -14,6 +14,7 @@ import {
 } from "../../ledger/exchange-rates";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 import { DataTable, EmptyState } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
 import {
@@ -44,12 +45,18 @@ export async function generateMetadata(): Promise<Metadata> {
 const readCurrencies = cache(async () => {
   // The page reads the database and the clock: it must run per request.
   await connection();
+  return readCurrenciesFromDatabase();
+});
+
+async function readCurrenciesFromDatabase() {
+  "use cache";
+  tagDataRead();
   return withDatabase((db) => ({
     referenceCurrency: getReferenceCurrency(db),
     rates: listExchangeRates(db),
     isEcbEnabled: isEcbFetchEnabled(db),
   }));
-});
+}
 
 // The sections show their headings and their text at once and hold only the data in a `Suspense`,
 // so a slow read never delays the rest of the page.

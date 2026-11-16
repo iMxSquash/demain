@@ -26,6 +26,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("next/server", () => ({ connection: async () => undefined }));
 vi.mock("next-intl/server", () => ({
   getLocale: async () => LOCALE,
   getTranslations: async (namespace: string) =>
