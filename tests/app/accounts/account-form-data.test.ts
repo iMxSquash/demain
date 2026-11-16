@@ -77,6 +77,40 @@ describe("parseAccountForm", () => {
     });
   });
 
+  it.each([
+    ["a sign", "-5"],
+    ["a currency symbol", "5 €"],
+    ["a grouping separator", "1.000,00"],
+  ])("refuses %s on the opening balance and the ceiling", (_label, amount) => {
+    expect(parseAccountForm(formOf({ openingBalance: amount }))).toMatchObject({
+      ok: false,
+      error: { field: "openingBalance", message: "amountSyntax" },
+    });
+    expect(parseAccountForm(formOf({ depositCeiling: amount }))).toMatchObject({
+      ok: false,
+      error: { field: "depositCeiling", message: "amountSyntax" },
+    });
+  });
+
+  it("accepts a comma as the decimal separator", () => {
+    expect(parseAccountForm(formOf({ openingBalance: "42,5" }))).toMatchObject({
+      ok: true,
+      input: { openingBalance: 4250 },
+    });
+  });
+
+  it("turns a debit opening balance into a negative amount", () => {
+    expect(
+      parseAccountForm(formOf({ openingBalance: "42,5", openingBalanceSide: "debit" })),
+    ).toMatchObject({ ok: true, input: { openingBalance: -4250 } });
+  });
+
+  it("refuses an unknown opening balance side", () => {
+    expect(
+      parseAccountForm(formOf({ openingBalance: "1", openingBalanceSide: "up" })),
+    ).toMatchObject({ ok: false, error: { field: "openingBalanceSide" } });
+  });
+
   it("reports an unreadable amount on the opening balance field", () => {
     const parsed = parseAccountForm(formOf({ openingBalance: "abc" }));
 

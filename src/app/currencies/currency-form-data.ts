@@ -1,4 +1,6 @@
+import { isCurrencyCode, normalizeCurrencyCode } from "../../domain/amount-syntax";
 import type { ExchangeRateField } from "../../domain/exchange-rate";
+import { messageRef, type MessageRef } from "../../domain/message";
 
 export interface RateFormValues {
   date: string;
@@ -33,6 +35,14 @@ export function readRateValues(formData: FormData): RateFormValues {
   };
 }
 
-export function readCurrency(formData: FormData): string {
-  return readText(formData, "currency").toUpperCase();
+export type CurrencyCodeReading =
+  | { ok: true; code: string }
+  | { ok: false; value: string; ref: MessageRef };
+
+/** Exactly three letters, uppercased. `value` is what to show back when it is refused. */
+export function parseCurrencyCode(formData: FormData): CurrencyCodeReading {
+  const value = normalizeCurrencyCode(readText(formData, "currency"));
+  return isCurrencyCode(value)
+    ? { ok: true, code: value }
+    : { ok: false, value, ref: messageRef("currencyCodeSyntax", { text: value }) };
 }

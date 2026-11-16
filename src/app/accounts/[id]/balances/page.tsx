@@ -132,6 +132,7 @@ async function NewAssertion({ params }: { params: AccountParams }) {
           accountId: "",
           date: todayIn(timeZone, new Date()),
           amount: "",
+          side: "credit",
           note: "",
         }}
       />

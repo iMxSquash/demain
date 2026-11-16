@@ -19,7 +19,12 @@
     "chooseFile": "Choisir un fichier",
     "noFileChosen": "Aucun fichier choisi",
     "filesChosen": "{count} fichiers",
-    "toastDismiss": "Fermer la notification"
+    "toastDismiss": "Fermer la notification",
+    "balanceSide": {
+      "legend": "Sens du solde",
+      "credit": "Crédit",
+      "debit": "Débit"
+    }
   },
   "loading": {
     "table": "Chargement du tableau",
@@ -902,6 +907,10 @@
     "transferSurplusAccountChoose": "Choisissez le compte qui reçoit le surplus",
     "accountUnknown": "Compte inconnu",
     "amountUnsigned": "Saisissez le montant sans signe : le type donne le sens",
+    "amountSyntax": "Montant invalide « {text} » : uniquement des chiffres et une virgule ou un point",
+    "amountCharacterRefused": "« {character} » n'est pas accepté : uniquement des chiffres et une virgule ou un point.",
+    "currencyCodeSyntax": "Code de devise invalide « {text} » : trois lettres attendues",
+    "balanceSideInvalid": "Choisissez crédit ou débit",
     "amountExpectedDigits": "Montant invalide « {text} » : des chiffres avec des séparateurs facultatifs sont attendus",
     "amountMoreThanOneSign": "Montant invalide « {text} » : plus d'un signe",
     "amountMoreThanOneCurrency": "Montant invalide « {text} » : plus d'un symbole ou code de devise",

@@ -2,18 +2,25 @@ import type {
   BalanceAssertionField,
   BalanceAssertionInput,
 } from "../../../../domain/balance-assertion";
-import type { Translate } from "../../../../domain/message";
-import { MoneyParseError, parseAmount } from "../../../../domain/money";
+import {
+  applyBalanceSide,
+  parseUnsignedAmount,
+  readBalanceSide,
+} from "../../../../domain/amount-syntax";
+import { messageRef, type Translate } from "../../../../domain/message";
+import { MoneyParseError } from "../../../../domain/money";
 
 export interface BalanceAssertionFormValues {
   /** Only filled by the form that lets the user choose the account. */
   accountId: string;
   date: string;
   amount: string;
+  /** "credit" or "debit": the server turns a debit into a negative amount. */
+  side: string;
   note: string;
 }
 
-export type BalanceAssertionFormField = BalanceAssertionField | "accountId";
+export type BalanceAssertionFormField = BalanceAssertionField | "accountId" | "side";
 
 export interface BalanceAssertionFormState {
   field?: BalanceAssertionFormField;
@@ -38,6 +45,7 @@ export function readSubmittedValues(
     accountId: readText(formData, "accountId"),
     date: readText(formData, "date"),
     amount: readText(formData, "amount"),
+    side: readText(formData, "side"),
     note: readText(formData, "note"),
   };
 }
@@ -58,13 +66,24 @@ export function parseBalanceAssertionForm(
   translate: Translate,
 ): ParsedBalanceAssertionForm {
   const values = readSubmittedValues(formData);
+  const side = readBalanceSide(values.side);
+  if (side === null) {
+    return {
+      ok: false,
+      error: {
+        field: "side",
+        message: translate(messageRef("balanceSideInvalid")),
+        values,
+      },
+    };
+  }
   try {
     return {
       ok: true,
       input: {
         accountId,
         date: values.date,
-        amount: parseAmount(values.amount, currency),
+        amount: applyBalanceSide(parseUnsignedAmount(values.amount, currency), side),
         note: values.note,
       },
     };

@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { Button } from "../../../../components/button";
+import { AmountInput } from "../../../amount-input";
+import { BalanceSideField } from "../../../balance-side-field";
 import { CONTROL_CLASS, FormField } from "../../../form-field";
 import { useFocusFirstError } from "../../../use-focus-first-error";
 import type {
@@ -65,14 +67,10 @@ export function BalanceAssertionForm({
       </FormField>
 
       <FormField id="amount" label={t("form.amount")} error={errorOf("amount")}>
-        <input
-          {...controlProps("amount")}
-          type="text"
-          inputMode="decimal"
-          required
-          autoComplete="off"
-        />
+        <AmountInput {...controlProps("amount")} required />
       </FormField>
+
+      <BalanceSideField name="side" value={values.side} error={errorOf("side")} />
 
       <FormField id="note" label={t("form.note")} optional>
         <input {...controlProps("note")} type="text" autoComplete="off" />

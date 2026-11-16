@@ -115,6 +115,7 @@ async function NewAssertion() {
         accountId: "",
         date: todayIn(timeZone, new Date()),
         amount: "",
+        side: "credit",
         note: "",
       }}
     />

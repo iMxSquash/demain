@@ -19,7 +19,12 @@
     "chooseFile": "Choose a file",
     "noFileChosen": "No file chosen",
     "filesChosen": "{count} files",
-    "toastDismiss": "Dismiss the notification"
+    "toastDismiss": "Dismiss the notification",
+    "balanceSide": {
+      "legend": "Side of the balance",
+      "credit": "Credit",
+      "debit": "Debit"
+    }
   },
   "loading": {
     "table": "Loading the table",
@@ -902,6 +907,10 @@
     "transferSurplusAccountChoose": "Choose the account that receives the surplus",
     "accountUnknown": "Unknown account",
     "amountUnsigned": "Enter the amount without a sign: the type sets the direction",
+    "amountSyntax": "Invalid amount \"{text}\": digits and one comma or point only",
+    "amountCharacterRefused": "\"{character}\" is not accepted: digits and one comma or point only.",
+    "currencyCodeSyntax": "Invalid currency code \"{text}\": three letters expected",
+    "balanceSideInvalid": "Choose credit or debit",
     "amountExpectedDigits": "Invalid amount \"{text}\": expected digits with optional separators",
     "amountMoreThanOneSign": "Invalid amount \"{text}\": more than one sign",
     "amountMoreThanOneCurrency": "Invalid amount \"{text}\": more than one currency symbol or code",

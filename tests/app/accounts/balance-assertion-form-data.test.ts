@@ -33,10 +33,49 @@ describe("parseBalanceAssertionForm", () => {
     });
   });
 
-  it("reads a negative balance", () => {
-    expect(parseBalanceAssertionForm(formOf({ amount: "-12,50" }))).toMatchObject({
+  it("reads a debit balance as a negative amount", () => {
+    expect(
+      parseBalanceAssertionForm(formOf({ amount: "12,50", side: "debit" })),
+    ).toMatchObject({ ok: true, input: { amount: -1250 } });
+  });
+
+  it("reads a credit balance, and a missing side, as positive", () => {
+    expect(
+      parseBalanceAssertionForm(formOf({ amount: "12,50", side: "credit" })),
+    ).toMatchObject({ ok: true, input: { amount: 1250 } });
+    expect(parseBalanceAssertionForm(formOf({ amount: "12,50" }))).toMatchObject({
       ok: true,
-      input: { amount: -1250 },
+      input: { amount: 1250 },
+    });
+  });
+
+  it("keeps a zero debit at zero", () => {
+    const parsed = parseBalanceAssertionForm(formOf({ amount: "0", side: "debit" }));
+    expect(parsed).toMatchObject({ ok: true });
+    expect(Object.is((parsed as { input: { amount: number } }).input.amount, 0)).toBe(true);
+  });
+
+  it("refuses an unknown side", () => {
+    expect(
+      parseBalanceAssertionForm(formOf({ amount: "12", side: "up" })),
+    ).toMatchObject({ ok: false, error: { field: "side" } });
+  });
+
+  it.each([
+    ["a sign", "-12,50"],
+    ["a currency symbol", "12,50 €"],
+    ["a grouping separator", "1.234,50"],
+  ])("refuses %s on the amount field", (_label, amount) => {
+    expect(parseBalanceAssertionForm(formOf({ amount }))).toMatchObject({
+      ok: false,
+      error: { field: "amount", message: "amountSyntax" },
+    });
+  });
+
+  it("accepts a comma as the decimal separator", () => {
+    expect(parseBalanceAssertionForm(formOf({ amount: "42,5" }))).toMatchObject({
+      ok: true,
+      input: { amount: 4250 },
     });
   });
 

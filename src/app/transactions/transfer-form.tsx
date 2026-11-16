@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, type ReactNode } from "react";
 
 import { Button, type ButtonVariant } from "../../components/button";
+import { AmountInput } from "../amount-input";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { AccountOption } from "./transaction-form";
@@ -89,13 +90,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       </FormField>
 
       <FormField id={fieldId("amount")} label={t("amount")} error={errorOf("amount")}>
-        <input
-          {...controlProps("amount", values.amount)}
-          type="text"
-          inputMode="decimal"
-          required
-          autoComplete="off"
-        />
+        <AmountInput {...controlProps("amount", values.amount)} required />
       </FormField>
 
       <FormField id={fieldId("label")} label={t("label")} error={errorOf("label")}>

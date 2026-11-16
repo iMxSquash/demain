@@ -1,5 +1,6 @@
+import { parseUnsignedAmount } from "../../domain/amount-syntax";
 import { messageRef, type Translate } from "../../domain/message";
-import { MoneyParseError, parseAmount } from "../../domain/money";
+import { MoneyParseError } from "../../domain/money";
 import type { TransactionInput } from "../../domain/transaction";
 import type {
   SurplusDecision,
@@ -139,19 +140,21 @@ function readAccount(
 
 type AmountResult = { value: number } | { message: string };
 
-// The amount is typed without a sign: a minus sign is refused rather than
-// guessed, since "expense" and "-" would otherwise contradict each other.
+// The amount is typed without a sign: a sign is refused rather than guessed, since
+// "expense" and "-" would otherwise contradict each other.
+const SIGN_CHARACTERS = /^[+\-\u2212]/;
+
 function readUnsignedAmount(
   text: string,
   currency: string,
   translate: Translate,
 ): AmountResult {
+  // The sign gets its own message: the type, not the text, gives the direction.
+  if (SIGN_CHARACTERS.test(text.trim())) {
+    return { message: translate(messageRef("amountUnsigned")) };
+  }
   try {
-    const value = parseAmount(text, currency);
-    if (value < 0) {
-      return { message: translate(messageRef("amountUnsigned")) };
-    }
-    return { value };
+    return { value: parseUnsignedAmount(text, currency) };
   } catch (error) {
     if (error instanceof MoneyParseError) {
       return { message: translate(error.ref) };

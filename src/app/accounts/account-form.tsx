@@ -5,6 +5,8 @@ import { useActionState } from "react";
 
 import { Button } from "../../components/button";
 import { ACCOUNT_KINDS, type AccountField } from "../../domain/account";
+import { AmountInput } from "../amount-input";
+import { BalanceSideField } from "../balance-side-field";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type {
@@ -89,26 +91,21 @@ export function AccountForm({
       </FormField>
 
       <FormField {...fieldProps("openingBalance", t("form.openingBalance"))}>
-        <input
-          {...controlProps("openingBalance")}
-          type="text"
-          inputMode="decimal"
-          required
-          autoComplete="off"
-        />
+        <AmountInput {...controlProps("openingBalance")} required />
       </FormField>
+
+      <BalanceSideField
+        name="openingBalanceSide"
+        value={values.openingBalanceSide}
+        error={state?.field === "openingBalanceSide" ? state.message : undefined}
+      />
 
       <FormField
         {...fieldProps("depositCeiling", t("form.depositCeiling"))}
         optional
         hint={t("form.depositCeilingHint")}
       >
-        <input
-          {...controlProps("depositCeiling")}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-        />
+        <AmountInput {...controlProps("depositCeiling")} />
       </FormField>
 
       <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))} optional>
