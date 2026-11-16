@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { Button } from "../../components/button";
 import { ENTERED_TRANSACTION_KINDS, PAYMENT_MODES } from "../../domain/transaction";
+import { AmountInput } from "../amount-input";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type {
@@ -104,12 +105,9 @@ export function TransactionForm({
         hint={t("form.amountHint")}
         error={errorOf("amount")}
       >
-        <input
+        <AmountInput
           {...controlProps("amount")}
-          type="text"
-          inputMode="decimal"
           required
-          autoComplete="off"
         />
       </FormField>
 

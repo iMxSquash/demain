@@ -19,7 +19,12 @@
     "chooseFile": "Choose a file",
     "noFileChosen": "No file chosen",
     "filesChosen": "{count} files",
-    "toastDismiss": "Dismiss the notification"
+    "toastDismiss": "Dismiss the notification",
+    "balanceSide": {
+      "legend": "Side of the balance",
+      "credit": "Credit",
+      "debit": "Debit"
+    }
   },
   "loading": {
     "table": "Loading the table",
