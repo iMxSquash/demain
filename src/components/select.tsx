@@ -21,7 +21,7 @@ import {
 import { CONTROL_CLASS } from "../app/form-field";
 import { useMotion } from "../app/motion-provider";
 import { Icon } from "./icon";
-import { resolveSelectKey, type SelectOption } from "./select-keyboard";
+import { firstEnabled, resolveSelectKey, type SelectOption } from "./select-keyboard";
 
 // DESIGN.md, section 9: the server renders the native select, and this component swaps it for a
 // select-only combobox once the page is interactive. The native select stays in the DOM, hidden:
@@ -50,6 +50,8 @@ function showAsPopover(element: HTMLElement | null) {
 type NativeProps = Omit<ComponentProps<"select">, "className" | "style" | "multiple" | "size" | "ref">;
 
 export interface SelectProps extends NativeProps {
+  /** The look is the shared control: a class is refused instead of silently dropped. */
+  className?: never;
   /** Fits the content instead of the width of the column. */
   inline?: boolean;
   ref?: Ref<SelectHandle>;
@@ -137,7 +139,7 @@ export function Select({
 
   useImperativeHandle(ref, () => ({
     focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
-  }));
+  }), []);
 
   // A form reset (React 19 resets the form after an action) puts the native select back on its
   // default; the combobox follows once the browser has done it.
@@ -184,10 +186,6 @@ export function Select({
 
   useEffect(() => () => clearTimeout(typeaheadTimerRef.current), []);
 
-  function firstEnabledIndex(): number {
-    return options.findIndex((option) => option.disabled !== true);
-  }
-
   function openAt(index: number, isKeyboard: boolean) {
     const trigger = triggerRef.current;
     if (trigger !== null) {
@@ -203,14 +201,19 @@ export function Select({
           : { top: rect.bottom + POPOVER_GAP }),
       });
     }
+    activate(index, isKeyboard);
+    setIsOpen(true);
+  }
+
+  function activate(index: number, isKeyboard: boolean) {
     setActiveIndex(index);
     setIsKeyboardActive(isKeyboard);
-    setIsOpen(true);
   }
 
   function choose(index: number) {
     const option = options[index];
     const native = nativeRef.current;
+    setIsOpen(false);
     if (option === undefined || option.disabled === true || native === null) return;
     if (native.value !== option.value) {
       native.value = option.value;
@@ -247,34 +250,22 @@ export function Select({
         openAt(action.activeIndex, true);
         break;
       case "move":
-        setActiveIndex(action.activeIndex);
-        setIsKeyboardActive(true);
+        activate(action.activeIndex, true);
         break;
       case "commit":
         choose(action.activeIndex);
-        setIsOpen(false);
         break;
       case "close":
         setIsOpen(false);
         break;
       case "typeahead":
         rememberTypeahead(action.buffer);
-        if (isListShown) {
-          setActiveIndex(action.activeIndex);
-          setIsKeyboardActive(true);
-        } else {
-          openAt(action.activeIndex, true);
-        }
+        if (isListShown) activate(action.activeIndex, true);
+        else openAt(action.activeIndex, true);
         break;
     }
   }
 
-  const popoverAnchor: Anchor = anchor ?? { left: 0, width: 0, top: 0 };
-  const popoverStyle = {
-    left: popoverAnchor.left,
-    width: popoverAnchor.width,
-    ...("top" in popoverAnchor ? { top: popoverAnchor.top } : { bottom: popoverAnchor.bottom }),
-  };
   const selectedLabel = options[selectedIndex]?.label ?? "";
   const widthClass = inline ? "w-auto" : "w-full";
 
@@ -320,7 +311,7 @@ export function Select({
             disabled={disabled}
             onClick={() => {
               if (isListShown) setIsOpen(false);
-              else openAt(selectedIndex >= 0 ? selectedIndex : firstEnabledIndex(), false);
+              else openAt(selectedIndex >= 0 ? selectedIndex : firstEnabled(options), false);
             }}
             onKeyDown={handleKeyDown}
             onBlur={() => setIsOpen(false)}
@@ -334,13 +325,13 @@ export function Select({
             </span>
           </button>
           <AnimatePresence>
-            {isListShown ? (
+            {isListShown && anchor !== null ? (
               <m.div
                 key="popover"
                 ref={showAsPopover}
                 popover="manual"
-                style={popoverStyle}
-                initial={{ opacity: 0, y: "top" in popoverAnchor ? motion.offset.rise : -motion.offset.rise }}
+                style={anchor}
+                initial={{ opacity: 0, y: "top" in anchor ? motion.offset.rise : -motion.offset.rise }}
                 animate={{
                   opacity: 1,
                   y: 0,
@@ -371,13 +362,11 @@ export function Select({
                       aria-disabled={option.disabled === true ? true : undefined}
                       onMouseMove={() => {
                         if (option.disabled === true) return;
-                        setActiveIndex(index);
-                        setIsKeyboardActive(false);
+                        activate(index, false);
                       }}
                       onClick={() => {
                         if (option.disabled === true) return;
                         choose(index);
-                        setIsOpen(false);
                       }}
                       className={`flex min-h-11 items-center justify-between gap-3 rounded-control px-3 py-2 ${
                         option.disabled === true ? "cursor-not-allowed text-text-muted" : "cursor-pointer text-text"

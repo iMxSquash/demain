@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  PAGE_JUMP,
   findTypeaheadMatch,
   resolveSelectKey,
   type SelectKeyState,
@@ -86,7 +85,6 @@ describe("resolveSelectKey, open", () => {
   it("jumps by ten with PageDown and PageUp and stops at the ends", () => {
     const list = numbered(25);
 
-    expect(PAGE_JUMP).toBe(10);
     expect(resolveSelectKey(open(3), "PageDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 13 });
     expect(resolveSelectKey(open(20), "PageDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 24 });
     expect(resolveSelectKey(open(12), "PageUp", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 2 });

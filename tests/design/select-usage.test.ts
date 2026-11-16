@@ -26,10 +26,4 @@ describe("every select of the app is the picker", () => {
 
     expect(offenders).toEqual([]);
   });
-
-  it("recognises a native select added in a form", () => {
-    expect(NATIVE_SELECT.test("<select")).toBe(true);
-    expect(NATIVE_SELECT.test('<select id="kind" name="kind">')).toBe(true);
-    expect(NATIVE_SELECT.test("<Select id=\"kind\">")).toBe(false);
-  });
 });

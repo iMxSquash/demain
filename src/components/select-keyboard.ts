@@ -30,7 +30,7 @@ export type SelectKeyAction =
   | { type: "close"; preventDefault: boolean }
   | { type: "typeahead"; buffer: string; activeIndex: number; preventDefault: boolean };
 
-export const PAGE_JUMP = 10;
+const PAGE_JUMP = 10;
 
 const NONE: SelectKeyAction = { type: "none" };
 
@@ -39,7 +39,7 @@ function isEnabled(options: readonly SelectOption[], index: number): boolean {
   return option !== undefined && option.disabled !== true;
 }
 
-function firstEnabled(options: readonly SelectOption[]): number {
+export function firstEnabled(options: readonly SelectOption[]): number {
   return options.findIndex((_, index) => isEnabled(options, index));
 }
 

@@ -37,12 +37,12 @@ export function BalanceAssertionForm({
 
   const errorOf = (field: keyof BalanceAssertionFormValues) =>
     state?.field === field ? state.message : undefined;
-  const controlProps = (field: keyof BalanceAssertionFormValues) => ({
+  const selectProps = (field: keyof BalanceAssertionFormValues) => ({
     id: field,
     name: field,
     defaultValue: values[field],
-    className: CONTROL_CLASS,
   });
+  const controlProps = (field: keyof BalanceAssertionFormValues) => ({ ...selectProps(field), className: CONTROL_CLASS });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -52,7 +52,7 @@ export function BalanceAssertionForm({
           label={t("form.account")}
           error={errorOf("accountId")}
         >
-          <Select {...controlProps("accountId")} required>
+          <Select {...selectProps("accountId")} required>
             <option value="">{t("chooseAccount")}</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>

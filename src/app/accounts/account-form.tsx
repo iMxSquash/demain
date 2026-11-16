@@ -47,12 +47,12 @@ export function AccountForm({
 
   const errorOf = (field: AccountField) =>
     state?.field === field ? state.message : undefined;
-  const controlProps = (field: AccountField) => ({
+  const selectProps = (field: AccountField) => ({
     id: field,
     name: field,
     defaultValue: values[field],
-    className: CONTROL_CLASS,
   });
+  const controlProps = (field: AccountField) => ({ ...selectProps(field), className: CONTROL_CLASS });
   const fieldProps = (field: AccountField, label: string) => ({
     id: field,
     label,
@@ -68,7 +68,7 @@ export function AccountForm({
       <FormField {...fieldProps("kind", t("form.kind"))}>
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
-        <Select key={values.kind} {...controlProps("kind")}>
+        <Select key={values.kind} {...selectProps("kind")}>
           {ACCOUNT_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
@@ -113,7 +113,7 @@ export function AccountForm({
         {/* Same remount trick as the kind select above. */}
         <Select
           key={values.overflowAccountId}
-          {...controlProps("overflowAccountId")}
+          {...selectProps("overflowAccountId")}
         >
           <option value="">{common("none")}</option>
           {overflowOptions.map((option) => (

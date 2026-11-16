@@ -40,12 +40,12 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
 
   const errorOf = (field: TransferFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const controlProps = (field: TransferFormField, defaultValue: string) => ({
+  const selectProps = (field: TransferFormField, defaultValue: string) => ({
     id: fieldId(field),
     name: field,
     defaultValue,
-    className: CONTROL_CLASS,
   });
+  const controlProps = (field: TransferFormField, defaultValue: string) => ({ ...selectProps(field, defaultValue), className: CONTROL_CLASS });
   const accountOptions = accounts.map((account) => (
     <option key={account.id} value={account.id}>
       {account.name} ({account.currency})
@@ -63,7 +63,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       <FormField id={fieldId("sourceId")} label={t("from")} error={errorOf("sourceId")}>
         <Select
           key={values.sourceId}
-          {...controlProps("sourceId", values.sourceId)}
+          {...selectProps("sourceId", values.sourceId)}
         >
           {accountOptions}
         </Select>
@@ -76,7 +76,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       >
         <Select
           key={values.destinationId}
-          {...controlProps("destinationId", values.destinationId)}
+          {...selectProps("destinationId", values.destinationId)}
         >
           {accountOptions}
         </Select>
@@ -115,7 +115,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
             >
               <Select
                 key={choice.suggestedAccountId}
-                {...controlProps("surplusAccountId", choice.suggestedAccountId)}
+                {...selectProps("surplusAccountId", choice.suggestedAccountId)}
               >
                 <option value="">{t("chooseAccount")}</option>
                 {accountOptions}

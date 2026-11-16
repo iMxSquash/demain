@@ -55,12 +55,12 @@ export function TransactionForm({
 
   const errorOf = (field: TransactionFormField) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const controlProps = (field: TransactionFormField) => ({
+  const selectProps = (field: TransactionFormField) => ({
     id: field,
     name: field,
     defaultValue: values[field],
-    className: CONTROL_CLASS,
   });
+  const controlProps = (field: TransactionFormField) => ({ ...selectProps(field), className: CONTROL_CLASS });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -77,7 +77,7 @@ export function TransactionForm({
       >
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
-        <Select key={values.accountId} {...controlProps("accountId")}>
+        <Select key={values.accountId} {...selectProps("accountId")}>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
               {account.name} ({account.currency})
@@ -91,7 +91,7 @@ export function TransactionForm({
       </FormField>
 
       <FormField id="kind" label={t("form.type")} error={errorOf("kind")}>
-        <Select key={values.kind} {...controlProps("kind")}>
+        <Select key={values.kind} {...selectProps("kind")}>
           {ENTERED_TRANSACTION_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
@@ -129,7 +129,7 @@ export function TransactionForm({
         hint={t("form.categoryHint")}
         error={errorOf("categoryId")}
       >
-        <Select key={values.categoryId} {...controlProps("categoryId")}>
+        <Select key={values.categoryId} {...selectProps("categoryId")}>
           <option value="">{common("none")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
@@ -145,7 +145,7 @@ export function TransactionForm({
         optional
         error={errorOf("paymentMode")}
       >
-        <Select key={values.paymentMode} {...controlProps("paymentMode")}>
+        <Select key={values.paymentMode} {...selectProps("paymentMode")}>
           <option value="">{common("none")}</option>
           {PAYMENT_MODES.map((mode) => (
             <option key={mode} value={mode}>
