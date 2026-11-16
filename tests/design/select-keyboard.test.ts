@@ -125,10 +125,9 @@ describe("resolveSelectKey, open", () => {
     expect(resolveSelectKey(open(2), "Escape", FRUITS, NO_MODIFIERS)).toEqual({ type: "close", preventDefault: true });
   });
 
-  it("commits on Tab and lets the focus move on", () => {
+  it("closes on Tab without choosing and lets the focus move on", () => {
     expect(resolveSelectKey(open(2), "Tab", FRUITS, NO_MODIFIERS)).toEqual({
-      type: "commit",
-      activeIndex: 2,
+      type: "close",
       preventDefault: false,
     });
   });
@@ -199,18 +198,13 @@ describe("type-ahead", () => {
     });
   });
 
-  it("treats Space as a letter while a search is running", () => {
+  it("still chooses on Space while a search is running", () => {
     const list = options("New York", "Newark", "New Delhi");
 
-    expect(resolveSelectKey(open(0, "new"), " ", list, NO_MODIFIERS)).toMatchObject({
-      type: "typeahead",
-      buffer: "new ",
+    expect(resolveSelectKey(open(0, "new"), " ", list, NO_MODIFIERS)).toEqual({
+      type: "commit",
       activeIndex: 0,
-    });
-    expect(resolveSelectKey(open(0, "new "), "d", list, NO_MODIFIERS)).toMatchObject({
-      type: "typeahead",
-      buffer: "new d",
-      activeIndex: 2,
+      preventDefault: true,
     });
   });
 });

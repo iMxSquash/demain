@@ -161,10 +161,10 @@ function resolveOpen(
     case "Escape":
       return { type: "close", preventDefault: true };
     case "Tab":
-      return commit(activeIndex, false);
+      // Tab only leaves: the value stays as it was and the focus moves on.
+      return { type: "close", preventDefault: false };
     case " ":
-      // A space inside a search ("new y") is a letter; on its own it chooses.
-      return state.typeahead === "" ? commit(activeIndex, true) : resolveTypeahead(state, key, options);
+      return commit(activeIndex, true);
     default:
       return isLetter(key) ? resolveTypeahead(state, key, options) : NONE;
   }

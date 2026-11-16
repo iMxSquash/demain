@@ -422,7 +422,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 - *A library (Radix, Headless UI, Downshift).* A dependency for one component whose rules are a page of pure functions, and none of them keeps a native select as the source of the form value.
 - *Wrapping Page Up and Down, or the arrows, at the ends.* The list stops at its ends, as a native select does, so holding a key never loops.
 
-**Consequences.** `required` is not passed to the hidden select once swapped (a hidden required control blocks a submit without showing a message); the combobox carries `aria-required`, and the server stays the authority. Every form of the app is `noValidate` already. The popover is internal to `Select`: the date picker (#120) has a different anatomy and no shared primitive was extracted. Tab commits the highlighted option and Space inside a running search is a letter, as in the APG select-only example; the owner confirms them on issue #119.
+**Consequences.** `required` is not passed to the hidden select once swapped (a hidden required control blocks a submit without showing a message); the combobox carries `aria-required`, and the server stays the authority. Every form of the app is `noValidate` already. The popover is internal to `Select`: the date picker (#120) has a different anatomy and no shared primitive was extracted. Tab closes the list without changing the value and lets the focus move on, and Space always chooses the highlighted option (owner, 16 Nov 2026).
 
 ## Tooling
 

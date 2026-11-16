@@ -269,7 +269,7 @@ export function Select({
         break;
       case "close":
         // The Escape that closes the list is not meant for a dialog around it.
-        event.stopPropagation();
+        if (event.key === "Escape") event.stopPropagation();
         closeList();
         break;
       case "typeahead":
