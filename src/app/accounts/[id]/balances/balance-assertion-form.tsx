@@ -12,6 +12,7 @@ import type {
   BalanceAssertionFormState,
   BalanceAssertionFormValues,
 } from "./balance-assertion-form-data";
+import { Select } from "../../../../components/select";
 
 interface BalanceAssertionFormProps {
   action: (
@@ -51,14 +52,14 @@ export function BalanceAssertionForm({
           label={t("form.account")}
           error={errorOf("accountId")}
         >
-          <select {...controlProps("accountId")} required>
+          <Select {...controlProps("accountId")} required>
             <option value="">{t("chooseAccount")}</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
         </FormField>
       )}
 

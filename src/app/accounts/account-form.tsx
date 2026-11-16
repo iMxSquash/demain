@@ -13,6 +13,7 @@ import type {
   AccountFormState,
   AccountFormValues,
 } from "./account-form-data";
+import { Select } from "../../components/select";
 
 export interface OverflowOption {
   id: number;
@@ -67,13 +68,13 @@ export function AccountForm({
       <FormField {...fieldProps("kind", t("form.kind"))}>
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
-        <select key={values.kind} {...controlProps("kind")}>
+        <Select key={values.kind} {...controlProps("kind")}>
           {ACCOUNT_KINDS.map((kind) => (
             <option key={kind} value={kind}>
               {t(`kinds.${kind}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField {...fieldProps("currency", t("form.currency"))} hint={t("form.currencyHint")}>
@@ -110,7 +111,7 @@ export function AccountForm({
 
       <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))} optional>
         {/* Same remount trick as the kind select above. */}
-        <select
+        <Select
           key={values.overflowAccountId}
           {...controlProps("overflowAccountId")}
         >
@@ -120,7 +121,7 @@ export function AccountForm({
               {option.name} ({option.currency})
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <Button
