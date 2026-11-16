@@ -10,6 +10,7 @@ import { RULE_OPERATORS } from "../../domain/categorization-rule";
 import { CONTROL_CLASS } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { CategorizeState } from "./category-form-data";
+import { Select } from "../../components/select";
 
 interface CategorizeFormProps {
   action: (
@@ -45,13 +46,12 @@ export function CategorizeForm({
         <label htmlFor={selectId} className="sr-only">
           {t("categoryFor", { transaction: transactionLabel })}
         </label>
-        <select
+        <Select
           // React ignores a new defaultValue on a mounted select: remount to restore the choice.
           key={state?.values?.categoryId ?? ""}
           id={selectId}
           name="categoryId"
           defaultValue={state?.values?.categoryId ?? ""}
-          className={CONTROL_CLASS}
           aria-invalid={state?.field === "category" ? true : undefined}
           aria-describedby={state?.field === "category" ? errorId : undefined}
         >
@@ -61,7 +61,7 @@ export function CategorizeForm({
               {category.name}
             </option>
           ))}
-        </select>
+        </Select>
         <Button
           type="submit"
           variant="link"
@@ -79,18 +79,17 @@ export function CategorizeForm({
             label={t("ruleCreate")}
           />
           <label htmlFor={operatorId}>{rules("operator")}</label>
-          <select
+          <Select
             id={operatorId}
             name="ruleOperator"
             defaultValue={state?.values?.ruleOperator ?? "contains"}
-            className={CONTROL_CLASS}
           >
             {RULE_OPERATORS.map((operator) => (
               <option key={operator} value={operator}>
                 {rules(`operators.${operator}`)}
               </option>
             ))}
-          </select>
+          </Select>
           <label htmlFor={valueId}>{rules("value")}</label>
           <input
             id={valueId}
