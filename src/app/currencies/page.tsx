@@ -43,8 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // One read for the whole request: every section below asks for it and gets the same answer.
 const readCurrencies = cache(async () => {
-  // Checked here, inside the `Suspense` of each section, so the page awaits nothing and its static
-  // parts are part of the prefetched App Shell (ADR-023).
+  // Inside the `Suspense` of each section, so the page itself joins the prefetched App Shell (ADR-023).
   await requireSession();
   // The page reads the database and the clock: it must run per request.
   await connection();

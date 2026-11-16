@@ -32,9 +32,8 @@ type AccountParams = Promise<{ id: string }>;
 
 // One read for the whole request: every part below passes the same `params` and gets the same answer.
 const readAccountBalances = cache(async (params: AccountParams) => {
-  // Checked here, inside the `Suspense` of each part, so the page awaits nothing and its static parts
-  // are part of the prefetched App Shell (ADR-023). The id comes from the URL, which the shared App
-  // Shell cannot hold either.
+  // Inside the `Suspense` of each part, so the page itself joins the prefetched App Shell (ADR-023),
+  // which cannot hold the id of the URL either.
   await requireSession();
   const { id: rawId } = await params;
   const id = Number(rawId);
