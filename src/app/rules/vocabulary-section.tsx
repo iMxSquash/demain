@@ -11,7 +11,6 @@ import { getVocabularyOverview } from "../../ledger/type-vocabulary";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
-import { CONTROL_CLASS } from "../form-field";
 import {
   addVocabularyWordAction,
   changeVocabularyTypeAction,
@@ -19,6 +18,7 @@ import {
   restoreVocabularyWordAction,
 } from "./vocabulary-actions";
 import { VocabularyForm } from "./vocabulary-form";
+import { Select } from "../../components/select";
 
 /**
  * The words of a category that give the type of an imported row, with where
@@ -117,18 +117,18 @@ async function VocabularyWords() {
                     <label htmlFor={`type-${word}`} className="sr-only">
                       {t("changeTypeOf", { word })}
                     </label>
-                    <select
+                    <Select
                       id={`type-${word}`}
                       name="type"
                       defaultValue={type}
-                      className={`${CONTROL_CLASS} w-auto`}
+                      inline
                     >
                       {MOVEMENT_TYPES.map((option) => (
                         <option key={option} value={option}>
                           {t(`types.${option}`)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <Button type="submit" variant="link">
                       {t("change")}<span className="sr-only"> {word}</span>
                     </Button>

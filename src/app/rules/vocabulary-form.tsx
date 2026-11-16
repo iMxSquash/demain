@@ -9,6 +9,7 @@ import type { VocabularyField } from "../../ledger/type-vocabulary";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { VocabularyFormState } from "./vocabulary-form-data";
+import { Select } from "../../components/select";
 
 interface VocabularyFormProps {
   action: (
@@ -45,18 +46,17 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
       </FormField>
 
       <FormField id="vocabulary-type" label={t("type")} error={errorOf("type")}>
-        <select
+        <Select
           id="vocabulary-type"
           name="type"
           defaultValue={values?.type ?? "income"}
-          className={CONTROL_CLASS}
         >
           {MOVEMENT_TYPES.map((type) => (
             <option key={type} value={type}>
               {t(`types.${type}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <Button
