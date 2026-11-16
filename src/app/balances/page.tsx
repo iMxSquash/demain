@@ -29,6 +29,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // One read for the whole request: both sections ask for it and get the same answer.
 const readBalances = cache(async () => {
+  // Inside the `Suspense` of each section, so the page itself joins the prefetched App Shell (ADR-023).
+  await requireSession();
   // The page reads the database: it must run per request.
   await connection();
   return readBalancesFromDatabase();
@@ -46,7 +48,6 @@ async function readBalancesFromDatabase() {
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page.
 export default async function AllBalanceAssertionsPage() {
-  await requireSession();
   const [t, common] = await Promise.all([
     getTranslations("balances"),
     getTranslations("common"),

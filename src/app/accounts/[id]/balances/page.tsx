@@ -28,8 +28,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-// One read for the whole request: every part below asks for it and gets the same answer.
-const readAccountBalances = cache(async (id: number) => {
+type AccountParams = Promise<{ id: string }>;
+
+// One read for the whole request: every part below passes the same `params` and gets the same answer.
+const readAccountBalances = cache(async (params: AccountParams) => {
+  // Inside the `Suspense` of each part, so the page itself joins the prefetched App Shell (ADR-023),
+  // which cannot hold the id of the URL either.
+  await requireSession();
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) notFound();
   // The page reads the database and the clock: it must run per request.
   await connection();
   try {
@@ -56,16 +64,12 @@ const readAccountBalances = cache(async (id: number) => {
 export default async function BalanceAssertionsPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: AccountParams;
 }) {
-  await requireSession();
   const [t, accountsT] = await Promise.all([
     getTranslations("balances"),
     getTranslations("accounts"),
   ]);
-  const { id: rawId } = await params;
-  const id = Number(rawId);
-  if (!Number.isSafeInteger(id)) notFound();
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 p-8">
@@ -73,27 +77,27 @@ export default async function BalanceAssertionsPage({
         {accountsT("backToAccounts")}
       </Link>
       <Suspense fallback={<SkeletonLine size="heading" width="1/3" />}>
-        <AccountTitle id={id} />
+        <AccountTitle params={params} />
       </Suspense>
       <p>{t("intro")}</p>
 
       <Suspense fallback={<NewAssertionLoading />}>
-        <NewAssertion id={id} />
+        <NewAssertion params={params} />
       </Suspense>
 
       <PageSection id="list-heading" heading={t("listHeading")}>
         <Suspense fallback={<AssertionListLoading />}>
-          <AssertionList id={id} />
+          <AssertionList params={params} />
         </Suspense>
       </PageSection>
     </main>
   );
 }
 
-async function AccountTitle({ id }: { id: number }) {
+async function AccountTitle({ params }: { params: AccountParams }) {
   const [t, { account }] = await Promise.all([
     getTranslations("balances"),
-    readAccountBalances(id),
+    readAccountBalances(params),
   ]);
 
   return <h1 className="text-heading font-medium">{t("title", { name: account.name })}</h1>;
@@ -112,11 +116,11 @@ function NewAssertionLoading() {
   );
 }
 
-async function NewAssertion({ id }: { id: number }) {
+async function NewAssertion({ params }: { params: AccountParams }) {
   const [t, timeZone, { account }] = await Promise.all([
     getTranslations("balances"),
     getTimeZone(),
-    readAccountBalances(id),
+    readAccountBalances(params),
   ]);
 
   if (account.archived) return <p>{t("archivedNote")}</p>;
@@ -146,10 +150,10 @@ function AssertionListLoading() {
   );
 }
 
-async function AssertionList({ id }: { id: number }) {
+async function AssertionList({ params }: { params: AccountParams }) {
   const [t, { account, assertions }] = await Promise.all([
     getTranslations("balances"),
-    readAccountBalances(id),
+    readAccountBalances(params),
   ]);
 
   if (assertions.length === 0) {

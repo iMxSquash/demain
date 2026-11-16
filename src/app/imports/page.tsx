@@ -21,7 +21,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ImportsPage() {
-  await requireSession();
   const [t, common] = await Promise.all([
     getTranslations("imports"),
     getTranslations("common"),
@@ -61,6 +60,7 @@ async function readImportContext() {
 }
 
 async function ImportSection() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("imports");

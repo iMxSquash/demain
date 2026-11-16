@@ -18,9 +18,10 @@ import { getTranslator } from "./translator";
 
 import "./globals.css";
 
-// The root layout sets `lang` and `data-theme` on <html> from cookies (ADR-014), so no part of a page
-// can be prerendered above it: every route renders per request, as it did before Cache Components.
-// Database reads are cached below this level instead (ADR-023).
+// A direct visit renders per request: the scripts need the nonce of the request (src/proxy.ts), and
+// this layout reads the session for the navigation and the cookies for `lang` and `data-theme`
+// (ADR-014). This opt-out covers only that page load. Client navigations into each page are still
+// validated, so a page that awaits uncached work outside a `Suspense` is reported (ADR-023).
 export const instant = false;
 
 const CONTENT_ID = "content";

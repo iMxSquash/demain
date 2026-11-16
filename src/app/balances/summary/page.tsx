@@ -18,7 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SummaryBalancesPage() {
-  await requireSession();
   const t = await getTranslations("summaryBalances");
 
   return (
@@ -52,6 +51,7 @@ async function readActiveAccounts() {
 }
 
 async function SummaryForm() {
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("summaryBalances");

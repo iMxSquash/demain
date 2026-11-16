@@ -36,6 +36,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // One read for the whole request: every section below asks for it and gets the same answer.
 const readTransactions = cache(async () => {
+  // Inside the `Suspense` of each section, so the page itself joins the prefetched App Shell (ADR-023).
+  await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
   return readTransactionsFromDatabase();
@@ -56,7 +58,6 @@ const PAGE_GAP = "gap-10";
 // The sections below show their heading at once and hold only the data in a `Suspense`, so a slow
 // read never delays the rest of the page.
 export default async function TransactionsPage() {
-  await requireSession();
   const [t, common] = await Promise.all([
     getTranslations("transactions"),
     getTranslations("common"),

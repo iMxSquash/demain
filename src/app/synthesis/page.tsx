@@ -27,7 +27,6 @@ const PAGE_GAP = "gap-6";
 // The title and the link show at once; the table, whose caption and columns hold the currency and the
 // names of the accounts, waits for the database.
 export default async function SynthesisPage() {
-  await requireSession();
   const [t, common] = await Promise.all([
     getTranslations("synthesis"),
     getTranslations("common"),
@@ -71,6 +70,7 @@ async function readSynthesis(throughMonth: Month) {
 }
 
 async function Synthesis() {
+  await requireSession();
   // The page reads the database and the clock: it must run per request.
   await connection();
   const [t, locale, timeZone] = await Promise.all([
