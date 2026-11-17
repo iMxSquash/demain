@@ -132,6 +132,15 @@ describe("resolveSelectKey, open", () => {
     });
   });
 
+  it("never lands on a disabled option when every option of a jump is disabled", () => {
+    const list: SelectOption[] = [
+      { value: "0", label: "0", disabled: true },
+      ...Array.from({ length: 10 }, (_, index) => ({ value: `${index + 1}`, label: `${index + 1}`, disabled: true })),
+    ];
+
+    expect(resolveSelectKey(open(-1), "PageDown", list, NO_MODIFIERS)).toEqual({ type: "none" });
+  });
+
   it("does nothing when there is no option", () => {
     expect(resolveSelectKey(open(-1), "ArrowDown", [], NO_MODIFIERS)).toEqual({ type: "none" });
     expect(resolveSelectKey(open(-1), "Enter", [], NO_MODIFIERS)).toEqual({ type: "close", preventDefault: true });
@@ -198,13 +207,20 @@ describe("type-ahead", () => {
     });
   });
 
-  it("still chooses on Space while a search is running", () => {
+  it("writes a space into a running search instead of choosing", () => {
     const list = options("New York", "Newark", "New Delhi");
 
     expect(resolveSelectKey(open(0, "new"), " ", list, NO_MODIFIERS)).toEqual({
-      type: "commit",
+      type: "typeahead",
+      buffer: "new ",
       activeIndex: 0,
       preventDefault: true,
     });
+  });
+
+  it("finds an option whose label has a space", () => {
+    const list = options("Livret A", "Livret Jeune", "Compte");
+
+    expect(findTypeaheadMatch(list, 2, "livret j")).toBe(1);
   });
 });

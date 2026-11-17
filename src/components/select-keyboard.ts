@@ -59,12 +59,14 @@ function nearestEnabled(options: readonly SelectOption[], from: number, step: 1 
 }
 
 // A page jump lands on `from + delta` clamped to the list; a disabled landing spot gives way to
-// the nearest enabled option on the side of `from`, so the jump never overshoots.
+// the nearest enabled option on the side of `from`, so the jump never overshoots. -1 when nothing
+// enabled is left, `from` itself being disabled.
 function jump(options: readonly SelectOption[], from: number, delta: number): number {
   const target = Math.min(Math.max(from + delta, 0), options.length - 1);
   if (isEnabled(options, target)) return target;
   const towardFrom = delta > 0 ? -1 : 1;
-  return nearestEnabled(options, target, towardFrom);
+  const landing = nearestEnabled(options, target, towardFrom);
+  return isEnabled(options, landing) ? landing : -1;
 }
 
 function isRepeatedLetter(buffer: string): boolean {
@@ -162,7 +164,8 @@ function resolveOpen(
       // Tab only leaves: the value stays as it was and the focus moves on.
       return { type: "close", preventDefault: false };
     case " ":
-      return commit(activeIndex, true);
+      // Typed in a search, a space is a letter of it; on its own it chooses the option the list points at.
+      return state.typeahead === "" ? commit(activeIndex, true) : resolveTypeahead(state, key, options);
     default:
       return isLetter(key) ? resolveTypeahead(state, key, options) : NONE;
   }

@@ -6,6 +6,7 @@ import {
   Children,
   Fragment,
   isValidElement,
+  useCallback,
   useEffect,
   useId,
   useImperativeHandle,
@@ -50,9 +51,26 @@ function showAsPopover(element: HTMLElement | null) {
   if (element !== null && !element.matches(":popover-open")) element.showPopover();
 }
 
-type NativeProps = Omit<ComponentProps<"select">, "className" | "style" | "multiple" | "size" | "ref">;
+// The focus and invalid events of the hidden native select never fire once the combobox is swapped
+// in, and a list of values is for `multiple`: none of them is accepted.
+type NativeProps = Omit<
+  ComponentProps<"select">,
+  | "className"
+  | "style"
+  | "multiple"
+  | "size"
+  | "ref"
+  | "value"
+  | "defaultValue"
+  | "onFocus"
+  | "onBlur"
+  | "onInvalid"
+  | "autoFocus"
+>;
 
 export interface SelectProps extends NativeProps {
+  value?: string | number;
+  defaultValue?: string | number;
   /** The look is the shared control: a class is refused instead of silently dropped. */
   className?: never;
   /** Fits the content instead of the width of the column. */
@@ -81,7 +99,8 @@ function readOptions(children: ReactNode): LabelledOption[] {
     if (child.type !== "option") {
       throw new Error("Select only accepts <option> children, alone, in arrays or in fragments.");
     }
-    const label = textOf(child.props.children);
+    // The text of an option as the native select reads it: whitespace collapsed and trimmed.
+    const label = textOf(child.props.children).replace(/\s+/g, " ").trim();
     options.push({
       value: child.props.value === undefined ? label : String(child.props.value),
       label,
@@ -143,7 +162,15 @@ export function Select({
       ? uncontrolledValue
       : (options[firstEnabled(options)]?.value ?? "");
   const selectedIndex = options.findIndex((option) => option.value === currentValue);
+  // A list left open by a select that gets disabled must not come back by itself when it is enabled again.
+  if (disabled && isOpen) setIsOpen(false);
   const isListShown = isOpen && !disabled;
+
+  // A search never outlives the list it was typed in, whatever closes the list.
+  const closeList = useCallback(() => {
+    typeaheadRef.current = "";
+    setIsOpen(false);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
@@ -157,22 +184,42 @@ export function Select({
     if (!isListShown) return;
     const closeOnOutsidePress = (event: PointerEvent) => {
       if (event.target instanceof Node && wrapperRef.current?.contains(event.target)) return;
-      setIsOpen(false);
+      closeList();
     };
     document.addEventListener("pointerdown", closeOnOutsidePress);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
-  }, [isListShown]);
+  }, [isListShown, closeList]);
 
-  // The popover does not follow its trigger: a scroll outside the list closes it, as a native select does.
+  // The popover does not follow its trigger: a scroll outside the list or a resize closes it, as a native select does.
   useEffect(() => {
     if (!isListShown) return;
-    const closeOnScroll = (event: Event) => {
+    const closeOnMove = (event: Event) => {
       if (event.target instanceof Node && listRef.current?.contains(event.target)) return;
-      setIsOpen(false);
+      closeList();
     };
-    window.addEventListener("scroll", closeOnScroll, { capture: true, passive: true });
-    return () => window.removeEventListener("scroll", closeOnScroll, { capture: true });
-  }, [isListShown]);
+    window.addEventListener("scroll", closeOnMove, { capture: true, passive: true });
+    window.addEventListener("resize", closeOnMove);
+    return () => {
+      window.removeEventListener("scroll", closeOnMove, { capture: true });
+      window.removeEventListener("resize", closeOnMove);
+    };
+  }, [isListShown, closeList]);
+
+  // A native select only takes the focus when its label is pressed; the button would open the list.
+  useEffect(() => {
+    if (!isEnhanced) return;
+    const trigger = triggerRef.current;
+    const labels = Array.from(trigger?.labels ?? []);
+    const focusInstead = (event: Event) => {
+      if (event.target instanceof Node && wrapperRef.current?.contains(event.target)) return;
+      event.preventDefault();
+      trigger?.focus();
+    };
+    for (const label of labels) label.addEventListener("click", focusInstead);
+    return () => {
+      for (const label of labels) label.removeEventListener("click", focusInstead);
+    };
+  }, [isEnhanced, triggerId]);
 
   useEffect(() => {
     if (!isListShown || activeIndex < 0) return;
@@ -200,12 +247,6 @@ export function Select({
     }
     activate(index, isKeyboard);
     setIsOpen(true);
-  }
-
-  // A search never outlives the list it was typed in.
-  function closeList() {
-    typeaheadRef.current = "";
-    setIsOpen(false);
   }
 
   function activate(index: number, isKeyboard: boolean) {
@@ -324,11 +365,11 @@ export function Select({
             aria-required={required || undefined}
             disabled={disabled}
             onClick={() => {
-              if (isListShown) setIsOpen(false);
+              if (isListShown) closeList();
               else openAt(selectedIndex >= 0 ? selectedIndex : firstEnabled(options), false);
             }}
             onKeyDown={handleKeyDown}
-            onBlur={() => setIsOpen(false)}
+            onBlur={closeList}
             className={`${CONTROL_CLASS} flex cursor-pointer items-center justify-between gap-2 text-left`}
           >
             <span className="truncate">{selectedLabel === "" ? " " : selectedLabel}</span>
