@@ -12,6 +12,7 @@ import type {
   BalanceAssertionFormState,
   BalanceAssertionFormValues,
 } from "./balance-assertion-form-data";
+import { DatePicker } from "../../../../components/date-picker";
 import { Select } from "../../../../components/select";
 
 interface BalanceAssertionFormProps {
@@ -63,7 +64,7 @@ export function BalanceAssertionForm({
       )}
 
       <FormField id="date" label={t("form.date")} hint={t("form.dateHint")} error={errorOf("date")}>
-        <input {...controlProps("date")} className={CONTROL_CLASS} type="date" required />
+        <DatePicker {...controlProps("date")} required />
       </FormField>
 
       <FormField id="amount" label={t("form.amount")} error={errorOf("amount")}>

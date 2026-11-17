@@ -433,7 +433,9 @@ Selects and dates use custom pickers, never the browser's.
   - the WAI-ARIA date picker dialog: a 332 px popover centred under its field (at most the viewport minus 32 px), a month title with previous and next icon buttons, a weekday row, and 44 px round days;
   - today has a 1.5 px `accent` inner ring and `accent` text; the chosen day is filled with `primary`, without a hover; other days hover to `control`;
   - a "Today" link in the footer;
-  - keys: arrows, Home and End (week), Page Up and Page Down (month, with Shift a year), Enter, Escape. Focus is held inside while it is open.
+  - keys: arrows (a day, with Up and Down a week), Home and End (week), Page Up and Page Down (month, with Shift a year), Enter, Space, Escape. Focus is held inside while it is open and returns to the field on close;
+  - the week starts on the first day of the language, from the platform's week data (ADR-025); days outside the month are blank; a day that is both chosen and today is drawn as chosen, `aria-current="date"` marks today;
+  - the Today link chooses today and closes (to be confirmed by the owner).
 - **Without JavaScript:** the server renders the native `select` or `input type="date"`, and the script swaps it for the custom picker on load. The forms keep posting without JavaScript.
 
 ### Password

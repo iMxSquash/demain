@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatCalendarDate,
+  formatFullCalendarDate,
   formatMonth,
   formatShortMonth,
+  formatWeekday,
   todayIn,
 } from "../../src/i18n/dates";
 
@@ -34,5 +36,21 @@ describe("todayIn", () => {
   it("reads the calendar date in the given time zone", () => {
     expect(todayIn("Europe/Paris", JUST_AFTER_MIDNIGHT_IN_PARIS)).toBe("2026-03-15");
     expect(todayIn("UTC", JUST_AFTER_MIDNIGHT_IN_PARIS)).toBe("2026-03-14");
+  });
+});
+
+describe("formatFullCalendarDate", () => {
+  it("writes the weekday with the day, whatever the zone of the viewer", () => {
+    expect(formatFullCalendarDate("2026-11-17", "fr")).toBe("mardi 17 novembre 2026");
+    expect(formatFullCalendarDate("2026-11-17", "en")).toBe("Tuesday, November 17, 2026");
+  });
+});
+
+describe("formatWeekday", () => {
+  it("names a weekday from 0 (Sunday) to 6, short or long", () => {
+    expect(formatWeekday(0, "fr", "long")).toBe("dimanche");
+    expect(formatWeekday(1, "fr", "short")).toBe("lun.");
+    expect(formatWeekday(6, "en", "long")).toBe("Saturday");
+    expect(formatWeekday(3, "en", "short")).toBe("Wed");
   });
 });

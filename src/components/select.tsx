@@ -426,7 +426,7 @@ export function Select({
                         if (option.disabled === true) return;
                         choose(index);
                       }}
-                      className={`flex min-h-11 items-center justify-between gap-3 rounded-control px-3 py-2 ${
+                      className={`flex min-h-11 items-center justify-between gap-3 rounded-[calc(var(--radius-control)-6px)] px-3 py-2 ${
                         option.disabled === true ? "cursor-not-allowed text-text-muted" : "cursor-pointer text-text"
                       } ${index === selectedIndex ? "font-medium" : ""} ${
                         index === activeIndex && option.disabled !== true ? "bg-control" : ""

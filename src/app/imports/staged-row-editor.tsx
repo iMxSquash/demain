@@ -23,6 +23,7 @@ import {
   type ReviewAction,
   type ReviewRow,
 } from "./review-state";
+import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 
 type InvalidField = EditableField | "type" | "savingsAccountId";
@@ -102,18 +103,19 @@ export const RowEditor = memo(function RowEditor({
     "aria-invalid": invalidField === field,
     "aria-describedby": invalidField === field ? problemId : undefined,
   });
+  const editDraft = (field: EditableField) => (event: ChangeEvent<HTMLInputElement>) =>
+    dispatch({
+      type: "edit",
+      file: fileIndex,
+      row: rowIndex,
+      field,
+      value: event.currentTarget.value,
+    });
   const textCell = (field: EditableField, column: string) => ({
     ...control(field, column),
     value: row.draft[field],
     className: CELL_CLASS,
-    onChange: (event: ChangeEvent<HTMLInputElement>) =>
-      dispatch({
-        type: "edit",
-        file: fileIndex,
-        row: rowIndex,
-        field,
-        value: event.currentTarget.value,
-      }),
+    onChange: editDraft(field),
   });
 
   const setDetails = (patch: Partial<RowDetails>) =>
@@ -153,7 +155,11 @@ export const RowEditor = memo(function RowEditor({
         {row.line}
       </th>
       <td className="min-w-40">
-        <input type="date" {...textCell("date", imports("columns.date"))} />
+        <DatePicker
+          {...control("date", imports("columns.date"))}
+          value={row.draft.date}
+          onChange={editDraft("date")}
+        />
       </td>
       <td className="min-w-56">
         <input type="text" {...textCell("label", imports("columns.label"))} />

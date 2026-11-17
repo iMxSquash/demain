@@ -10,6 +10,24 @@ export function formatCalendarDate(date: string, locale: string): string {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+/** The weekday with the day, "Tuesday, November 17, 2026": what a screen reader says for a day. */
+export function formatFullCalendarDate(date: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "full",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+// 2023-01-01 is a Sunday.
+const SUNDAY_REFERENCE_DAY = 1;
+
+/** The name of a weekday, 0 (Sunday) to 6 (Saturday). */
+export function formatWeekday(weekday: number, locale: string, width: "short" | "long"): string {
+  return new Intl.DateTimeFormat(locale, { weekday: width, timeZone: "UTC" }).format(
+    new Date(Date.UTC(2023, 0, SUNDAY_REFERENCE_DAY + weekday)),
+  );
+}
+
 /** `month` is "YYYY-MM". */
 export function formatMonth(month: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {

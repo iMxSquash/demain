@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
 import { Button } from "../../components/button";
+import { DatePicker } from "../../components/date-picker";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { RateFormState, RateFormValues } from "./currency-form-data";
@@ -29,13 +30,12 @@ export function RateForm({ action, initialValues }: RateFormProps) {
     id: field,
     name: field,
     defaultValue: values[field],
-    className: CONTROL_CLASS,
   });
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField id="date" label={t("form.date")} error={errorOf("date")}>
-        <input {...controlProps("date")} type="date" required />
+        <DatePicker {...controlProps("date")} required />
       </FormField>
 
       <FormField
@@ -44,7 +44,7 @@ export function RateForm({ action, initialValues }: RateFormProps) {
         hint={t("form.baseHint")}
         error={errorOf("base")}
       >
-        <input {...controlProps("base")} type="text" maxLength={3} required autoComplete="off" />
+        <input {...controlProps("base")} className={CONTROL_CLASS} type="text" maxLength={3} required autoComplete="off" />
       </FormField>
 
       <FormField
@@ -53,7 +53,7 @@ export function RateForm({ action, initialValues }: RateFormProps) {
         hint={t("form.quoteHint")}
         error={errorOf("quote")}
       >
-        <input {...controlProps("quote")} type="text" maxLength={3} required autoComplete="off" />
+        <input {...controlProps("quote")} className={CONTROL_CLASS} type="text" maxLength={3} required autoComplete="off" />
       </FormField>
 
       <FormField
@@ -62,7 +62,7 @@ export function RateForm({ action, initialValues }: RateFormProps) {
         hint={t("form.rateHint")}
         error={errorOf("rate")}
       >
-        <input {...controlProps("rate")} type="text" inputMode="decimal" required autoComplete="off" />
+        <input {...controlProps("rate")} className={CONTROL_CLASS} type="text" inputMode="decimal" required autoComplete="off" />
       </FormField>
 
       <Button

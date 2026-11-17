@@ -15,6 +15,7 @@ import type {
   TransferFormState,
   TransferFormValues,
 } from "./transaction-form-data";
+import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 
 interface TransferFormProps {
@@ -82,11 +83,7 @@ export function TransferForm({ action, initialValues, accounts }: TransferFormPr
       </FormField>
 
       <FormField id={fieldId("date")} label={t("date")} error={errorOf("date")}>
-        <input
-          {...controlProps("date", values.date)} className={CONTROL_CLASS}
-          type="date"
-          required
-        />
+        <DatePicker {...controlProps("date", values.date)} required />
       </FormField>
 
       <FormField id={fieldId("amount")} label={t("amount")} error={errorOf("amount")}>
