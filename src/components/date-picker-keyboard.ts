@@ -5,7 +5,7 @@
 
 const MIN_YEAR = 1;
 const MAX_YEAR = 9999;
-const DAYS_IN_WEEK = 7;
+export const DAYS_IN_WEEK = 7;
 const MONTHS_IN_YEAR = 12;
 const MONDAY = 1;
 // Intl numbers the days 1 (Monday) to 7 (Sunday); Date numbers them 0 (Sunday) to 6.
@@ -111,9 +111,13 @@ function weekdayOf(date: string): number {
   return toUtc(parse(date)).getUTCDay();
 }
 
+// How many days the date is past the first day of its week.
+function dayOfWeekRow(date: string, weekStart: number): number {
+  return (weekdayOf(date) - weekStart + DAYS_IN_WEEK) % DAYS_IN_WEEK;
+}
+
 function startOfWeek(date: string, weekStart: number): string {
-  const offset = (weekdayOf(date) - weekStart + DAYS_IN_WEEK) % DAYS_IN_WEEK;
-  return addDays(date, -offset);
+  return addDays(date, -dayOfWeekRow(date, weekStart));
 }
 
 /** The whole weeks that cover a month ("YYYY-MM"), each a row of seven dates. */
@@ -122,7 +126,7 @@ export function buildMonthGrid(month: string, weekStart: number): string[][] {
   const start = startOfWeek(first, weekStart);
   const { year, month: monthNumber } = parse(first);
   const dayCount = daysInMonth(year, monthNumber);
-  const weekCount = Math.ceil(((weekdayOf(first) - weekStart + DAYS_IN_WEEK) % DAYS_IN_WEEK + dayCount) / DAYS_IN_WEEK);
+  const weekCount = Math.ceil((dayOfWeekRow(first, weekStart) + dayCount) / DAYS_IN_WEEK);
   return Array.from({ length: weekCount }, (_, week) =>
     Array.from({ length: DAYS_IN_WEEK }, (_, day) => addDays(start, week * DAYS_IN_WEEK + day)),
   );

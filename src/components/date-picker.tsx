@@ -23,6 +23,7 @@ import { formatCalendarDate, formatFullCalendarDate, formatMonth, formatWeekday,
 import {
   addMonths,
   buildMonthGrid,
+  DAYS_IN_WEEK,
   resolveDateKey,
   weekStartOf,
 } from "./date-picker-keyboard";
@@ -376,8 +377,8 @@ export function DatePicker({
                 </div>
                 <div role="grid" aria-labelledby={titleId} onKeyDown={handleGridKeyDown}>
                   <div role="row" className="grid grid-cols-7">
-                    {Array.from({ length: 7 }, (_, index) => {
-                      const weekday = (weekStart + index) % 7;
+                    {Array.from({ length: DAYS_IN_WEEK }, (_, index) => {
+                      const weekday = (weekStart + index) % DAYS_IN_WEEK;
                       return (
                         <div
                           key={weekday}
