@@ -7,6 +7,7 @@ import { createTranslator } from "next-intl";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSession } from "../../../src/auth/sessions";
+import { Select } from "../../../src/components/select";
 import { loadMessages } from "../../../src/i18n/message-files";
 import { DATABASE_FILE_NAME, migrateDatabase, openDatabase } from "../../../src/storage/database";
 
@@ -35,12 +36,15 @@ vi.mock("next-intl/server", () => ({
 
 type AnyComponent = (props: Record<string, unknown>) => ReactNode | Promise<ReactNode>;
 
+// A client component with hooks cannot be called as a function by `resolve`: React renders it.
+const RENDERED_BY_REACT: readonly unknown[] = [Select];
+
 /** Server components are async: resolve them down to plain elements before rendering to a string. */
 async function resolve(node: ReactNode): Promise<ReactNode> {
   if (Array.isArray(node)) return Promise.all(node.map(resolve));
   if (!isValidElement(node)) return node;
   const element = node as ReactElement<{ children?: ReactNode }>;
-  if (typeof element.type === "function") {
+  if (typeof element.type === "function" && !RENDERED_BY_REACT.includes(element.type)) {
     return resolve(await (element.type as AnyComponent)(element.props));
   }
   const children = element.props.children;

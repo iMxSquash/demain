@@ -170,6 +170,21 @@ Measured from `src/app/tokens.css` in both themes (WCAG 2.x relative luminance).
 | Focus ring over the track | `--color-focus` on `--color-control` | 3 | 4.87 | 4.70 |
 | Focus ring over the ground | `--color-focus` on `--color-bg` | 3 | 4.66 | 6.03 |
 
+#### Select picker (#119)
+
+Measured from `src/app/tokens.css` in both themes with the same formula. The list sits on `surface` in a 1 px `divider` border (DESIGN.md, section 8). Rows 1 to 4 reuse pairs listed above; they are repeated because the picker is the first control to put them on the same list. Rows 5 and 6 are new.
+
+| Use | Foreground on background | Needs | Light | Dark |
+| --- | --- | --- | --- | --- |
+| Option | `--color-text` on `--color-surface` | 4.5 | 20.03 | 18.10 |
+| Active or hovered option | `--color-text` on `--color-control` | 4.5 | 17.57 | 15.52 |
+| Disabled option | `--color-text-muted` on `--color-surface` | 4.5 | 6.18 | 7.88 |
+| Check of the selected option | `--color-text` on `--color-control` | 3 | 17.57 | 15.52 |
+| Keyboard ring on the active option | `--color-focus` on `--color-control` | 3 | 4.87 | 4.70 |
+| Keyboard ring on a selected, inactive row | `--color-focus` on `--color-surface` | 3 | 5.55 | 5.48 |
+
+Two things are not met by a ratio and are decided here. The `divider` border of the list reads 1.37:1 (light) and 1.12:1 (dark) against `surface`: it is not what tells the options apart (their text and the 44 px rows do), and `shadow-overlay` lifts the list from the page, so it stays the quiet hairline of every popover. The active option is `control` on `surface`, 1.14:1 and 1.17:1: tone alone is not enough to say which option is active, so the keyboard adds the 2 px `focus` ring (the only blue allowed besides today, DESIGN.md section 4) and a pointer hovers to the same tone while the pointer itself shows where it is. The selected option never relies on tone: it is medium weight with a check.
+
 #### Components (`components.html`)
 
 | Use | Foreground on background | Needs | Light | Dark |

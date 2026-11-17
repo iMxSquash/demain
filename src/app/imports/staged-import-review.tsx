@@ -38,13 +38,13 @@ import type {
   ImportCategoryOption,
   StagedFile,
 } from "./import-form-data";
-import { CONTROL_CLASS } from "../form-field";
 import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
 import { isOwnCloseEvent } from "./review-dialog-close";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
 import type { RowLookups } from "./staged-row-editor";
+import { Select, type SelectHandle } from "../../components/select";
 
 interface ReviewBodyProps {
   files: StagedFile[];
@@ -60,7 +60,7 @@ interface ReviewBodyProps {
   /** The assertions and movements as they were when the files were read: what each file is compared with. */
   assertionSnapshot: AssertionLinkSnapshot;
   isReading: boolean;
-  accountSelectRef: RefObject<HTMLSelectElement | null>;
+  accountSelectRef: RefObject<SelectHandle | null>;
   onAccountChange: (accountId: number) => void;
   /** What the user chose for the accounts whose surplus has nowhere to go: kept until a file is imported. */
   overflowChoices: readonly PendingOverflow[];
@@ -206,28 +206,27 @@ function ReviewBody({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           <label htmlFor={accountSelectId}>{t("receivingAccount")}</label>
-          <select
+          <Select
             id={accountSelectId}
             ref={accountSelectRef}
             value={accountId}
             disabled={isBusy}
             aria-describedby={accountHintId}
             onChange={(event) => onAccountChange(Number(event.currentTarget.value))}
-            className={CONTROL_CLASS}
           >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
           <p id={accountHintId} className="text-caption">
             {t("receivingAccountHint")}
           </p>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor={savingsSelectId}>{t("savingsAccount")}</label>
-          <select
+          <Select
             id={savingsSelectId}
             value={savingsAccountId ?? ""}
             disabled={isBusy}
@@ -238,7 +237,6 @@ function ReviewBody({
                 savingsAccountId: parseOptionalId(event.currentTarget.value),
               })
             }
-            className={CONTROL_CLASS}
           >
             <option value="">{t("noSavingsAccount")}</option>
             {savingsAccounts.map((account) => (
@@ -246,7 +244,7 @@ function ReviewBody({
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
           <p id={savingsHintId} className="text-caption">
             {t("savingsAccountHint")}
           </p>
@@ -335,7 +333,7 @@ export function StagedImportReview({
   const t = useTranslations("imports.staged");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const accountSelectRef = useRef<HTMLSelectElement>(null);
+  const accountSelectRef = useRef<SelectHandle>(null);
   // The batch shown when the user changed the account; null when no change awaits its reading.
   const accountChangedAtBatch = useRef<number | null>(null);
   const titleId = useId();

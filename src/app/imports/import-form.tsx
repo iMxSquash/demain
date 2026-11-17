@@ -30,6 +30,7 @@ import {
 import { stageFileAction } from "./stage-actions";
 import { StagedImportReview } from "./staged-import-review";
 import { stageSources, type ColumnChoicesBySource } from "./stage-sources";
+import { Select } from "../../components/select";
 
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
 
@@ -77,18 +78,17 @@ function ChoiceSelect<T extends string>({
 
   return (
     <FormField id={name} label={t(name)}>
-      <select
+      <Select
         id={name}
         name={name}
         defaultValue={defaultValue}
-        className={CONTROL_CLASS}
       >
         {values.map((value) => (
           <option key={value} value={value}>
             {optionLabel(value)}
           </option>
         ))}
-      </select>
+      </Select>
     </FormField>
   );
 }
@@ -388,12 +388,11 @@ export function ImportForm({
         noValidate
       >
         <FormField id="accountId" label={t("accountLabel")}>
-          <select
+          <Select
             id="accountId"
             name="accountId"
             defaultValue={state?.accountId ?? ""}
             onChange={discardPreview}
-            className={CONTROL_CLASS}
           >
             <option value="">{t("chooseAccount")}</option>
             {accounts.map((account) => (
@@ -401,7 +400,7 @@ export function ImportForm({
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
         </FormField>
         <FormField id="file" label={t("fileLabel")} hint={t("fileHint")}>
           <FileInput

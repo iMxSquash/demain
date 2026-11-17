@@ -3,6 +3,7 @@
  * no clock. Amounts go through `parseAmount`, never through a float.
  */
 
+import { foldAccents } from "./fold-accents";
 import { isCalendarDate } from "./account";
 import type { MessageRef } from "./message";
 import type { DecimalMark } from "./money";
@@ -335,11 +336,7 @@ export function chooseCsvMapping(
 
 // Lowercase, without accents or punctuation: "Date de l'opération" -> "datedeloperation".
 export function normalizeHeader(header: string): string {
-  return header
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+  return foldAccents(header).replace(/[^a-z0-9]/g, "");
 }
 
 export function findColumn(

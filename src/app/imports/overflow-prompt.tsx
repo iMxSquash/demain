@@ -8,6 +8,7 @@ import { overflowTargetChoices, type OverflowDemand, type OverflowTarget } from 
 import { formatAmount } from "../../domain/money";
 import { CONTROL_CLASS } from "../form-field";
 import type { ImportAccountOption } from "./import-form-data";
+import { Select, type SelectHandle } from "../../components/select";
 
 interface DemandCardProps {
   demand: OverflowDemand;
@@ -48,7 +49,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
   const hintId = useId();
   const nameId = useId();
   const nameHintId = useId();
-  const selectRef = useRef<HTMLSelectElement>(null);
+  const selectRef = useRef<SelectHandle>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const [chosen, setChosen] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +106,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
       </p>
       <div className="flex flex-col gap-1">
         <label htmlFor={selectId}>{t("selectLabel", { account: accountName })}</label>
-        <select
+        <Select
           id={selectId}
           ref={selectRef}
           value={chosen}
@@ -115,7 +116,6 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
             setChosen(event.currentTarget.value);
             setError(null);
           }}
-          className={CONTROL_CLASS}
         >
           <option value="">{tImports("chooseAccount")}</option>
           {options.map(({ id, name: optionName }) => (
@@ -123,7 +123,7 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
               {optionName}
             </option>
           ))}
-        </select>
+        </Select>
         <p id={hintId} className="text-caption">
           {t("permanent", { account: accountName })}
         </p>

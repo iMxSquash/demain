@@ -20,6 +20,7 @@ import { useFocusFirstError } from "../../use-focus-first-error";
 import { summaryBalancesAction } from "./actions";
 import type { SummaryBalancesState } from "./summary-balances-state";
 import type { SummaryField } from "./summary-balances-form-data";
+import { Select } from "../../../components/select";
 
 export interface AccountOption {
   id: number;
@@ -177,11 +178,10 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
         label={t("accountLabel")}
         error={errorFor("accountId")}
       >
-        <select
+        <Select
           id="accountId"
           name="accountId"
           defaultValue=""
-          className={CONTROL_CLASS}
         >
           <option value="">{t("chooseAccount")}</option>
           {accounts.map((account) => (
@@ -189,7 +189,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
               {account.name}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
       <FormField id="year" label={t("yearLabel")} optional hint={t("yearHint")} error={errorFor("year")}>
         <input

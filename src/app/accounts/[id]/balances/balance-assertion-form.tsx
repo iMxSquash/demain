@@ -12,6 +12,7 @@ import type {
   BalanceAssertionFormState,
   BalanceAssertionFormValues,
 } from "./balance-assertion-form-data";
+import { Select } from "../../../../components/select";
 
 interface BalanceAssertionFormProps {
   action: (
@@ -40,7 +41,6 @@ export function BalanceAssertionForm({
     id: field,
     name: field,
     defaultValue: values[field],
-    className: CONTROL_CLASS,
   });
 
   return (
@@ -51,29 +51,29 @@ export function BalanceAssertionForm({
           label={t("form.account")}
           error={errorOf("accountId")}
         >
-          <select {...controlProps("accountId")} required>
+          <Select {...controlProps("accountId")} required>
             <option value="">{t("chooseAccount")}</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
               </option>
             ))}
-          </select>
+          </Select>
         </FormField>
       )}
 
       <FormField id="date" label={t("form.date")} hint={t("form.dateHint")} error={errorOf("date")}>
-        <input {...controlProps("date")} type="date" required />
+        <input {...controlProps("date")} className={CONTROL_CLASS} type="date" required />
       </FormField>
 
       <FormField id="amount" label={t("form.amount")} error={errorOf("amount")}>
-        <AmountInput {...controlProps("amount")} required />
+        <AmountInput {...controlProps("amount")} className={CONTROL_CLASS} required />
       </FormField>
 
       <BalanceSideField name="side" value={values.side} error={errorOf("side")} />
 
       <FormField id="note" label={t("form.note")} optional>
-        <input {...controlProps("note")} type="text" autoComplete="off" />
+        <input {...controlProps("note")} className={CONTROL_CLASS} type="text" autoComplete="off" />
       </FormField>
 
       <Button

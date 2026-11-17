@@ -8,6 +8,7 @@ import { RULE_OPERATORS } from "../../domain/categorization-rule";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import type { RuleFormField, RuleFormState } from "./rule-form-data";
+import { Select } from "../../components/select";
 
 interface RuleFormProps {
   action: (
@@ -30,18 +31,17 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField id="operator" label={t("operator")} error={errorOf("operator")}>
-        <select
+        <Select
           id="operator"
           name="operator"
           defaultValue={values?.operator ?? "contains"}
-          className={CONTROL_CLASS}
         >
           {RULE_OPERATORS.map((operator) => (
             <option key={operator} value={operator}>
               {t(`operators.${operator}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField id="value" label={t("value")} error={errorOf("value")}>
@@ -57,11 +57,10 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
       </FormField>
 
       <FormField id="accountId" label={t("account")} error={errorOf("accountId")}>
-        <select
+        <Select
           id="accountId"
           name="accountId"
           defaultValue={values?.accountId ?? ""}
-          className={CONTROL_CLASS}
         >
           <option value="">{t("allAccounts")}</option>
           {accounts.map((account) => (
@@ -69,16 +68,15 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
               {account.name}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField id="categoryId" label={t("category")} error={errorOf("categoryId")}>
-        <select
+        <Select
           id="categoryId"
           name="categoryId"
           defaultValue={values?.categoryId ?? ""}
           required
-          className={CONTROL_CLASS}
         >
           <option value="">{t("chooseCategory")}</option>
           {categories.map((category) => (
@@ -86,7 +84,7 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
               {category.name}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <Button
