@@ -13,6 +13,7 @@ import type {
   TransactionFormState,
   TransactionFormValues,
 } from "./transaction-form-data";
+import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 
 export interface AccountOption {
@@ -86,7 +87,7 @@ export function TransactionForm({
       </FormField>
 
       <FormField id="date" label={t("form.date")} error={errorOf("date")}>
-        <input {...controlProps("date")} className={CONTROL_CLASS} type="date" required />
+        <DatePicker {...controlProps("date")} required />
       </FormField>
 
       <FormField id="kind" label={t("form.type")} error={errorOf("kind")}>

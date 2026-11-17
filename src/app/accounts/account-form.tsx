@@ -13,6 +13,7 @@ import type {
   AccountFormState,
   AccountFormValues,
 } from "./account-form-data";
+import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 
 export interface OverflowOption {
@@ -87,7 +88,7 @@ export function AccountForm({
       </FormField>
 
       <FormField {...fieldProps("openingDate", t("form.openingDate"))}>
-        <input {...controlProps("openingDate")} className={CONTROL_CLASS} type="date" required />
+        <DatePicker {...controlProps("openingDate")} required />
       </FormField>
 
       <FormField {...fieldProps("openingBalance", t("form.openingBalance"))}>

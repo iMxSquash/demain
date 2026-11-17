@@ -20,6 +20,12 @@
     "noFileChosen": "No file chosen",
     "filesChosen": "{count} files",
     "toastDismiss": "Dismiss the notification",
+    "datePicker": {
+      "dialog": "Choose a date",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "Today"
+    },
     "balanceSide": {
       "legend": "Side of the balance",
       "credit": "Credit",
