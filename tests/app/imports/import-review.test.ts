@@ -1,0 +1,129 @@
+import {
+  createElement,
+  type ComponentProps,
+  type ComponentType,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NextIntlClientProvider } from "next-intl";
+import { describe, expect, it, vi } from "vitest";
+
+import type { StagedFile } from "../../../src/app/imports/import-form-data";
+import { ImportReview } from "../../../src/app/imports/import-review";
+import { ReviewHeading } from "../../../src/app/imports/review/review-heading";
+import {
+  ReviewSessionProvider,
+  type Review,
+} from "../../../src/app/imports/review-session";
+import { loadMessages } from "../../../src/i18n/message-files";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: () => undefined, replace: () => undefined }),
+}));
+
+// Synthetic data only: one account, one file, two made-up movements.
+const FILE: StagedFile = {
+  fileName: "march-synthetic.csv",
+  status: "ready",
+  message: "",
+  format: "csv",
+  mapping: null,
+  currency: "EUR",
+  firstDate: "2026-03-02",
+  needsMapping: false,
+  columns: null,
+  rows: [
+    {
+      line: 2,
+      rawDate: null,
+      draft: { date: "2026-03-02", label: "SYNTHETIC SHOP", amount: "-12,50", externalId: null },
+      details: { type: "expense", categoryId: null, paymentMode: "card", description: null, savingsAccountId: null },
+      guess: null,
+      isDuplicate: false,
+    },
+    {
+      line: 3,
+      rawDate: null,
+      draft: { date: "2026-03-03", label: "SYNTHETIC SALARY", amount: "1000,00", externalId: null },
+      details: { type: "income", categoryId: null, paymentMode: "transfer", description: null, savingsAccountId: null },
+      guess: null,
+      isDuplicate: false,
+    },
+  ],
+};
+
+const ACCOUNTS = [
+  { id: 1, name: "Synthetic current", kind: "checking" as const, archived: false, currency: "EUR", overflowAccountId: null },
+];
+
+const REVIEW: Review = {
+  accountId: 1,
+  sources: [],
+  files: [FILE],
+  overflowAccounts: [],
+  storedOverflowAccounts: [],
+  assertionSnapshot: { accounts: [], assertions: [], transactions: [] },
+  overflowChoices: [],
+  columnChoices: {},
+  batch: 1,
+};
+
+// The providers take their children as an argument (the lint rule), which their types do not see.
+const IntlProvider = NextIntlClientProvider as ComponentType<
+  Omit<ComponentProps<typeof NextIntlClientProvider>, "children"> & { children?: ReactNode }
+>;
+const SessionProvider = ReviewSessionProvider as ComponentType<{
+  initialReview: Review | null;
+  children?: ReactNode;
+}>;
+
+function renderWithIntl(child: ReactElement): string {
+  return renderToStaticMarkup(
+    createElement(IntlProvider, { locale: "en", messages: loadMessages("en") }, child),
+  );
+}
+
+function render(initialReview: Review | null): string {
+  const review = createElement(ImportReview, {
+    accounts: ACCOUNTS,
+    categories: [],
+    overflowAccounts: [],
+    assertionSnapshot: REVIEW.assertionSnapshot,
+  });
+  return renderWithIntl(createElement(SessionProvider, { initialReview }, review));
+}
+
+describe("ImportReview", () => {
+  it("renders the staged file with its rows and the actions of the review", () => {
+    const markup = render(REVIEW);
+
+    expect(markup).toContain("march-synthetic.csv");
+    expect(markup).toContain("SYNTHETIC SHOP");
+    expect(markup).toContain("SYNTHETIC SALARY");
+    expect(markup).toContain("Import this file");
+    expect(markup).toContain("Cancel this file");
+    expect(markup).toContain(">Cancel</button>");
+  });
+
+  it("renders no dialog", () => {
+    expect(render(REVIEW)).not.toContain("<dialog");
+  });
+
+  it("says there is nothing to review when no file was chosen, with a way back", () => {
+    const markup = render(null);
+
+    expect(markup).not.toContain("march-synthetic.csv");
+    expect(markup).toContain('href="/imports"');
+  });
+});
+
+describe("ReviewHeading", () => {
+  it("is the page heading and can take the focus", () => {
+    const markup = renderWithIntl(createElement(ReviewHeading));
+
+    expect(markup.match(/<h1/g)).toHaveLength(1);
+    expect(markup).toContain('tabindex="-1"');
+    expect(markup).toContain("Review the files before importing");
+  });
+});

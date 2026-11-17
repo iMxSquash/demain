@@ -65,9 +65,9 @@ export function BalanceCheckPanel({
       aria-labelledby={headingId}
       className="flex flex-col items-start gap-2 border-t border-border-control pt-3"
     >
-      <h4 id={headingId} className="font-medium">
+      <h3 id={headingId} className="font-medium">
         {t("heading")}
-      </h4>
+      </h3>
       <form
         onSubmit={(event) => {
           event.preventDefault();

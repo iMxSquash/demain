@@ -40,7 +40,6 @@ import type {
 } from "./import-form-data";
 import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
-import { isOwnCloseEvent } from "./review-dialog-close";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
 import { FileCard } from "./staged-file-card";
 import type { RowLookups } from "./staged-row-editor";
@@ -68,6 +67,8 @@ interface ReviewBodyProps {
   onOverflowChosen: (accountId: number, target: OverflowTarget) => void;
   /** Reads a file again with the columns the user chose; `sourceIndex` is its place among the files chosen. */
   onRestage: (sourceIndex: number, choices: ColumnChoiceFields) => Promise<StagedFile>;
+  /** Leaves the review: what was not imported is dropped. */
+  onLeave: () => void;
 }
 
 function ReviewBody({
@@ -85,6 +86,7 @@ function ReviewBody({
   overflowChoices,
   onOverflowChosen,
   onRestage,
+  onLeave,
 }: ReviewBodyProps) {
   const t = useTranslations("imports.staged");
   const accountSelectId = useId();
@@ -253,9 +255,9 @@ function ReviewBody({
 
       {state.files.length < 2 ? null : (
         <section aria-labelledby={orderHeadingId} className="flex flex-col gap-1">
-          <h3 id={orderHeadingId} className="font-medium">
+          <h2 id={orderHeadingId} className="font-medium">
             {t("order.heading")}
-          </h3>
+          </h2>
           <p>
             {t("order.intro")}
             {order.isReordered ? ` ${t("order.reordered")}` : ""}
@@ -306,6 +308,12 @@ function ReviewBody({
           />
         );
       })}
+
+      <Button type="button" variant="secondary" onClick={onLeave} className="self-start">
+        {phases.every((phase) => phase === "done" || phase === "cancelled")
+          ? t("backToImport")
+          : t("cancel")}
+      </Button>
     </>
   );
 }
@@ -314,29 +322,23 @@ interface StagedImportReviewProps
   extends Omit<ReviewBodyProps, "isReading" | "accountSelectRef"> {
   /** Translated progress while the files are read again; null otherwise. */
   readingText: string | null;
-  onClose: () => void;
 }
 
 /**
- * The files of an import, one card each, in a native dialog (focus trap,
- * Escape, focus given back). Nothing is recorded until a card's file is
- * imported, the overflow accounts chosen here included; closing the dialog
- * drops what was not.
+ * The files of an import, one card each, on a page of their own. Nothing is
+ * recorded until a card's file is imported, the overflow accounts chosen here
+ * included; leaving the page drops what was not.
  */
 export function StagedImportReview({
   batch,
   readingText,
-  onClose,
   onAccountChange,
   ...body
 }: StagedImportReviewProps) {
   const t = useTranslations("imports.staged");
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
   const accountSelectRef = useRef<SelectHandle>(null);
   // The batch shown when the user changed the account; null when no change awaits its reading.
   const accountChangedAtBatch = useRef<number | null>(null);
-  const titleId = useId();
   const isReading = readingText !== null;
 
   useEffect(() => {
@@ -348,55 +350,22 @@ export function StagedImportReview({
     accountSelectRef.current?.focus();
   }, [batch, isReading]);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog === null || dialog.open) return;
-    dialog.showModal();
-    // A screen reader starts on the title, not in the middle of the first table.
-    titleRef.current?.focus();
-  }, []);
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={titleId}
-      onClose={(event) => {
-        if (isOwnCloseEvent(event)) onClose();
-      }}
-      className="m-auto max-h-[90vh] w-[min(80rem,95vw)] overflow-y-auto rounded-control border border-border-control bg-surface p-6 text-text backdrop:bg-backdrop"
-    >
-      <div className="flex flex-col gap-4">
-        <h2
-          id={titleId}
-          ref={titleRef}
-          tabIndex={-1}
-          className="text-title font-medium"
-        >
-          {t("title")}
-        </h2>
-        <p>{t("intro")}</p>
-        <div role="status">
-          {readingText === null ? null : <p className="font-medium">{readingText}</p>}
-        </div>
-        <ReviewBody
-          {...body}
-          batch={batch}
-          isReading={isReading}
-          accountSelectRef={accountSelectRef}
-          onAccountChange={(accountId) => {
-            accountChangedAtBatch.current = batch;
-            onAccountChange(accountId);
-          }}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => dialogRef.current?.close()}
-          className="self-start"
-        >
-          {t("close")}
-        </Button>
+    <div className="flex flex-col gap-4">
+      <p className="max-w-prose">{t("intro")}</p>
+      <div role="status">
+        {readingText === null ? null : <p className="font-medium">{readingText}</p>}
       </div>
-    </dialog>
+      <ReviewBody
+        {...body}
+        batch={batch}
+        isReading={isReading}
+        accountSelectRef={accountSelectRef}
+        onAccountChange={(accountId) => {
+          accountChangedAtBatch.current = batch;
+          onAccountChange(accountId);
+        }}
+      />
+    </div>
   );
 }
