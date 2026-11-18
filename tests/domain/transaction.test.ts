@@ -126,6 +126,7 @@ describe("buildTransferLegs", () => {
         amount: -45_000,
         kind: "transfer",
         label: "Monthly savings",
+        paymentMode: "transfer",
       },
       {
         accountId: LIVRET_A_ID,
@@ -133,6 +134,7 @@ describe("buildTransferLegs", () => {
         amount: 45_000,
         kind: "transfer",
         label: "Monthly savings",
+        paymentMode: "transfer",
       },
     ]);
   });
