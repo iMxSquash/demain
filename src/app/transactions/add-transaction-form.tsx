@@ -19,11 +19,17 @@ import { Disclosure } from "../../components/disclosure";
 import { Icon } from "../../components/icon";
 import { useIsHydrated } from "../../components/use-is-hydrated";
 import { filterLabelSuggestions } from "../../domain/label-suggestions";
-import { PAYMENT_MODES } from "../../domain/transaction";
+import { PAYMENT_MODES, type PaymentMode } from "../../domain/transaction";
 import type { LabelSuggestion } from "../../ledger/transaction-suggestions";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { resolveDestination, surplusTargets } from "./add-transaction-defaults";
+import {
+  ADD_CARD_CLASS,
+  WIDE_DIVIDER_CLASS,
+  WIDE_FULL_WIDTH_CLASS,
+  WIDE_TWO_COLUMNS_CLASS,
+} from "./add-transaction-layout";
 import { AmountDisplayInput } from "./amount-display-input";
 import { ChoiceChips, type ChipOption } from "./choice-chips";
 import { SurplusStep } from "./surplus-step";
@@ -85,18 +91,33 @@ interface AddTransactionFormProps {
 // picks the accounts, the account sets the currency, the label filters its suggestions). The
 // others are plain inputs. For a transfer the account is its source.
 interface Draft {
-  kind: string;
+  kind: FormKind;
   amount: string;
   label: string;
   categoryId: string;
   date: string;
   accountId: string;
   destinationId: string;
-  paymentMode: string;
+  paymentMode: "" | PaymentMode;
 }
 
-function isFormKind(value: string): value is FormKind {
-  return (FORM_KINDS as readonly string[]).includes(value);
+// The server is the authority on what a kind or a payment mode means: an unknown value coming
+// back from it falls back to the default instead of being refused here.
+function formKindOf(value: string): FormKind {
+  return (FORM_KINDS as readonly string[]).includes(value) ? (value as FormKind) : "expense";
+}
+
+function paymentModeOf(value: string): "" | PaymentMode {
+  return (PAYMENT_MODES as readonly string[]).includes(value) ? (value as PaymentMode) : "";
+}
+
+function draftFromValues(values: TransactionFormValues): Draft {
+  return {
+    ...values,
+    kind: formKindOf(values.kind),
+    paymentMode: paymentModeOf(values.paymentMode),
+    destinationId: "",
+  };
 }
 
 /** What the last result sends back: the typed values replace the draft, since the form is reset. */
@@ -104,7 +125,16 @@ function draftFromResult(current: Draft, result: AddResult): Draft {
   if (result.state === null) return current;
   if (result.mode === "transaction") {
     const { kind, amount, label, categoryId, date, accountId, paymentMode } = result.state.values;
-    return { ...current, kind, amount, label, categoryId, date, accountId, paymentMode };
+    return {
+      ...current,
+      kind: formKindOf(kind),
+      amount,
+      label,
+      categoryId,
+      date,
+      accountId,
+      paymentMode: paymentModeOf(paymentMode),
+    };
   }
   const { sourceId, destinationId, date, amount, label } = result.state.values;
   return { ...current, accountId: sourceId, destinationId, date, amount, label };
@@ -154,7 +184,7 @@ export function AddTransactionForm({
 
   const state = result?.state ?? null;
   const values = result?.mode === "transaction" && result.state ? result.state.values : initialValues;
-  const [draft, setDraft] = useState<Draft>({ ...initialValues, destinationId: "" });
+  const [draft, setDraft] = useState<Draft>(() => draftFromValues(initialValues));
   const [seenResult, setSeenResult] = useState(result);
   const [isSurplusOpen, setSurplusOpen] = useState(false);
   // The key remounts the radios after each result: the automatic form reset sends them back to
@@ -175,7 +205,7 @@ export function AddTransactionForm({
     saveRef.current?.focus();
   }, [result, isSurplusOpen]);
 
-  const kind: FormKind = isFormKind(draft.kind) ? draft.kind : "expense";
+  const { kind } = draft;
   const isTransfer = kind === TRANSFER;
   const accountIds = accounts.map((account) => account.id);
   const sourceId = Number(draft.accountId);
@@ -190,7 +220,8 @@ export function AddTransactionForm({
     currency === undefined ? null : formatTypedAmount(draft.amount, currency, locale);
   const errorOf = (field: string) =>
     state?.status === "error" && state.field === field ? state.message : undefined;
-  const update = (changes: Partial<Draft>) => {
+  // Any edit makes a split already asked for stale, so it also closes the surplus step.
+  const changeDraft = (changes: Partial<Draft>) => {
     setSurplusOpen(false);
     setDraft((current) => ({ ...current, ...changes }));
   };
@@ -198,7 +229,7 @@ export function AddTransactionForm({
   function pickSuggestion(suggestion: LabelSuggestion) {
     const categoryId = suggestion.categoryByAccount[sourceId];
     const category = categories.find((candidate) => candidate.id === categoryId);
-    update({
+    changeDraft({
       label: suggestion.label,
       ...(category === undefined ? {} : { categoryId: String(category.id) }),
     });
@@ -241,7 +272,7 @@ export function AddTransactionForm({
       id="date"
       name="date"
       value={draft.date}
-      onChange={(event) => update({ date: event.target.value })}
+      onChange={(event) => changeDraft({ date: event.target.value })}
       chip={{ label: add("pickDate"), isChosen: isCustomDate }}
       required
     />
@@ -262,13 +293,13 @@ export function AddTransactionForm({
         ref={formRef}
         action={formAction}
         noValidate
-        className="grid max-w-[920px] gap-x-8 gap-y-6 rounded-card bg-surface p-4 @min-[760px]:grid-cols-2 @min-[760px]:p-8"
+        className={`grid gap-x-8 gap-y-6 ${ADD_CARD_CLASS} ${WIDE_TWO_COLUMNS_CLASS}`}
       >
-        <h2 id="new-heading" className="text-title font-medium @min-[760px]:col-span-2">
+        <h2 id="new-heading" className={`text-title font-medium ${WIDE_FULL_WIDTH_CLASS}`}>
           {t("addHeading")}
         </h2>
         {state?.status === "notice" && surplusChoiceOf(result) === undefined ? (
-          <p role="status" className="font-medium @min-[760px]:col-span-2">
+          <p role="status" className={`font-medium ${WIDE_FULL_WIDTH_CLASS}`}>
             {state.message}
           </p>
         ) : null}
@@ -293,7 +324,7 @@ export function AddTransactionForm({
                       name="kind"
                       value={option}
                       checked={option === kind}
-                      onChange={() => update({ kind: option })}
+                      onChange={() => changeDraft({ kind: option })}
                     />
                     <span className={KIND_TONE[option]}>
                       <Icon icon={KIND_ICON[option]} />
@@ -308,7 +339,7 @@ export function AddTransactionForm({
                 id="amount"
                 name="amount"
                 value={draft.amount}
-                onChange={(event) => update({ amount: event.target.value })}
+                onChange={(event) => changeDraft({ amount: event.target.value })}
                 direction={SIGN_OF[kind]}
                 currency={currency ?? ""}
                 required
@@ -327,7 +358,7 @@ export function AddTransactionForm({
                   id="label"
                   name="label"
                   value={draft.label}
-                  onChange={(event) => update({ label: event.target.value })}
+                  onChange={(event) => changeDraft({ label: event.target.value })}
                   placeholder={add("labelPlaceholder")}
                   className={CONTROL_CLASS}
                   type="text"
@@ -367,7 +398,7 @@ export function AddTransactionForm({
                 name="categoryId"
                 value={draft.categoryId}
                 onChange={(categoryId) => {
-                  update({ categoryId });
+                  changeDraft({ categoryId });
                   setFilledCategory(null);
                 }}
                 options={categoryOptions}
@@ -380,7 +411,7 @@ export function AddTransactionForm({
 
         <section
           aria-labelledby="date-account-heading"
-          className="flex flex-col gap-6 @min-[760px]:border-l @min-[760px]:border-divider @min-[760px]:pl-8"
+          className={`flex flex-col gap-6 ${WIDE_DIVIDER_CLASS}`}
         >
           <h3 id="date-account-heading" className="text-title font-medium">
             {add("dateAccount")}
@@ -392,7 +423,7 @@ export function AddTransactionForm({
               legend={add("when")}
               name="datePreset"
               value={draft.date}
-              onChange={(date) => update({ date })}
+              onChange={(date) => changeDraft({ date })}
               options={dateOptions}
               layout="row"
               trailing={datePicker}
@@ -412,7 +443,7 @@ export function AddTransactionForm({
                 legend={add("from")}
                 name="sourceId"
                 value={draft.accountId}
-                onChange={(accountId) => update({ accountId })}
+                onChange={(accountId) => changeDraft({ accountId })}
                 options={accountOptions}
                 layout="row"
                 error={errorOf("sourceId")}
@@ -423,7 +454,7 @@ export function AddTransactionForm({
                 legend={add("to")}
                 name="destinationId"
                 value={destinationId === null ? "" : String(destinationId)}
-                onChange={(next) => update({ destinationId: next })}
+                onChange={(next) => changeDraft({ destinationId: next })}
                 options={accountOptions.map((option) => ({ ...option, disabled: option.value === draft.accountId }))}
                 layout="row"
                 error={errorOf("destinationId")}
@@ -436,7 +467,7 @@ export function AddTransactionForm({
               legend={form("account")}
               name="accountId"
               value={draft.accountId}
-              onChange={(accountId) => update({ accountId })}
+              onChange={(accountId) => changeDraft({ accountId })}
               options={accountOptions}
               layout="row"
               error={errorOf("accountId")}
@@ -462,7 +493,7 @@ export function AddTransactionForm({
                   legend={form("paymentMode")}
                   name="paymentMode"
                   value={draft.paymentMode}
-                  onChange={(paymentMode) => update({ paymentMode })}
+                  onChange={(paymentMode) => changeDraft({ paymentMode: paymentModeOf(paymentMode) })}
                   options={paymentOptions}
                   layout="row"
                   error={errorOf("paymentMode")}
@@ -477,7 +508,7 @@ export function AddTransactionForm({
               choice={choice}
               sourceName={nameOf(sourceId)}
               destinationName={nameOf(destinationId)}
-              targets={surplusTargets(accountIds, sourceId, destinationId).map((id) => ({
+              targets={surplusTargets({ accountIds, sourceId, destinationId }).map((id) => ({
                 id,
                 name: nameOf(id),
               }))}

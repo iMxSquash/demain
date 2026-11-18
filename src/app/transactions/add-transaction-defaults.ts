@@ -50,10 +50,14 @@ export function resolveDestination({
 }
 
 /** The accounts that can take the surplus of a transfer: neither its source nor its destination. */
-export function surplusTargets(
-  accountIds: readonly number[],
-  sourceId: number,
-  destinationId: number,
-): number[] {
+export function surplusTargets({
+  accountIds,
+  sourceId,
+  destinationId,
+}: {
+  accountIds: readonly number[];
+  sourceId: number;
+  destinationId: number;
+}): number[] {
   return accountIds.filter((id) => id !== sourceId && id !== destinationId);
 }

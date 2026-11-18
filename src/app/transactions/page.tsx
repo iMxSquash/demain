@@ -32,6 +32,7 @@ import {
 } from "./actions";
 import { AddTransactionForm } from "./add-transaction-form";
 import { addTransactionDefaults } from "./add-transaction-defaults";
+import { ADD_CARD_CLASS } from "./add-transaction-layout";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 
@@ -66,6 +67,7 @@ async function readTransactionsFromDatabase() {
 }
 
 const PAGE_GAP = "gap-10";
+const YESTERDAY_OFFSET_DAYS = -1;
 
 // The sections below show their heading at once and hold only the data in a `Suspense`, so a slow
 // read never delays the rest of the page.
@@ -240,7 +242,7 @@ function TransactionFormsLoading() {
 
   return (
     <SkeletonRegion label={loading("forms")} className={`flex flex-col ${PAGE_GAP}`}>
-      <section aria-labelledby="new-heading" className="flex max-w-[920px] flex-col gap-6 rounded-card bg-surface p-4 @min-[760px]:p-8">
+      <section aria-labelledby="new-heading" className={`flex flex-col gap-6 ${ADD_CARD_CLASS}`}>
         <h2 id="new-heading" className="text-title font-medium">
           {t("addHeading")}
         </h2>
@@ -286,7 +288,7 @@ async function TransactionForms() {
       categories={listAssignableCategories(categories)}
       labelSuggestions={labelSuggestions}
       today={today}
-      yesterday={addDays(today, -1)}
+      yesterday={addDays(today, YESTERDAY_OFFSET_DAYS)}
     />
   );
 }

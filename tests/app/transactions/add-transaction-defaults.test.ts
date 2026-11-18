@@ -131,10 +131,10 @@ describe("resolveDestination", () => {
 
 describe("surplusTargets", () => {
   it("offers every account but the source and the destination", () => {
-    expect(surplusTargets([1, 2, 3, 4], 1, 2)).toEqual([3, 4]);
+    expect(surplusTargets({ accountIds: [1, 2, 3, 4], sourceId: 1, destinationId: 2 })).toEqual([3, 4]);
   });
 
   it("offers none when only the two accounts exist", () => {
-    expect(surplusTargets([1, 2], 1, 2)).toEqual([]);
+    expect(surplusTargets({ accountIds: [1, 2], sourceId: 1, destinationId: 2 })).toEqual([]);
   });
 });
