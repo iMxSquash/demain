@@ -5,6 +5,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
 
+import { listAssignableCategories } from "../../domain/category";
 import { formatAmount } from "../../domain/money";
 import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
@@ -282,7 +283,7 @@ async function TransactionForms() {
         lastAccountId,
       })}
       accounts={active}
-      categories={categories.filter((category) => !category.archived)}
+      categories={listAssignableCategories(categories)}
       labelSuggestions={labelSuggestions}
       today={today}
       yesterday={addDays(today, -1)}

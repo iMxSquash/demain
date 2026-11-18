@@ -4,6 +4,7 @@ import {
   assertCategoryAssignable,
   assertCategoryNameAvailable,
   CategoryValidationError,
+  listAssignableCategories,
   validateCategoryName,
 } from "../../src/domain/category";
 
@@ -70,5 +71,33 @@ describe("assertCategoryAssignable", () => {
   it("accepts no category at all, on any kind", () => {
     expect(() => assertCategoryAssignable("transfer", null)).not.toThrow();
     expect(() => assertCategoryAssignable("expense", null)).not.toThrow();
+  });
+});
+
+describe("listAssignableCategories", () => {
+  const categories = [
+    { id: 1, name: "Groceries", archived: false },
+    { id: 2, name: "Old", archived: true },
+    { id: 3, name: "Rent", archived: false },
+  ];
+
+  it("keeps the categories a transaction can newly choose, in order", () => {
+    expect(listAssignableCategories(categories).map(({ id }) => id)).toEqual([1, 3]);
+  });
+
+  it("agrees with the rule that refuses a category when it is assigned", () => {
+    for (const category of categories) {
+      const isListed = listAssignableCategories(categories).includes(category);
+      const isAccepted = (() => {
+        try {
+          assertCategoryAssignable("expense", category);
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+
+      expect(isListed).toBe(isAccepted);
+    }
   });
 });

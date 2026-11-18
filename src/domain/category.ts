@@ -56,6 +56,18 @@ export function assertCategoryNameAvailable(
   }
 }
 
+/** A category a transaction can newly choose: an archived one is hidden from pickers. */
+function isCategoryAssignable(category: { archived: boolean }): boolean {
+  return !category.archived;
+}
+
+/** What a picker offers, in the order given. It is the rule `assertCategoryAssignable` applies. */
+export function listAssignableCategories<T extends { archived: boolean }>(
+  categories: readonly T[],
+): T[] {
+  return categories.filter(isCategoryAssignable);
+}
+
 /**
  * A transfer is a move between the owner's own accounts, so it has no category
  * (DOMAIN, entity Transaction). An archived category is hidden from pickers:
@@ -74,7 +86,7 @@ export function assertCategoryAssignable(
       messageRef("categoryOfTransfer"),
     );
   }
-  if (category.archived) {
+  if (!isCategoryAssignable(category)) {
     throw new TransactionValidationError(
       "categoryId",
       "This category is archived and cannot be assigned",
