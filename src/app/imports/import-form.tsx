@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { Button } from "../../components/button";
@@ -10,12 +11,6 @@ import { FileInput } from "../../components/file-input";
 import { Notice } from "../../components/notice";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
-import {
-  withOverflowChoice,
-  type OverflowTarget,
-  type PendingOverflow,
-} from "../../domain/import-overflow";
-import type { AccountRef, OverflowAccount } from "../../domain/overflow";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
 import {
@@ -23,13 +18,9 @@ import {
   type ImportFormState,
   type ImportView,
   type MappingFields,
-  failedStagedFile,
-  type ColumnChoiceFields,
-  type StagedFile,
 } from "./import-form-data";
-import { stageFileAction } from "./stage-actions";
-import { StagedImportReview } from "./staged-import-review";
-import { stageSources, type ColumnChoicesBySource } from "./stage-sources";
+import { useReviewSession } from "./review-session";
+import { useStaging } from "./use-staging";
 import { Select } from "../../components/select";
 
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
@@ -196,133 +187,20 @@ function RawRows({ rows }: { rows: string[][] }) {
   );
 }
 
-interface Staging {
-  current: number;
-  total: number;
-  name: string;
-}
-
-interface Review {
-  accountId: number;
-  /** The files as chosen, kept to read them again when the account changes. */
-  sources: File[];
-  files: StagedFile[];
-  /** The balances when the files were read: the page refreshes after each import, the plan must not. */
-  overflowAccounts: OverflowAccount<AccountRef>[];
-  /** The same balances without the choices made so far: what a file needs is read from them. */
-  storedOverflowAccounts: OverflowAccount<AccountRef>[];
-  /** The balance assertions and the movements when the files were read: the page refreshes after each import, the comparison must not. */
-  assertionSnapshot: AssertionLinkSnapshot;
-  /** The overflow accounts chosen so far: written with the first file imported, never before. */
-  overflowChoices: PendingOverflow[];
-  /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */
-  columnChoices: ColumnChoicesBySource;
-  /** Counts the readings of the files: what was edited belongs to one of them. */
-  batch: number;
-}
-
 export function ImportForm({
   accounts,
-  categories,
   overflowAccounts,
   assertionSnapshot,
-}: ImportView & { assertionSnapshot: AssertionLinkSnapshot }) {
+}: Pick<ImportView, "accounts" | "overflowAccounts"> & {
+  assertionSnapshot: AssertionLinkSnapshot;
+}) {
   const t = useTranslations("imports");
   const common = useTranslations("common");
   const [state, setState] = useState<ImportFormState | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [staging, setStaging] = useState<Staging | null>(null);
-  const [review, setReview] = useState<Review | null>(null);
-
-  async function stageOne(
-    file: File,
-    accountText: string,
-    columns: ColumnChoiceFields | undefined,
-  ): Promise<StagedFile> {
-    const formData = new FormData();
-    formData.set("accountId", accountText);
-    formData.set("file", file);
-    for (const [name, value] of Object.entries(columns ?? {})) formData.set(name, value);
-    try {
-      return await stageFileAction(formData);
-    } catch (error) {
-      // A file that fails must not stop the next ones: it gets a card that says so.
-      console.error("Import staging failed", error);
-      return failedStagedFile(file.name, t("staged.readFailed"));
-    }
-  }
-
-  // One file after the other, as if each had been sent alone: nothing is recorded here.
-  async function stageFiles(
-    files: File[],
-    accountText: string,
-    choices: ColumnChoicesBySource,
-  ) {
-    const staged = await stageSources(
-      files,
-      choices,
-      (file, columns) => stageOne(file, accountText, columns),
-      (current, file) =>
-        setStaging({ current, total: files.length, name: file.name }),
-    );
-    setStaging(null);
-    return staged;
-  }
-
-  // The duplicates and the currency depend on the account: the files are read again for the new one.
-  async function changeReviewAccount(accountId: number) {
-    if (review === null) return;
-    const { sources, columnChoices } = review;
-    setReview({ ...review, accountId });
-    const files = await stageFiles(sources, String(accountId), columnChoices);
-    // Closed while the files were read: it stays closed.
-    setReview((current) =>
-      current === null
-        ? null
-        : {
-            ...current,
-            files,
-            overflowAccounts,
-            storedOverflowAccounts: overflowAccounts,
-            assertionSnapshot,
-            // The balances are back to the stored ones: the choices go with them.
-            overflowChoices: [],
-            batch: current.batch + 1,
-          },
-    );
-  }
-
-  // The choice is only remembered: the plan of the review follows it, and it is
-  // saved with the first file imported (an account to create is referred to by `pendingAccountRef`).
-  function chooseOverflow(accountId: number, target: OverflowTarget) {
-    setReview((current) => {
-      if (current === null) return null;
-      const choice = { accountId, target };
-      return {
-        ...current,
-        overflowAccounts: withOverflowChoice(current.overflowAccounts, choice),
-        overflowChoices: [...current.overflowChoices, choice],
-      };
-    });
-  }
-
-  // One file again, with the columns the user chose: the others are left as they are.
-  async function restageSource(sourceIndex: number, choices: ColumnChoiceFields) {
-    const source = review?.sources[sourceIndex];
-    if (review === null || source === undefined) {
-      return failedStagedFile("", t("staged.readFailed"));
-    }
-    const staged = await stageOne(source, String(review.accountId), choices);
-    // Remembered only when the reading worked: a failed one leaves the earlier choices in force.
-    if (staged.status !== "failed") {
-      setReview((current) =>
-        current === null
-          ? null
-          : { ...current, columnChoices: { ...current.columnChoices, [sourceIndex]: choices } },
-      );
-    }
-    return staged;
-  }
+  const router = useRouter();
+  const { setReview } = useReviewSession();
+  const { staging, stageFiles } = useStaging();
 
   async function stageThenReview(
     files: File[],
@@ -346,6 +224,7 @@ export function ImportForm({
       columnChoices: {},
       batch: 1,
     });
+    router.push("/imports/review");
   }
 
   // The action is called by hand rather than through the form's `action`: React
@@ -381,171 +260,148 @@ export function ImportForm({
   const isDone = state?.status === "done";
 
   return (
-    <>
-      <form
-        onSubmit={handleSubmit}
-        className="flex max-w-3xl flex-col gap-6"
-        noValidate
-      >
-        <FormField id="accountId" label={t("accountLabel")}>
-          <Select
-            id="accountId"
-            name="accountId"
-            defaultValue={state?.accountId ?? ""}
-            onChange={discardPreview}
-          >
-            <option value="">{t("chooseAccount")}</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-        <FormField id="file" label={t("fileLabel")} hint={t("fileHint")}>
-          <FileInput
-            id="file"
-            name="file"
-            multiple
-            accept=".csv,.ofx,.qfx,.txt,text/csv,application/x-ofx"
-            onChange={discardPreview}
-          />
-        </FormField>
+    <form
+      onSubmit={handleSubmit}
+      className="flex max-w-3xl flex-col gap-6"
+      noValidate
+    >
+      <FormField id="accountId" label={t("accountLabel")}>
+        <Select
+          id="accountId"
+          name="accountId"
+          defaultValue={state?.accountId ?? ""}
+          onChange={discardPreview}
+        >
+          <option value="">{t("chooseAccount")}</option>
+          {accounts.map((account) => (
+            <option key={account.id} value={account.id}>
+              {account.name}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+      <FormField id="file" label={t("fileLabel")} hint={t("fileHint")}>
+        <FileInput
+          id="file"
+          name="file"
+          multiple
+          accept=".csv,.ofx,.qfx,.txt,text/csv,application/x-ofx"
+          onChange={discardPreview}
+        />
+      </FormField>
 
-        {state?.format === "csv" && state.mapping !== null ? (
+      {state?.format === "csv" && state.mapping !== null ? (
+        <>
+          {state.rawRows.length > 0 ? <RawRows rows={state.rawRows} /> : null}
+          <MappingFieldset
+            key={JSON.stringify(state.mapping)}
+            fields={state.mapping}
+          />
+        </>
+      ) : null}
+
+      <div aria-live="polite" className="flex flex-col gap-4">
+        {staging === null ? null : (
+          <p role="status" className="font-medium">
+            {t("staged.reading", { ...staging })}
+          </p>
+        )}
+        {state === null ? null : (
+          <p
+            role={state.status === "error" ? "alert" : "status"}
+            className={
+              state.status === "error"
+                ? "font-medium text-negative"
+                : "font-medium"
+            }
+          >
+            {state.status === "error"
+              ? common("error", { message: state.message })
+              : state.message}
+          </p>
+        )}
+        {state === null ? null : (
           <>
-            {state.rawRows.length > 0 ? <RawRows rows={state.rawRows} /> : null}
-            <MappingFieldset
-              key={JSON.stringify(state.mapping)}
-              fields={state.mapping}
+            <MessageList
+              id="problems-heading"
+              heading={t("problemsHeading")}
+              items={state.problems}
+            />
+            <MessageList
+              id="warnings-heading"
+              heading={t("warningsHeading")}
+              items={state.warnings}
+              asNotices
             />
           </>
-        ) : null}
-
-        <div aria-live="polite" className="flex flex-col gap-4">
-          {staging === null || review !== null ? null : (
-            <p role="status" className="font-medium">
-              {t("staged.reading", { ...staging })}
-            </p>
-          )}
-          {state === null ? null : (
-            <p
-              role={state.status === "error" ? "alert" : "status"}
-              className={
-                state.status === "error"
-                  ? "font-medium text-negative"
-                  : "font-medium"
-              }
-            >
-              {state.status === "error"
-                ? common("error", { message: state.message })
-                : state.message}
-            </p>
-          )}
-          {state === null ? null : (
-            <>
-              <MessageList
-                id="problems-heading"
-                heading={t("problemsHeading")}
-                items={state.problems}
-              />
-              <MessageList
-                id="warnings-heading"
-                heading={t("warningsHeading")}
-                items={state.warnings}
-                asNotices
-              />
-            </>
-          )}
-          {state !== null && state.sampleRows.length > 0 ? (
-            <table className="border-collapse text-left">
-              <caption className="pb-2 text-left font-medium">
-                {t("sampleHeading")}
-              </caption>
-              <thead>
-                <tr className="border-b border-border-control">
-                  <th scope="col" className="py-2 pr-4">
-                    {t("columns.date")}
+        )}
+        {state !== null && state.sampleRows.length > 0 ? (
+          <table className="border-collapse text-left">
+            <caption className="pb-2 text-left font-medium">
+              {t("sampleHeading")}
+            </caption>
+            <thead>
+              <tr className="border-b border-border-control">
+                <th scope="col" className="py-2 pr-4">
+                  {t("columns.date")}
+                </th>
+                <th scope="col" className="py-2 pr-4">
+                  {t("columns.label")}
+                </th>
+                <th scope="col" className="py-2 text-right">
+                  {t("columns.amount")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.sampleRows.map((row, index) => (
+                <tr key={index} className="border-b border-divider">
+                  <td className="py-2 pr-4 tabular-nums">{row.date}</td>
+                  <th scope="row" className="py-2 pr-4 font-medium">
+                    {row.label}
                   </th>
-                  <th scope="col" className="py-2 pr-4">
-                    {t("columns.label")}
-                  </th>
-                  <th scope="col" className="py-2 text-right">
-                    {t("columns.amount")}
-                  </th>
+                  <td className="py-2 text-right tabular-nums">
+                    {row.amount}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {state.sampleRows.map((row, index) => (
-                  <tr key={index} className="border-b border-divider">
-                    <td className="py-2 pr-4 tabular-nums">{row.date}</td>
-                    <th scope="row" className="py-2 pr-4 font-medium">
-                      {row.label}
-                    </th>
-                    <td className="py-2 text-right tabular-nums">
-                      {row.amount}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : null}
-        </div>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </div>
 
-        <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3">
+        <Button
+          type="submit"
+          variant="secondary"
+          name="intent"
+          value="preview"
+          disabled={isDone || staging !== null}
+          pending={isPending}
+          pendingLabel={t("previewSubmitPending")}
+        >
+          {t("previewSubmit")}
+        </Button>
+        {state?.canImport === true && !isDone ? (
           <Button
             type="submit"
-            variant="secondary"
             name="intent"
-            value="preview"
-            disabled={isDone || staging !== null}
+            value="import"
             pending={isPending}
-            pendingLabel={t("previewSubmitPending")}
+            pendingLabel={t("importSubmitPending")}
           >
-            {t("previewSubmit")}
+            {t("importSubmit")}
           </Button>
-          {state?.canImport === true && !isDone ? (
-            <Button
-              type="submit"
-              name="intent"
-              value="import"
-              pending={isPending}
-              pendingLabel={t("importSubmitPending")}
-            >
-              {t("importSubmit")}
-            </Button>
-          ) : null}
-          {isDone ? (
-            <Link
-              href="/categories"
-              className="inline-flex min-h-11 items-center underline"
-            >
-              {t("toCategorize")}
-            </Link>
-          ) : null}
-        </div>
-      </form>
-      {/* Outside the form: Enter in a cell of the review must not submit it. */}
-      {review === null ? null : (
-        <StagedImportReview
-          batch={review.batch}
-          files={review.files}
-          accountId={review.accountId}
-          accounts={accounts}
-          categories={categories}
-          overflowAccounts={review.overflowAccounts}
-          storedOverflowAccounts={review.storedOverflowAccounts}
-          assertionSnapshot={review.assertionSnapshot}
-          overflowChoices={review.overflowChoices}
-          readingText={
-            staging === null ? null : t("staged.reading", { ...staging })
-          }
-          onAccountChange={changeReviewAccount}
-          onOverflowChosen={chooseOverflow}
-          onRestage={restageSource}
-          onClose={() => setReview(null)}
-        />
-      )}
-    </>
+        ) : null}
+        {isDone ? (
+          <Link
+            href="/categories"
+            className="inline-flex min-h-11 items-center underline"
+          >
+            {t("toCategorize")}
+          </Link>
+        ) : null}
+      </div>
+    </form>
   );
 }

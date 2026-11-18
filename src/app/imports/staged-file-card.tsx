@@ -328,9 +328,9 @@ export function FileCard({
       aria-labelledby={headingId}
       className="flex flex-col gap-3 rounded-control border border-border-control p-4"
     >
-      <h3 id={headingId} ref={titleRef} tabIndex={-1} className="text-title font-medium break-all">
+      <h2 id={headingId} ref={titleRef} tabIndex={-1} className="text-title font-medium break-all">
         {file.fileName}
-      </h3>
+      </h2>
 
       {file.status === "failed" ? (
         <p role="alert" className="font-medium text-negative">

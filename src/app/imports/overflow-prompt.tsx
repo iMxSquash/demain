@@ -94,9 +94,9 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3 rounded-control border border-border-control p-4">
-      <h3 id={headingId} className="text-title font-medium">
+      <h2 id={headingId} className="text-title font-medium">
         {t("heading", { account: accountName })}
-      </h3>
+      </h2>
       <p>
         {t("shortfall", {
           amount: formatAmount(demand.amount, currency, locale),

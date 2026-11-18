@@ -6,13 +6,8 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { SkeletonFields, SkeletonRegion } from "../../components/skeleton";
-import { listAccounts, listOverflowAccounts } from "../../ledger/accounts";
-import { readAssertionLinkSnapshot } from "../../ledger/balance-assertions";
-import { listCategories } from "../../ledger/categories";
-import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
-import { tagDataRead } from "../data-cache";
-import { toImportView } from "./import-form-data";
+import { readImportContext } from "./import-context";
 import { ImportForm } from "./import-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,15 +43,6 @@ function ImportFormLoading() {
       <SkeletonFields count={2} />
     </SkeletonRegion>
   );
-}
-
-async function readImportContext() {
-  "use cache";
-  tagDataRead();
-  return withDatabase((db) => ({
-    view: toImportView(listAccounts(db), listCategories(db), listOverflowAccounts(db)),
-    assertionSnapshot: readAssertionLinkSnapshot(db),
-  }));
 }
 
 async function ImportSection() {

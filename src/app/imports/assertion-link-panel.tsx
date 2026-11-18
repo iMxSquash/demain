@@ -40,9 +40,9 @@ export function AssertionLinkPanel({
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h4 id={headingId} className="font-medium">
+      <h3 id={headingId} className="font-medium">
         {t("heading")}
-      </h4>
+      </h3>
       <p aria-live="polite">{summary ?? t("empty")}</p>
       {rows.length === 0 ? null : (
         // A wide table scrolls: the region takes the focus so that the keyboard can scroll it too.
