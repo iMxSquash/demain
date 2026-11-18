@@ -14,8 +14,8 @@ const KEEP_IN_SOURCE = "keep";
 interface SurplusStepProps {
   /** What the server found: the split is its computation, the browser never decides what fits. */
   choice: SurplusChoice;
-  source: { name: string };
-  destination: { name: string };
+  sourceName: string;
+  destinationName: string;
   /** The accounts that can take the surplus, in display order. */
   targets: readonly { id: number; name: string }[];
   isPending: boolean;
@@ -29,7 +29,7 @@ interface SurplusStepProps {
  * destination (DESIGN section 10, "Above the ceiling"). Its heading takes the focus when it
  * opens. The buttons post the decision with the form; Cancel records nothing.
  */
-export function SurplusStep({ choice, source, destination, targets, isPending, error, onCancel }: SurplusStepProps) {
+export function SurplusStep({ choice, sourceName, destinationName, targets, isPending, error, onCancel }: SurplusStepProps) {
   const t = useTranslations("transactions.add");
   const common = useTranslations("common");
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -48,7 +48,7 @@ export function SurplusStep({ choice, source, destination, targets, isPending, e
       value: String(account.id),
       label: t("surplusSend", { account: account.name }),
     })),
-    { value: KEEP_IN_SOURCE, label: t("surplusKeep", { account: source.name }) },
+    { value: KEEP_IN_SOURCE, label: t("surplusKeep", { account: sourceName }) },
   ];
 
   return (
@@ -60,7 +60,7 @@ export function SurplusStep({ choice, source, destination, targets, isPending, e
         {t("surplusWarning", {
           deposited: choice.depositedText,
           surplus: choice.surplusText,
-          account: destination.name,
+          account: destinationName,
         })}
       </Notice>
       {/* Only a surplus sent elsewhere names an account: keeping it posts none. */}
@@ -94,7 +94,7 @@ export function SurplusStep({ choice, source, destination, targets, isPending, e
           className="min-h-13 flex-1"
         >
           {target === undefined
-            ? t("confirmRoomOnly", { deposited: choice.depositedText, account: destination.name })
+            ? t("confirmRoomOnly", { deposited: choice.depositedText, account: destinationName })
             : t("confirmSend", { deposited: choice.depositedText, account: target.name })}
         </Button>
       </div>

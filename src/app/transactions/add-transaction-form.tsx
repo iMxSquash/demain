@@ -224,12 +224,11 @@ export function AddTransactionForm({
     { value: today, label: add("today"), tone: "today" },
     { value: yesterday, label: add("yesterday") },
   ];
-  const accountOption = (account: AccountOption, disabled = false): ChipOption => ({
+  const accountOptions: ChipOption[] = accounts.map((account) => ({
     value: String(account.id),
     label: account.name,
     icon: account.kind === "savings" ? Coins : CreditCard,
-    disabled,
-  });
+  }));
   const paymentOptions: ChipOption[] = PAYMENT_MODES.map((mode) => ({
     value: mode,
     label: t(`paymentModes.${mode}`),
@@ -248,13 +247,14 @@ export function AddTransactionForm({
     />
   );
   const choice = isSurplusOpen && isTransfer ? surplusChoiceOf(result) : undefined;
+  const amountArgument = formattedAmount === null ? undefined : { amount: formattedAmount };
   const submitLabel = isTransfer
-    ? formattedAmount === null
+    ? amountArgument === undefined
       ? add("submitMove", { account: nameOf(destinationId) })
-      : add("submitMoveWithAmount", { amount: formattedAmount, account: nameOf(destinationId) })
-    : formattedAmount === null
+      : add("submitMoveWithAmount", { ...amountArgument, account: nameOf(destinationId) })
+    : amountArgument === undefined
       ? add(`submit.${kind}`)
-      : add(`submitWithAmount.${kind}`, { amount: formattedAmount });
+      : add(`submitWithAmount.${kind}`, amountArgument);
 
   return (
     <section aria-labelledby="new-heading" className="@container">
@@ -413,7 +413,7 @@ export function AddTransactionForm({
                 name="sourceId"
                 value={draft.accountId}
                 onChange={(accountId) => update({ accountId })}
-                options={accounts.map((account) => accountOption(account))}
+                options={accountOptions}
                 layout="row"
                 error={errorOf("sourceId")}
               />
@@ -424,7 +424,7 @@ export function AddTransactionForm({
                 name="destinationId"
                 value={destinationId === null ? "" : String(destinationId)}
                 onChange={(next) => update({ destinationId: next })}
-                options={accounts.map((account) => accountOption(account, account.id === sourceId))}
+                options={accountOptions.map((option) => ({ ...option, disabled: option.value === draft.accountId }))}
                 layout="row"
                 error={errorOf("destinationId")}
               />
@@ -437,7 +437,7 @@ export function AddTransactionForm({
               name="accountId"
               value={draft.accountId}
               onChange={(accountId) => update({ accountId })}
-              options={accounts.map((account) => accountOption(account))}
+              options={accountOptions}
               layout="row"
               error={errorOf("accountId")}
             />
@@ -475,8 +475,8 @@ export function AddTransactionForm({
             <SurplusStep
               key={`surplus-${resultCount}`}
               choice={choice}
-              source={{ name: nameOf(sourceId) }}
-              destination={{ name: nameOf(destinationId) }}
+              sourceName={nameOf(sourceId)}
+              destinationName={nameOf(destinationId)}
               targets={surplusTargets(accountIds, sourceId, destinationId).map((id) => ({
                 id,
                 name: nameOf(id),

@@ -79,11 +79,12 @@ export function ChoiceChips({
       <legend className="mb-3 text-caption font-medium text-text">{legend}</legend>
       <div className={GROUP_CLASS[layout]}>
         {options.map((option) => {
+          const { icon } = option;
           const isLater = option.tone === "later";
           const shape =
             layout === "tiles"
               ? CHIP_TILE_CLASS
-              : `${CHIP_PILL_CLASS} ${option.icon ? CHIP_WITH_DISC_CLASS : CHIP_TEXT_ONLY_CLASS}`;
+              : `${CHIP_PILL_CLASS} ${icon ? CHIP_WITH_DISC_CLASS : CHIP_TEXT_ONLY_CLASS}`;
           return (
             <label
               key={option.value}
@@ -102,13 +103,13 @@ export function ChoiceChips({
                 {...(error && option.value === invalidValue ? { "aria-invalid": true } : {})}
                 className="sr-only"
               />
-              {option.icon ? (
+              {icon ? (
                 <span
                   className={`${CHIP_DISC_CLASS} group-has-[:checked]/chip:bg-surface group-has-[:disabled]/chip:bg-surface-sunken group-has-[:disabled]/chip:text-text-muted ${
                     isLater ? "bg-warning-tint text-warning group-has-[:checked]/chip:text-warning" : ""
                   }`}
                 >
-                  <Icon icon={option.icon} />
+                  <Icon icon={icon} />
                 </span>
               ) : null}
               <span className="min-w-0 break-words">{option.label}</span>
