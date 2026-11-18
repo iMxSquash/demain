@@ -13,3 +13,6 @@ export const CHIP_DISC_CLASS =
   "grid size-8 shrink-0 place-items-center rounded-pill bg-control text-text";
 /** The chosen chip is ink and its disc turns to the surface. */
 export const CHIP_CHOSEN_CLASS = "border-primary bg-primary text-on-primary";
+
+/** A square chip with only an icon (the picker of the icon of a category): its word is read, not seen. */
+export const CHIP_ICON_ONLY_CLASS = `${CHIP_SHAPE} grid size-11 place-items-center rounded-control`;

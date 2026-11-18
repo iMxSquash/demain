@@ -126,7 +126,7 @@ describe("toImportView", () => {
   it("gives the browser what it needs to choose an account and a category, and no more", () => {
     const view = toImportView(
       [CHECKING, SAVINGS],
-      [{ id: 7, name: "Groceries", archived: false }],
+      [{ id: 7, name: "Groceries", icon: "tag", archived: false }],
       BALANCES,
     );
 

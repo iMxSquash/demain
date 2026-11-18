@@ -58,7 +58,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               opacity: 0,
               transition: { duration: motion.duration.exit, ease: motion.ease.exit },
             }}
-            className="rounded-card bg-surface p-6 shadow-overlay"
+            className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-card bg-surface p-6 shadow-overlay"
           >
             <div className="flex flex-col gap-4">
               <h2 id={titleId} className="text-title font-medium">

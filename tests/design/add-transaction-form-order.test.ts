@@ -14,8 +14,8 @@ const ACCOUNTS = [
   { id: 2, name: "Savings", currency: "EUR", kind: "savings" },
 ];
 const CATEGORIES = [
-  { id: 10, name: "Groceries" },
-  { id: 11, name: "Transport" },
+  { id: 10, name: "Groceries", icon: "basket" },
+  { id: 11, name: "Transport", icon: "bus" },
 ];
 
 function render(kind?: string): string {

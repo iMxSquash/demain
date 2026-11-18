@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/button";
 import { Notice } from "../../components/notice";
-import { ChoiceChips, type ChipOption } from "./choice-chips";
+import { ChoiceChips, type ChipOption } from "../../components/choice-chips";
 import type { SurplusChoice } from "./transaction-form-data";
 import { TRANSFER_DECISION } from "./transfer-decision";
 

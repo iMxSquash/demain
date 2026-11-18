@@ -5,12 +5,13 @@ import type { ReactNode } from "react";
 
 import {
   CHIP_DISC_CLASS,
+  CHIP_ICON_ONLY_CLASS,
   CHIP_PILL_CLASS,
   CHIP_TEXT_ONLY_CLASS,
   CHIP_TILE_CLASS,
   CHIP_WITH_DISC_CLASS,
-} from "../../components/chip";
-import { Icon } from "../../components/icon";
+} from "./chip";
+import { Icon } from "./icon";
 
 export interface ChipOption {
   value: string;
@@ -34,8 +35,11 @@ interface ChoiceChipsProps {
   value: string;
   onChange: (value: string) => void;
   options: readonly ChipOption[];
-  /** "tiles" is the grid of 76 px chips of the categories, "row" the pills of the date and the account. */
-  layout: "row" | "tiles";
+  /**
+   * "tiles" is the grid of 76 px chips of the categories, "row" the pills of the date and the
+   * account, "icons" a grid of square icon-only chips whose word is only read.
+   */
+  layout: "row" | "tiles" | "icons";
   /** Another chip at the end of the row, such as the date picker. */
   trailing?: ReactNode;
   error?: string | undefined;
@@ -52,6 +56,7 @@ const TODAY_RING_CLASS = "not-has-[:checked]:shadow-[inset_0_0_0_1.5px_var(--col
 const GROUP_CLASS = {
   row: "flex flex-wrap gap-3",
   tiles: "grid grid-cols-4 gap-3",
+  icons: "grid grid-cols-5 gap-2",
 } as const;
 
 /**
@@ -81,13 +86,17 @@ export function ChoiceChips({
         {options.map((option) => {
           const { icon } = option;
           const isLater = option.tone === "later";
+          const isIconOnly = layout === "icons";
           const shape =
             layout === "tiles"
               ? CHIP_TILE_CLASS
-              : `${CHIP_PILL_CLASS} ${icon ? CHIP_WITH_DISC_CLASS : CHIP_TEXT_ONLY_CLASS}`;
+              : isIconOnly
+                ? CHIP_ICON_ONLY_CLASS
+                : `${CHIP_PILL_CLASS} ${icon ? CHIP_WITH_DISC_CLASS : CHIP_TEXT_ONLY_CLASS}`;
           return (
             <label
               key={option.value}
+              title={isIconOnly ? option.label : undefined}
               className={`group/chip ${shape} ${CHOSEN_CLASS[isLater ? "later" : "plain"]} ${FOCUS_CLASS} not-has-[:checked]:not-has-[:disabled]:hover:border-text has-[:disabled]:cursor-not-allowed has-[:disabled]:border-dashed has-[:disabled]:bg-transparent has-[:disabled]:text-text-muted ${
                 option.tone === "today" ? TODAY_RING_CLASS : ""
               }`}
@@ -103,7 +112,8 @@ export function ChoiceChips({
                 {...(error && option.value === invalidValue ? { "aria-invalid": true } : {})}
                 className="sr-only"
               />
-              {icon ? (
+              {icon && isIconOnly ? <Icon icon={icon} /> : null}
+              {icon && !isIconOnly ? (
                 <span
                   className={`${CHIP_DISC_CLASS} group-has-[:checked]/chip:bg-surface group-has-[:disabled]/chip:bg-surface-sunken group-has-[:disabled]/chip:text-text-muted ${
                     isLater ? "bg-warning-tint text-warning group-has-[:checked]/chip:text-warning" : ""
@@ -112,7 +122,7 @@ export function ChoiceChips({
                   <Icon icon={icon} />
                 </span>
               ) : null}
-              <span className="min-w-0 break-words">{option.label}</span>
+              <span className={isIconOnly ? "sr-only" : "min-w-0 break-words"}>{option.label}</span>
             </label>
           );
         })}

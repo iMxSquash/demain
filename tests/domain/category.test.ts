@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   assertCategoryAssignable,
   assertCategoryNameAvailable,
+  CATEGORY_ICONS,
   CategoryValidationError,
+  DEFAULT_CATEGORY_ICON,
   listAssignableCategories,
+  validateCategoryIcon,
   validateCategoryName,
 } from "../../src/domain/category";
 
@@ -99,5 +102,40 @@ describe("listAssignableCategories", () => {
 
       expect(isListed).toBe(isAccepted);
     }
+  });
+});
+
+describe("validateCategoryIcon", () => {
+  it("accepts every icon of the set", () => {
+    for (const icon of CATEGORY_ICONS) {
+      expect(validateCategoryIcon(icon)).toBe(icon);
+    }
+  });
+
+  it("falls back to the default icon when none is given", () => {
+    expect(validateCategoryIcon(undefined)).toBe(DEFAULT_CATEGORY_ICON);
+  });
+
+  it("has a default icon that belongs to the set", () => {
+    expect(CATEGORY_ICONS).toContain(DEFAULT_CATEGORY_ICON);
+  });
+
+  it("rejects an icon outside the set, on the icon field", () => {
+    expect(() => validateCategoryIcon("rocket")).toThrow(CategoryValidationError);
+    try {
+      validateCategoryIcon("rocket");
+    } catch (error) {
+      expect(error).toMatchObject({ field: "icon" });
+    }
+  });
+
+  it("rejects an empty icon", () => {
+    expect(() => validateCategoryIcon("")).toThrow(CategoryValidationError);
+  });
+});
+
+describe("the set of icons", () => {
+  it("lists each icon once", () => {
+    expect(new Set(CATEGORY_ICONS).size).toBe(CATEGORY_ICONS.length);
   });
 });

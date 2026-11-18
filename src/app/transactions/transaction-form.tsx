@@ -26,6 +26,7 @@ export interface AccountOption {
 export interface CategoryOption {
   id: number;
   name: string;
+  icon: string;
 }
 
 interface TransactionFormProps {

@@ -98,6 +98,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | Category field | Description |
 | --- | --- |
 | id, name | Identifier and display name (translatable labels for default categories). |
+| icon | One key of a closed set of 20 icons (`CATEGORY_ICONS`), always present: a category without a chosen icon gets the default `tag`, which is also what the categories that existed before icons received. The set is closed so that the app draws it itself: no free text and no image. |
 | archived | Hidden from pickers but kept for history. |
 
 - **Unique names.** Category names are unique regardless of case, archived categories included, so that two homonyms never coexist in the history or in a rule.

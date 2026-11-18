@@ -8,7 +8,6 @@ import {
   CreditCard,
   Percent,
   Plus,
-  Tag,
   Tray,
 } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
@@ -16,10 +15,12 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/button";
 import { CHIP_DISC_CLASS, CHIP_TILE_CLASS } from "../../components/chip";
+import { categoryIconOf } from "../../components/category-icons";
 import { DatePicker } from "../../components/date-picker";
 import { Disclosure } from "../../components/disclosure";
 import { Icon } from "../../components/icon";
 import { useIsHydrated } from "../../components/use-is-hydrated";
+import { DEFAULT_CATEGORY_ICON } from "../../domain/category";
 import { filterLabelSuggestions } from "../../domain/label-suggestions";
 import { PAYMENT_MODES, type PaymentMode } from "../../domain/transaction";
 import type { LabelSuggestion } from "../../ledger/transaction-suggestions";
@@ -36,7 +37,7 @@ import {
   WIDE_TWO_COLUMNS_CLASS,
 } from "./add-transaction-layout";
 import { AmountDisplayInput } from "./amount-display-input";
-import { ChoiceChips, type ChipOption } from "./choice-chips";
+import { ChoiceChips, type ChipOption } from "../../components/choice-chips";
 import { SurplusStep } from "./surplus-step";
 import type { AccountOption, CategoryOption } from "./transaction-form";
 import type {
@@ -279,7 +280,7 @@ export function AddTransactionForm({
     ...categories.map((category) => ({
       value: String(category.id),
       label: category.name,
-      icon: Tag,
+      icon: categoryIconOf(category.icon),
     })),
   ];
   const dateOptions: ChipOption[] = [
@@ -584,6 +585,7 @@ export function AddTransactionForm({
         <CategoryForm
           action={createCategory}
           initialName=""
+          initialIcon={DEFAULT_CATEGORY_ICON}
           submitLabel={categoryText("addSubmit")}
           onCancel={() => setCategoryModalOpen(false)}
         />

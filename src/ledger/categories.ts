@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 
 import {
   assertCategoryNameAvailable,
+  validateCategoryIcon,
   validateCategoryName,
 } from "../domain/category";
 import type { AppDatabase } from "../storage/database";
@@ -53,22 +54,25 @@ function checkedName(db: AppDatabase, name: string, ignoreId?: number): string {
 
 export function createCategory(
   db: AppDatabase,
-  input: { name: string },
+  input: { name: string; icon?: string },
 ): Category {
   const name = checkedName(db, input.name);
-  return db.insert(categories).values({ name }).returning().get();
+  const icon = validateCategoryIcon(input.icon);
+  return db.insert(categories).values({ name, icon }).returning().get();
 }
 
-export function renameCategory(
+/** Changes the name, and the icon when one is given: without it the stored icon stays. */
+export function updateCategory(
   db: AppDatabase,
   id: number,
-  input: { name: string },
+  input: { name: string; icon?: string },
 ): Category {
   getCategory(db, id);
   const name = checkedName(db, input.name, id);
+  const icon = input.icon === undefined ? undefined : validateCategoryIcon(input.icon);
   return db
     .update(categories)
-    .set({ name })
+    .set({ name, ...(icon === undefined ? {} : { icon }) })
     .where(eq(categories.id, id))
     .returning()
     .get();

@@ -12,7 +12,7 @@ import {
   getCategory,
 } from "../../../../ledger/categories";
 import { withDatabase } from "../../../../storage/with-database";
-import { renameCategoryAction } from "../../actions";
+import { updateCategoryAction } from "../../actions";
 import { CategoryForm } from "../../category-form";
 import { requireSession } from "../../../auth/session";
 
@@ -84,8 +84,9 @@ async function RenameCategory({ params }: { params: Promise<{ id: string }> }) {
         {t("renameTitle", { name: category.name })}
       </h1>
     <CategoryForm
-      action={renameCategoryAction.bind(null, category.id)}
+      action={updateCategoryAction.bind(null, category.id)}
       initialName={category.name}
+      initialIcon={category.icon}
       submitLabel={common("saveChanges")}
     />
     </>
