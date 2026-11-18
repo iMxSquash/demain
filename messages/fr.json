@@ -409,7 +409,8 @@
       "surplusKeep": "Le garder dans {account}",
       "surplusSend": "Envoyer vers {account}",
       "confirmRoomOnly": "Virer seulement {deposited} vers {account}",
-      "confirmSend": "Virer {deposited}, le reste vers {account}"
+      "confirmSend": "Virer {deposited}, le reste vers {account}",
+      "newCategory": "Nouvelle catégorie"
     }
   },
   "categories": {

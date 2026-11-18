@@ -30,6 +30,7 @@ import {
   createTransferAction,
   deleteTransactionAction,
 } from "./actions";
+import { createCategoryAction } from "../categories/actions";
 import { AddTransactionForm } from "./add-transaction-form";
 import { addTransactionDefaults } from "./add-transaction-defaults";
 import { ADD_CARD_CLASS } from "./add-transaction-layout";
@@ -279,6 +280,7 @@ async function TransactionForms() {
     <AddTransactionForm
       action={createTransactionAction}
       transferAction={createTransferAction}
+      categoryAction={createCategoryAction}
       initialValues={addTransactionDefaults({
         today,
         accountIds: active.map((account) => account.id),

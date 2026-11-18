@@ -61,3 +61,15 @@ export function surplusTargets({
 }): number[] {
   return accountIds.filter((id) => id !== sourceId && id !== destinationId);
 }
+
+/**
+ * The category that has just been created, found by the name that was typed: the server trims it
+ * and category names are unique whatever their case. Undefined while the list does not hold it yet.
+ */
+export function findCreatedCategory<T extends { name: string }>(
+  categories: readonly T[],
+  typedName: string,
+): T | undefined {
+  const wanted = typedName.trim().toLowerCase();
+  return categories.find((category) => category.name.toLowerCase() === wanted);
+}

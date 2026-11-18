@@ -15,12 +15,15 @@ interface CategoryFormProps {
   ) => Promise<CategoryFormState | null>;
   initialName: string;
   submitLabel: string;
+  /** Adds a Cancel button next to the submit one, for a form shown in a modal. */
+  onCancel?: () => void;
 }
 
 export function CategoryForm({
   action,
   initialName,
   submitLabel,
+  onCancel,
 }: CategoryFormProps) {
   const t = useTranslations("categories");
   const common = useTranslations("common");
@@ -43,14 +46,16 @@ export function CategoryForm({
         />
       </FormField>
 
-      <Button
-        type="submit"
-        pending={isPending}
-        pendingLabel={common("pending")}
-        className="self-start"
-      >
-        {submitLabel}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" pending={isPending} pendingLabel={common("pending")}>
+          {submitLabel}
+        </Button>
+        {onCancel ? (
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            {common("cancel")}
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

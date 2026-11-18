@@ -494,6 +494,7 @@ The add-transaction form becomes a three-step flow (`form-proposals.html`, "Reta
 - **Removed:** the keypad, the progress bar, "Step 1 of 3", Back and Next, and the recap rows of step 3, since everything is already in view.
 - **Saving:** the save button checks the amount, then the label, and moves the focus to the first field in error with its message.
 - Reading and tab order follow the columns: amount, label, category, date, account, save.
+- **New category:** the last tile of the category grid, in the same shape with a plus disc and the words "New category". It opens the modal with the category form (name, Add category, Cancel). On save the modal closes, the new category is in the grid and chosen. It needs JavaScript.
 - **Without JavaScript:** Move, the label suggestions and the date chips need it. Before hydration the form is the expense, income and interest form with the native date input, and it still posts.
 
 ## 11. Charts

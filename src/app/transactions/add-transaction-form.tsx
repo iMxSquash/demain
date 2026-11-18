@@ -7,6 +7,7 @@ import {
   Coins,
   CreditCard,
   Percent,
+  Plus,
   Tag,
   Tray,
 } from "@phosphor-icons/react/ssr";
@@ -14,6 +15,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/button";
+import { CHIP_DISC_CLASS, CHIP_TILE_CLASS } from "../../components/chip";
 import { DatePicker } from "../../components/date-picker";
 import { Disclosure } from "../../components/disclosure";
 import { Icon } from "../../components/icon";
@@ -22,8 +24,11 @@ import { filterLabelSuggestions } from "../../domain/label-suggestions";
 import { PAYMENT_MODES, type PaymentMode } from "../../domain/transaction";
 import type { LabelSuggestion } from "../../ledger/transaction-suggestions";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { CategoryForm } from "../categories/category-form";
+import type { CategoryFormState } from "../categories/category-form-data";
+import { Modal } from "../modal";
 import { useFocusFirstError } from "../use-focus-first-error";
-import { resolveDestination, surplusTargets } from "./add-transaction-defaults";
+import { findCreatedCategory, resolveDestination, surplusTargets } from "./add-transaction-defaults";
 import {
   ADD_CARD_CLASS,
   WIDE_DIVIDER_CLASS,
@@ -77,6 +82,11 @@ interface AddTransactionFormProps {
     previous: TransferFormState | null,
     formData: FormData,
   ) => Promise<TransferFormState | null>;
+  /** Creates a category from the modal; it refreshes the cached reads, so the list comes back with it. */
+  categoryAction: (
+    previous: CategoryFormState | null,
+    formData: FormData,
+  ) => Promise<CategoryFormState | null>;
   initialValues: TransactionFormValues;
   /** Open accounts only: no transaction can be entered on an archived one. */
   accounts: AccountOption[];
@@ -156,6 +166,7 @@ function surplusChoiceOf(result: AddResult | null): SurplusChoice | undefined {
 export function AddTransactionForm({
   action,
   transferAction,
+  categoryAction,
   initialValues,
   accounts,
   categories,
@@ -167,6 +178,7 @@ export function AddTransactionForm({
   const form = useTranslations("transactions.form");
   const add = useTranslations("transactions.add");
   const common = useTranslations("common");
+  const categoryText = useTranslations("categories");
   const locale = useLocale();
   const isHydrated = useIsHydrated();
   // One form, two server actions: the type decides which one receives the fields.
@@ -225,6 +237,25 @@ export function AddTransactionForm({
     setSurplusOpen(false);
     setDraft((current) => ({ ...current, ...changes }));
   };
+
+  const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [createdName, setCreatedName] = useState<string | null>(null);
+  // Once the refreshed list holds the category that was just created, it is the one chosen.
+  const createdCategory =
+    createdName === null ? undefined : findCreatedCategory(categories, createdName);
+  if (createdCategory !== undefined) {
+    setCreatedName(null);
+    changeDraft({ categoryId: String(createdCategory.id) });
+    setFilledCategory(null);
+  }
+  async function createCategory(previous: CategoryFormState | null, formData: FormData) {
+    const state = await categoryAction(previous, formData);
+    if (state === null) {
+      setCreatedName(String(formData.get("name") ?? ""));
+      setCategoryModalOpen(false);
+    }
+    return state;
+  }
 
   function pickSuggestion(suggestion: LabelSuggestion) {
     const categoryId = suggestion.categoryByAccount[sourceId];
@@ -403,6 +434,20 @@ export function AddTransactionForm({
                 }}
                 options={categoryOptions}
                 layout="tiles"
+                trailing={
+                  isHydrated ? (
+                    <button
+                      type="button"
+                      onClick={() => setCategoryModalOpen(true)}
+                      className={`${CHIP_TILE_CLASS} hover:border-text`}
+                    >
+                      <span className={CHIP_DISC_CLASS}>
+                        <Icon icon={Plus} />
+                      </span>
+                      {add("newCategory")}
+                    </button>
+                  ) : null
+                }
                 error={errorOf("categoryId")}
               />
             )}
@@ -531,6 +576,18 @@ export function AddTransactionForm({
           )}
         </section>
       </form>
+      <Modal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        title={add("newCategory")}
+      >
+        <CategoryForm
+          action={createCategory}
+          initialName=""
+          submitLabel={categoryText("addSubmit")}
+          onCancel={() => setCategoryModalOpen(false)}
+        />
+      </Modal>
     </section>
   );
 }

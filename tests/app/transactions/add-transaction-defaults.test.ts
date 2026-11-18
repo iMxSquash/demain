@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addTransactionDefaults,
+  findCreatedCategory,
   resolveDestination,
   surplusTargets,
 } from "../../../src/app/transactions/add-transaction-defaults";
@@ -136,5 +137,24 @@ describe("surplusTargets", () => {
 
   it("offers none when only the two accounts exist", () => {
     expect(surplusTargets({ accountIds: [1, 2], sourceId: 1, destinationId: 2 })).toEqual([]);
+  });
+});
+
+describe("findCreatedCategory", () => {
+  const CATEGORIES = [
+    { id: 1, name: "Groceries" },
+    { id: 2, name: "Rent" },
+  ];
+
+  it("finds the category that carries the typed name", () => {
+    expect(findCreatedCategory(CATEGORIES, "Rent")).toEqual({ id: 2, name: "Rent" });
+  });
+
+  it("ignores case and the spaces around the typed name, as the server does", () => {
+    expect(findCreatedCategory(CATEGORIES, "  groceries ")).toEqual({ id: 1, name: "Groceries" });
+  });
+
+  it("is undefined while the new category is not in the list yet", () => {
+    expect(findCreatedCategory(CATEGORIES, "Leisure")).toBeUndefined();
   });
 });

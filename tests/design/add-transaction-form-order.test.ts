@@ -26,6 +26,7 @@ function render(kind?: string): string {
   const form = createElement(AddTransactionForm, {
     action: async () => null,
     transferAction: async () => null,
+    categoryAction: async () => null,
     initialValues,
     accounts: ACCOUNTS,
     categories: CATEGORIES,

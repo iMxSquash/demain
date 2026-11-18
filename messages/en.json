@@ -409,7 +409,8 @@
       "surplusKeep": "Keep it in {account}",
       "surplusSend": "Send to {account}",
       "confirmRoomOnly": "Move only {deposited} to {account}",
-      "confirmSend": "Move {deposited}, the rest to {account}"
+      "confirmSend": "Move {deposited}, the rest to {account}",
+      "newCategory": "New category"
     }
   },
   "categories": {
