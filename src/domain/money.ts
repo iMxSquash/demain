@@ -47,6 +47,12 @@ export function divideRound(numerator: number, denominator: number): number {
   return rounded === 0 ? 0 : rounded;
 }
 
+/** The symbol of a currency as `locale` writes it ("€"), or its code when it has none. */
+export function currencySymbol(currency: string, locale: string): string {
+  const parts = getCurrencyFormatter(locale, currency).formatToParts(0);
+  return parts.find((part) => part.type === "currency")?.value ?? currency;
+}
+
 export function currencyDecimals(currency: string): number {
   // Intl carries the ISO 4217 minor units, which avoids maintaining our own table.
   const { maximumFractionDigits } = getCurrencyFormatter(
