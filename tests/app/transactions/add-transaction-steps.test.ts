@@ -6,6 +6,8 @@ import {
   buildRecap,
   canGoBack,
   decimalSeparatorOf,
+  editsErrorField,
+  enterKeyAction,
   isPhoneLayout,
   nextStep,
   previousStep,
@@ -408,5 +410,42 @@ describe("isPhoneLayout", () => {
 
   it("is not the phone layout before hydration, where every panel shows", () => {
     expect(isPhoneLayout(false, 375)).toBe(false);
+  });
+});
+
+describe("enterKeyAction", () => {
+  it("advances on the first two steps of the phone layout", () => {
+    expect(enterKeyAction(1, true)).toBe("advance");
+    expect(enterKeyAction(2, true)).toBe("advance");
+  });
+
+  it("submits on the last step of the phone layout", () => {
+    expect(enterKeyAction(3, true)).toBe("submit");
+  });
+
+  it("leaves the native submit alone outside the phone layout", () => {
+    expect(enterKeyAction(1, false)).toBe("submit");
+    expect(enterKeyAction(2, false)).toBe("submit");
+  });
+});
+
+describe("editsErrorField", () => {
+  it("matches a field edited under its own name", () => {
+    expect(editsErrorField(["amount"], "amount")).toBe(true);
+    expect(editsErrorField(["label", "categoryId"], "categoryId")).toBe(true);
+  });
+
+  it("matches the source of a transfer, which is the account of the draft", () => {
+    expect(editsErrorField(["accountId"], "sourceId")).toBe(true);
+    expect(editsErrorField(["accountId"], "accountId")).toBe(true);
+  });
+
+  it("does not match another field", () => {
+    expect(editsErrorField(["label"], "amount")).toBe(false);
+    expect(editsErrorField([], "amount")).toBe(false);
+  });
+
+  it("matches the date, whose chips and picker both edit the date", () => {
+    expect(editsErrorField(["date"], "date")).toBe(true);
   });
 });

@@ -89,6 +89,15 @@ export function applyKeypadKey(current: string, key: KeypadKey, decimals: number
   return isAmountDraft(next) ? next : current;
 }
 
+/**
+ * What Enter does in a field. On the phone layout the first two steps behave like Next, so a
+ * physical keyboard walks the steps instead of saving a half-filled form; only the last step
+ * saves. Elsewhere the native submit is kept.
+ */
+export function enterKeyAction(step: Step, isPhone: boolean): "advance" | "submit" {
+  return isPhone && step < LAST_STEP ? "advance" : "submit";
+}
+
 // Validation
 
 export interface StepDraft {
@@ -150,6 +159,16 @@ const STEP_OF_FIELD: Record<StepField, Step> = {
 
 export function stepOfField(field: StepField): Step {
   return STEP_OF_FIELD[field];
+}
+
+/**
+ * Whether an edit of these draft fields changes the field a refusal was reported on. The account
+ * of the draft is the source of a transfer, which the server reports as `sourceId`.
+ */
+export function editsErrorField(editedKeys: readonly string[], errorField: string): boolean {
+  return editedKeys.some(
+    (key) => key === errorField || (key === "accountId" && errorField === "sourceId"),
+  );
 }
 
 function findAccount(context: StepContext, idText: string): StepAccount | undefined {
