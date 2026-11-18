@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  amountInputMode,
   applyKeypadKey,
   buildRecap,
   canGoBack,
@@ -395,5 +396,21 @@ describe("decimalSeparatorOf", () => {
   it("is a comma in French and a point in English", () => {
     expect(decimalSeparatorOf("fr")).toBe(",");
     expect(decimalSeparatorOf("en")).toBe(".");
+  });
+});
+
+describe("amountInputMode", () => {
+  it("hides the system keyboard on the phone layout once hydrated, the keypad types instead", () => {
+    expect(amountInputMode(true, 375)).toBe("none");
+    expect(amountInputMode(true, 759)).toBe("none");
+  });
+
+  it("keeps the decimal keyboard on the wide layout", () => {
+    expect(amountInputMode(true, 760)).toBe("decimal");
+    expect(amountInputMode(true, 1200)).toBe("decimal");
+  });
+
+  it("keeps the decimal keyboard before hydration, where there is no keypad", () => {
+    expect(amountInputMode(false, 375)).toBe("decimal");
   });
 });

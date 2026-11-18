@@ -9,6 +9,7 @@ import { checkAmountSyntax, isAmountDraft, parseUnsignedAmount } from "../../dom
 import { messageRef, type MessageRef } from "../../domain/message";
 import { MoneyParseError } from "../../domain/money";
 import { isCalendarDate } from "../../domain/account";
+import { WIDE_MIN_WIDTH } from "./add-transaction-layout";
 import { formatTypedAmount } from "./typed-amount";
 
 export const STEPS = [1, 2, 3] as const;
@@ -40,6 +41,15 @@ export function stepDirection(from: Step, to: Step): StepDirection {
 }
 
 // Keypad
+
+/**
+ * The system keyboard of the amount field. On the phone layout the keypad types instead, so the
+ * system keyboard must not open on top of it; before hydration there is no keypad, and the wide
+ * layout has none either, so both keep the decimal keyboard.
+ */
+export function amountInputMode(isHydrated: boolean, width: number): "decimal" | "none" {
+  return isHydrated && width < WIDE_MIN_WIDTH ? "none" : "decimal";
+}
 
 export type KeypadKey =
   | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"

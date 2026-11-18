@@ -4,6 +4,7 @@ import { Coins, CreditCard, Plus, Tray } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 
+import { useElementWidth } from "../../charts/use-element-width";
 import { Button } from "../../components/button";
 import { CHIP_DISC_CLASS, CHIP_TILE_CLASS } from "../../components/chip";
 import { categoryIconOf } from "../../components/category-icons";
@@ -26,6 +27,7 @@ import {
   ADD_CARD_CLASS,
   WIDE_DIVIDER_CLASS,
   WIDE_FULL_WIDTH_CLASS,
+  WIDE_MIN_WIDTH,
   WIDE_TWO_COLUMNS_CLASS,
 } from "./add-transaction-layout";
 import { AddTransactionKeypad } from "./add-transaction-keypad";
@@ -34,6 +36,7 @@ import { StepProgress } from "./add-transaction-progress";
 import { StepNav } from "./add-transaction-step-nav";
 import { StepPanel } from "./add-transaction-step-panel";
 import {
+  amountInputMode,
   applyKeypadKey,
   buildRecap,
   decimalSeparatorOf,
@@ -202,6 +205,10 @@ export function AddTransactionForm({
   );
   const formRef = useFocusFirstError(result);
   const { step, moveTo, showStep, headingRef } = useStepFlow();
+  const containerRef = useRef<HTMLElement>(null);
+  // The wide layout is a container query, so the form measures its own width; the wide fallback
+  // keeps the server render and the first client render identical.
+  const containerWidth = useElementWidth(containerRef, WIDE_MIN_WIDTH);
   const [clientError, setClientError] = useState<ClientError | null>(null);
   const labelRef = useRef<HTMLInputElement>(null);
   const saveRef = useRef<HTMLButtonElement>(null);
@@ -369,7 +376,7 @@ export function AddTransactionForm({
       : add(`submitWithAmount.${kind}`, amountArgument);
 
   return (
-    <section aria-labelledby="new-heading" className="@container">
+    <section ref={containerRef} aria-labelledby="new-heading" className="@container">
       <form
         ref={formRef}
         action={formAction}
@@ -415,6 +422,7 @@ export function AddTransactionForm({
                 onChange={(event) => changeDraft({ amount: event.target.value })}
                 direction={SIGN_OF[kind]}
                 currency={currency ?? ""}
+                inputMode={amountInputMode(isHydrated, containerWidth)}
                 required
               />
             </FormField>
