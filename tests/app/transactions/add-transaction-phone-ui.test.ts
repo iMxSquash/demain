@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { AddTransactionKeypad } from "../../../src/app/transactions/add-transaction-keypad";
 import { StepProgress } from "../../../src/app/transactions/add-transaction-progress";
 import { RecapRow } from "../../../src/app/transactions/add-transaction-recap-row";
+import { AmountDisplayInput } from "../../../src/app/transactions/amount-display-input";
 import { StepNav } from "../../../src/app/transactions/add-transaction-step-nav";
 import messages from "../../../messages/en.json";
 
@@ -114,5 +115,15 @@ describe("RecapRow", () => {
   it("keeps the editor out of the page until it is opened", () => {
     expect(markup).not.toContain("editor-field");
     expect(markup).not.toContain("Done");
+  });
+});
+
+describe("AmountDisplayInput", () => {
+  const markup = render(
+    createElement(AmountDisplayInput, { id: "amount", direction: "out", currency: "EUR" }),
+  );
+
+  it("keeps the input a 44 px wide target on the phone layout", () => {
+    expect(markup).toContain("@max-[759px]:min-w-11");
   });
 });
