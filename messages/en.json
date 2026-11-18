@@ -391,7 +391,31 @@
       "cancel": "Cancel the transfer"
     },
     "caption": "Every recorded transaction",
-    "emptyAction": "Add a transaction"
+    "emptyAction": "Add a transaction",
+    "add": {
+      "howMuch": "How much?",
+      "whatFor": "What for?",
+      "dateAccount": "Date and account",
+      "labelSuggestions": "Labels used before",
+      "later": "Later",
+      "categoryHint": "Later puts it in the to-categorize queue.",
+      "categoryFilled": "Category set to {category} by your rules.",
+      "when": "When",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "pickDate": "Pick a date",
+      "moreDetails": "More details",
+      "submit": {
+        "expense": "Add expense",
+        "income": "Add income",
+        "interest": "Add interest"
+      },
+      "submitWithAmount": {
+        "expense": "Add expense of {amount}",
+        "income": "Add income of {amount}",
+        "interest": "Add interest of {amount}"
+      }
+    }
   },
   "categories": {
     "metaTitle": "Categories | Demain",

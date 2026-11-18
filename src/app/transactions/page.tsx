@@ -10,7 +10,12 @@ import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
+import {
+  getLastUsedAccountId,
+  listLabelSuggestions,
+} from "../../ledger/transaction-suggestions";
 import { withDatabase } from "../../storage/with-database";
+import { addDays } from "../../components/date-picker-keyboard";
 import { DataTable, EmptyState, Pill } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
 import {
@@ -24,7 +29,8 @@ import {
   createTransferAction,
   deleteTransactionAction,
 } from "./actions";
-import { TransactionForm } from "./transaction-form";
+import { AddTransactionForm } from "./add-transaction-form";
+import { addTransactionDefaults } from "./add-transaction-defaults";
 import { TransferForm } from "./transfer-form";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
@@ -46,11 +52,17 @@ const readTransactions = cache(async () => {
 async function readTransactionsFromDatabase() {
   "use cache";
   tagDataRead();
-  return withDatabase((db) => ({
-    accounts: listAccounts(db, { includeArchived: true }),
-    categories: listCategories(db, { includeArchived: true }),
-    rows: listTransactions(db),
-  }));
+  return withDatabase((db) => {
+    const accounts = listAccounts(db, { includeArchived: true });
+    const openAccountIds = accounts.filter((account) => !account.archived).map((account) => account.id);
+    return {
+      accounts,
+      categories: listCategories(db, { includeArchived: true }),
+      rows: listTransactions(db),
+      labelSuggestions: listLabelSuggestions(db, openAccountIds),
+      lastAccountId: getLastUsedAccountId(db),
+    };
+  });
 }
 
 const PAGE_GAP = "gap-10";
@@ -239,7 +251,7 @@ function TransactionFormsLoading() {
 }
 
 async function TransactionForms() {
-  const [t, timeZone, { accounts, categories }] = await Promise.all([
+  const [t, timeZone, { accounts, categories, labelSuggestions, lastAccountId }] = await Promise.all([
     getTranslations("transactions"),
     getTimeZone(),
     readTransactions(),
@@ -264,21 +276,18 @@ async function TransactionForms() {
   return (
     <>
       <PageSection id="new-heading" heading={t("addHeading")}>
-        <TransactionForm
+        <AddTransactionForm
           action={createTransactionAction}
-          initialValues={{
-            accountId: String(active[0]?.id ?? ""),
-            date: today,
-            kind: "expense",
-            amount: "",
-            label: "",
-            description: "",
-            paymentMode: "",
-            categoryId: "",
-          }}
+          initialValues={addTransactionDefaults({
+            today,
+            accountIds: active.map((account) => account.id),
+            lastAccountId,
+          })}
           accounts={active}
           categories={categories.filter((category) => !category.archived)}
-          submitLabel={t("addSubmit")}
+          labelSuggestions={labelSuggestions}
+          today={today}
+          yesterday={addDays(today, -1)}
         />
       </PageSection>
 

@@ -391,7 +391,31 @@
       "cancel": "Annuler le virement"
     },
     "caption": "Toutes les transactions enregistrées",
-    "emptyAction": "Ajouter une transaction"
+    "emptyAction": "Ajouter une transaction",
+    "add": {
+      "howMuch": "Combien ?",
+      "whatFor": "Pour quoi ?",
+      "dateAccount": "Date et compte",
+      "labelSuggestions": "Libellés déjà utilisés",
+      "later": "Plus tard",
+      "categoryHint": "Plus tard met la transaction dans la file à catégoriser.",
+      "categoryFilled": "Catégorie définie sur {category} par vos règles.",
+      "when": "Quand",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "pickDate": "Choisir une date",
+      "moreDetails": "Plus de détails",
+      "submit": {
+        "expense": "Ajouter la dépense",
+        "income": "Ajouter le revenu",
+        "interest": "Ajouter les intérêts"
+      },
+      "submitWithAmount": {
+        "expense": "Ajouter une dépense de {amount}",
+        "income": "Ajouter un revenu de {amount}",
+        "interest": "Ajouter des intérêts de {amount}"
+      }
+    }
   },
   "categories": {
     "metaTitle": "Catégories | Demain",
