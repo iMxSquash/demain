@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { Button } from "../../components/button";
+import { WIDE_HIDDEN_CLASS } from "./add-transaction-layout";
 import { canGoBack, type Step } from "./add-transaction-steps";
 
 interface StepNavProps {
@@ -17,7 +18,7 @@ export function StepNav({ step, onBack, onNext }: StepNavProps) {
   const add = useTranslations("transactions.add");
 
   return (
-    <div className="flex gap-3 @min-[760px]:hidden">
+    <div className={`flex gap-3 ${WIDE_HIDDEN_CLASS}`}>
       {onBack !== undefined && canGoBack(step) ? (
         <Button type="button" variant="secondary" className="min-h-13 flex-1" onClick={onBack}>
           {add("back")}

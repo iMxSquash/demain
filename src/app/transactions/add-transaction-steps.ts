@@ -147,12 +147,6 @@ export function stepOfField(field: StepField): Step {
   return STEP_OF_FIELD[field];
 }
 
-/** The earliest step holding an error, or null when there is none. */
-export function firstStepWithError(errors: readonly StepError[]): Step | null {
-  if (errors.length === 0) return null;
-  return Math.min(...errors.map((error) => error.step)) as Step;
-}
-
 function findAccount(context: StepContext, idText: string): StepAccount | undefined {
   if (idText.trim() === "") return undefined;
   const id = Number(idText);
@@ -226,7 +220,7 @@ export function validateAll(draft: StepDraft, context: StepContext): StepError[]
 // Recap
 
 export type AmountSign = "out" | "in" | "neutral";
-const SIGN_OF_KIND: Record<string, AmountSign> = {
+export const SIGN_OF_KIND: Record<string, AmountSign> = {
   expense: "out",
   income: "in",
   interest: "in",

@@ -2,7 +2,7 @@
 
 import { Coins, CreditCard, Plus, Tray } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { useElementWidth } from "../../charts/use-element-width";
 import { Button } from "../../components/button";
@@ -27,6 +27,7 @@ import {
   ADD_CARD_CLASS,
   WIDE_DIVIDER_CLASS,
   WIDE_FULL_WIDTH_CLASS,
+  WIDE_HIDDEN_CLASS,
   WIDE_MIN_WIDTH,
   WIDE_TWO_COLUMNS_CLASS,
 } from "./add-transaction-layout";
@@ -42,6 +43,7 @@ import {
   decimalSeparatorOf,
   nextStep,
   previousStep,
+  SIGN_OF_KIND,
   stepOfField,
   validateAll,
   validateStep,
@@ -71,7 +73,6 @@ const TRANSFER = "transfer";
 const FORM_KINDS = ["expense", "income", TRANSFER, "interest"] as const;
 type FormKind = (typeof FORM_KINDS)[number];
 
-const SIGN_OF = { expense: "out", income: "in", transfer: "neutral", interest: "in" } as const;
 
 // A refusal found in the browser by the rules of `add-transaction-steps`, shown like a server one.
 interface ClientError {
@@ -205,6 +206,7 @@ export function AddTransactionForm({
   );
   const formRef = useFocusFirstError(result);
   const { step, moveTo, showStep, headingRef } = useStepFlow();
+  const separator = useMemo(() => decimalSeparatorOf(locale), [locale]);
   const containerRef = useRef<HTMLElement>(null);
   // The wide layout is a container query, so the form measures its own width; the wide fallback
   // keeps the server render and the first client render identical.
@@ -420,19 +422,19 @@ export function AddTransactionForm({
                 name="amount"
                 value={draft.amount}
                 onChange={(event) => changeDraft({ amount: event.target.value })}
-                direction={SIGN_OF[kind]}
+                direction={SIGN_OF_KIND[kind] ?? "neutral"}
                 currency={currency ?? ""}
                 inputMode={amountInputMode(isHydrated, containerWidth)}
                 required
               />
             </FormField>
             {isHydrated ? (
-              <div className="@min-[760px]:hidden">
+              <div className={WIDE_HIDDEN_CLASS}>
                 <AddTransactionKeypad
                   onKey={(key: KeypadKey) =>
                     changeDraft({ amount: applyKeypadKey(draft.amount, key, decimals) })
                   }
-                  separator={decimalSeparatorOf(locale)}
+                  separator={separator}
                   hasDecimals={decimals > 0}
                 />
               </div>
@@ -533,7 +535,7 @@ export function AddTransactionForm({
           heading={
             isHydrated ? (
               <>
-                <span className="@min-[760px]:hidden">{add("checkAndSave")}</span>
+                <span className={WIDE_HIDDEN_CLASS}>{add("checkAndSave")}</span>
                 <span className="hidden @min-[760px]:inline">{add("dateAccount")}</span>
               </>
             ) : (

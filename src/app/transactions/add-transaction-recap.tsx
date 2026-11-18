@@ -7,17 +7,11 @@ import { CHIP_DISC_CLASS } from "../../components/chip";
 import { ChoiceChips, type ChipOption } from "../../components/choice-chips";
 import { Icon } from "../../components/icon";
 import { CONTROL_CLASS, FormField } from "../form-field";
-import { AmountDisplayInput } from "./amount-display-input";
+import { AmountDisplayInput, SIGN, SIGN_TONE } from "./amount-display-input";
+import { WIDE_HIDDEN_CLASS } from "./add-transaction-layout";
 import { RecapRow } from "./add-transaction-recap-row";
 import { KIND_ICON, KIND_TONE, KindSegments } from "./kind-segments";
-import type { AmountSign, Recap } from "./add-transaction-steps";
-
-const SIGN_TEXT: Record<AmountSign, string> = { out: "−", in: "+", neutral: "" };
-const SIGN_TONE: Record<AmountSign, string> = {
-  out: "text-negative",
-  in: "text-positive",
-  neutral: "text-text-muted",
-};
+import type { Recap } from "./add-transaction-steps";
 
 type Kind = keyof typeof KIND_ICON;
 
@@ -58,7 +52,7 @@ export function AddTransactionRecap({
   const category = categoryOptions.find((option) => option.value === recap.label.categoryId?.toString());
 
   return (
-    <div className="divide-y divide-divider border-y border-divider @min-[760px]:hidden">
+    <div className={`divide-y divide-divider border-y border-divider ${WIDE_HIDDEN_CLASS}`}>
       <RecapRow
         key={`amount-${resultCount}`}
         editLabel={add("editAmount")}
@@ -69,7 +63,7 @@ export function AddTransactionRecap({
             </span>
             <span className="min-w-0">
               <span className={`block font-medium tabular-nums ${SIGN_TONE[recap.amount.sign]}`}>
-                {SIGN_TEXT[recap.amount.sign]}
+                {SIGN[recap.amount.sign]}
                 {recap.amount.formatted}
               </span>
               <span className="block text-caption text-text-muted">{kindLabel(kind)}</span>

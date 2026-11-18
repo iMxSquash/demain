@@ -6,7 +6,6 @@ import {
   buildRecap,
   canGoBack,
   decimalSeparatorOf,
-  firstStepWithError,
   nextStep,
   previousStep,
   stepDirection,
@@ -320,25 +319,6 @@ describe("stepOfField", () => {
     ] as const) {
       expect(stepOfField(field)).toBe(3);
     }
-  });
-});
-
-describe("firstStepWithError", () => {
-  it("is null without errors", () => {
-    expect(firstStepWithError([])).toBeNull();
-  });
-
-  it("is the earliest step among the errors, whatever their order", () => {
-    const errors = [
-      { field: "date", step: 3 },
-      { field: "label", step: 2 },
-    ] as const;
-
-    expect(firstStepWithError(errors)).toBe(2);
-  });
-
-  it("maps a server error field to its step", () => {
-    expect(firstStepWithError([{ field: "amount", step: stepOfField("amount") }])).toBe(1);
   });
 });
 

@@ -4,6 +4,7 @@ import { m } from "motion/react";
 import { useTranslations } from "next-intl";
 
 import { useMotion } from "../motion-provider";
+import { WIDE_HIDDEN_CLASS } from "./add-transaction-layout";
 import { STEPS, STEP_COUNT, type Step } from "./add-transaction-steps";
 
 interface StepProgressProps {
@@ -20,7 +21,7 @@ export function StepProgress({ step }: StepProgressProps) {
   const motion = useMotion();
 
   return (
-    <div className="@min-[760px]:hidden">
+    <div className={WIDE_HIDDEN_CLASS}>
       <div aria-hidden="true" className="flex gap-1">
         {STEPS.map((segment) => (
           <span key={segment} className="h-1 flex-1 overflow-hidden rounded-pill bg-control">

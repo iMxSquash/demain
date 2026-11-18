@@ -24,8 +24,8 @@ const INPUT_CLASS =
   "field-sizing-content min-w-[1ch] border-0 bg-transparent p-0 text-center text-display " +
   "text-text tabular-nums outline-none placeholder:text-text-muted";
 
-const SIGN = { out: "\u2212", in: "+", neutral: "" } as const;
-const SIGN_TONE = { out: "text-negative", in: "text-positive", neutral: "text-text-muted" } as const;
+export const SIGN = { out: "\u2212", in: "+", neutral: "" } as const;
+export const SIGN_TONE = { out: "text-negative", in: "text-positive", neutral: "text-text-muted" } as const;
 
 /** The amount in `text-display` (DESIGN section 10): centred, no box, its sign drawn from the type. */
 export function AmountDisplayInput({ direction, currency, ...input }: AmountDisplayInputProps) {
