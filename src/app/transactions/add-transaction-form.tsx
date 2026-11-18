@@ -480,6 +480,11 @@ export function AddTransactionForm({
                 />
               </div>
             ) : null}
+            {/* Separate from the "Step N of 3" region, and present before the first key: a keypad
+                press changes no focus, so the new amount is what a screen reader hears. */}
+            <p aria-live="polite" className="sr-only">
+              {isPhoneLayout(isHydrated, containerWidth) ? formattedAmount : null}
+            </p>
             {isHydrated ? <StepNav step={step} onNext={goToNextStep} /> : null}
           </StepPanel>
 
