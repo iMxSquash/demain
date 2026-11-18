@@ -327,7 +327,6 @@
     "listHeading": "All transactions",
     "empty": "No transaction yet. Add your first one below.",
     "addHeading": "New transaction",
-    "addSubmit": "Add transaction",
     "needAccountBefore": "Add an account on the <link>accounts page</link> before entering transactions.",
     "editMetaTitle": "Edit transaction | Demain",
     "editTitle": "Edit {label}",
