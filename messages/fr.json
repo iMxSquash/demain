@@ -326,7 +326,7 @@
     "title": "Transactions",
     "listHeading": "Toutes les transactions",
     "empty": "Aucune transaction pour l'instant. Ajoutez la première ci-dessous.",
-    "addHeading": "Ajouter une transaction",
+    "addHeading": "Nouvelle transaction",
     "addSubmit": "Ajouter la transaction",
     "transferHeading": "Ajouter un virement",
     "needAccountBefore": "Ajoutez un compte sur la <link>page des comptes</link> avant de saisir des transactions.",
@@ -398,7 +398,6 @@
       "dateAccount": "Date et compte",
       "labelSuggestions": "Libellés déjà utilisés",
       "later": "Plus tard",
-      "categoryHint": "Plus tard met la transaction dans la file à catégoriser.",
       "categoryFilled": "Catégorie définie sur {category} par vos règles.",
       "when": "Quand",
       "today": "Aujourd'hui",
@@ -414,7 +413,9 @@
         "expense": "Ajouter une dépense de {amount}",
         "income": "Ajouter un revenu de {amount}",
         "interest": "Ajouter des intérêts de {amount}"
-      }
+      },
+      "whatWasIt": "Qu'est-ce que c'était ?",
+      "labelPlaceholder": "ex. Carrefour City"
     }
   },
   "categories": {

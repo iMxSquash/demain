@@ -326,7 +326,7 @@
     "title": "Transactions",
     "listHeading": "All transactions",
     "empty": "No transaction yet. Add your first one below.",
-    "addHeading": "Add a transaction",
+    "addHeading": "New transaction",
     "addSubmit": "Add transaction",
     "transferHeading": "Add a transfer",
     "needAccountBefore": "Add an account on the <link>accounts page</link> before entering transactions.",
@@ -398,7 +398,6 @@
       "dateAccount": "Date and account",
       "labelSuggestions": "Labels used before",
       "later": "Later",
-      "categoryHint": "Later puts it in the to-categorize queue.",
       "categoryFilled": "Category set to {category} by your rules.",
       "when": "When",
       "today": "Today",
@@ -414,7 +413,9 @@
         "expense": "Add expense of {amount}",
         "income": "Add income of {amount}",
         "interest": "Add interest of {amount}"
-      }
+      },
+      "whatWasIt": "What was it?",
+      "labelPlaceholder": "e.g. Carrefour City"
     }
   },
   "categories": {

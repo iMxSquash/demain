@@ -240,9 +240,12 @@ function TransactionFormsLoading() {
 
   return (
     <SkeletonRegion label={loading("forms")} className={`flex flex-col ${PAGE_GAP}`}>
-      <PageSection id="new-heading" heading={t("addHeading")}>
-        <SkeletonFields count={8} />
-      </PageSection>
+      <section aria-labelledby="new-heading" className="flex max-w-[920px] flex-col gap-6 rounded-card bg-surface p-4 @min-[760px]:p-8">
+        <h2 id="new-heading" className="text-title font-medium">
+          {t("addHeading")}
+        </h2>
+        <SkeletonFields count={5} />
+      </section>
       <PageSection id="transfer-heading" heading={t("transferHeading")}>
         <SkeletonFields count={6} />
       </PageSection>
@@ -275,21 +278,19 @@ async function TransactionForms() {
 
   return (
     <>
-      <PageSection id="new-heading" heading={t("addHeading")}>
-        <AddTransactionForm
-          action={createTransactionAction}
-          initialValues={addTransactionDefaults({
-            today,
-            accountIds: active.map((account) => account.id),
-            lastAccountId,
-          })}
-          accounts={active}
-          categories={categories.filter((category) => !category.archived)}
-          labelSuggestions={labelSuggestions}
-          today={today}
-          yesterday={addDays(today, -1)}
-        />
-      </PageSection>
+      <AddTransactionForm
+        action={createTransactionAction}
+        initialValues={addTransactionDefaults({
+          today,
+          accountIds: active.map((account) => account.id),
+          lastAccountId,
+        })}
+        accounts={active}
+        categories={categories.filter((category) => !category.archived)}
+        labelSuggestions={labelSuggestions}
+        today={today}
+        yesterday={addDays(today, -1)}
+      />
 
       <PageSection id="transfer-heading" heading={t("transferHeading")}>
         <TransferForm

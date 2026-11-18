@@ -12,27 +12,32 @@ type AmountDisplayInputProps = Omit<ComponentProps<typeof AmountInput>, "classNa
   currency: string;
 };
 
-// The sign and the symbol sit over the 64 px field, on its own height: the live message under
-// the field must not move them.
-const MARK_CLASS = "pointer-events-none absolute top-0 flex h-16 items-center text-display";
+// The sign, the figure and the symbol share one grid row, whatever the figure's width; the live
+// message of the amount rule takes the row under. The input is the grid's own item: the wrapper
+// of `AmountInput` is flattened with `contents`.
+const GROUP_CLASS =
+  "grid min-h-16 grid-cols-[auto_auto_auto] items-baseline justify-center gap-x-1.5 rounded-control " +
+  "[&>div]:contents [&_input]:col-start-2 [&_input]:row-start-1 [&_p]:col-span-3 [&_p]:row-start-2 [&_p]:text-center " +
+  "focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-focus " +
+  "has-[[aria-invalid=true]]:outline-2 has-[[aria-invalid=true]]:outline-offset-4 has-[[aria-invalid=true]]:outline-negative";
+const INPUT_CLASS =
+  "field-sizing-content min-w-[1ch] border-0 bg-transparent p-0 text-center text-display " +
+  "text-text tabular-nums outline-none placeholder:text-text-muted";
 
-/** The amount in `text-display` (DESIGN section 10): centred, its sign drawn from the type. */
+/** The amount in `text-display` (DESIGN section 10): centred, no box, its sign drawn from the type. */
 export function AmountDisplayInput({ direction, currency, ...input }: AmountDisplayInputProps) {
   const locale = useLocale();
 
   return (
-    <div className="relative">
+    <div className={GROUP_CLASS}>
       <span
         aria-hidden="true"
-        className={`${MARK_CLASS} left-3 ${direction === "out" ? "text-negative" : "text-positive"}`}
+        className={`col-start-1 row-start-1 text-amount ${direction === "out" ? "text-negative" : "text-positive"}`}
       >
         {direction === "out" ? "−" : "+"}
       </span>
-      <AmountInput
-        {...input}
-        className="min-h-16 w-full rounded-control border border-border-control bg-control px-14 text-center text-display tabular-nums transition-colors not-aria-[invalid=true]:hover:border-text not-aria-[invalid=true]:focus-visible:border-text aria-[invalid=true]:border-2 aria-[invalid=true]:border-negative"
-      />
-      <span aria-hidden="true" className={`${MARK_CLASS} right-3 text-text-muted`}>
+      <AmountInput {...input} placeholder="0" className={INPUT_CLASS} />
+      <span aria-hidden="true" className="col-start-3 row-start-1 text-title text-text-muted">
         {currencySymbol(currency, locale)}
       </span>
     </div>

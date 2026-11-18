@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { CONTROL_CLASS } from "../app/form-field";
+import { CHIP_CHOSEN_CLASS, CHIP_DISC_CLASS, CHIP_PILL_CLASS, CHIP_WITH_DISC_CLASS } from "./chip";
 import { useMotion } from "../app/motion-provider";
 import { isCalendarDate } from "../domain/account";
 import { formatCalendarDate, formatFullCalendarDate, formatMonth, formatWeekday, todayIn } from "../i18n/dates";
@@ -74,6 +75,11 @@ export interface DatePickerProps extends NativeProps {
   defaultValue?: string;
   /** The look is the shared control: a class is refused instead of silently dropped. */
   className?: never;
+  /**
+   * Draws the trigger as a chip among other chips (the "When" row of the add-transaction flow):
+   * `label` while no date of its own is chosen, the chosen date once `isChosen`.
+   */
+  chip?: { label: string; isChosen: boolean };
   ref?: Ref<DatePickerHandle>;
 }
 
@@ -112,6 +118,7 @@ export function DatePicker({
   defaultValue = "",
   disabled = false,
   required = false,
+  chip,
   onChange,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
@@ -272,7 +279,7 @@ export function DatePicker({
   const shownDate = chosenDate === "" ? " " : formatCalendarDate(chosenDate, locale);
 
   return (
-    <div ref={wrapperRef} className="relative w-full">
+    <div ref={wrapperRef} className={chip ? "relative" : "relative w-full"}>
       {/* Without JavaScript this is the control. Once swapped, it only carries the value. */}
       <input
         {...nativeProps}
@@ -320,12 +327,27 @@ export function DatePicker({
             aria-labelledby={ariaLabelledby}
             disabled={disabled}
             onClick={() => (isDialogShown ? closeDialog() : openDialog())}
-            className={`${CONTROL_CLASS} flex cursor-pointer items-center justify-between gap-2 text-left`}
+            className={
+              chip
+                ? `${CHIP_PILL_CLASS} ${CHIP_WITH_DISC_CLASS} ${chip.isChosen ? CHIP_CHOSEN_CLASS : "hover:border-text"}`
+                : `${CONTROL_CLASS} flex cursor-pointer items-center justify-between gap-2 text-left`
+            }
           >
-            <span className="truncate">{shownDate}</span>
-            <span className="inline-flex shrink-0">
-              <Icon icon={CalendarBlank} />
-            </span>
+            {chip ? (
+              <>
+                <span className={`${CHIP_DISC_CLASS} ${chip.isChosen ? "bg-surface" : ""}`}>
+                  <Icon icon={CalendarBlank} />
+                </span>
+                <span>{chip.isChosen ? shownDate : chip.label}</span>
+              </>
+            ) : (
+              <>
+                <span className="truncate">{shownDate}</span>
+                <span className="inline-flex shrink-0">
+                  <Icon icon={CalendarBlank} />
+                </span>
+              </>
+            )}
           </button>
           <AnimatePresence>
             {isDialogShown ? (

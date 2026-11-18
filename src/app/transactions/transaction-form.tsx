@@ -20,6 +20,7 @@ export interface AccountOption {
   id: number;
   name: string;
   currency: string;
+  kind: string;
 }
 
 export interface CategoryOption {

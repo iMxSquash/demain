@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Clock, Percent, Tag } from "@phosphor-icons/react/ssr";
+import { ArrowDown, ArrowUp, Coins, CreditCard, Percent, Tag, Tray } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useRef, useState } from "react";
 
@@ -8,7 +8,6 @@ import { Button } from "../../components/button";
 import { DatePicker } from "../../components/date-picker";
 import { Disclosure } from "../../components/disclosure";
 import { Icon } from "../../components/icon";
-import { Select } from "../../components/select";
 import { useIsHydrated } from "../../components/use-is-hydrated";
 import { filterLabelSuggestions } from "../../domain/label-suggestions";
 import {
@@ -58,12 +57,12 @@ interface AddTransactionFormProps {
 // account sets the currency, the label filters its suggestions). The others are plain inputs.
 type Draft = Pick<
   TransactionFormValues,
-  "kind" | "amount" | "label" | "categoryId" | "date" | "accountId"
+  "kind" | "amount" | "label" | "categoryId" | "date" | "accountId" | "paymentMode"
 >;
 
 function draftOf(values: TransactionFormValues): Draft {
-  const { kind, amount, label, categoryId, date, accountId } = values;
-  return { kind, amount, label, categoryId, date, accountId };
+  const { kind, amount, label, categoryId, date, accountId, paymentMode } = values;
+  return { kind, amount, label, categoryId, date, accountId, paymentMode };
 }
 
 function isEnteredKind(value: string): value is EnteredTransactionKind {
@@ -128,7 +127,7 @@ export function AddTransactionForm({
   }
 
   const categoryOptions: ChipOption[] = [
-    { value: LATER_VALUE, label: add("later"), icon: Clock, tone: "later" },
+    { value: LATER_VALUE, label: add("later"), icon: Tray, tone: "later" },
     ...categories.map((category) => ({
       value: String(category.id),
       label: category.name,
@@ -136,39 +135,58 @@ export function AddTransactionForm({
     })),
   ];
   const dateOptions: ChipOption[] = [
-    { value: today, label: add("today") },
+    { value: today, label: add("today"), tone: "today" },
     { value: yesterday, label: add("yesterday") },
   ];
   const accountOptions: ChipOption[] = accounts.map((account) => ({
     value: String(account.id),
     label: account.name,
+    icon: account.kind === "savings" ? Coins : CreditCard,
+  }));
+  const paymentOptions: ChipOption[] = PAYMENT_MODES.map((mode) => ({
+    value: mode,
+    label: t(`paymentModes.${mode}`),
   }));
   const suggestions = filterLabelSuggestions(labelSuggestions, draft.label, SUGGESTION_LIMIT);
   const hasDetailsError = errorOf("description") !== undefined || errorOf("paymentMode") !== undefined;
+  const isCustomDate = draft.date !== today && draft.date !== yesterday;
+  const datePicker = (
+    <DatePicker
+      id="date"
+      name="date"
+      value={draft.date}
+      onChange={(event) => update({ date: event.target.value })}
+      chip={{ label: add("pickDate"), isChosen: isCustomDate }}
+      required
+    />
+  );
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      noValidate
-      className="@container flex flex-col gap-6"
-    >
-      {state?.status === "notice" ? (
-        <p role="status" className="font-medium">
-          {state.message}
-        </p>
-      ) : null}
+    <section aria-labelledby="new-heading" className="@container">
+      <form
+        ref={formRef}
+        action={formAction}
+        noValidate
+        className="grid max-w-[920px] gap-x-8 gap-y-6 rounded-card bg-surface p-4 @min-[760px]:grid-cols-2 @min-[760px]:p-8"
+      >
+        <h2 id="new-heading" className="text-title font-medium @min-[760px]:col-span-2">
+          {t("addHeading")}
+        </h2>
+        {state?.status === "notice" ? (
+          <p role="status" className="font-medium @min-[760px]:col-span-2">
+            {state.message}
+          </p>
+        ) : null}
 
-      <div className="grid gap-8 @min-[760px]:grid-cols-2">
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
           <section aria-labelledby="how-much-heading" className="flex flex-col gap-4">
             <h3 id="how-much-heading" className="text-title font-medium">
               {add("howMuch")}
             </h3>
-            {/* A utility class, not an inline style: the CSP forbids style attributes. */}
-            <fieldset key={resultCount} className="flex flex-col gap-1">
-              <legend className="mb-1 text-caption font-medium text-text">{form("type")}</legend>
-              <div className="segmented self-start [--n:3]">
+            <fieldset key={resultCount}>
+              <legend className="sr-only">{form("type")}</legend>
+              {/* A utility class, not an inline style: the CSP forbids style attributes. */}
+              <div className="segmented raised grid w-full [--n:3] [&_label]:gap-1 [&_label]:px-0 [&_label]:text-caption">
                 {ENTERED_TRANSACTION_KINDS.map((option) => (
                   <label key={option}>
                     <input
@@ -178,23 +196,15 @@ export function AddTransactionForm({
                       checked={option === kind}
                       onChange={() => update({ kind: option })}
                     />
-                    <span
-                      className={`${KIND_TONE[option]} [label:has(:checked)_&]:text-on-primary`}
-                    >
+                    <span className={KIND_TONE[option]}>
                       <Icon icon={KIND_ICON[option]} />
                     </span>
-                    <span className="ml-2">{t(`kinds.${option}`)}</span>
+                    {t(`kinds.${option}`)}
                   </label>
                 ))}
               </div>
             </fieldset>
-
-            <FormField
-              id="amount"
-              label={form("amount")}
-              hint={form("amountHint")}
-              error={errorOf("amount")}
-            >
+            <FormField id="amount" label={form("amount")} hideLabel error={errorOf("amount")}>
               <AmountDisplayInput
                 id="amount"
                 name="amount"
@@ -211,46 +221,48 @@ export function AddTransactionForm({
             <h3 id="what-for-heading" className="text-title font-medium">
               {add("whatFor")}
             </h3>
-            <FormField id="label" label={form("label")} error={errorOf("label")}>
-              <input
-                ref={labelRef}
-                id="label"
-                name="label"
-                value={draft.label}
-                onChange={(event) => update({ label: event.target.value })}
-                className={CONTROL_CLASS}
-                type="text"
-                required
-                autoComplete="off"
-              />
-            </FormField>
-            {isHydrated && suggestions.length > 0 ? (
-              <ul aria-label={add("labelSuggestions")} className="-mt-2 flex flex-wrap gap-2">
-                {suggestions.map((suggestion) => (
-                  <li key={suggestion.label}>
-                    <button
-                      type="button"
-                      onClick={() => pickSuggestion(suggestion)}
-                      className="inline-flex min-h-11 items-center rounded-pill border border-dashed border-border-control px-4 hover:bg-control"
-                    >
-                      {suggestion.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {/* Present and empty from the first render: a polite region created with its text is
-                often not announced. */}
-            <p aria-live="polite" className="text-caption text-text-muted not-empty:-mt-2">
-              {filledCategory === null ? null : add("categoryFilled", { category: filledCategory })}
-            </p>
+            <div className="flex flex-col gap-3">
+              <FormField id="label" label={add("whatWasIt")} error={errorOf("label")}>
+                <input
+                  ref={labelRef}
+                  id="label"
+                  name="label"
+                  value={draft.label}
+                  onChange={(event) => update({ label: event.target.value })}
+                  placeholder={add("labelPlaceholder")}
+                  className={CONTROL_CLASS}
+                  type="text"
+                  required
+                  autoComplete="off"
+                />
+              </FormField>
+              {isHydrated && suggestions.length > 0 ? (
+                <ul aria-label={add("labelSuggestions")} className="flex flex-wrap gap-3">
+                  {suggestions.map((suggestion) => (
+                    <li key={suggestion.label}>
+                      <button
+                        type="button"
+                        onClick={() => pickSuggestion(suggestion)}
+                        className="inline-flex min-h-11 items-center rounded-pill border border-dashed border-border-control px-3 text-caption hover:border-solid hover:border-text"
+                      >
+                        {suggestion.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {/* Present and empty from the first render: a polite region created with its text is
+                  often not announced. */}
+              <p aria-live="polite" className="text-caption text-text-muted empty:hidden">
+                {filledCategory === null ? null : add("categoryFilled", { category: filledCategory })}
+              </p>
+            </div>
 
             <ChoiceChips
               key={resultCount}
               id="categoryId"
               legend={form("category")}
               name="categoryId"
-              hint={add("categoryHint")}
               value={draft.categoryId}
               onChange={(categoryId) => {
                 update({ categoryId });
@@ -263,100 +275,82 @@ export function AddTransactionForm({
           </section>
         </div>
 
-        <div className="flex flex-col gap-8 @min-[760px]:relative @min-[760px]:before:absolute @min-[760px]:before:-left-4 @min-[760px]:before:inset-y-0 @min-[760px]:before:w-px @min-[760px]:before:bg-divider">
-          <section aria-labelledby="date-account-heading" className="flex flex-col gap-4">
-            <h3 id="date-account-heading" className="text-title font-medium">
-              {add("dateAccount")}
-            </h3>
-            {isHydrated ? (
-              <ChoiceChips
-                key={resultCount}
-                id="datePreset"
-                legend={add("when")}
-                name="datePreset"
-                value={draft.date}
-                onChange={(date) => update({ date })}
-                options={dateOptions}
-                layout="row"
-              />
-            ) : null}
-            <FormField id="date" label={add("pickDate")} error={errorOf("date")}>
-              <DatePicker
-                id="date"
-                name="date"
-                value={draft.date}
-                onChange={(event) => update({ date: event.target.value })}
-                required
-              />
-            </FormField>
-
+        <section
+          aria-labelledby="date-account-heading"
+          className="flex flex-col gap-6 @min-[760px]:border-l @min-[760px]:border-divider @min-[760px]:pl-8"
+        >
+          <h3 id="date-account-heading" className="text-title font-medium">
+            {add("dateAccount")}
+          </h3>
+          {isHydrated ? (
             <ChoiceChips
               key={resultCount}
-              id="accountId"
-              legend={form("account")}
-              name="accountId"
-              value={draft.accountId}
-              onChange={(accountId) => update({ accountId })}
-              options={accountOptions}
+              id="datePreset"
+              legend={add("when")}
+              name="datePreset"
+              value={draft.date}
+              onChange={(date) => update({ date })}
+              options={dateOptions}
               layout="row"
-              error={errorOf("accountId")}
+              trailing={datePicker}
+              error={errorOf("date")}
             />
+          ) : (
+            <FormField id="date" label={add("when")} error={errorOf("date")}>
+              {datePicker}
+            </FormField>
+          )}
 
-            <Disclosure summary={add("moreDetails")} open={hasDetailsError || undefined}>
-              <div className="flex flex-col gap-4 pt-2">
-                <FormField
+          <ChoiceChips
+            key={resultCount}
+            id="accountId"
+            legend={form("account")}
+            name="accountId"
+            value={draft.accountId}
+            onChange={(accountId) => update({ accountId })}
+            options={accountOptions}
+            layout="row"
+            error={errorOf("accountId")}
+          />
+
+          <Disclosure summary={add("moreDetails")} edges="top" open={hasDetailsError || undefined}>
+            <div className="flex flex-col gap-6 pt-2">
+              <FormField id="description" label={form("note")} error={errorOf("description")}>
+                <input
                   id="description"
-                  label={form("note")}
-                  optional
-                  error={errorOf("description")}
-                >
-                  <input
-                    id="description"
-                    name="description"
-                    defaultValue={values.description}
-                    className={CONTROL_CLASS}
-                    type="text"
-                    autoComplete="off"
-                  />
-                </FormField>
-                <FormField
-                  id="paymentMode"
-                  label={form("paymentMode")}
-                  optional
-                  error={errorOf("paymentMode")}
-                >
-                  {/* The key remounts the select: after the automatic form reset React does not
-                      re-apply a changed defaultValue to the options. */}
-                  <Select
-                    key={values.paymentMode}
-                    id="paymentMode"
-                    name="paymentMode"
-                    defaultValue={values.paymentMode}
-                  >
-                    <option value="">{common("none")}</option>
-                    {PAYMENT_MODES.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {t(`paymentModes.${mode}`)}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-              </div>
-            </Disclosure>
-          </section>
+                  name="description"
+                  defaultValue={values.description}
+                  className={CONTROL_CLASS}
+                  type="text"
+                  autoComplete="off"
+                />
+              </FormField>
+              <ChoiceChips
+                key={resultCount}
+                id="paymentMode"
+                legend={form("paymentMode")}
+                name="paymentMode"
+                value={draft.paymentMode}
+                onChange={(paymentMode) => update({ paymentMode })}
+                options={paymentOptions}
+                layout="row"
+                error={errorOf("paymentMode")}
+              />
+            </div>
+          </Disclosure>
 
           <Button
             type="submit"
             pending={isPending}
             pendingLabel={common("pending")}
-            className="w-full"
+            className="min-h-13 w-full"
           >
             {formattedAmount === null
               ? add(`submit.${kind}`)
               : add(`submitWithAmount.${kind}`, { amount: formattedAmount })}
           </Button>
-        </div>
-      </div>
-    </form>
+        </section>
+      </form>
+    </section>
   );
 }

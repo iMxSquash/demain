@@ -261,6 +261,18 @@
       height: 1px;
     }
   }
+
+  /* Raised variant (transaction type): the chosen segment sits on the surface, so the red and green
+     icons keep their colour on it. */
+  .segmented.raised {
+    &::before {
+      background: var(--color-surface);
+      box-shadow: var(--shadow-raised);
+    }
+    & label:has(input:checked) {
+      color: var(--color-text);
+    }
+  }
 }
 
 @layer base {
