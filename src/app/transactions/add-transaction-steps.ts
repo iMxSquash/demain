@@ -51,6 +51,12 @@ function decimalsTyped(text: string): number {
   return separatorIndex === -1 ? 0 : text.length - separatorIndex - 1;
 }
 
+/** The decimal key of the keypad: the mark the locale writes, a comma or a point. */
+export function decimalSeparatorOf(locale: string): "," | "." {
+  const mark = new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === "decimal");
+  return mark?.value === "," ? "," : ".";
+}
+
 /**
  * The text of the amount after one key. Text only, never a number: a key that would break the
  * amount syntax or exceed `decimals` (the decimal digits of the currency) changes nothing.

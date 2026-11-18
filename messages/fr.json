@@ -410,7 +410,18 @@
       "surplusSend": "Envoyer vers {account}",
       "confirmRoomOnly": "Virer seulement {deposited} vers {account}",
       "confirmSend": "Virer {deposited}, le reste vers {account}",
-      "newCategory": "Nouvelle catégorie"
+      "newCategory": "Nouvelle catégorie",
+      "checkAndSave": "Vérifier et enregistrer",
+      "stepOf": "Étape {current} sur {total}",
+      "back": "Retour",
+      "next": "Suivant",
+      "edit": "Modifier",
+      "done": "Terminé",
+      "editAmount": "Modifier le montant et le type",
+      "editLabel": "Modifier le libellé et la catégorie",
+      "keypad": "Pavé numérique du montant",
+      "keypadDecimal": "Séparateur décimal",
+      "keypadBackspace": "Effacer"
     }
   },
   "categories": {

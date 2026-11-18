@@ -4,6 +4,7 @@ import {
   applyKeypadKey,
   buildRecap,
   canGoBack,
+  decimalSeparatorOf,
   firstStepWithError,
   nextStep,
   previousStep,
@@ -387,5 +388,12 @@ describe("buildRecap", () => {
     const recap = buildRecap(draftOf({ kind: "transfer", destinationId: "99" }), CONTEXT);
 
     expect(recap.save.destinationName).toBeNull();
+  });
+});
+
+describe("decimalSeparatorOf", () => {
+  it("is a comma in French and a point in English", () => {
+    expect(decimalSeparatorOf("fr")).toBe(",");
+    expect(decimalSeparatorOf("en")).toBe(".");
   });
 });
