@@ -42,6 +42,7 @@ import {
   applyKeypadKey,
   buildRecap,
   decimalSeparatorOf,
+  editsErrorField,
   nextStep,
   previousStep,
   SIGN_OF_KIND,
@@ -51,6 +52,7 @@ import {
   type KeypadKey,
   type StepDraft,
   type StepError,
+  type Step,
 } from "./add-transaction-steps";
 import { AmountDisplayInput } from "./amount-display-input";
 import { KindSegments } from "./kind-segments";
@@ -74,10 +76,16 @@ const TRANSFER = "transfer";
 const FORM_KINDS = ["expense", "income", TRANSFER, "interest"] as const;
 type FormKind = (typeof FORM_KINDS)[number];
 
+const STEP_HEADING_IDS = {
+  1: "how-much-heading",
+  2: "what-for-heading",
+  3: "date-account-heading",
+} as const;
 
 // A refusal found in the browser by the rules of `add-transaction-steps`, shown like a server one.
 interface ClientError {
   field: string;
+  step: Step;
   message: string;
 }
 
@@ -213,6 +221,8 @@ export function AddTransactionForm({
   // keeps the server render and the first client render identical.
   const containerWidth = useElementWidth(containerRef, WIDE_MIN_WIDTH);
   const [clientError, setClientError] = useState<ClientError | null>(null);
+  // The field whose server refusal is stale because the user edited it since.
+  const [editedErrorField, setEditedErrorField] = useState<string | null>(null);
   const labelRef = useRef<HTMLInputElement>(null);
   const saveRef = useRef<HTMLButtonElement>(null);
   const shouldFocusSave = useRef(false);
@@ -230,6 +240,7 @@ export function AddTransactionForm({
     setResultCount((count) => count + 1);
     setSurplusOpen(surplusChoiceOf(result) !== undefined);
     setClientError(null);
+    setEditedErrorField(null);
     if (result !== null) {
       setDraft((current) => draftFromResult(current, result));
       // The field the server refused may be on another step: its panel shows before the focus.
@@ -268,12 +279,17 @@ export function AddTransactionForm({
     currency === undefined ? null : formatTypedAmount(draft.amount, currency, locale);
   const errorOf = (field: string) => {
     if (clientError?.field === field) return clientError.message;
-    return state?.status === "error" && state.field === field ? state.message : undefined;
+    if (state?.status !== "error" || state.field !== field || editedErrorField === field) return undefined;
+    return state.message;
   };
   // Any edit makes a split already asked for stale, so it also closes the surplus step.
   const changeDraft = (changes: Partial<Draft>) => {
     setSurplusOpen(false);
     setClientError(null);
+    const refusedField = state?.status === "error" ? state.field : undefined;
+    if (refusedField !== undefined && editsErrorField(Object.keys(changes), refusedField)) {
+      setEditedErrorField(refusedField);
+    }
     setDraft((current) => ({ ...current, ...changes }));
   };
 
@@ -355,7 +371,7 @@ export function AddTransactionForm({
   // The error shows on the field of its step, and the focus goes to it once the panel is in view.
   function showError({ field, step: errorStep, ref }: StepError) {
     const formField = field === "accountId" && isTransfer ? "sourceId" : field;
-    setClientError({ field: formField, message: ref === undefined ? "" : feedback(ref.key, ref.values) });
+    setClientError({ field: formField, step: errorStep, message: ref === undefined ? "" : feedback(ref.key, ref.values) });
     showStep(errorStep);
   }
   function goToNextStep() {
@@ -370,10 +386,18 @@ export function AddTransactionForm({
     event.preventDefault();
     showError(first);
   }
+  // The focus goes to the field of the current client error. A server refusal of an earlier step
+  // can still be displayed in a hidden panel, so the first invalid control of the form is not it.
   useEffect(() => {
     if (clientError === null) return;
-    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-  }, [clientError, formRef]);
+    const field = document.getElementById(clientError.field);
+    const target = field?.matches('[aria-invalid="true"]')
+      ? field
+      : document
+          .getElementById(STEP_HEADING_IDS[clientError.step])
+          ?.parentElement?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    target?.focus();
+  }, [clientError]);
   const amountArgument = formattedAmount === null ? undefined : { amount: formattedAmount };
   const submitLabel = isTransfer
     ? amountArgument === undefined
@@ -408,7 +432,7 @@ export function AddTransactionForm({
             step={1}
             current={step}
             isHydrated={isHydrated}
-            headingId="how-much-heading"
+            headingId={STEP_HEADING_IDS[1]}
             headingRef={headingRef(1)}
             heading={add("howMuch")}
             className="gap-4"
@@ -452,7 +476,7 @@ export function AddTransactionForm({
             step={2}
             current={step}
             isHydrated={isHydrated}
-            headingId="what-for-heading"
+            headingId={STEP_HEADING_IDS[2]}
             headingRef={headingRef(2)}
             heading={add("whatFor")}
             className="gap-4"
@@ -536,7 +560,7 @@ export function AddTransactionForm({
           step={3}
           current={step}
           isHydrated={isHydrated}
-          headingId="date-account-heading"
+          headingId={STEP_HEADING_IDS[3]}
           headingRef={headingRef(3)}
           heading={
             isHydrated ? (
