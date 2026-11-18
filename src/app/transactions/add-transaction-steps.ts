@@ -42,13 +42,18 @@ export function stepDirection(from: Step, to: Step): StepDirection {
 
 // Keypad
 
+/** Whether the three-step phone flow is on: before hydration every panel shows, as in the wide layout. */
+export function isPhoneLayout(isHydrated: boolean, width: number): boolean {
+  return isHydrated && width < WIDE_MIN_WIDTH;
+}
+
 /**
  * The system keyboard of the amount field. On the phone layout the keypad types instead, so the
  * system keyboard must not open on top of it; before hydration there is no keypad, and the wide
  * layout has none either, so both keep the decimal keyboard.
  */
 export function amountInputMode(isHydrated: boolean, width: number): "decimal" | "none" {
-  return isHydrated && width < WIDE_MIN_WIDTH ? "none" : "decimal";
+  return isPhoneLayout(isHydrated, width) ? "none" : "decimal";
 }
 
 export type KeypadKey =

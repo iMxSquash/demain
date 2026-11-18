@@ -6,6 +6,7 @@ import {
   buildRecap,
   canGoBack,
   decimalSeparatorOf,
+  isPhoneLayout,
   nextStep,
   previousStep,
   stepDirection,
@@ -392,5 +393,20 @@ describe("amountInputMode", () => {
 
   it("keeps the decimal keyboard before hydration, where there is no keypad", () => {
     expect(amountInputMode(false, 375)).toBe("decimal");
+  });
+});
+
+describe("isPhoneLayout", () => {
+  it("is the phone layout below the wide breakpoint once hydrated", () => {
+    expect(isPhoneLayout(true, 375)).toBe(true);
+    expect(isPhoneLayout(true, 759)).toBe(true);
+  });
+
+  it("is not the phone layout from the wide breakpoint on", () => {
+    expect(isPhoneLayout(true, 760)).toBe(false);
+  });
+
+  it("is not the phone layout before hydration, where every panel shows", () => {
+    expect(isPhoneLayout(false, 375)).toBe(false);
   });
 });

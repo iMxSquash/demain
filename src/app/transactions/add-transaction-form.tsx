@@ -38,6 +38,7 @@ import { StepNav } from "./add-transaction-step-nav";
 import { StepPanel } from "./add-transaction-step-panel";
 import {
   amountInputMode,
+  isPhoneLayout,
   applyKeypadKey,
   buildRecap,
   decimalSeparatorOf,
@@ -234,8 +235,13 @@ export function AddTransactionForm({
       // The field the server refused may be on another step: its panel shows before the focus.
       const refusedField = result.state?.status === "error" ? result.state.field : undefined;
       if (refusedField !== undefined) showStep(stepOfField(refusedField));
-      // The form is empty again after a save: the next transaction starts at the amount.
-      if (result.state?.status === "saved") showStep(1);
+      // The form is empty again after a save: the next transaction starts at the amount. On the
+      // phone the save button that had the focus is gone, so the first heading takes it
+      // (WCAG 2.4.3); the wide layout keeps the focus where it is.
+      if (result.state?.status === "saved") {
+        if (isPhoneLayout(isHydrated, containerWidth)) moveTo(1);
+        else showStep(1);
+      }
     }
   }
   const [filledCategory, setFilledCategory] = useState<string | null>(null);
