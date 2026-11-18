@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 
 import { hasOwner } from "../../auth/owner";
 import { withDatabase } from "../../storage/with-database";
@@ -13,6 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoginPage() {
+  // The page reads the database, which does not exist at build time.
+  await connection();
   if (!withDatabase(hasOwner)) {
     redirect("/setup");
   }
