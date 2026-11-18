@@ -278,7 +278,7 @@ export function AddTransactionForm({
             <h3 id="how-much-heading" className="text-title font-medium">
               {add("howMuch")}
             </h3>
-            <fieldset key={resultCount}>
+            <fieldset key={`kind-${resultCount}`}>
               <legend className="sr-only">{form("type")}</legend>
               {/* A utility class, not an inline style: the CSP forbids style attributes. */}
               <div
@@ -361,7 +361,7 @@ export function AddTransactionForm({
 
             {isTransfer ? null : (
               <ChoiceChips
-                key={resultCount}
+                key={`categoryId-${resultCount}`}
                 id="categoryId"
                 legend={form("category")}
                 name="categoryId"
@@ -387,7 +387,7 @@ export function AddTransactionForm({
           </h3>
           {isHydrated ? (
             <ChoiceChips
-              key={resultCount}
+              key={`datePreset-${resultCount}`}
               id="datePreset"
               legend={add("when")}
               name="datePreset"
@@ -431,7 +431,7 @@ export function AddTransactionForm({
             </>
           ) : (
             <ChoiceChips
-              key={resultCount}
+              key={`accountId-${resultCount}`}
               id="accountId"
               legend={form("account")}
               name="accountId"
@@ -457,7 +457,7 @@ export function AddTransactionForm({
                   />
                 </FormField>
                 <ChoiceChips
-                  key={resultCount}
+                  key={`paymentMode-${resultCount}`}
                   id="paymentMode"
                   legend={form("paymentMode")}
                   name="paymentMode"
@@ -473,7 +473,7 @@ export function AddTransactionForm({
 
           {choice !== undefined && destinationId !== null ? (
             <SurplusStep
-              key={resultCount}
+              key={`surplus-${resultCount}`}
               choice={choice}
               source={{ name: nameOf(sourceId) }}
               destination={{ name: nameOf(destinationId) }}
