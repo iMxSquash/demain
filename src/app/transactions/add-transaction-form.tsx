@@ -2,7 +2,7 @@
 
 import { Coins, CreditCard, Plus, Tray } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { useElementWidth } from "../../charts/use-element-width";
 import { Button } from "../../components/button";
@@ -43,6 +43,7 @@ import {
   buildRecap,
   decimalSeparatorOf,
   editsErrorField,
+  enterKeyAction,
   nextStep,
   previousStep,
   SIGN_OF_KIND,
@@ -379,6 +380,15 @@ export function AddTransactionForm({
     if (first === undefined) moveTo(nextStep(step));
     else showError(first);
   }
+  // A physical keyboard on the phone layout: Enter in a field of the first two steps is Next. A
+  // button keeps its own Enter, and without JavaScript the native submit is untouched.
+  function advanceOnEnter(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+    if (!(event.target instanceof HTMLInputElement)) return;
+    if (enterKeyAction(step, isPhoneLayout(isHydrated, containerWidth)) === "submit") return;
+    event.preventDefault();
+    goToNextStep();
+  }
   // The save checks the amount, then the label (and the rest): the same rules on both layouts.
   function checkBeforeSubmit(event: FormEvent<HTMLFormElement>) {
     const [first] = validateAll(stepDraft, stepContext);
@@ -413,6 +423,7 @@ export function AddTransactionForm({
         ref={formRef}
         action={formAction}
         onSubmit={checkBeforeSubmit}
+        onKeyDown={advanceOnEnter}
         noValidate
         className={`grid gap-x-8 gap-y-6 ${ADD_CARD_CLASS} ${WIDE_TWO_COLUMNS_CLASS}`}
       >
