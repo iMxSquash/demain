@@ -211,6 +211,9 @@
     &:has(> label:nth-child(3) input:checked) {
       --i: 2;
     }
+    &:has(> label:nth-child(4) input:checked) {
+      --i: 3;
+    }
     &:not(:has(input:checked))::before {
       opacity: 0;
     }
@@ -259,6 +262,18 @@
       opacity: 0;
       width: 1px;
       height: 1px;
+    }
+  }
+
+  /* Raised variant (transaction type): the chosen segment sits on the surface, so the red and green
+     icons keep their colour on it. */
+  .segmented.raised {
+    &::before {
+      background: var(--color-surface);
+      box-shadow: var(--shadow-raised);
+    }
+    & label:has(input:checked) {
+      color: var(--color-text);
     }
   }
 }

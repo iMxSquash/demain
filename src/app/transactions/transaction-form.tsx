@@ -20,11 +20,13 @@ export interface AccountOption {
   id: number;
   name: string;
   currency: string;
+  kind: string;
 }
 
 export interface CategoryOption {
   id: number;
   name: string;
+  icon: string;
 }
 
 interface TransactionFormProps {

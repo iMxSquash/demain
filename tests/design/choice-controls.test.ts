@@ -126,6 +126,13 @@ describe("Disclosure", () => {
     expect(markup).toContain("Body");
   });
 
+  it("can leave out the hairline under it", () => {
+    const topOnly = render(createElement(Disclosure, { summary: "S", edges: "top" }, "B"));
+
+    expect(topOnly).toMatch(/^<details[^>]*border-t[^>]*border-divider/);
+    expect(topOnly).not.toContain("border-y");
+  });
+
   it("has a 44 px medium summary with a chevron that turns when open", () => {
     expect(markup).toContain("min-h-11");
     expect(markup).toContain("font-medium");

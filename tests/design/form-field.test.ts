@@ -7,6 +7,7 @@ import { FormField } from "../../src/app/form-field";
 import messages from "../../messages/en.json";
 
 interface FieldOptions {
+  hideLabel?: boolean;
   hint?: string;
   error?: string;
   optional?: boolean;
@@ -51,6 +52,13 @@ describe("FormField", () => {
     expect(attribute(markup, "aria-describedby")).toBe("amount-hint");
     expect(markup).not.toContain("amount-error");
     expect(markup).not.toContain("aria-invalid");
+  });
+
+  it("keeps the label for assistive technology only when asked to hide it", () => {
+    const markup = render({ hideLabel: true });
+
+    expect(markup).toMatch(/<label[^>]*class="sr-only"[^>]*>Amount/);
+    expect(render({})).not.toContain("sr-only");
   });
 
   it("sets no aria-describedby when there is neither hint nor error", () => {

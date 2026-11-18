@@ -7,6 +7,8 @@ interface DisclosureProps {
   summary: ReactNode;
   /** Opens it from the server, for example to show a field the last submit rejected. */
   open?: boolean;
+  /** "top" leaves the hairline under it out, when a button follows. */
+  edges?: "both" | "top";
   children?: ReactNode;
 }
 
@@ -15,9 +17,9 @@ interface DisclosureProps {
  * closes without JavaScript. The chevron and the content take their motion from the stylesheet,
  * which is instant under reduced motion.
  */
-export function Disclosure({ summary, open, children }: DisclosureProps) {
+export function Disclosure({ summary, open, edges = "both", children }: DisclosureProps) {
   return (
-    <details open={open} className="group border-y border-divider">
+    <details open={open} className={`group ${edges === "both" ? "border-y" : "border-t"} border-divider`}>
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 font-medium [&::-webkit-details-marker]:hidden">
         {summary}
         <span aria-hidden="true" className="transition-transform group-open:rotate-180">

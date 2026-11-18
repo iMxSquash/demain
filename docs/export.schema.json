@@ -163,6 +163,10 @@
           "name": {
             "type": "string"
           },
+          "icon": {
+            "type": "string",
+            "description": "A key of the closed set of category icons, such as \"basket\"."
+          },
           "archived": {
             "type": "boolean"
           }
@@ -170,6 +174,7 @@
         "required": [
           "id",
           "name",
+          "icon",
           "archived"
         ],
         "additionalProperties": false

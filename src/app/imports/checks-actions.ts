@@ -41,7 +41,14 @@ const MAX_BALANCE_TEXT_LENGTH = 100;
 const MAX_SELECTED_PROPOSALS = 1000;
 const MAX_PROPOSAL_KEY_LENGTH = 1000;
 
-type Translator = Awaited<ReturnType<typeof getTranslations>>;
+/**
+ * The three sentences `describeGap` tells, as a plain function: the translator of a namespace has a
+ * type that grows with every message of the app, and a call through it hits the compiler's depth limit.
+ */
+type GapTranslator = (
+  key: "gapMatch" | "gapMore" | "gapLess",
+  values: { date: string; amount: string },
+) => string;
 
 /** The translators, the locale and the error builders every action of this file starts from. */
 async function loadActionContext(
@@ -62,7 +69,7 @@ async function loadActionContext(
 
 /** The gap between the two balances, told in a sentence that names the date. */
 function describeGap(
-  t: Translator,
+  t: GapTranslator,
   gap: number,
   values: { date: string; amount: string },
 ): string {

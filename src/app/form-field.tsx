@@ -23,6 +23,8 @@ interface ControlProps {
 interface FormFieldProps {
   id: string;
   label: string;
+  /** The label stays for assistive technology only: the control says what it is by its look. */
+  hideLabel?: boolean;
   /** Marks the field as optional, in muted text after the label. */
   optional?: boolean;
   /** What the user needs before typing: a format, a unit, a consequence. Never a substitute for the label. */
@@ -42,7 +44,15 @@ function joinIds(...ids: (string | undefined)[]): string | undefined {
  * the error are linked to the control through `aria-describedby`, so a caller never
  * builds that attribute by hand.
  */
-export function FormField({ id, label, optional = false, hint, error, children }: FormFieldProps) {
+export function FormField({
+  id,
+  label,
+  hideLabel = false,
+  optional = false,
+  hint,
+  error,
+  children,
+}: FormFieldProps) {
   const t = useTranslations("common");
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
@@ -60,7 +70,7 @@ export function FormField({ id, label, optional = false, hint, error, children }
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-caption font-medium text-text">
+      <label htmlFor={id} className={hideLabel ? "sr-only" : "text-caption font-medium text-text"}>
         {label}
         {optional ? <span className="font-regular text-text-muted"> {t("optional")}</span> : null}
       </label>

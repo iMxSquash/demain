@@ -38,6 +38,9 @@ export const categories = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
+    // A key of `CATEGORY_ICONS`: the application checks it, the default fills the categories
+    // that existed before icons.
+    icon: text("icon").notNull().default("tag"),
     // Hidden from pickers but kept for history: never deleted.
     archived: integer("archived", { mode: "boolean" }).notNull().default(false),
   },

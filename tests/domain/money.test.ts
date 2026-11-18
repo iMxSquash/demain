@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   currencyDecimals,
+  currencySymbol,
   detectDecimalMark,
   divideRound,
   formatAmount,
@@ -361,5 +362,16 @@ describe("formatEditableAmount", () => {
 
   it("rejects an amount that is not a safe integer", () => {
     expect(() => formatEditableAmount(1.5, "EUR")).toThrow(RangeError);
+  });
+});
+
+describe("currencySymbol", () => {
+  it("gives the symbol the locale writes next to an amount", () => {
+    expect(currencySymbol("EUR", "en")).toBe("€");
+    expect(currencySymbol("USD", "en")).toBe("$");
+  });
+
+  it("falls back to the code when the locale has no symbol", () => {
+    expect(currencySymbol("CHF", "en")).toBe("CHF");
   });
 });

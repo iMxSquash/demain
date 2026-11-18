@@ -13,6 +13,10 @@ import {
   SkeletonRows,
 } from "../../components/skeleton";
 import { listAccounts } from "../../ledger/accounts";
+import { categoryIconOf } from "../../components/category-icons";
+import { CHIP_DISC_CLASS } from "../../components/chip";
+import { Icon } from "../../components/icon";
+import { DEFAULT_CATEGORY_ICON } from "../../domain/category";
 import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
@@ -96,6 +100,7 @@ export default async function CategoriesPage() {
         <CategoryForm
           action={createCategoryAction}
           initialName=""
+          initialIcon={DEFAULT_CATEGORY_ICON}
           submitLabel={t("addSubmit")}
         />
       </PageSection>
@@ -139,6 +144,17 @@ function CategoryListLoading() {
   );
 }
 
+function CategoryName({ name, icon }: { name: string; icon: string }) {
+  return (
+    <span className="flex items-center gap-3 font-medium">
+      <span className={CHIP_DISC_CLASS}>
+        <Icon icon={categoryIconOf(icon)} />
+      </span>
+      {name}
+    </span>
+  );
+}
+
 async function CategoryList() {
   const [t, common, { categories }] = await Promise.all([
     getTranslations("categories"),
@@ -151,7 +167,7 @@ async function CategoryList() {
     <ul className="flex flex-col">
       {categories.map((category) => (
         <li key={category.id} className={CATEGORY_ROW_CLASS}>
-          <span className="font-medium">{category.name}</span>
+          <CategoryName name={category.name} icon={category.icon} />
           <div className="flex gap-2">
             <Link
               href={`/categories/${category.id}/edit`}
@@ -187,7 +203,7 @@ async function ArchivedCategories() {
       <ul className="flex flex-col">
         {archivedCategories.map((category) => (
           <li key={category.id} className={CATEGORY_ROW_CLASS}>
-            <span className="font-medium">{category.name}</span>
+            <CategoryName name={category.name} icon={category.icon} />
             <form action={reactivateCategoryAction.bind(null, category.id)}>
               <Button type="submit" variant="link">
                 {t("reactivate")}

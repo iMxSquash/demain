@@ -36,6 +36,7 @@ const account = z.strictObject({
 const category = z.strictObject({
   id,
   name: z.string(),
+  icon: z.string().describe("A key of the closed set of category icons, such as \"basket\"."),
   archived: z.boolean(),
 });
 

@@ -21,7 +21,7 @@ import {
   createCategory,
   listCategories,
   reactivateCategory,
-  renameCategory,
+  updateCategory,
 } from "../../src/ledger/categories";
 import {
   type AppDatabase,
@@ -50,9 +50,49 @@ describe("categories", () => {
     expect(created).toEqual({
       id: expect.any(Number),
       name: "Groceries",
+      icon: "tag",
       archived: false,
     });
     expect(listCategories(db)).toEqual([created]);
+  });
+
+  it("creates a category with the icon it is given", () => {
+    const created = createCategory(db, { name: "Groceries", icon: "basket" });
+
+    expect(created.icon).toBe("basket");
+    expect(listCategories(db)[0]?.icon).toBe("basket");
+  });
+
+  it("refuses an icon outside the set and records nothing", () => {
+    expect(() => createCategory(db, { name: "Groceries", icon: "rocket" })).toThrow(
+      expect.objectContaining({ field: "icon" }),
+    );
+    expect(listCategories(db, { includeArchived: true })).toEqual([]);
+  });
+
+  it("changes the icon of a category with its name, or leaves it when none is given", () => {
+    const category = createCategory(db, { name: "Groceries", icon: "basket" });
+
+    const renamed = updateCategory(db, category.id, { name: "Food" });
+    const changed = updateCategory(db, category.id, { name: "Food", icon: "fork-knife" });
+
+    expect(renamed.icon).toBe("basket");
+    expect(changed).toMatchObject({ name: "Food", icon: "fork-knife" });
+  });
+
+  it("refuses an unknown icon when updating, and keeps the stored one", () => {
+    const category = createCategory(db, { name: "Groceries", icon: "basket" });
+
+    expect(() => updateCategory(db, category.id, { name: "Groceries", icon: "rocket" })).toThrow(
+      expect.objectContaining({ field: "icon" }),
+    );
+    expect(listCategories(db)[0]?.icon).toBe("basket");
+  });
+
+  it("gives the default icon to a category stored without one, as the migration does", () => {
+    db.insert(categories).values({ name: "Old" }).run();
+
+    expect(listCategories(db)[0]?.icon).toBe("tag");
   });
 
   it("refuses a name that is already used, archived categories included", () => {
@@ -68,8 +108,8 @@ describe("categories", () => {
   it("renames a category and lets it keep its own name in another case", () => {
     const category = createCategory(db, { name: "Groceries" });
 
-    const renamed = renameCategory(db, category.id, { name: "GROCERIES" });
-    const again = renameCategory(db, category.id, { name: "Food" });
+    const renamed = updateCategory(db, category.id, { name: "GROCERIES" });
+    const again = updateCategory(db, category.id, { name: "Food" });
 
     expect(renamed.name).toBe("GROCERIES");
     expect(again).toEqual({ ...category, name: "Food" });
@@ -88,14 +128,14 @@ describe("categories", () => {
     createCategory(db, { name: "Groceries" });
     const rent = createCategory(db, { name: "Rent" });
 
-    expect(() => renameCategory(db, rent.id, { name: "groceries" })).toThrow(
+    expect(() => updateCategory(db, rent.id, { name: "groceries" })).toThrow(
       expect.objectContaining({ field: "name" }),
     );
     expect(listCategories(db)[1]?.name).toBe("Rent");
   });
 
   it("reports an unknown category instead of silently doing nothing", () => {
-    expect(() => renameCategory(db, 999, { name: "Ghost" })).toThrow(
+    expect(() => updateCategory(db, 999, { name: "Ghost" })).toThrow(
       expect.objectContaining({ name: "CategoryNotFoundError" }),
     );
     expect(() => archiveCategory(db, 999)).toThrow(

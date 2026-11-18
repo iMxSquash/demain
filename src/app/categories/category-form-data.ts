@@ -1,15 +1,22 @@
 import { messageRef, type Translate } from "../../domain/message";
 
 export interface CategoryFormState {
-  field?: "name";
+  field?: "name" | "icon";
   message: string;
-  /** What the user typed: React resets the form after an action, so it is sent back. */
+  /** What the user typed and chose: React resets the form after an action, so it is sent back. */
   name: string;
+  icon: string;
 }
 
 export function readCategoryName(formData: FormData): string {
   const value = formData.get("name");
   return typeof value === "string" ? value : "";
+}
+
+/** The posted icon key, undefined when there is none: the domain then gives the default icon. */
+export function readCategoryIcon(formData: FormData): string | undefined {
+  const value = formData.get("icon");
+  return typeof value === "string" && value !== "" ? value : undefined;
 }
 
 /** What the user typed in one row of the queue, with the rule suggestion. */

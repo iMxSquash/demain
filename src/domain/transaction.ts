@@ -20,6 +20,8 @@ export const PAYMENT_MODES = ["card", "transfer", "direct_debit"] as const;
 
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
 
+const TRANSFER_PAYMENT_MODE = "transfer" satisfies PaymentMode;
+
 function isPaymentMode(value: string): value is PaymentMode {
   return (PAYMENT_MODES as readonly string[]).includes(value);
 }
@@ -164,6 +166,8 @@ export interface TransferLeg {
   amount: number;
   kind: "transfer";
   label: string;
+  /** A transfer always goes through the "transfer" payment mode. */
+  paymentMode: "transfer";
 }
 
 function assertTransferEndpoints(
@@ -209,8 +213,22 @@ export function buildTransferLegs(
   const { date, amount } = input;
   const label = normalizeLabel(input.label);
   return [
-    { accountId: input.source.id, date, amount: -amount, kind: "transfer", label },
-    { accountId: input.destination.id, date, amount, kind: "transfer", label },
+    {
+      accountId: input.source.id,
+      date,
+      amount: -amount,
+      kind: "transfer",
+      label,
+      paymentMode: TRANSFER_PAYMENT_MODE,
+    },
+    {
+      accountId: input.destination.id,
+      date,
+      amount,
+      kind: "transfer",
+      label,
+      paymentMode: TRANSFER_PAYMENT_MODE,
+    },
   ];
 }
 

@@ -9,13 +9,45 @@ import {
   type EnteredTransactionKind,
 } from "./transaction";
 
-export class CategoryValidationError extends Error {
-  readonly field = "name";
+/**
+ * The icons a category can have, by key. The set is closed: a category carries one of these keys and
+ * the app draws it (the keys are drawn in `src/components/category-icons.ts`). A user-written text
+ * or an uploaded image is never an icon.
+ */
+export const CATEGORY_ICONS = [
+  "tag",
+  "basket",
+  "fork-knife",
+  "house",
+  "bus",
+  "car",
+  "airplane",
+  "ticket",
+  "game-controller",
+  "heart",
+  "first-aid",
+  "gift",
+  "coins",
+  "graduation-cap",
+  "paw-print",
+  "lightning",
+  "phone",
+  "t-shirt",
+  "barbell",
+  "briefcase",
+] as const;
 
+export type CategoryIcon = (typeof CATEGORY_ICONS)[number];
+
+/** The icon of a category that was not given one, and of every category created before icons. */
+export const DEFAULT_CATEGORY_ICON: CategoryIcon = "tag";
+
+export class CategoryValidationError extends Error {
   constructor(
     /** English text for logs and tests: users read the translation of `ref`. */
     message: string,
     readonly ref: MessageRef,
+    readonly field: "name" | "icon" = "name",
   ) {
     super(message);
     this.name = "CategoryValidationError";
@@ -31,6 +63,20 @@ export function validateCategoryName(name: string): string {
     );
   }
   return trimmed;
+}
+
+/** The icon to store: the default one when none is given, an error when it is not in the set. */
+export function validateCategoryIcon(icon: string | undefined): CategoryIcon {
+  if (icon === undefined) return DEFAULT_CATEGORY_ICON;
+  const known = CATEGORY_ICONS.find((candidate) => candidate === icon);
+  if (known === undefined) {
+    throw new CategoryValidationError(
+      `Unknown category icon "${icon}"`,
+      messageRef("categoryIconUnknown"),
+      "icon",
+    );
+  }
+  return known;
 }
 
 /**
@@ -56,6 +102,18 @@ export function assertCategoryNameAvailable(
   }
 }
 
+/** A category a transaction can newly choose: an archived one is hidden from pickers. */
+function isCategoryAssignable(category: { archived: boolean }): boolean {
+  return !category.archived;
+}
+
+/** What a picker offers, in the order given. It is the rule `assertCategoryAssignable` applies. */
+export function listAssignableCategories<T extends { archived: boolean }>(
+  categories: readonly T[],
+): T[] {
+  return categories.filter(isCategoryAssignable);
+}
+
 /**
  * A transfer is a move between the owner's own accounts, so it has no category
  * (DOMAIN, entity Transaction). An archived category is hidden from pickers:
@@ -74,7 +132,7 @@ export function assertCategoryAssignable(
       messageRef("categoryOfTransfer"),
     );
   }
-  if (category.archived) {
+  if (!isCategoryAssignable(category)) {
     throw new TransactionValidationError(
       "categoryId",
       "This category is archived and cannot be assigned",

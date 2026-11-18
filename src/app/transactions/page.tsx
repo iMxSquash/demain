@@ -5,12 +5,18 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
 
+import { listAssignableCategories } from "../../domain/category";
 import { formatAmount } from "../../domain/money";
 import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
+import {
+  getLastUsedAccountId,
+  listLabelSuggestions,
+} from "../../ledger/transaction-suggestions";
 import { withDatabase } from "../../storage/with-database";
+import { addDays } from "../../components/date-picker-keyboard";
 import { DataTable, EmptyState, Pill } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
 import {
@@ -24,8 +30,10 @@ import {
   createTransferAction,
   deleteTransactionAction,
 } from "./actions";
-import { TransactionForm } from "./transaction-form";
-import { TransferForm } from "./transfer-form";
+import { createCategoryAction } from "../categories/actions";
+import { AddTransactionForm } from "./add-transaction-form";
+import { addTransactionDefaults } from "./add-transaction-defaults";
+import { ADD_CARD_CLASS } from "./add-transaction-layout";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 
@@ -46,14 +54,21 @@ const readTransactions = cache(async () => {
 async function readTransactionsFromDatabase() {
   "use cache";
   tagDataRead();
-  return withDatabase((db) => ({
-    accounts: listAccounts(db, { includeArchived: true }),
-    categories: listCategories(db, { includeArchived: true }),
-    rows: listTransactions(db),
-  }));
+  return withDatabase((db) => {
+    const accounts = listAccounts(db, { includeArchived: true });
+    const openAccountIds = accounts.filter((account) => !account.archived).map((account) => account.id);
+    return {
+      accounts,
+      categories: listCategories(db, { includeArchived: true }),
+      rows: listTransactions(db),
+      labelSuggestions: listLabelSuggestions(db, openAccountIds),
+      lastAccountId: getLastUsedAccountId(db),
+    };
+  });
 }
 
 const PAGE_GAP = "gap-10";
+const YESTERDAY_OFFSET_DAYS = -1;
 
 // The sections below show their heading at once and hold only the data in a `Suspense`, so a slow
 // read never delays the rest of the page.
@@ -228,18 +243,18 @@ function TransactionFormsLoading() {
 
   return (
     <SkeletonRegion label={loading("forms")} className={`flex flex-col ${PAGE_GAP}`}>
-      <PageSection id="new-heading" heading={t("addHeading")}>
-        <SkeletonFields count={8} />
-      </PageSection>
-      <PageSection id="transfer-heading" heading={t("transferHeading")}>
-        <SkeletonFields count={6} />
-      </PageSection>
+      <section aria-labelledby="new-heading" className={`flex flex-col gap-6 ${ADD_CARD_CLASS}`}>
+        <h2 id="new-heading" className="text-title font-medium">
+          {t("addHeading")}
+        </h2>
+        <SkeletonFields count={5} />
+      </section>
     </SkeletonRegion>
   );
 }
 
 async function TransactionForms() {
-  const [t, timeZone, { accounts, categories }] = await Promise.all([
+  const [t, timeZone, { accounts, categories, labelSuggestions, lastAccountId }] = await Promise.all([
     getTranslations("transactions"),
     getTimeZone(),
     readTransactions(),
@@ -262,39 +277,20 @@ async function TransactionForms() {
   }
 
   return (
-    <>
-      <PageSection id="new-heading" heading={t("addHeading")}>
-        <TransactionForm
-          action={createTransactionAction}
-          initialValues={{
-            accountId: String(active[0]?.id ?? ""),
-            date: today,
-            kind: "expense",
-            amount: "",
-            label: "",
-            description: "",
-            paymentMode: "",
-            categoryId: "",
-          }}
-          accounts={active}
-          categories={categories.filter((category) => !category.archived)}
-          submitLabel={t("addSubmit")}
-        />
-      </PageSection>
-
-      <PageSection id="transfer-heading" heading={t("transferHeading")}>
-        <TransferForm
-          action={createTransferAction}
-          initialValues={{
-            sourceId: String(active[0]?.id ?? ""),
-            destinationId: String(active[1]?.id ?? active[0]?.id ?? ""),
-            date: today,
-            amount: "",
-            label: "",
-          }}
-          accounts={active}
-        />
-      </PageSection>
-    </>
+    <AddTransactionForm
+      action={createTransactionAction}
+      transferAction={createTransferAction}
+      categoryAction={createCategoryAction}
+      initialValues={addTransactionDefaults({
+        today,
+        accountIds: active.map((account) => account.id),
+        lastAccountId,
+      })}
+      accounts={active}
+      categories={listAssignableCategories(categories)}
+      labelSuggestions={labelSuggestions}
+      today={today}
+      yesterday={addDays(today, YESTERDAY_OFFSET_DAYS)}
+    />
   );
 }

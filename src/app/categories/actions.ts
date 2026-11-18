@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { CategoryValidationError } from "../../domain/category";
+import { CategoryValidationError, DEFAULT_CATEGORY_ICON } from "../../domain/category";
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { TransactionValidationError } from "../../domain/transaction";
 import {
@@ -10,7 +10,7 @@ import {
   CategoryNotFoundError,
   createCategory,
   reactivateCategory,
-  renameCategory,
+  updateCategory,
 } from "../../ledger/categories";
 import { setTransactionCategory } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
@@ -22,6 +22,7 @@ import { parseRuleSuggestion } from "../rules/rule-form-data";
 import {
   parseCategoryChoice,
   readCategorizeValues,
+  readCategoryIcon,
   readCategoryName,
   type CategorizeState,
   type CategoryFormState,
@@ -32,15 +33,15 @@ const CATEGORIES_PATH = "/categories";
 /** A failure that no field explains is told in a toast, the typed name comes back with it. */
 async function toFormState(
   error: unknown,
-  name: string,
+  typed: { name: string; icon: string },
   translate: Translate,
 ): Promise<CategoryFormState> {
   if (error instanceof CategoryValidationError) {
-    return { field: error.field, message: translate(error.ref), name };
+    return { field: error.field, message: translate(error.ref), ...typed };
   }
   const ref = describeFailure(error);
   await flashError(ref);
-  return { message: translate(ref), name };
+  return { message: translate(ref), ...typed };
 }
 
 function describeFailure(error: unknown): MessageRef {
@@ -56,10 +57,15 @@ export async function createCategoryAction(
 ): Promise<CategoryFormState | null> {
   await requireSession();
   const name = readCategoryName(formData);
+  const icon = readCategoryIcon(formData);
   try {
-    withDatabase((db) => createCategory(db, { name }));
+    withDatabase((db) => createCategory(db, { name, ...(icon === undefined ? {} : { icon }) }));
   } catch (error) {
-    return await toFormState(error, name, await getTranslator());
+    return await toFormState(
+      error,
+      { name, icon: icon ?? DEFAULT_CATEGORY_ICON },
+      await getTranslator(),
+    );
   }
 
   refreshData();
@@ -67,17 +73,22 @@ export async function createCategoryAction(
   return null;
 }
 
-export async function renameCategoryAction(
+export async function updateCategoryAction(
   id: number,
   _previous: CategoryFormState | null,
   formData: FormData,
 ): Promise<CategoryFormState | null> {
   await requireSession();
   const name = readCategoryName(formData);
+  const icon = readCategoryIcon(formData);
   try {
-    withDatabase((db) => renameCategory(db, id, { name }));
+    withDatabase((db) => updateCategory(db, id, { name, ...(icon === undefined ? {} : { icon }) }));
   } catch (error) {
-    return await toFormState(error, name, await getTranslator());
+    return await toFormState(
+      error,
+      { name, icon: icon ?? DEFAULT_CATEGORY_ICON },
+      await getTranslator(),
+    );
   }
 
   refreshData();

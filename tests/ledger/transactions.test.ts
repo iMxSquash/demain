@@ -133,12 +133,14 @@ describe("transactions", () => {
         accountId: checking.id,
         amount: -2_000,
         kind: "transfer",
+        paymentMode: "transfer",
         transferCounterpartId: incoming.id,
       });
       expect(incoming).toMatchObject({
         accountId: livretA.id,
         amount: 2_000,
         kind: "transfer",
+        paymentMode: "transfer",
         transferCounterpartId: outgoing.id,
       });
       expect(getAccountBalance(db, checking.id)).toBe(5_627 - 2_000);

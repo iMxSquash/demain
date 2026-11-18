@@ -85,6 +85,13 @@
       "when": 1793796370582,
       "tag": "0011_gifted_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794992804884,
+      "tag": "0012_category_icon",
+      "breakpoints": true
     }
   ]
 }
