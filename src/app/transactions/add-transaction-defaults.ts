@@ -30,3 +30,30 @@ export function addTransactionDefaults({
     categoryId: "",
   };
 }
+
+/**
+ * The account a transfer goes to: the one chosen while it is not the source, else the first
+ * other account. Null when there is no other account.
+ */
+export function resolveDestination({
+  accountIds,
+  sourceId,
+  destinationId,
+}: {
+  accountIds: readonly number[];
+  sourceId: number;
+  destinationId: string;
+}): number | null {
+  const chosen = Number(destinationId);
+  if (destinationId !== "" && chosen !== sourceId && accountIds.includes(chosen)) return chosen;
+  return accountIds.find((id) => id !== sourceId) ?? null;
+}
+
+/** The accounts that can take the surplus of a transfer: neither its source nor its destination. */
+export function surplusTargets(
+  accountIds: readonly number[],
+  sourceId: number,
+  destinationId: number,
+): number[] {
+  return accountIds.filter((id) => id !== sourceId && id !== destinationId);
+}

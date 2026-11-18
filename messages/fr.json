@@ -328,7 +328,6 @@
     "empty": "Aucune transaction pour l'instant. Ajoutez la première ci-dessous.",
     "addHeading": "Nouvelle transaction",
     "addSubmit": "Ajouter la transaction",
-    "transferHeading": "Ajouter un virement",
     "needAccountBefore": "Ajoutez un compte sur la <link>page des comptes</link> avant de saisir des transactions.",
     "editMetaTitle": "Modifier la transaction | Demain",
     "editTitle": "Modifier {label}",
@@ -374,22 +373,6 @@
       "categoryHint": "Sans catégorie, la transaction va dans la file à catégoriser.",
       "paymentMode": "Mode de paiement"
     },
-    "transferForm": {
-      "from": "Compte source",
-      "to": "Compte de destination",
-      "date": "Date",
-      "amount": "Montant",
-      "label": "Libellé",
-      "submit": "Enregistrer le virement",
-      "submitPending": "Enregistrement…",
-      "surplusLegend": "Montant au-dessus du plafond",
-      "surplusIntro": "{deposited} tient sous le plafond du compte de destination, {surplus} n'y tient pas. Choisissez ce qu'il faut faire du surplus.",
-      "surplusAccount": "Compte qui reçoit le surplus",
-      "chooseAccount": "Choisir un compte",
-      "roomOnly": "Déposer seulement {deposited}",
-      "sendSurplus": "Envoyer le surplus sur le compte choisi",
-      "cancel": "Annuler le virement"
-    },
     "caption": "Toutes les transactions enregistrées",
     "emptyAction": "Ajouter une transaction",
     "add": {
@@ -415,7 +398,19 @@
         "interest": "Ajouter des intérêts de {amount}"
       },
       "whatWasIt": "Qu'est-ce que c'était ?",
-      "labelPlaceholder": "ex. Carrefour City"
+      "labelPlaceholder": "ex. Carrefour City",
+      "kindMove": "Virement",
+      "from": "De",
+      "to": "Vers, le compte qui reçoit",
+      "submitMove": "Virer de l'argent vers {account}",
+      "submitMoveWithAmount": "Virer {amount} vers {account}",
+      "aboveCeiling": "Au-dessus du plafond",
+      "surplusWarning": "{deposited} tiennent sous le plafond de {account}, {surplus} non.",
+      "surplusWhere": "Où va le surplus ?",
+      "surplusKeep": "Le garder dans {account}",
+      "surplusSend": "Envoyer vers {account}",
+      "confirmRoomOnly": "Virer seulement {deposited} vers {account}",
+      "confirmSend": "Virer {deposited}, le reste vers {account}"
     }
   },
   "categories": {

@@ -211,6 +211,9 @@
     &:has(> label:nth-child(3) input:checked) {
       --i: 2;
     }
+    &:has(> label:nth-child(4) input:checked) {
+      --i: 3;
+    }
     &:not(:has(input:checked))::before {
       opacity: 0;
     }

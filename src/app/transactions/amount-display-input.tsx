@@ -7,8 +7,8 @@ import { currencySymbol } from "../../domain/money";
 import { AmountInput } from "../amount-input";
 
 type AmountDisplayInputProps = Omit<ComponentProps<typeof AmountInput>, "className"> & {
-  /** Draws a red minus (an expense) or a green plus (money coming in) before the figure. */
-  direction: "out" | "in";
+  /** A red minus (an expense), a green plus (money coming in), or no sign (a transfer). */
+  direction: "out" | "in" | "neutral";
   currency: string;
 };
 
@@ -24,6 +24,9 @@ const INPUT_CLASS =
   "field-sizing-content min-w-[1ch] border-0 bg-transparent p-0 text-center text-display " +
   "text-text tabular-nums outline-none placeholder:text-text-muted";
 
+const SIGN = { out: "\u2212", in: "+", neutral: "" } as const;
+const SIGN_TONE = { out: "text-negative", in: "text-positive", neutral: "text-text-muted" } as const;
+
 /** The amount in `text-display` (DESIGN section 10): centred, no box, its sign drawn from the type. */
 export function AmountDisplayInput({ direction, currency, ...input }: AmountDisplayInputProps) {
   const locale = useLocale();
@@ -32,9 +35,9 @@ export function AmountDisplayInput({ direction, currency, ...input }: AmountDisp
     <div className={GROUP_CLASS}>
       <span
         aria-hidden="true"
-        className={`col-start-1 row-start-1 text-amount ${direction === "out" ? "text-negative" : "text-positive"}`}
+        className={`col-start-1 row-start-1 text-amount ${SIGN_TONE[direction]}`}
       >
-        {direction === "out" ? "−" : "+"}
+        {SIGN[direction]}
       </span>
       <AmountInput {...input} placeholder="0" className={INPUT_CLASS} />
       <span aria-hidden="true" className="col-start-3 row-start-1 text-title text-text-muted">

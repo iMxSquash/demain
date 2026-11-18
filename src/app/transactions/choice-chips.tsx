@@ -22,6 +22,8 @@ export interface ChipOption {
    * a blue ring while it is not chosen.
    */
   tone?: "later" | "today";
+  /** Not choosable: drawn dashed and muted, and skipped by the keyboard. */
+  disabled?: boolean;
 }
 
 interface ChoiceChipsProps {
@@ -85,7 +87,7 @@ export function ChoiceChips({
           return (
             <label
               key={option.value}
-              className={`group/chip ${shape} ${CHOSEN_CLASS[isLater ? "later" : "plain"]} ${FOCUS_CLASS} not-has-[:checked]:hover:border-text ${
+              className={`group/chip ${shape} ${CHOSEN_CLASS[isLater ? "later" : "plain"]} ${FOCUS_CLASS} not-has-[:checked]:not-has-[:disabled]:hover:border-text has-[:disabled]:cursor-not-allowed has-[:disabled]:border-dashed has-[:disabled]:bg-transparent has-[:disabled]:text-text-muted ${
                 option.tone === "today" ? TODAY_RING_CLASS : ""
               }`}
             >
@@ -94,6 +96,7 @@ export function ChoiceChips({
                 name={name}
                 value={option.value}
                 checked={option.value === value}
+                disabled={option.disabled}
                 onChange={() => onChange(option.value)}
                 aria-describedby={error ? errorId : undefined}
                 {...(error && option.value === invalidValue ? { "aria-invalid": true } : {})}
@@ -101,7 +104,7 @@ export function ChoiceChips({
               />
               {option.icon ? (
                 <span
-                  className={`${CHIP_DISC_CLASS} group-has-[:checked]/chip:bg-surface ${
+                  className={`${CHIP_DISC_CLASS} group-has-[:checked]/chip:bg-surface group-has-[:disabled]/chip:bg-surface-sunken group-has-[:disabled]/chip:text-text-muted ${
                     isLater ? "bg-warning-tint text-warning group-has-[:checked]/chip:text-warning" : ""
                   }`}
                 >

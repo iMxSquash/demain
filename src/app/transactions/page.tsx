@@ -31,7 +31,6 @@ import {
 } from "./actions";
 import { AddTransactionForm } from "./add-transaction-form";
 import { addTransactionDefaults } from "./add-transaction-defaults";
-import { TransferForm } from "./transfer-form";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 
@@ -246,9 +245,6 @@ function TransactionFormsLoading() {
         </h2>
         <SkeletonFields count={5} />
       </section>
-      <PageSection id="transfer-heading" heading={t("transferHeading")}>
-        <SkeletonFields count={6} />
-      </PageSection>
     </SkeletonRegion>
   );
 }
@@ -277,34 +273,19 @@ async function TransactionForms() {
   }
 
   return (
-    <>
-      <AddTransactionForm
-        action={createTransactionAction}
-        initialValues={addTransactionDefaults({
-          today,
-          accountIds: active.map((account) => account.id),
-          lastAccountId,
-        })}
-        accounts={active}
-        categories={categories.filter((category) => !category.archived)}
-        labelSuggestions={labelSuggestions}
-        today={today}
-        yesterday={addDays(today, -1)}
-      />
-
-      <PageSection id="transfer-heading" heading={t("transferHeading")}>
-        <TransferForm
-          action={createTransferAction}
-          initialValues={{
-            sourceId: String(active[0]?.id ?? ""),
-            destinationId: String(active[1]?.id ?? active[0]?.id ?? ""),
-            date: today,
-            amount: "",
-            label: "",
-          }}
-          accounts={active}
-        />
-      </PageSection>
-    </>
+    <AddTransactionForm
+      action={createTransactionAction}
+      transferAction={createTransferAction}
+      initialValues={addTransactionDefaults({
+        today,
+        accountIds: active.map((account) => account.id),
+        lastAccountId,
+      })}
+      accounts={active}
+      categories={categories.filter((category) => !category.archived)}
+      labelSuggestions={labelSuggestions}
+      today={today}
+      yesterday={addDays(today, -1)}
+    />
   );
 }

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { addTransactionDefaults } from "../../../src/app/transactions/add-transaction-defaults";
+import {
+  addTransactionDefaults,
+  resolveDestination,
+  surplusTargets,
+} from "../../../src/app/transactions/add-transaction-defaults";
 import {
   parseTransactionForm,
   type TransactionFormValues,
@@ -102,5 +106,35 @@ describe("an expense needs only an amount and a label", () => {
     } catch (error) {
       expect(error).toMatchObject({ field: "label" });
     }
+  });
+});
+
+describe("resolveDestination", () => {
+  const ACCOUNT_IDS = [1, 2, 3];
+
+  it("keeps the chosen destination while it differs from the source", () => {
+    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 1, destinationId: "3" })).toBe(3);
+  });
+
+  it("falls back to the first other account when none is chosen", () => {
+    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 1, destinationId: "" })).toBe(2);
+  });
+
+  it("moves away from the destination when the source becomes the same account", () => {
+    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 2, destinationId: "2" })).toBe(1);
+  });
+
+  it("is null with a single account", () => {
+    expect(resolveDestination({ accountIds: [1], sourceId: 1, destinationId: "" })).toBeNull();
+  });
+});
+
+describe("surplusTargets", () => {
+  it("offers every account but the source and the destination", () => {
+    expect(surplusTargets([1, 2, 3, 4], 1, 2)).toEqual([3, 4]);
+  });
+
+  it("offers none when only the two accounts exist", () => {
+    expect(surplusTargets([1, 2], 1, 2)).toEqual([]);
   });
 });
