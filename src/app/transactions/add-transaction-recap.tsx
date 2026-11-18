@@ -32,7 +32,9 @@ interface AddTransactionRecapProps {
 
 /**
  * The two recap rows of step 3 (DESIGN section 10). Their editors hold copies of the step 1 and
- * step 2 controls, without the names of the real fields: only the real fields are posted.
+ * step 2 controls, named `recapKind` and `recapCategoryId` (the amount and the label editors are
+ * unnamed). They post with the form while open, and the server ignores keys it does not know;
+ * the values it reads come from the real fields.
  */
 export function AddTransactionRecap({
   recap,
