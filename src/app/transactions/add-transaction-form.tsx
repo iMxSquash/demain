@@ -1,17 +1,8 @@
 "use client";
 
-import {
-  ArrowDown,
-  ArrowsLeftRight,
-  ArrowUp,
-  Coins,
-  CreditCard,
-  Percent,
-  Plus,
-  Tray,
-} from "@phosphor-icons/react/ssr";
+import { Coins, CreditCard, Plus, Tray } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "../../components/button";
 import { CHIP_DISC_CLASS, CHIP_TILE_CLASS } from "../../components/chip";
@@ -21,6 +12,7 @@ import { Disclosure } from "../../components/disclosure";
 import { Icon } from "../../components/icon";
 import { useIsHydrated } from "../../components/use-is-hydrated";
 import { DEFAULT_CATEGORY_ICON } from "../../domain/category";
+import { currencyDecimals } from "../../domain/money";
 import { filterLabelSuggestions } from "../../domain/label-suggestions";
 import { PAYMENT_MODES, type PaymentMode } from "../../domain/transaction";
 import type { LabelSuggestion } from "../../ledger/transaction-suggestions";
@@ -36,7 +28,27 @@ import {
   WIDE_FULL_WIDTH_CLASS,
   WIDE_TWO_COLUMNS_CLASS,
 } from "./add-transaction-layout";
+import { AddTransactionKeypad } from "./add-transaction-keypad";
+import { AddTransactionRecap } from "./add-transaction-recap";
+import { StepProgress } from "./add-transaction-progress";
+import { StepNav } from "./add-transaction-step-nav";
+import { StepPanel } from "./add-transaction-step-panel";
+import {
+  applyKeypadKey,
+  buildRecap,
+  decimalSeparatorOf,
+  nextStep,
+  previousStep,
+  stepOfField,
+  validateAll,
+  validateStep,
+  type KeypadKey,
+  type StepDraft,
+  type StepError,
+} from "./add-transaction-steps";
 import { AmountDisplayInput } from "./amount-display-input";
+import { KindSegments } from "./kind-segments";
+import { useStepFlow } from "./use-step-flow";
 import { ChoiceChips, type ChipOption } from "../../components/choice-chips";
 import { SurplusStep } from "./surplus-step";
 import type { AccountOption, CategoryOption } from "./transaction-form";
@@ -56,19 +68,13 @@ const TRANSFER = "transfer";
 const FORM_KINDS = ["expense", "income", TRANSFER, "interest"] as const;
 type FormKind = (typeof FORM_KINDS)[number];
 
-const KIND_ICON = {
-  expense: ArrowUp,
-  income: ArrowDown,
-  transfer: ArrowsLeftRight,
-  interest: Percent,
-} as const;
-const KIND_TONE = {
-  expense: "text-negative",
-  income: "text-positive",
-  transfer: "",
-  interest: "text-positive",
-} as const;
 const SIGN_OF = { expense: "out", income: "in", transfer: "neutral", interest: "in" } as const;
+
+// A refusal found in the browser by the rules of `add-transaction-steps`, shown like a server one.
+interface ClientError {
+  field: string;
+  message: string;
+}
 
 type AddResult =
   | { mode: "transaction"; state: TransactionFormState | null }
@@ -158,8 +164,11 @@ function surplusChoiceOf(result: AddResult | null): SurplusChoice | undefined {
 }
 
 /**
- * The add-transaction form on a wide screen (DESIGN section 10, "Wide layout"): everything in
- * view, two columns from 760 px of available width, one column below that. An expense needs
+ * The add-transaction form (DESIGN section 10). From 760 px of available width everything is in
+ * view in two columns ("Wide layout"). Below that, once the page is interactive, the same form is
+ * a three-step flow: the three panels are the same fields, only one is shown at a time, and the
+ * keypad, the progress bar and the recap rows are chrome that the wide layout hides. Before
+ * hydration every field is in view, in one column. An expense needs
  * only an amount and a label: the type, the date, the account and the category have defaults.
  * A transfer is the fourth type: it swaps the account for From and To, drops what a transfer
  * does not have, and asks what to do with a surplus above the ceiling.
@@ -180,6 +189,7 @@ export function AddTransactionForm({
   const add = useTranslations("transactions.add");
   const common = useTranslations("common");
   const categoryText = useTranslations("categories");
+  const feedback = useTranslations("feedback");
   const locale = useLocale();
   const isHydrated = useIsHydrated();
   // One form, two server actions: the type decides which one receives the fields.
@@ -191,6 +201,8 @@ export function AddTransactionForm({
     null,
   );
   const formRef = useFocusFirstError(result);
+  const { step, moveTo, showStep, headingRef } = useStepFlow();
+  const [clientError, setClientError] = useState<ClientError | null>(null);
   const labelRef = useRef<HTMLInputElement>(null);
   const saveRef = useRef<HTMLButtonElement>(null);
   const shouldFocusSave = useRef(false);
@@ -207,7 +219,15 @@ export function AddTransactionForm({
     setSeenResult(result);
     setResultCount((count) => count + 1);
     setSurplusOpen(surplusChoiceOf(result) !== undefined);
-    if (result !== null) setDraft((current) => draftFromResult(current, result));
+    setClientError(null);
+    if (result !== null) {
+      setDraft((current) => draftFromResult(current, result));
+      // The field the server refused may be on another step: its panel shows before the focus.
+      const refusedField = result.state?.status === "error" ? result.state.field : undefined;
+      if (refusedField !== undefined) showStep(stepOfField(refusedField));
+      // The form is empty again after a save: the next transaction starts at the amount.
+      if (result.state?.status === "saved") showStep(1);
+    }
   }
   const [filledCategory, setFilledCategory] = useState<string | null>(null);
 
@@ -231,11 +251,14 @@ export function AddTransactionForm({
   const currency = accounts.find((account) => account.id === sourceId)?.currency;
   const formattedAmount =
     currency === undefined ? null : formatTypedAmount(draft.amount, currency, locale);
-  const errorOf = (field: string) =>
-    state?.status === "error" && state.field === field ? state.message : undefined;
+  const errorOf = (field: string) => {
+    if (clientError?.field === field) return clientError.message;
+    return state?.status === "error" && state.field === field ? state.message : undefined;
+  };
   // Any edit makes a split already asked for stale, so it also closes the surplus step.
   const changeDraft = (changes: Partial<Draft>) => {
     setSurplusOpen(false);
+    setClientError(null);
     setDraft((current) => ({ ...current, ...changes }));
   };
 
@@ -310,6 +333,32 @@ export function AddTransactionForm({
     />
   );
   const choice = isSurplusOpen && isTransfer ? surplusChoiceOf(result) : undefined;
+  const stepDraft: StepDraft = { ...draft, destinationId: destinationId === null ? "" : String(destinationId) };
+  const stepContext = { locale, accounts };
+  const decimals = currency === undefined ? 0 : currencyDecimals(currency);
+
+  // The error shows on the field of its step, and the focus goes to it once the panel is in view.
+  function showError({ field, step: errorStep, ref }: StepError) {
+    const formField = field === "accountId" && isTransfer ? "sourceId" : field;
+    setClientError({ field: formField, message: ref === undefined ? "" : feedback(ref.key, ref.values) });
+    showStep(errorStep);
+  }
+  function goToNextStep() {
+    const [first] = validateStep(step, stepDraft, stepContext);
+    if (first === undefined) moveTo(nextStep(step));
+    else showError(first);
+  }
+  // The save checks the amount, then the label (and the rest): the same rules on both layouts.
+  function checkBeforeSubmit(event: FormEvent<HTMLFormElement>) {
+    const [first] = validateAll(stepDraft, stepContext);
+    if (first === undefined) return;
+    event.preventDefault();
+    showError(first);
+  }
+  useEffect(() => {
+    if (clientError === null) return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [clientError, formRef]);
   const amountArgument = formattedAmount === null ? undefined : { amount: formattedAmount };
   const submitLabel = isTransfer
     ? amountArgument === undefined
@@ -324,6 +373,7 @@ export function AddTransactionForm({
       <form
         ref={formRef}
         action={formAction}
+        onSubmit={checkBeforeSubmit}
         noValidate
         className={`grid gap-x-8 gap-y-6 ${ADD_CARD_CLASS} ${WIDE_TWO_COLUMNS_CLASS}`}
       >
@@ -336,36 +386,27 @@ export function AddTransactionForm({
           </p>
         ) : null}
 
-        <div className="flex flex-col gap-6">
-          <section aria-labelledby="how-much-heading" className="flex flex-col gap-4">
-            <h3 id="how-much-heading" className="text-title font-medium">
-              {add("howMuch")}
-            </h3>
-            <fieldset key={`kind-${resultCount}`}>
-              <legend className="sr-only">{form("type")}</legend>
-              {/* A utility class, not an inline style: the CSP forbids style attributes. */}
-              <div
-                className={`segmented raised grid w-full [&_label]:gap-1 [&_label]:px-0 [&_label]:text-caption ${
-                  kindOptions.length === 4 ? "[--n:4]" : "[--n:3]"
-                }`}
-              >
-                {kindOptions.map((option) => (
-                  <label key={option}>
-                    <input
-                      type="radio"
-                      name="kind"
-                      value={option}
-                      checked={option === kind}
-                      onChange={() => changeDraft({ kind: option })}
-                    />
-                    <span className={KIND_TONE[option]}>
-                      <Icon icon={KIND_ICON[option]} />
-                    </span>
-                    {kindLabel(option)}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+        {isHydrated ? <StepProgress step={step} /> : null}
+
+        <div className="contents @min-[760px]:flex @min-[760px]:flex-col @min-[760px]:gap-6">
+          <StepPanel
+            step={1}
+            current={step}
+            isHydrated={isHydrated}
+            headingId="how-much-heading"
+            headingRef={headingRef(1)}
+            heading={add("howMuch")}
+            className="gap-4"
+          >
+            <KindSegments
+              key={`kind-${resultCount}`}
+              name="kind"
+              legend={form("type")}
+              options={kindOptions}
+              value={kind}
+              onChange={(option) => changeDraft({ kind: option })}
+              labelOf={kindLabel}
+            />
             <FormField id="amount" label={form("amount")} hideLabel error={errorOf("amount")}>
               <AmountDisplayInput
                 id="amount"
@@ -377,12 +418,29 @@ export function AddTransactionForm({
                 required
               />
             </FormField>
-          </section>
+            {isHydrated ? (
+              <div className="@min-[760px]:hidden">
+                <AddTransactionKeypad
+                  onKey={(key: KeypadKey) =>
+                    changeDraft({ amount: applyKeypadKey(draft.amount, key, decimals) })
+                  }
+                  separator={decimalSeparatorOf(locale)}
+                  hasDecimals={decimals > 0}
+                />
+              </div>
+            ) : null}
+            {isHydrated ? <StepNav step={step} onNext={goToNextStep} /> : null}
+          </StepPanel>
 
-          <section aria-labelledby="what-for-heading" className="flex flex-col gap-4">
-            <h3 id="what-for-heading" className="text-title font-medium">
-              {add("whatFor")}
-            </h3>
+          <StepPanel
+            step={2}
+            current={step}
+            isHydrated={isHydrated}
+            headingId="what-for-heading"
+            headingRef={headingRef(2)}
+            heading={add("whatFor")}
+            className="gap-4"
+          >
             <div className="flex flex-col gap-3">
               <FormField id="label" label={add("whatWasIt")} error={errorOf("label")}>
                 <input
@@ -452,16 +510,45 @@ export function AddTransactionForm({
                 error={errorOf("categoryId")}
               />
             )}
-          </section>
+            {isHydrated ? (
+              <StepNav step={step} onBack={() => moveTo(previousStep(step))} onNext={goToNextStep} />
+            ) : null}
+          </StepPanel>
         </div>
 
-        <section
-          aria-labelledby="date-account-heading"
-          className={`flex flex-col gap-6 ${WIDE_DIVIDER_CLASS}`}
+        <StepPanel
+          step={3}
+          current={step}
+          isHydrated={isHydrated}
+          headingId="date-account-heading"
+          headingRef={headingRef(3)}
+          heading={
+            isHydrated ? (
+              <>
+                <span className="@min-[760px]:hidden">{add("checkAndSave")}</span>
+                <span className="hidden @min-[760px]:inline">{add("dateAccount")}</span>
+              </>
+            ) : (
+              add("dateAccount")
+            )
+          }
+          className={`gap-6 ${WIDE_DIVIDER_CLASS}`}
         >
-          <h3 id="date-account-heading" className="text-title font-medium">
-            {add("dateAccount")}
-          </h3>
+          {isHydrated ? (
+            <AddTransactionRecap
+              recap={buildRecap(stepDraft, stepContext)}
+              kind={kind}
+              kindOptions={kindOptions}
+              kindLabel={kindLabel}
+              amount={draft.amount}
+              label={draft.label}
+              categoryId={draft.categoryId}
+              currency={currency ?? ""}
+              categoryOptions={categoryOptions}
+              resultCount={resultCount}
+              onChange={changeDraft}
+            />
+          ) : null}
           {isHydrated ? (
             <ChoiceChips
               key={`datePreset-${resultCount}`}
@@ -575,7 +662,8 @@ export function AddTransactionForm({
               {submitLabel}
             </Button>
           )}
-        </section>
+          {isHydrated ? <StepNav step={step} onBack={() => moveTo(previousStep(step))} /> : null}
+        </StepPanel>
       </form>
       <Modal
         isOpen={isCategoryModalOpen}
