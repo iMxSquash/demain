@@ -410,7 +410,18 @@
       "surplusSend": "Send to {account}",
       "confirmRoomOnly": "Move only {deposited} to {account}",
       "confirmSend": "Move {deposited}, the rest to {account}",
-      "newCategory": "New category"
+      "newCategory": "New category",
+      "checkAndSave": "Check and save",
+      "stepOf": "Step {current} of {total}",
+      "back": "Back",
+      "next": "Next",
+      "edit": "Edit",
+      "done": "Done",
+      "editAmount": "Edit amount and type",
+      "editLabel": "Edit label and category",
+      "keypad": "Amount keypad",
+      "keypadDecimal": "Decimal separator",
+      "keypadBackspace": "Backspace"
     }
   },
   "categories": {

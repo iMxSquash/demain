@@ -15,7 +15,7 @@ import { type MessageRef, messageRef } from "../domain/message";
 type AmountInputProps = Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "inputMode" | "autoComplete" | "id"
-> & { id: string };
+> & { id: string; inputMode?: "decimal" | "none" };
 
 const PASTE_INPUT_TYPES = new Set(["insertFromPaste", "insertFromDrop"]);
 
@@ -38,7 +38,7 @@ function refusedCharacter(value: string, incoming: string, start: number, end: n
  * incomplete value when the field is left. The server applies the same rule from
  * `domain/amount-syntax` and stays the authority.
  */
-export function AmountInput({ id, onBlur, ...rest }: AmountInputProps) {
+export function AmountInput({ id, inputMode = "decimal", onBlur, ...rest }: AmountInputProps) {
   const t = useTranslations("feedback");
   const common = useTranslations("common");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +90,7 @@ export function AmountInput({ id, onBlur, ...rest }: AmountInputProps) {
         ref={inputRef}
         id={id}
         type="text"
-        inputMode="decimal"
+        inputMode={inputMode}
         autoComplete="off"
         aria-describedby={describedBy}
         aria-invalid={isInvalid || isFlagged ? true : undefined}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import type { ComponentProps } from "react";
+import type { ComponentProps, PointerEvent } from "react";
 
 import { currencySymbol } from "../../domain/money";
 import { AmountInput } from "../amount-input";
@@ -22,17 +22,28 @@ const GROUP_CLASS =
   "has-[[aria-invalid=true]]:outline-2 has-[[aria-invalid=true]]:outline-offset-4 has-[[aria-invalid=true]]:outline-negative";
 const INPUT_CLASS =
   "field-sizing-content min-w-[1ch] border-0 bg-transparent p-0 text-center text-display " +
-  "text-text tabular-nums outline-none placeholder:text-text-muted";
+  "text-text tabular-nums outline-none placeholder:text-text-muted " +
+  // WCAG 2.5.8: on the phone layout the input is at least 44 px wide, even when empty.
+  "@max-[759px]:min-w-11";
 
-const SIGN = { out: "\u2212", in: "+", neutral: "" } as const;
-const SIGN_TONE = { out: "text-negative", in: "text-positive", neutral: "text-text-muted" } as const;
+export const SIGN = { out: "\u2212", in: "+", neutral: "" } as const;
+export const SIGN_TONE = { out: "text-negative", in: "text-positive", neutral: "text-text-muted" } as const;
+
+// The figure grows with its content, so a press beside it (the sign, the symbol, the empty
+// space of the row) would miss the input: it focuses the input instead, as a label would.
+function focusInputOnAreaPress(event: PointerEvent<HTMLDivElement>) {
+  const input = event.currentTarget.querySelector("input");
+  if (input === null || event.target === input) return;
+  event.preventDefault();
+  input.focus();
+}
 
 /** The amount in `text-display` (DESIGN section 10): centred, no box, its sign drawn from the type. */
 export function AmountDisplayInput({ direction, currency, ...input }: AmountDisplayInputProps) {
   const locale = useLocale();
 
   return (
-    <div className={GROUP_CLASS}>
+    <div className={GROUP_CLASS} onPointerDown={focusInputOnAreaPress}>
       <span
         aria-hidden="true"
         className={`col-start-1 row-start-1 text-amount ${SIGN_TONE[direction]}`}
