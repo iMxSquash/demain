@@ -404,7 +404,7 @@
       "submitMove": "Move money to {account}",
       "submitMoveWithAmount": "Move {amount} to {account}",
       "aboveCeiling": "Above the ceiling",
-      "surplusWarning": "{deposited} fits under the ceiling of {account}, {surplus} does not.",
+      "surplusWarning": "The ceiling of {account} limits the deposit to {deposited}. {surplus} is left to place.",
       "surplusWhere": "Where does the surplus go?",
       "surplusKeep": "Keep it in {account}",
       "surplusSend": "Send to {account}",

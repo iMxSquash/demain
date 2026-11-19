@@ -948,7 +948,7 @@ dialog.dialog[open]::backdrop,details[open]>div,#flow .editor:not([hidden]),#flo
     function openSplit(){
       var amount=toMinor(S.amount),fits=ROOM[S.to],box=split.querySelector("[data-split-choices]");
       surplusTo=OVERFLOW[S.to]&&OVERFLOW[S.to]!==S.from?OVERFLOW[S.to]:"keep";
-      split.querySelector("[data-split-text]").textContent=eur(fits)+" fits under the ceiling of "+ACCT[S.to]+", "+eur(amount-fits)+" does not.";
+      split.querySelector("[data-split-text]").textContent="The ceiling of "+ACCT[S.to]+" limits the deposit to "+eur(fits)+". "+eur(amount-fits)+" is left to place.";
       box.innerHTML="";
       Object.keys(ACCT).filter(function(k){return k!==S.from&&k!==S.to;}).concat("keep").forEach(function(k){
         var l=document.createElement("label");l.className="chip text";l.innerHTML="<input type='radio' name='f-surplus'><span></span>";

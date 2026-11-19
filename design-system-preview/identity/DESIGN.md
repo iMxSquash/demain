@@ -474,7 +474,7 @@ The add-transaction form becomes a three-step flow (`form-proposals.html`, "Reta
   - account chips;
   - for a transfer, they are replaced by "From" and "To, the account that receives", and the From account is disabled in To.
 - **Above the ceiling** (owner, 12 Nov 2026; DOMAIN, deposit ceiling and overflow): when the save of a transfer finds that the amount does not fit under the ceiling of the receiving account, nothing is recorded yet and a step opens in place of the save button.
-  - It has a heading ("Above the ceiling"), which takes the focus, and a notice: "Warning: €50.00 fits under the ceiling of Savings A, €150.00 does not."
+  - It has a heading ("Above the ceiling"), which takes the focus, and a notice: "Warning: The ceiling of Savings A limits the deposit to €50.00. €150.00 is left to place."
   - "Where does the surplus go?" offers one chip per other account and "Keep it in Current" (the surplus is not moved). The overflow account of the receiving account is chosen first when there is one.
   - Cancel (secondary) closes the step and returns the focus to the save button. The confirming button says what will happen, short enough for one line on a phone: "Move €50.00, the rest to Savings B", or "Move only €50.00 to Savings A".
   - What fits nowhere stays in the source account and is said after saving, next to the form ("€100.00 stays in Current: Savings B is full").
