@@ -404,7 +404,7 @@
       "submitMove": "Virer de l'argent vers {account}",
       "submitMoveWithAmount": "Virer {amount} vers {account}",
       "aboveCeiling": "Au-dessus du plafond",
-      "surplusWarning": "{deposited} tiennent sous le plafond de {account}, {surplus} non.",
+      "surplusWarning": "Le plafond de {account} limite le dépôt à {deposited}. Il reste {surplus} à placer.",
       "surplusWhere": "Où va le surplus ?",
       "surplusKeep": "Le garder dans {account}",
       "surplusSend": "Envoyer vers {account}",
