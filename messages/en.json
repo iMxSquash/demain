@@ -1023,7 +1023,7 @@
     "changesSaved": "Changes saved.",
     "ceilingWarning": "Warning: this income exceeds the deposit ceiling of the account by {excess}.",
     "transferRecorded": "Transfer recorded.",
-    "transferUnplaced": "{amount} fits nowhere and stays in the source account.",
+    "transferUnplaced": "{amount} stays in {source}: {full} is full.",
     "transferSurplusAsk": "The destination account cannot take the whole amount.",
     "transferCancelled": "Transfer cancelled: nothing was recorded.",
     "authInvalidCredentials": "Invalid credentials",

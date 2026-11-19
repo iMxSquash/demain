@@ -11,7 +11,7 @@ import {
   type ManualTransferSplit,
   type TransactionField,
 } from "../../domain/transaction";
-import { AccountNotFoundError, listAccounts } from "../../ledger/accounts";
+import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
 import { CategoryNotFoundError } from "../../ledger/categories";
 import {
   createTransaction,
@@ -31,6 +31,7 @@ import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
+  fullAccountIdOf,
   parseTransactionForm,
   parseTransferForm,
   readTransactionValues,
@@ -264,7 +265,11 @@ function recordTransfer(
       ? {
           status: "notice",
           message: translate(
-            messageRef("transferUnplaced", { amount: format(result.unplaced) }),
+            messageRef("transferUnplaced", {
+              amount: format(result.unplaced),
+              source: getAccount(db, request.sourceId).name,
+              full: getAccount(db, fullAccountIdOf(request, decision)).name,
+            }),
           ),
           values: clearedValues,
         }
