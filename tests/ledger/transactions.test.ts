@@ -426,6 +426,32 @@ describe("transactions", () => {
       expect(getAccountBalance(db, checking.id)).toBe(85_000);
     });
 
+    it("splits 50.00, 50.00 and 100.00 kept in checking when Livret A is nearly full (DOMAIN worked example)", () => {
+      const { checking, livretA, livretJeune, request } = setup();
+      updateAccount(db, livretA.id, {
+        ...CHECKING_INPUT,
+        name: "Livret A",
+        kind: "savings",
+        openingBalance: 2_290_000,
+        depositCeiling: 2_295_000,
+      });
+
+      expect(previewManualTransfer(db, request)).toEqual({
+        deposited: 5_000,
+        surplus: 15_000,
+        suggestedOverflowAccountId: livretA.id,
+      });
+      const result = recordManualTransfer(db, request, {
+        kind: "send-surplus",
+        accountId: livretA.id,
+      });
+
+      expect(result.unplaced).toBe(10_000);
+      expect(getAccountBalance(db, livretJeune.id)).toBe(160_000);
+      expect(getAccountBalance(db, livretA.id)).toBe(2_295_000);
+      expect(getAccountBalance(db, checking.id)).toBe(90_000);
+    });
+
     it("records nothing when no room is left anywhere", () => {
       const { checking, livretJeune, request } = setup();
       createTransaction(db, {

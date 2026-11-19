@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  fullAccountIdOf,
   parseTransactionForm as parseTransaction,
   parseTransferForm as parseTransfer,
   type CurrencyByAccount,
@@ -16,6 +17,7 @@ const parseTransferForm = (formData: FormData, currencies: CurrencyByAccount) =>
 
 const CHECKING_ID = 1;
 const LIVRET_A_ID = 2;
+const LIVRET_JEUNE_ID = 3;
 const CURRENCIES = new Map([
   [CHECKING_ID, "EUR"],
   [LIVRET_A_ID, "EUR"],
@@ -214,5 +216,23 @@ describe("parseTransferForm", () => {
     expect(
       parseTransferForm(transferForm({ amount: "x" }), CURRENCIES),
     ).toMatchObject({ ok: false, error: { field: "amount" } });
+  });
+});
+
+describe("fullAccountIdOf", () => {
+  const request = {
+    sourceId: CHECKING_ID,
+    destinationId: LIVRET_A_ID,
+    amount: 20_000,
+    date: "2026-03-15",
+    label: "Savings",
+  };
+
+  it("names the destination when only its room was deposited", () => {
+    expect(fullAccountIdOf(request, { kind: "room-only" })).toBe(LIVRET_A_ID);
+  });
+
+  it("names the account chosen for the surplus when it is the one that is full", () => {
+    expect(fullAccountIdOf(request, { kind: "send-surplus", accountId: LIVRET_JEUNE_ID })).toBe(LIVRET_JEUNE_ID);
   });
 });

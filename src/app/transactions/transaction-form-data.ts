@@ -206,6 +206,14 @@ export function parseTransactionForm(
   };
 }
 
+/**
+ * The account that could not take the rest of a transfer: the one the user chose for the surplus,
+ * or the destination when only its room was deposited. The notice after saving names it.
+ */
+export function fullAccountIdOf(request: TransferRequest, decision: SurplusDecision | null): number {
+  return decision?.kind === "send-surplus" ? decision.accountId : request.destinationId;
+}
+
 type DecisionResult =
   | { value: SurplusDecision | null }
   | { message: string };
