@@ -17,6 +17,7 @@ const parseTransferForm = (formData: FormData, currencies: CurrencyByAccount) =>
 
 const CHECKING_ID = 1;
 const LIVRET_A_ID = 2;
+const LIVRET_JEUNE_ID = 3;
 const CURRENCIES = new Map([
   [CHECKING_ID, "EUR"],
   [LIVRET_A_ID, "EUR"],
@@ -232,8 +233,6 @@ describe("fullAccountIdOf", () => {
   });
 
   it("names the account chosen for the surplus when it is the one that is full", () => {
-    const chosenId = 3;
-
-    expect(fullAccountIdOf(request, { kind: "send-surplus", accountId: chosenId })).toBe(chosenId);
+    expect(fullAccountIdOf(request, { kind: "send-surplus", accountId: LIVRET_JEUNE_ID })).toBe(LIVRET_JEUNE_ID);
   });
 });
