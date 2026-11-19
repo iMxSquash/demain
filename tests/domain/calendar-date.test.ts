@@ -46,6 +46,14 @@ describe("addDays", () => {
   it("goes backwards", () => {
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
   });
+
+  it("stays where it is past the last supported year", () => {
+    expect(addDays("9999-12-31", 1)).toBe("9999-12-31");
+  });
+
+  it("stays where it is before the first supported year", () => {
+    expect(addDays("0001-01-01", -1)).toBe("0001-01-01");
+  });
 });
 
 describe("weekdayOf", () => {
