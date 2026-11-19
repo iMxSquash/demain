@@ -106,6 +106,9 @@ describe("nominalDates", () => {
     it("is every 3 months from the anchor", () => {
       const quarterly = nominalDates({ kind: "quarterly" }, "2026-02-15", WIDE_RANGE).slice(0, 4);
       expect(quarterly).toEqual(["2026-02-15", "2026-05-15", "2026-08-15", "2026-11-15"]);
+    });
+
+    it("gives the same dates as every 3 months", () => {
       expect(nominalDates({ kind: "every_n_months", months: 3 }, "2026-02-15", WIDE_RANGE)).toEqual(
         nominalDates({ kind: "quarterly" }, "2026-02-15", WIDE_RANGE),
       );
@@ -182,6 +185,21 @@ describe("nominalDates", () => {
     });
   });
 
+  describe("end of the supported years", () => {
+    const lastDays = { from: "9999-12-01", to: "9999-12-31" };
+
+    it("stops a weekly rule at the last supported day", () => {
+      expect(nominalDates({ kind: "every_n_weeks", weeks: 1 }, "9999-12-20", lastDays)).toEqual([
+        "9999-12-20",
+        "9999-12-27",
+      ]);
+    });
+
+    it("stops a monthly rule in the last supported year", () => {
+      expect(nominalDates({ kind: "monthly_on_last_day" }, "9999-11-01", lastDays)).toEqual(["9999-12-31"]);
+    });
+  });
+
   describe("invalid input", () => {
     it("refuses an invalid repetition instead of looping", () => {
       expect(() => nominalDates({ kind: "every_n_weeks", weeks: 0 }, "2026-01-01", WIDE_RANGE)).toThrow(RangeError);
@@ -207,6 +225,10 @@ describe("adjustToBusinessDay", () => {
 
   it("moves a Saturday to the previous Friday across a year end", () => {
     expect(adjustToBusinessDay("2028-01-01", "previous")).toBe("2027-12-31");
+  });
+
+  it("moves a Saturday to the next Monday across a year end", () => {
+    expect(adjustToBusinessDay("2022-12-31", "next")).toBe("2023-01-02");
   });
 
   it("moves a Sunday to the next Monday", () => {

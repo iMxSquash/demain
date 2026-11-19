@@ -2,7 +2,7 @@
 // occurrences", steps 1 and 2). Pure: dates are "YYYY-MM-DD" strings and nothing reads a clock.
 
 import { isCalendarDate } from "./account";
-import { addDays, clampedDate, weekdayOf } from "./calendar-date";
+import { addDays, clampedDate, parseDate, weekdayOf } from "./calendar-date";
 
 export type Repetition =
   | { kind: "monthly_on_day"; day: number } // 1 to 31
@@ -27,10 +27,6 @@ const MONTHS_IN_QUARTER = 3;
 const DAYS_IN_WEEK = 7;
 const SATURDAY = 6;
 const SUNDAY = 0;
-const FRIDAY_BEFORE_SATURDAY = -1;
-const FRIDAY_BEFORE_SUNDAY = -2;
-const MONDAY_AFTER_SATURDAY = 2;
-const MONDAY_AFTER_SUNDAY = 1;
 
 function isPositiveInteger(value: number): boolean {
   return Number.isInteger(value) && value >= 1;
@@ -86,16 +82,16 @@ function monthlyDates(
   anchor: string,
   range: DateRange,
 ): string[] {
+  const lastYear = parseDate(range.to).year;
   const dates: string[] = [];
   // Each date is computed from its own month: moving the previous date by a month would drift
   // from 31 January to 28 February to 28 March.
   for (let monthOffset = 0; ; monthOffset += schedule.stepInMonths) {
     const monthIndex = anchorMonthIndex + monthOffset;
-    const date = clampedDate(
-      Math.floor(monthIndex / MONTHS_IN_YEAR),
-      (monthIndex % MONTHS_IN_YEAR) + 1,
-      schedule.dayOfMonth,
-    );
+    const year = Math.floor(monthIndex / MONTHS_IN_YEAR);
+    // Also what keeps the loop inside the supported years, whose last day `range.to` cannot pass.
+    if (year > lastYear) return dates;
+    const date = clampedDate(year, (monthIndex % MONTHS_IN_YEAR) + 1, schedule.dayOfMonth);
     if (date > range.to) return dates;
     if (date >= anchor && date >= range.from) dates.push(date);
   }
@@ -103,8 +99,13 @@ function monthlyDates(
 
 function weeklyDates(weeks: number, anchor: string, range: DateRange): string[] {
   const dates: string[] = [];
-  for (let date = anchor; date <= range.to; date = addDays(date, weeks * DAYS_IN_WEEK)) {
+  let date = anchor;
+  while (date <= range.to) {
     if (date >= range.from) dates.push(date);
+    const next = addDays(date, weeks * DAYS_IN_WEEK);
+    // `addDays` stays put at the last supported day: without this the loop would never end.
+    if (next === date) break;
+    date = next;
   }
   return dates;
 }
@@ -115,6 +116,8 @@ function weeklyDates(weeks: number, anchor: string, range: DateRange): string[] 
  * a one-off event on the anchor.
  */
 export function nominalDates(repetition: Repetition | null, anchor: string, range: DateRange): string[] {
+  // Callers validate user input with `isValidRepetition` and `isCalendarDate` first: reaching one
+  // of these throws is a programming error, so it carries no translatable message reference.
   if (repetition !== null && !isValidRepetition(repetition)) {
     throw new RangeError(`Invalid repetition ${JSON.stringify(repetition)}`);
   }
@@ -125,16 +128,20 @@ export function nominalDates(repetition: Repetition | null, anchor: string, rang
   if (repetition === null) return anchor >= range.from && anchor <= range.to ? [anchor] : [];
 
   if (repetition.kind === "every_n_weeks") return weeklyDates(repetition.weeks, anchor, range);
-  const [anchorYear = 0, anchorMonth = 1, anchorDay = 1] = anchor.split("-").map(Number);
-  const anchorMonthIndex = anchorYear * MONTHS_IN_YEAR + (anchorMonth - 1);
-  return monthlyDates(monthlyScheduleOf(repetition, anchorDay), anchorMonthIndex, anchor, range);
+  const { year, month, day } = parseDate(anchor);
+  const anchorMonthIndex = year * MONTHS_IN_YEAR + (month - 1);
+  return monthlyDates(monthlyScheduleOf(repetition, day), anchorMonthIndex, anchor, range);
 }
+
+// Days to add to a Saturday or a Sunday to reach the Friday before or the Monday after.
+const WEEKEND_SHIFT_DAYS: Record<Exclude<BusinessDayRule, "none">, Readonly<Record<number, number>>> = {
+  previous: { [SATURDAY]: -1, [SUNDAY]: -2 },
+  next: { [SATURDAY]: 2, [SUNDAY]: 1 },
+};
 
 /** Moves a Saturday or a Sunday to the previous Friday or the next Monday; the weekdays stay. */
 export function adjustToBusinessDay(date: string, rule: BusinessDayRule): string {
   if (rule === "none") return date;
-  const weekday = weekdayOf(date);
-  if (weekday !== SATURDAY && weekday !== SUNDAY) return date;
-  if (rule === "previous") return addDays(date, weekday === SATURDAY ? FRIDAY_BEFORE_SATURDAY : FRIDAY_BEFORE_SUNDAY);
-  return addDays(date, weekday === SATURDAY ? MONDAY_AFTER_SATURDAY : MONDAY_AFTER_SUNDAY);
+  const shift = WEEKEND_SHIFT_DAYS[rule][weekdayOf(date)];
+  return shift === undefined ? date : addDays(date, shift);
 }
