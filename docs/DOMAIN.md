@@ -126,7 +126,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | name | "Rent", "Salary", "Music streaming", "Car insurance", "Fuel". |
 | account_id, category_id | Target account and category. |
 | kind | `expense`, `income`, `interest` or `transfer` (a planned savings transfer also names the destination account). |
-| start_date | First nominal date. For a one-off item, its only date. |
+| start_date | Lower bound of the nominal dates: the first occurrence is the first date of the rule on or after it. For a one-off item, its only date. |
 | end_date | Optional last date for a recurrence. |
 | accepts_multiple_transactions | True for a provision (several transactions settle one occurrence). Default false. |
 | provision_label_filter | Optional text for a provision: only transactions whose label contains it are linked automatically (for example `carburant`). |
@@ -339,6 +339,10 @@ For a requested horizon `[from, to]`:
 1. Enumerate nominal dates from `start_date`. Each date follows the repetition rule of the version in effect at that point: dates before a version's `effective_from` follow the previous version, dates from `effective_from` follow the new one. Stop at `end_date` or `to`.
    - "Monthly on day N" uses the last day of the month when the month is shorter than N (day 31 in February gives the 28th or 29th).
    - "Monthly on last day" always uses the last day.
+   - Each monthly date is computed from its own month, never by moving the previous date by one month, so day 31 returns to the 31st after a short month.
+   - "Every N months" and "quarterly" keep the day of `start_date`, every N (or 3) months from its month, clamped per month like "monthly on day N". "Quarterly" is its own kind (a shortcut of the form) but gives the same dates as "every N months" with 3. "Yearly" keeps the day and month of `start_date`.
+   - "Every N weeks" is `start_date` plus 7 x N x k days.
+   - Decisions of the owner (19 Nov 2026): a yearly date on 29 February falls on 28 February in years without a 29 February, the same clamp as "monthly on day N"; quarterly is every 3 months from the start date, not the calendar quarters; a start date that is not on the rule is not refused: it is a lower bound, so "monthly on day 5" from 20 January gives 5 February first.
 2. Apply the business-day rule if set (move a date falling on a weekend to the previous or next weekday). Weekends only: public holidays are not handled in V1. The nominal date is still the identity of the occurrence.
 3. Apply recorded overrides: a `cancelled` occurrence is removed, a `modified` one takes its `override_date` and/or `override_amount`.
 4. Compute the amount of each occurrence (next section).
