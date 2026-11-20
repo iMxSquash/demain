@@ -10,6 +10,7 @@ import {
   toRepetition,
   validatePlannedItemDetails,
   validatePlannedItemInput,
+  versionInEffectAt,
   type PlannedItemContext,
   type PlannedItemInput,
 } from "../../src/domain/planned-item";
@@ -360,4 +361,26 @@ describe("isTolerancePercentDraft", () => {
       expect(() => parseTolerancePercent(text)).not.toThrow();
     },
   );
+});
+
+describe("versionInEffectAt", () => {
+  const VERSIONS = [
+    { effectiveFrom: "2026-01-05", amount: 1 },
+    { effectiveFrom: "2026-04-05", amount: 2 },
+    { effectiveFrom: "2026-09-05", amount: 3 },
+  ];
+
+  it.each([
+    ["on the first effective date", "2026-01-05", 1],
+    ["between two versions", "2026-06-30", 2],
+    ["on the effective date of a version", "2026-04-05", 2],
+    ["after the last version", "2030-01-01", 3],
+    ["before the first version", "2025-01-01", 1],
+  ])("picks the version in effect %s", (_label, date, amount) => {
+    expect(versionInEffectAt(VERSIONS, date).amount).toBe(amount);
+  });
+
+  it("throws on an empty list", () => {
+    expect(() => versionInEffectAt([], "2026-01-01")).toThrow(RangeError);
+  });
 });

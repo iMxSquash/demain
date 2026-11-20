@@ -1,4 +1,4 @@
-import { asc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, or } from "drizzle-orm";
 
 import type { PlannedSchedule } from "../domain/occurrences";
 import {
@@ -6,9 +6,12 @@ import {
   isPlannedItemOver,
   toRepetition,
   validatePlannedItemDetails,
+  validatePlannedItemEndDate,
   validatePlannedItemInput,
+  validatePlannedItemVersion,
   type PlannedItemDetails,
   type PlannedItemInput,
+  type PlannedItemVersionInput,
 } from "../domain/planned-item";
 import type { AppDatabase } from "../storage/database";
 import {
@@ -17,6 +20,7 @@ import {
   occurrenceOverrides,
   plannedItems,
   plannedItemVersions,
+  transactions,
 } from "../storage/schema";
 
 export type PlannedItem = typeof plannedItems.$inferSelect;
@@ -179,4 +183,68 @@ export function listItemsBlockingArchive(
   return attachDetails(db, targeting)
     .filter((item) => !isPlannedItemOver(toPlannedSchedule(item), item.overrides, today))
     .map((item) => item.name);
+}
+
+/**
+ * Adds a version effective from a date, or replaces the one that already has this date. Refused
+ * when it would rewrite an occurrence that is settled or overridden.
+ */
+export function addPlannedItemVersion(
+  db: AppDatabase,
+  itemId: number,
+  input: PlannedItemVersionInput,
+): { item: PlannedItemWithDetails; replaced: boolean } {
+  return db.transaction((tx) => {
+    const current = getPlannedItem(tx, itemId);
+    // Read in the same transaction as the write: a match recorded in between cannot slip through.
+    const settledNominalDates = tx
+      .select({ occurrenceDate: transactions.occurrenceDate })
+      .from(transactions)
+      .where(and(eq(transactions.plannedItemId, itemId), isNotNull(transactions.occurrenceDate)))
+      .all()
+      .flatMap(({ occurrenceDate }) => (occurrenceDate === null ? [] : [occurrenceDate]));
+    const valid = validatePlannedItemVersion(input, {
+      item: { kind: current.kind, ...toPlannedSchedule(current) },
+      settledNominalDates,
+      overrides: current.overrides,
+    });
+    const { kind: repetitionKind, value: repetitionValue } = fromRepetition(valid.repetition);
+    const stored = {
+      repetitionKind,
+      repetitionValue,
+      businessDayRule: valid.businessDayRule,
+      amount: valid.amount,
+      amountMode: valid.amountMode,
+      averageWindow: valid.averageWindow,
+    };
+    tx.insert(plannedItemVersions)
+      .values({ plannedItemId: itemId, effectiveFrom: valid.effectiveFrom, ...stored })
+      .onConflictDoUpdate({
+        target: [plannedItemVersions.plannedItemId, plannedItemVersions.effectiveFrom],
+        set: stored,
+      })
+      .run();
+    return { item: getPlannedItem(tx, itemId), replaced: valid.replaces };
+  });
+}
+
+export function setPlannedItemEndDate(
+  db: AppDatabase,
+  itemId: number,
+  endDate: string | null,
+): PlannedItemWithDetails {
+  return db.transaction((tx) => {
+    const item = getPlannedItem(tx, itemId);
+    const valid = validatePlannedItemEndDate(endDate, toPlannedSchedule(item));
+    tx.update(plannedItems).set({ endDate: valid }).where(eq(plannedItems.id, itemId)).run();
+    return getPlannedItem(tx, itemId);
+  });
+}
+
+export function cancelPlannedItem(db: AppDatabase, itemId: number): PlannedItemWithDetails {
+  return db.transaction((tx) => {
+    getPlannedItem(tx, itemId);
+    tx.update(plannedItems).set({ cancelled: true }).where(eq(plannedItems.id, itemId)).run();
+    return getPlannedItem(tx, itemId);
+  });
 }

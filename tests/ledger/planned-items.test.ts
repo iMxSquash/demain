@@ -8,13 +8,21 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { generateOccurrences } from "../../src/domain/occurrences";
-import { PlannedItemValidationError, type PlannedItemInput } from "../../src/domain/planned-item";
-import { createAccount } from "../../src/ledger/accounts";
 import {
+  PlannedItemValidationError,
+  type PlannedItemInput,
+  type PlannedItemVersionInput,
+} from "../../src/domain/planned-item";
+import { createAccount } from "../../src/ledger/accounts";
+import type { PlannedItemWithDetails } from "../../src/ledger/planned-items";
+import {
+  addPlannedItemVersion,
+  cancelPlannedItem,
   createPlannedItem,
   getPlannedItem,
   listPlannedItems,
   PlannedItemNotFoundError,
+  setPlannedItemEndDate,
   toPlannedSchedule,
   updatePlannedItemDetails,
 } from "../../src/ledger/planned-items";
@@ -270,6 +278,378 @@ describe("planned items", () => {
     } finally {
       rmSync(olderDir, { recursive: true, force: true });
     }
+  });
+
+  describe("versions, end date and cancellation", () => {
+    const TODAY = "2026-01-01";
+
+    function occurrencesOf(item: PlannedItemWithDetails, to = "2026-08-31") {
+      return generateOccurrences(
+        toPlannedSchedule(item),
+        item.overrides,
+        { from: "2026-01-01", to },
+        TODAY,
+      ).map((occurrence) => [occurrence.date, occurrence.amount] as const);
+    }
+
+    function versionCount(): number {
+      return db.select().from(plannedItemVersions).all().length;
+    }
+
+    function refusalOf(action: () => unknown): PlannedItemValidationError {
+      try {
+        action();
+      } catch (error) {
+        if (error instanceof PlannedItemValidationError) return error;
+        throw error;
+      }
+      throw new Error("The action was accepted");
+    }
+
+    function expectRefused(
+      itemId: number,
+      input: PlannedItemVersionInput,
+      field: string,
+      key: string,
+    ): PlannedItemValidationError {
+      const before = versionCount();
+      const error = refusalOf(() => addPlannedItemVersion(db, itemId, input));
+      expect(error.field).toBe(field);
+      expect(error.ref.key).toBe(key);
+      expect(versionCount()).toBe(before);
+      return error;
+    }
+
+    function settle(itemId: number, nominalDate: string): void {
+      const transaction = createTransaction(db, {
+        accountId,
+        date: nominalDate,
+        amount: -80_000,
+        kind: "expense",
+        label: "Rent",
+      });
+      db.update(transactions)
+        .set({ plannedItemId: itemId, occurrenceDate: nominalDate })
+        .where(eq(transactions.id, transaction.id))
+        .run();
+    }
+
+    function override(itemId: number, nominalDate: string): void {
+      db.insert(occurrenceOverrides)
+        .values({ plannedItemId: itemId, nominalDate, status: "cancelled" })
+        .run();
+    }
+
+    const rentFrom = (effectiveFrom: string, extra: Partial<PlannedItemVersionInput> = {}) => ({
+      effectiveFrom,
+      repetition: { kind: "monthly_on_day", day: 5 } as const,
+      amount: -90_000,
+      ...extra,
+    });
+
+    it("applies a salary raise from its month and leaves the months before untouched", () => {
+      const salary = createPlannedItem(db, {
+        ...rent,
+        name: "Salary",
+        kind: "income",
+        startDate: "2026-01-25",
+        repetition: { kind: "monthly_on_day", day: 25 },
+        amount: 114_388,
+      });
+
+      const { item } = addPlannedItemVersion(db, salary.id, {
+        effectiveFrom: "2026-06-25",
+        repetition: { kind: "monthly_on_day", day: 25 },
+        amount: 117_147,
+      });
+
+      expect(occurrencesOf(item)).toEqual([
+        ["2026-01-25", 114_388],
+        ["2026-02-25", 114_388],
+        ["2026-03-25", 114_388],
+        ["2026-04-25", 114_388],
+        ["2026-05-25", 114_388],
+        ["2026-06-25", 117_147],
+        ["2026-07-25", 117_147],
+        ["2026-08-25", 117_147],
+      ]);
+    });
+
+    it("moves the rent from the 5th to the 1st from March", () => {
+      const item = createPlannedItem(db, rent);
+
+      const { item: moved } = addPlannedItemVersion(db, item.id, {
+        effectiveFrom: "2026-03-01",
+        repetition: { kind: "monthly_on_day", day: 1 },
+        amount: -80_000,
+      });
+
+      expect(occurrencesOf(moved, "2026-04-30").map(([date]) => date)).toEqual([
+        "2026-01-05",
+        "2026-02-05",
+        "2026-03-01",
+        "2026-04-01",
+      ]);
+    });
+
+    it("keeps the occurrences before the effective date identical", () => {
+      const item = createPlannedItem(db, rent);
+      const before = occurrencesOf(item).filter(([date]) => date < "2026-04-01");
+
+      const { item: changed } = addPlannedItemVersion(db, item.id, rentFrom("2026-04-01"));
+
+      expect(occurrencesOf(changed).filter(([date]) => date < "2026-04-01")).toEqual(before);
+    });
+
+    it("refuses an effective date before the start date", () => {
+      const item = createPlannedItem(db, rent);
+
+      const error = expectRefused(
+        item.id,
+        rentFrom("2025-12-31"),
+        "effectiveFrom",
+        "plannedItemVersionBeforeStart",
+      );
+
+      expect(error.ref.values).toEqual({ date: "2026-01-05" });
+    });
+
+    it("refuses an effective date after the end date", () => {
+      const item = createPlannedItem(db, { ...rent, endDate: "2026-06-30" });
+
+      const error = expectRefused(
+        item.id,
+        rentFrom("2026-07-01"),
+        "effectiveFrom",
+        "plannedItemVersionAfterEnd",
+      );
+
+      expect(error.ref.values).toEqual({ date: "2026-06-30" });
+    });
+
+    it("refuses a zero amount", () => {
+      const item = createPlannedItem(db, rent);
+
+      expectRefused(item.id, rentFrom("2026-04-01", { amount: 0 }), "amount", "transactionAmountNonZero");
+    });
+
+    it("refuses a version on a cancelled item", () => {
+      const item = createPlannedItem(db, rent);
+      db.update(plannedItems).set({ cancelled: true }).where(eq(plannedItems.id, item.id)).run();
+
+      expectRefused(item.id, rentFrom("2026-04-01"), "effectiveFrom", "plannedItemVersionOnCancelled");
+    });
+
+    it("refuses a repetition on a one-off item", () => {
+      const oneOff = createPlannedItem(db, { ...rent, startDate: "2026-03-10", repetition: null });
+
+      expectRefused(
+        oneOff.id,
+        rentFrom("2026-04-01"),
+        "repetition",
+        "plannedItemVersionRepeatsOneOff",
+      );
+    });
+
+    it("throws for a version on a missing item and writes nothing", () => {
+      expect(() => addPlannedItemVersion(db, 999, rentFrom("2026-04-01"))).toThrow(
+        PlannedItemNotFoundError,
+      );
+      expect(versionCount()).toBe(0);
+    });
+
+    it("refuses an end date before the start date", () => {
+      const item = createPlannedItem(db, rent);
+
+      const error = refusalOf(() => setPlannedItemEndDate(db, item.id, "2026-01-04"));
+
+      expect(error.field).toBe("endDate");
+      expect(error.ref.key).toBe("plannedItemEndBeforeStart");
+      expect(getPlannedItem(db, item.id).endDate).toBeNull();
+    });
+
+    it("stops the occurrences at the end date", () => {
+      const item = createPlannedItem(db, rent);
+
+      const bounded = setPlannedItemEndDate(db, item.id, "2026-03-31");
+
+      expect(bounded.endDate).toBe("2026-03-31");
+      expect(occurrencesOf(bounded).map(([date]) => date)).toEqual([
+        "2026-01-05",
+        "2026-02-05",
+        "2026-03-05",
+      ]);
+    });
+
+    it("clears the end date with null", () => {
+      const item = createPlannedItem(db, { ...rent, endDate: "2026-03-31" });
+
+      const cleared = setPlannedItemEndDate(db, item.id, null);
+
+      expect(cleared.endDate).toBeNull();
+      expect(occurrencesOf(cleared)).toHaveLength(8);
+    });
+
+    it("refuses an end date on a one-off item", () => {
+      const oneOff = createPlannedItem(db, { ...rent, startDate: "2026-03-10", repetition: null });
+
+      const error = refusalOf(() => setPlannedItemEndDate(db, oneOff.id, "2026-12-31"));
+
+      expect(error.field).toBe("endDate");
+      expect(error.ref.key).toBe("plannedItemOneOffHasNoEndDate");
+      expect(getPlannedItem(db, oneOff.id).endDate).toBeNull();
+    });
+
+    it("cancels an item so that nothing remains after today", () => {
+      const item = createPlannedItem(db, rent);
+      const today = "2026-03-10";
+
+      const cancelled = cancelPlannedItem(db, item.id);
+
+      expect(cancelled.cancelled).toBe(true);
+      expect(getPlannedItem(db, item.id).cancelled).toBe(true);
+      const upcoming = generateOccurrences(
+        toPlannedSchedule(cancelled),
+        cancelled.overrides,
+        { from: today, to: "2026-12-31" },
+        today,
+      ).filter((occurrence) => !occurrence.isCancelled);
+      expect(upcoming).toEqual([]);
+    });
+
+    it("cancels an item twice without error", () => {
+      const item = createPlannedItem(db, rent);
+      cancelPlannedItem(db, item.id);
+
+      expect(cancelPlannedItem(db, item.id).cancelled).toBe(true);
+    });
+
+    it("throws for a missing item on the end date and the cancellation", () => {
+      expect(() => setPlannedItemEndDate(db, 999, null)).toThrow(PlannedItemNotFoundError);
+      expect(() => cancelPlannedItem(db, 999)).toThrow(PlannedItemNotFoundError);
+    });
+
+    it("refuses an effective date on or before a settled occurrence and names the earliest date", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-03-05");
+
+      const error = expectRefused(
+        item.id,
+        rentFrom("2026-03-01"),
+        "effectiveFrom",
+        "plannedItemVersionTooEarly",
+      );
+
+      expect(error.ref.values).toEqual({ date: "2026-03-06" });
+    });
+
+    it("refuses a version on the date of a settled occurrence", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-03-05");
+
+      expectRefused(item.id, rentFrom("2026-03-05"), "effectiveFrom", "plannedItemVersionTooEarly");
+    });
+
+    it("refuses an effective date on or before an overridden occurrence", () => {
+      const item = createPlannedItem(db, rent);
+      override(item.id, "2026-03-05");
+
+      const error = expectRefused(
+        item.id,
+        rentFrom("2026-02-20"),
+        "effectiveFrom",
+        "plannedItemVersionTooEarly",
+      );
+
+      expect(error.ref.values).toEqual({ date: "2026-03-06" });
+    });
+
+    it("names the day after the latest blocking date", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-03-05");
+      override(item.id, "2026-05-05");
+
+      const error = expectRefused(
+        item.id,
+        rentFrom("2026-02-01"),
+        "effectiveFrom",
+        "plannedItemVersionTooEarly",
+      );
+
+      expect(error.ref.values).toEqual({ date: "2026-05-06" });
+    });
+
+    it("accepts a past effective date when nothing is settled or overridden after it", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-01-05");
+
+      const { item: changed, replaced } = addPlannedItemVersion(db, item.id, rentFrom("2026-02-01"));
+
+      expect(replaced).toBe(false);
+      expect(changed.versions.map((version) => version.effectiveFrom)).toEqual([
+        "2026-01-05",
+        "2026-02-01",
+      ]);
+    });
+
+    it("replaces the first version when a version starts on the start date and nothing is settled", () => {
+      const item = createPlannedItem(db, rent);
+
+      const { item: changed, replaced } = addPlannedItemVersion(db, item.id, rentFrom("2026-01-05"));
+
+      expect(replaced).toBe(true);
+      expect(versionCount()).toBe(1);
+      expect(changed.versions).toEqual([
+        expect.objectContaining({ effectiveFrom: "2026-01-05", amount: -90_000 }),
+      ]);
+    });
+
+    it("refuses to replace the first version when its occurrence is settled", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-01-05");
+
+      expectRefused(item.id, rentFrom("2026-01-05"), "effectiveFrom", "plannedItemVersionTooEarly");
+    });
+
+    it("replaces a version that has the same effective date", () => {
+      const item = createPlannedItem(db, rent);
+      addPlannedItemVersion(db, item.id, rentFrom("2026-04-01", { amount: -85_000 }));
+
+      const { item: changed, replaced } = addPlannedItemVersion(
+        db,
+        item.id,
+        rentFrom("2026-04-01", { amount: -95_000 }),
+      );
+
+      expect(replaced).toBe(true);
+      expect(versionCount()).toBe(2);
+      expect(changed.versions.map((version) => version.amount)).toEqual([-80_000, -95_000]);
+    });
+
+    it("reports a new effective date as not replaced", () => {
+      const item = createPlannedItem(db, rent);
+
+      const { replaced } = addPlannedItemVersion(db, item.id, rentFrom("2026-04-01"));
+
+      expect(replaced).toBe(false);
+      expect(versionCount()).toBe(2);
+    });
+
+    it("inherits the amount mode and the average window of the version in effect", () => {
+      const item = createPlannedItem(db, rent);
+      db.update(plannedItemVersions)
+        .set({ amountMode: "rolling_average", averageWindow: 6 })
+        .where(eq(plannedItemVersions.plannedItemId, item.id))
+        .run();
+
+      const { item: changed } = addPlannedItemVersion(db, item.id, rentFrom("2026-04-01"));
+
+      expect(changed.versions[1]).toMatchObject({
+        effectiveFrom: "2026-04-01",
+        amountMode: "rolling_average",
+        averageWindow: 6,
+      });
+    });
   });
 
   function details() {
