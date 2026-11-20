@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 
 import { Button } from "../../components/button";
+import { Checkbox } from "../../components/checkbox";
 import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 import { useIsHydrated } from "../../components/use-is-hydrated";
@@ -14,12 +15,13 @@ import { DraftTextInput } from "../draft-text-input";
 import { KindSegments } from "../transactions/kind-segments";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { AmountModeFields } from "./amount-mode-fields";
-import { MatchingFields } from "./matching-fields";
+import { MatchingFields, ProvisionMatchingNote } from "./matching-fields";
 import {
   BUSINESS_DAY_RULES,
   DEFAULT_FORM_KIND,
   ONCE,
   PLANNED_ITEM_FORM_KINDS,
+  PROVISION_CHECKED,
   REPETITION_CHOICES,
   repetitionChoiceOf,
   REPETITION_NUMBER_UNIT,
@@ -79,6 +81,9 @@ export function PlannedItemForm({
   const [repetition, setRepetition] = useState(() => repetitionChoiceOf(initialValues.repetition));
   const [amountMode, setAmountMode] = useState(initialValues.amountMode);
   const [averageWindow, setAverageWindow] = useState(initialValues.averageWindow);
+  const [isProvision, setIsProvision] = useState(
+    initialValues.acceptsMultipleTransactions === PROVISION_CHECKED,
+  );
   // The automatic form reset after an action sends the native controls back to their first state and
   // React does not re-apply an unchanged value: the key remounts the controlled ones after each result.
   const [resultCount, setResultCount] = useState(0);
@@ -90,6 +95,7 @@ export function PlannedItemForm({
       setRepetition(repetitionChoiceOf(values.repetition));
       setAmountMode(values.amountMode);
       setAverageWindow(values.averageWindow);
+      setIsProvision(values.acceptsMultipleTransactions === PROVISION_CHECKED);
       setResultCount((count) => count + 1);
       return result;
     },
@@ -261,12 +267,44 @@ export function PlannedItemForm({
         </FormField>
 
         <div className={FULL_WIDTH_CLASS}>
-          <MatchingFields
-            windowDays={values.matchWindowDays}
-            tolerancePercent={values.matchTolerancePercent}
-            windowError={errorOf("matchWindowDays")}
-            toleranceError={errorOf("matchTolerancePercent")}
+          <Checkbox
+            key={`provision-${resultCount}`}
+            name="acceptsMultipleTransactions"
+            value={PROVISION_CHECKED}
+            defaultChecked={values.acceptsMultipleTransactions === PROVISION_CHECKED}
+            onChange={(event) => setIsProvision(event.target.checked)}
+            label={t("provision")}
           />
+        </div>
+
+        {isProvision || !isHydrated ? (
+          <div className={FULL_WIDTH_CLASS}>
+            <FormField
+              {...fieldProps("provisionLabelFilter", t("provisionLabelFilter"))}
+              optional
+              hint={t("provisionLabelFilterHint")}
+            >
+              <input
+                {...controlProps("provisionLabelFilter")}
+                className={CONTROL_CLASS}
+                type="text"
+                autoComplete="off"
+              />
+            </FormField>
+          </div>
+        ) : null}
+
+        <div className={FULL_WIDTH_CLASS}>
+          {isProvision && isHydrated ? (
+            <ProvisionMatchingNote />
+          ) : (
+            <MatchingFields
+              windowDays={values.matchWindowDays}
+              tolerancePercent={values.matchTolerancePercent}
+              windowError={errorOf("matchWindowDays")}
+              toleranceError={errorOf("matchTolerancePercent")}
+            />
+          )}
         </div>
 
         {state !== null && !hasOwnControl ? (

@@ -67,3 +67,15 @@ export function MatchingFields({
     </Disclosure>
   );
 }
+
+/** What replaces the matching settings of a provision: they do not apply to it. */
+export function ProvisionMatchingNote() {
+  const t = useTranslations("planned.form");
+
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-caption font-medium text-text">{t("matching")}</p>
+      <p className="text-caption text-text-muted">{t("provisionMatchingNote")}</p>
+    </div>
+  );
+}

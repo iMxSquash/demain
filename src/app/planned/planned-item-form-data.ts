@@ -9,6 +9,9 @@ import type { AmountMode } from "../../domain/occurrences";
 import {
   AMOUNT_MODES,
   AVERAGE_WINDOWS,
+  DEFAULT_MATCH_AMOUNT_TOLERANCE_BP,
+  DEFAULT_MATCH_WINDOW_DAYS,
+  formatTolerancePercent,
   parseTolerancePercent,
   PlannedItemValidationError,
   type PlannedItemDetails,
@@ -57,6 +60,9 @@ export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "m
   every_n_weeks: "weeks",
 };
 
+/** The value the provision checkbox posts when it is checked. */
+export const PROVISION_CHECKED = "true";
+
 export const DEFAULT_AMOUNT_MODE: AmountMode = "fixed";
 export const ROLLING_AVERAGE_MODE: AmountMode = "rolling_average";
 
@@ -87,6 +93,10 @@ export interface PlannedItemFormValues {
   amountMode: string;
   /** Occurrences averaged, as text, read in rolling average mode only. */
   averageWindow: string;
+  /** "true" when several transactions settle one occurrence (a provision), blank otherwise. */
+  acceptsMultipleTransactions: string;
+  /** Text a transaction label must contain, read for a provision only. Blank means none. */
+  provisionLabelFilter: string;
   /** Days, as text. */
   matchWindowDays: string;
   /** Percent, as text ("5", "2,5"). */
@@ -108,7 +118,7 @@ export type ParsedPlannedItemForm =
 
 export type PlannedItemDetailsFormValues = Pick<
   PlannedItemFormValues,
-  "name" | "categoryId" | "matchWindowDays" | "matchTolerancePercent"
+  "name" | "categoryId" | "provisionLabelFilter" | "matchWindowDays" | "matchTolerancePercent"
 >;
 
 export type PlannedItemDetailsFormField = keyof PlannedItemDetailsFormValues;
@@ -138,9 +148,9 @@ const FORM_FIELD_OF: Record<PlannedItemField, PlannedItemFormField | undefined> 
   amount: "amount",
   matchWindowDays: "matchWindowDays",
   matchAmountToleranceBp: "matchTolerancePercent",
-  // Provisions have no control yet (#164).
-  acceptsMultipleTransactions: undefined,
-  provisionLabelFilter: undefined,
+  // The refusal says a provision needs a repetition: the repetition control is where to fix it.
+  acceptsMultipleTransactions: "repetition",
+  provisionLabelFilter: "provisionLabelFilter",
   amountMode: "amountMode",
   averageWindow: "averageWindow",
 };
@@ -153,6 +163,14 @@ function readText(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
 }
+
+// A provision does not post the matching settings (they do not apply to it): absent means default.
+function readTextOr(formData: FormData, key: string, fallback: string): string {
+  return formData.has(key) ? readText(formData, key) : fallback;
+}
+
+const DEFAULT_MATCH_WINDOW_TEXT = String(DEFAULT_MATCH_WINDOW_DAYS);
+const DEFAULT_MATCH_TOLERANCE_TEXT = formatTolerancePercent(DEFAULT_MATCH_AMOUNT_TOLERANCE_BP);
 
 export function readSubmittedValues(formData: FormData): PlannedItemFormValues {
   return {
@@ -169,8 +187,14 @@ export function readSubmittedValues(formData: FormData): PlannedItemFormValues {
     amount: readText(formData, "amount"),
     amountMode: readText(formData, "amountMode"),
     averageWindow: readText(formData, "averageWindow"),
-    matchWindowDays: readText(formData, "matchWindowDays"),
-    matchTolerancePercent: readText(formData, "matchTolerancePercent"),
+    acceptsMultipleTransactions: readText(formData, "acceptsMultipleTransactions"),
+    provisionLabelFilter: readText(formData, "provisionLabelFilter"),
+    matchWindowDays: readTextOr(formData, "matchWindowDays", DEFAULT_MATCH_WINDOW_TEXT),
+    matchTolerancePercent: readTextOr(
+      formData,
+      "matchTolerancePercent",
+      DEFAULT_MATCH_TOLERANCE_TEXT,
+    ),
   };
 }
 
@@ -178,6 +202,7 @@ export function readSubmittedDetails(formData: FormData): PlannedItemDetailsForm
   return {
     name: readText(formData, "name"),
     categoryId: readText(formData, "categoryId"),
+    provisionLabelFilter: readText(formData, "provisionLabelFilter"),
     matchWindowDays: readText(formData, "matchWindowDays"),
     matchTolerancePercent: readText(formData, "matchTolerancePercent"),
   };
@@ -208,6 +233,11 @@ function readAmount(text: string, currency: string): { value: number } | Refusal
 function signedAmountOf(kind: PlannedItemKind, unsignedMinorUnits: number): number {
   const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
   return leavesAccount ? 0 - unsignedMinorUnits : unsignedMinorUnits;
+}
+
+function labelFilterOf(text: string): string | null {
+  const trimmed = text.trim();
+  return trimmed === "" ? null : trimmed;
 }
 
 function readCategoryId(text: string): { id: number | null } | Refusal {
@@ -362,16 +392,21 @@ export function parsePlannedItemForm(
       amount: signedAmountOf(kind, amount.value),
       amountMode: mode.amountMode,
       averageWindow: mode.averageWindow,
+      acceptsMultipleTransactions: values.acceptsMultipleTransactions === PROVISION_CHECKED,
+      // The domain refuses a filter without the provision box.
+      provisionLabelFilter: labelFilterOf(values.provisionLabelFilter),
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
     },
   };
 }
 
-/** The edit form changes the four details the domain allows without a version. */
+/**
+ * The edit form changes the details the domain allows without a version. The label filter is only
+ * posted for a provision: for any other item it stays blank and the domain keeps it null.
+ */
 export function parsePlannedItemDetailsForm(
   formData: FormData,
-  provisionLabelFilter: string | null,
   translate: Translate,
 ): ParsedPlannedItemDetailsForm {
   const values = readSubmittedDetails(formData);
@@ -393,7 +428,7 @@ export function parsePlannedItemDetailsForm(
       categoryId: category.id,
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
-      provisionLabelFilter,
+      provisionLabelFilter: labelFilterOf(values.provisionLabelFilter),
     },
   };
 }

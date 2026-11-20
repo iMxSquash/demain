@@ -254,6 +254,10 @@
       "averageWindow": "Occurrences prises en compte",
       "startingEstimate": "Estimation de départ",
       "startingEstimateHint": "Utilisée tant qu'aucun montant précédent n'existe.",
+      "provision": "Provision : plusieurs transactions soldent une occurrence",
+      "provisionLabelFilter": "Filtre sur le libellé",
+      "provisionLabelFilterHint": "Une transaction est rattachée quand son libellé contient ce texte, sans tenir compte de la casse. Utile quand une catégorie mélange plusieurs choses.",
+      "provisionMatchingNote": "La fenêtre et la tolérance de rapprochement ne s'appliquent pas à une provision. Ses transactions sont celles du même compte et de la même catégorie (et du filtre sur le libellé) datées dans la période de l'occurrence.",
       "matching": "Rapprochement",
       "windowDays": "Fenêtre, en jours",
       "windowDaysHint": "Une transaction peut tomber autant de jours avant ou après la date prévue.",
@@ -276,8 +280,10 @@
       "kind": "Type",
       "account": "Compte",
       "startDate": "Première date",
-      "schedule": "Échéancier"
+      "schedule": "Échéancier",
+      "provision": "Provision"
     },
+    "provisionValue": "Plusieurs transactions soldent une occurrence",
     "versions": {
       "heading": "Versions",
       "caption": "Montant et échéancier de l'élément planifié à partir de chaque date",
