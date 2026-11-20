@@ -63,6 +63,7 @@ export function resolveOccurrences(
 ): ResolvedOccurrence[] {
   const linksByOccurrence = Map.groupBy(links, (link) => link.occurrenceDate);
   const resolveStatus = item.acceptsMultipleTransactions ? resolveMultiTransactionStatus : resolveRegularStatus;
+  // generateOccurrences orders by effective date, which an override can move out of nominal order.
   const occurrences = generateOccurrences(item.schedule, item.overrides, range, today).sort((a, b) =>
     a.nominalDate < b.nominalDate ? -1 : a.nominalDate > b.nominalDate ? 1 : 0,
   );
@@ -87,6 +88,7 @@ export function resolveOccurrences(
 
 // The bounds come from the links so that an unbounded schedule is never enumerated. Overrides are
 // left out on purpose: they never add or remove a nominal date, they only move its effective date.
+// Requires a non-empty list, which findOrphanLinks guarantees.
 function boundsAroundLinks(links: readonly OccurrenceLink[]): DateRange {
   const dates = links.map((link) => link.occurrenceDate);
   const first = dates.reduce((min, date) => (date < min ? date : min));

@@ -199,9 +199,9 @@ Decisions of the owner on occurrence status (`src/domain/occurrence-resolution.t
 
 - Q1, an occurrence settled by a transaction stays `confirmed` even if the item or the occurrence is cancelled afterwards.
 - Q2, the window bound is inclusive: an occurrence is `planned` up to and including the last day of its window (date plus `match_window_days`) and `overdue` the day after.
-- Q3, a link to a nominal date that the schedule no longer produces is ignored for the statuses and reported apart by `findOrphanLinks(item, links, today)`, so that a page can show it. The signature of `resolveOccurrences` does not change.
+- Q3, a link to a nominal date that the schedule no longer produces is ignored for the statuses and reported apart by `findOrphanLinks(item, links, today)`, so that a page can show it. The signature of `resolveOccurrences` does not change. A link dated after the cancellation of an item is reported too, since a cancelled item produces nothing after today. A link on a nominal date the schedule produces but that lies outside the requested range is neither attached nor reported.
 
-Links attach to an occurrence by its nominal date. `resolveOccurrences(item, links, range, today)` resolves the occurrences in one pass in nominal-date order. A second link on a regular occurrence keeps it `confirmed` and both links are listed (invariant 5): nothing throws. The `partial` status of provisions and the rolling average are added to the same pass by #164 and #163.
+Links attach to an occurrence by its nominal date. A settled occurrence of a cancelled item keeps `isCancelled: true` from generation: consumers read `status`, not `isCancelled`. `resolveOccurrences(item, links, range, today)` resolves the occurrences in one pass in nominal-date order. A second link on a regular occurrence keeps it `confirmed` and both links are listed (invariant 5): nothing throws. The `partial` status of provisions and the rolling average are added to the same pass by #164 and #163.
 
 ### Balance assertion
 

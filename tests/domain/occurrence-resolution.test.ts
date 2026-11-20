@@ -237,11 +237,11 @@ describe("resolveOccurrences", () => {
     });
 
     it("remaining is 0 once confirmed and the expected amount otherwise", () => {
-      const partialPayment = link("2026-03-05", { amount: -10000 });
+      const smallerPayment = link("2026-03-05", { amount: -10000 });
 
       const resolved = resolveOccurrences(
         item(),
-        [partialPayment],
+        [smallerPayment],
         MARCH_TO_APRIL,
         "2026-03-06",
       );
