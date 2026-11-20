@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatTolerancePercent,
   fromRepetition,
   isPlannedItemOver,
+  parseTolerancePercent,
   PlannedItemValidationError,
   toRepetition,
   validatePlannedItemDetails,
@@ -267,4 +269,62 @@ describe("isPlannedItemOver", () => {
     expect(isPlannedItemOver(SCHEDULE, moved, "2026-04-01")).toBe(false);
     expect(isPlannedItemOver(SCHEDULE, moved, "2026-04-11")).toBe(true);
   });
+});
+
+describe("parseTolerancePercent", () => {
+  it.each([
+    ["5", 500],
+    ["2,5", 250],
+    ["2.5", 250],
+    ["0", 0],
+    ["100", 10_000],
+    ["0,01", 1],
+    ["12.34", 1234],
+    [" 5 ", 500],
+  ])("reads %j as %d basis points", (text, expected) => {
+    expect(parseTolerancePercent(text)).toBe(expected);
+  });
+
+  it.each([
+    ["an empty text", ""],
+    ["a sign", "-1"],
+    ["more than two decimals", "5,555"],
+    ["a grouping space", "1 000"],
+    ["a percent sign", "5%"],
+    ["more than 100 percent", "101"],
+    ["a trailing separator", "5,"],
+    ["a second separator", "1.2.3"],
+  ])("refuses %s", (_label, text) => {
+    expect(() => parseTolerancePercent(text)).toThrow(PlannedItemValidationError);
+  });
+
+  it("names the tolerance field in its refusal", () => {
+    try {
+      parseTolerancePercent("101");
+    } catch (error) {
+      expect(error).toMatchObject({ field: "matchAmountToleranceBp" });
+      return;
+    }
+    throw new Error("The text was accepted");
+  });
+});
+
+describe("formatTolerancePercent", () => {
+  it.each([
+    [500, "5"],
+    [250, "2.5"],
+    [1, "0.01"],
+    [0, "0"],
+    [10_000, "100"],
+    [1234, "12.34"],
+  ])("writes %d basis points as %j", (basisPoints, expected) => {
+    expect(formatTolerancePercent(basisPoints)).toBe(expected);
+  });
+
+  it.each([0, 1, 250, 500, 1234, 9999, 10_000])(
+    "reads back what it wrote for %d",
+    (basisPoints) => {
+      expect(parseTolerancePercent(formatTolerancePercent(basisPoints))).toBe(basisPoints);
+    },
+  );
 });

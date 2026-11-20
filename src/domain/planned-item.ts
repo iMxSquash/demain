@@ -380,6 +380,40 @@ export function validatePlannedItemDetails(
   };
 }
 
+const BASIS_POINTS_PER_PERCENT = 100;
+const PERCENT_DECIMALS = 2;
+// Digits, then at most one comma or point and up to two decimals.
+const TOLERANCE_PERCENT = /^(\d+)(?:[.,](\d{1,2}))?$/;
+
+/**
+ * Reads a tolerance typed as a percentage ("5", "2,5", "2.5") into basis points (500, 250, 250)
+ * by string handling, so that no percentage is ever a float (DOMAIN invariant 1). At most two
+ * decimals, from 0 to 100.
+ */
+export function parseTolerancePercent(text: string): number {
+  const match = TOLERANCE_PERCENT.exec(text.trim());
+  const [, whole = "", decimals = ""] = match ?? [];
+  const basisPoints =
+    Number(whole) * BASIS_POINTS_PER_PERCENT + Number(decimals.padEnd(PERCENT_DECIMALS, "0"));
+  if (match === null || basisPoints > MAX_TOLERANCE_BP) {
+    refuse(
+      "matchAmountToleranceBp",
+      `The tolerance "${text}" is not a percentage from 0 to 100 with two decimals at most`,
+      messageRef("plannedItemTolerancePercentInvalid"),
+    );
+  }
+  return basisPoints;
+}
+
+/** The inverse of `parseTolerancePercent`, to pre-fill a field: 500 is "5", 250 is "2.5". */
+export function formatTolerancePercent(basisPoints: number): string {
+  const whole = Math.floor(basisPoints / BASIS_POINTS_PER_PERCENT);
+  const decimals = String(basisPoints % BASIS_POINTS_PER_PERCENT)
+    .padStart(PERCENT_DECIMALS, "0")
+    .replace(/0+$/, "");
+  return decimals === "" ? String(whole) : `${whole}.${decimals}`;
+}
+
 export type RepetitionKind = Repetition["kind"];
 
 /** A repetition as the database stores it: its kind and, when it has one, its number. */
