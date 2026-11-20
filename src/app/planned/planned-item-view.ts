@@ -72,7 +72,7 @@ export function scheduleText(
 ): string {
   const version = versionInEffectAt(item.versions, today);
   const text = versionScheduleText(translate, locale, item.startDate, version);
-  if (toRepetition(version.repetitionKind, version.repetitionValue) === null || item.endDate === null) {
+  if (version.repetitionKind === null || item.endDate === null) {
     return text;
   }
   return translate("schedule.until", { schedule: text, date: formatCalendarDate(item.endDate, locale) });

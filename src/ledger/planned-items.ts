@@ -204,7 +204,7 @@ export function addPlannedItemVersion(
       .all()
       .flatMap(({ occurrenceDate }) => (occurrenceDate === null ? [] : [occurrenceDate]));
     const valid = validatePlannedItemVersion(input, {
-      item: { kind: current.kind, ...toPlannedSchedule(current) },
+      item: { ...toPlannedSchedule(current), kind: current.kind },
       settledNominalDates,
       overrides: current.overrides,
     });
@@ -243,8 +243,12 @@ export function setPlannedItemEndDate(
 
 export function cancelPlannedItem(db: AppDatabase, itemId: number): PlannedItemWithDetails {
   return db.transaction((tx) => {
-    getPlannedItem(tx, itemId);
-    tx.update(plannedItems).set({ cancelled: true }).where(eq(plannedItems.id, itemId)).run();
+    const { changes } = tx
+      .update(plannedItems)
+      .set({ cancelled: true })
+      .where(eq(plannedItems.id, itemId))
+      .run();
+    if (changes === 0) throw new PlannedItemNotFoundError(itemId);
     return getPlannedItem(tx, itemId);
   });
 }

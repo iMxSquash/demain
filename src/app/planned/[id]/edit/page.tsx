@@ -10,11 +10,15 @@ import { DataTable, Pill } from "../../../../components/data-display";
 import { PageSection } from "../../../../components/page-section";
 import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
 import { formatAmount, formatEditableAmount } from "../../../../domain/money";
-import { formatTolerancePercent, versionInEffectAt } from "../../../../domain/planned-item";
+import { formatTolerancePercent, isOneOff, versionInEffectAt } from "../../../../domain/planned-item";
 import { formatCalendarDate, todayIn } from "../../../../i18n/dates";
 import { listAccounts } from "../../../../ledger/accounts";
 import { listCategories } from "../../../../ledger/categories";
-import { getPlannedItem, PlannedItemNotFoundError } from "../../../../ledger/planned-items";
+import {
+  getPlannedItem,
+  PlannedItemNotFoundError,
+  toPlannedSchedule,
+} from "../../../../ledger/planned-items";
 import { withDatabase } from "../../../../storage/with-database";
 import { requireSession } from "../../../auth/session";
 import { ConfirmActionButton } from "../../../confirm-action-button";
@@ -106,7 +110,7 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
   const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
   const currency = accounts.find((account) => account.id === item.accountId)?.currency ?? "";
   const inEffect = versionInEffectAt(item.versions, today);
-  const isOneOff = item.versions.every((version) => version.repetitionKind === null);
+  const itemIsOneOff = isOneOff(toPlannedSchedule(item).versions);
   const scheduleOf = (version: (typeof item.versions)[number]) =>
     versionScheduleText((key, values) => t(key, values), locale, item.startDate, version);
   const facts = [
@@ -189,11 +193,11 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
               key={versionFormKey}
               action={addPlannedItemVersionAction.bind(null, item.id)}
               initialValues={versionFormValues}
-              isOneOff={isOneOff}
+              isOneOff={itemIsOneOff}
             />
           </PageSection>
 
-          {isOneOff ? null : (
+          {itemIsOneOff ? null : (
             <PageSection id="end-date-heading" heading={t("endDateForm.heading")}>
               <PlannedItemEndDateForm
                 key={item.endDate ?? "none"}

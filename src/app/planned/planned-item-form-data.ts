@@ -41,6 +41,12 @@ export const REPETITION_CHOICES = [
 ] as const;
 export type RepetitionChoice = (typeof REPETITION_CHOICES)[number];
 
+// The server is the authority on what a repetition means: an unknown value coming back from it
+// falls back to the default instead of being refused here.
+export function repetitionChoiceOf(value: string): RepetitionChoice {
+  return REPETITION_CHOICES.find((choice) => choice === value) ?? DEFAULT_REPETITION;
+}
+
 /** The repetitions that need a number next to them, and what the number counts. */
 export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "months" | "weeks">> = {
   monthly_on_day: "day",
@@ -185,6 +191,12 @@ function readAmount(text: string, currency: string): { value: number } | Refusal
   }
 }
 
+// The kind decides the direction. `0 - x` keeps a zero amount at +0, which the domain then refuses.
+function signedAmountOf(kind: PlannedItemKind, unsignedMinorUnits: number): number {
+  const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
+  return leavesAccount ? 0 - unsignedMinorUnits : unsignedMinorUnits;
+}
+
 function readCategoryId(text: string): { id: number | null } | Refusal {
   if (text.trim() === "") return { id: null };
   const id = Number(text);
@@ -296,7 +308,6 @@ export function parsePlannedItemForm(
   if ("ref" in match) return fail(match.field, match.ref);
 
   const endDate = values.endDate.trim();
-  const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
   return {
     ok: true,
     input: {
@@ -310,8 +321,7 @@ export function parsePlannedItemForm(
       endDate: repetition.repetition === null || endDate === "" ? null : endDate,
       repetition: repetition.repetition,
       businessDayRule,
-      // `0 - x` keeps a zero amount at +0, which the domain then refuses.
-      amount: leavesAccount ? 0 - amount.value : amount.value,
+      amount: signedAmountOf(kind, amount.value),
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
     },
@@ -362,12 +372,12 @@ export interface PlannedItemVersionFormState {
 }
 
 /** What the version form needs to sign and scale the amount. */
-export interface PlannedItemVersionFormContext {
+interface PlannedItemVersionFormContext {
   kind: PlannedItemKind;
   currency: string;
 }
 
-export type ParsedPlannedItemVersionForm =
+type ParsedPlannedItemVersionForm =
   | { ok: true; input: PlannedItemVersionInput }
   | { ok: false; error: PlannedItemVersionFormState };
 
@@ -382,7 +392,7 @@ export interface PlannedItemEndDateFormState {
   values: PlannedItemEndDateFormValues;
 }
 
-export type ParsedPlannedItemEndDateForm =
+type ParsedPlannedItemEndDateForm =
   | { ok: true; endDate: string | null }
   | { ok: false; error: PlannedItemEndDateFormState };
 
@@ -419,15 +429,13 @@ export function parsePlannedItemVersionForm(
     return fail("businessDayRule", messageRef("plannedItemBusinessDayRuleInvalid"));
   }
 
-  const leavesAccount = context.kind === DEFAULT_FORM_KIND || context.kind === TRANSFER_KIND;
   return {
     ok: true,
     input: {
       effectiveFrom: values.effectiveFrom,
       repetition: repetition.repetition,
       businessDayRule,
-      // `0 - x` keeps a zero amount at +0, which the domain then refuses.
-      amount: leavesAccount ? 0 - amount.value : amount.value,
+      amount: signedAmountOf(context.kind, amount.value),
     },
   };
 }

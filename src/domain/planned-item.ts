@@ -186,18 +186,8 @@ function assertAmount(kind: PlannedItemKind, amount: number): void {
 }
 
 function assertDates(input: PlannedItemInput): void {
-  for (const [field, date] of [
-    ["startDate", input.startDate],
-    ["endDate", input.endDate],
-  ] as const) {
-    if (date != null && !isCalendarDate(date)) {
-      refuse(
-        field,
-        `Invalid date "${date}", expected YYYY-MM-DD`,
-        messageRef("plannedItemDateInvalid", { date }),
-      );
-    }
-  }
+  assertCalendarDate("startDate", input.startDate);
+  if (input.endDate != null) assertCalendarDate("endDate", input.endDate);
   if (input.endDate == null) return;
   if (input.repetition === null) {
     refuse(
@@ -505,20 +495,14 @@ export interface PlannedItemVersionInput {
   amount: number;
 }
 
-export interface VersionChangeContext {
-  item: {
-    kind: PlannedItemKind;
-    startDate: string;
-    endDate: string | null;
-    cancelled: boolean;
-    versions: readonly PlannedVersion[];
-  };
+interface VersionChangeContext {
+  item: PlannedSchedule & { kind: PlannedItemKind };
   /** Nominal dates of the occurrences settled by a transaction. */
   settledNominalDates: readonly string[];
   overrides: readonly OccurrenceOverride[];
 }
 
-export interface ValidVersionInput {
+interface ValidVersionInput {
   effectiveFrom: string;
   repetition: Repetition | null;
   businessDayRule: BusinessDayRule;
@@ -539,11 +523,11 @@ export function versionInEffectAt<V extends { effectiveFrom: string }>(
   return versions.findLast((version) => version.effectiveFrom <= date) ?? first;
 }
 
-function isOneOff(versions: readonly PlannedVersion[]): boolean {
+export function isOneOff(versions: readonly PlannedVersion[]): boolean {
   return versions.every((version) => version.repetition === null);
 }
 
-function assertCalendarDate(field: "endDate" | "effectiveFrom", date: string): void {
+function assertCalendarDate(field: "startDate" | "endDate" | "effectiveFrom", date: string): void {
   if (isCalendarDate(date)) return;
   refuse(
     field,

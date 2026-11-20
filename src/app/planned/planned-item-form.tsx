@@ -17,16 +17,15 @@ import { MatchingFields } from "./matching-fields";
 import {
   BUSINESS_DAY_RULES,
   DEFAULT_FORM_KIND,
-  DEFAULT_REPETITION,
   ONCE,
   PLANNED_ITEM_FORM_KINDS,
   REPETITION_CHOICES,
+  repetitionChoiceOf,
   REPETITION_NUMBER_UNIT,
   TRANSFER_KIND,
   type PlannedItemFormField,
   type PlannedItemFormState,
   type PlannedItemFormValues,
-  type RepetitionChoice,
 } from "./planned-item-form-data";
 
 export interface PlannedOption {
@@ -58,10 +57,6 @@ const FULL_WIDTH_CLASS = "@min-[640px]:col-span-2";
 // from it falls back to the default instead of being refused here.
 function formKindOf(value: string): FormKind {
   return PLANNED_ITEM_FORM_KINDS.find((kind) => kind === value) ?? DEFAULT_FORM_KIND;
-}
-
-function repetitionChoiceOf(value: string): RepetitionChoice {
-  return REPETITION_CHOICES.find((choice) => choice === value) ?? DEFAULT_REPETITION;
 }
 
 /**

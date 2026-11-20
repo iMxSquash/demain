@@ -14,14 +14,13 @@ import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
 import {
   BUSINESS_DAY_RULES,
-  DEFAULT_REPETITION,
   ONCE,
   REPETITION_CHOICES,
+  repetitionChoiceOf,
   REPETITION_NUMBER_UNIT,
   type PlannedItemVersionFormField,
   type PlannedItemVersionFormState,
   type PlannedItemVersionFormValues,
-  type RepetitionChoice,
 } from "./planned-item-form-data";
 
 interface PlannedItemVersionFormProps {
@@ -33,12 +32,6 @@ interface PlannedItemVersionFormProps {
   initialValues: PlannedItemVersionFormValues;
   /** A one-off event cannot start to repeat: the repetition is not offered. */
   isOneOff: boolean;
-}
-
-// The server is the authority on what a repetition means: an unknown value coming back from it
-// falls back to the default instead of being refused here.
-function repetitionChoiceOf(value: string): RepetitionChoice {
-  return REPETITION_CHOICES.find((choice) => choice === value) ?? DEFAULT_REPETITION;
 }
 
 // The ids differ from the names the server reads, so that no id repeats on the edit page.
