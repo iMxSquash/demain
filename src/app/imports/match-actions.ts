@@ -36,13 +36,13 @@ async function loadActionContext() {
   ]);
   const fail = (key: FeedbackKey) =>
     ({ status: "error", message: translate(messageRef(key)) }) as const;
-  const failFrom = (error: unknown, fallback: FeedbackKey, context: string) => {
+  const failFrom = (error: unknown, fallback: FeedbackKey) => {
     if (error instanceof PlannedLinkError) {
       return { status: "error", message: translate(error.ref) } as const;
     }
     if (error instanceof ImportBatchNotFoundError) return fail("importBatchGone");
     // Unexpected failures are logged with their detail, the user sees a generic message.
-    console.error(context, error);
+    console.error("Planned match action failed", error);
     return fail(fallback);
   };
   return { t, today: todayIn(timeZone, new Date()), fail, failFrom };
@@ -73,7 +73,7 @@ export async function listBatchMatchesAction(batchId: number): Promise<BatchMatc
       groups,
     };
   } catch (error) {
-    return failFrom(error, "plannedMatchesFailed", "Listing the planned matches failed");
+    return failFrom(error, "plannedMatchesFailed");
   }
 }
 
@@ -96,7 +96,7 @@ export async function confirmMatchAction(
     refreshData();
     return { status: "done", message: t("confirmed") };
   } catch (error) {
-    return failFrom(error, "plannedMatchConfirmFailed", "Confirming a planned match failed");
+    return failFrom(error, "plannedMatchConfirmFailed");
   }
 }
 
@@ -123,6 +123,6 @@ export async function undoMatchAction(
     refreshData();
     return { status: "done", message: t("undone") };
   } catch (error) {
-    return failFrom(error, "plannedMatchUndoFailed", "Undoing a planned match failed");
+    return failFrom(error, "plannedMatchUndoFailed");
   }
 }

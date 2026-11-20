@@ -30,6 +30,7 @@ import {
 } from "./review-state";
 import { AssertionLinkPanel } from "./assertion-link-panel";
 import { BalanceCheckPanel } from "./balance-check-panel";
+import { PlannedMatchesPanel } from "./planned-matches-panel";
 import { RuleProposalsPanel } from "./rule-proposals-panel";
 import { UndoImportPanel } from "./undo-import-panel";
 import { BulkEdit, ColumnRoles } from "./staged-file-tools";
@@ -480,6 +481,7 @@ export function FileCard({
           {isUndone ? null : (
             <>
               <BalanceCheckPanel batchId={outcome.batchId} endDate={outcome.endDate} />
+              <PlannedMatchesPanel batchId={outcome.batchId} currency={file.currency} />
               <RuleProposalsPanel batchId={outcome.batchId} />
             </>
           )}
