@@ -211,12 +211,22 @@ describe("generateOccurrences", () => {
       expect(occurrences.map((o) => [o.nominalDate, o.date])).toEqual([["2026-02-01", "2026-01-30"]]);
     });
 
-    it("sorts by date, then by nominal date", () => {
-      const planned = schedule([lastDay]);
+    it("sorts by date, then by nominal date when two occurrences share a date", () => {
+      const monthly = schedule([version({ effectiveFrom: SALARY_START })]);
+      const moveOntoFebruary: OccurrenceOverride = {
+        nominalDate: "2026-01-25",
+        status: "modified",
+        overrideDate: "2026-02-25",
+        overrideAmount: null,
+      };
 
-      const occurrences = generate(planned, { from: "2026-01-01", to: "2026-04-30" });
+      const occurrences = generate(monthly, { from: "2026-02-01", to: "2026-03-31" }, [moveOntoFebruary]);
 
-      expect(dates(occurrences)).toEqual([...dates(occurrences)].sort());
+      expect(occurrences.map((o) => [o.date, o.nominalDate])).toEqual([
+        ["2026-02-25", "2026-01-25"],
+        ["2026-02-25", "2026-02-25"],
+        ["2026-03-25", "2026-03-25"],
+      ]);
     });
   });
 

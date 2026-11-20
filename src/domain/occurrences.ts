@@ -74,15 +74,14 @@ function isSameRepetition(a: Repetition | null, b: Repetition | null): boolean {
 // A version that changes the repetition restarts its series from its own effective date; one that
 // only changes the amount keeps the phase of the series before it (owner's answer Q3).
 function seriesAnchors(schedule: PlannedSchedule): string[] {
-  const anchors: string[] = [];
-  schedule.versions.forEach((version, index) => {
+  let anchor = schedule.startDate;
+  return schedule.versions.map((version, index) => {
     const previous = schedule.versions[index - 1];
-    const previousAnchor = anchors[index - 1];
-    const continuesSeries =
-      previous !== undefined && previousAnchor !== undefined && isSameRepetition(previous.repetition, version.repetition);
-    anchors.push(continuesSeries ? previousAnchor : version.effectiveFrom);
+    if (previous !== undefined && !isSameRepetition(previous.repetition, version.repetition)) {
+      anchor = version.effectiveFrom;
+    }
+    return anchor;
   });
-  return anchors;
 }
 
 function assertValidSchedule(schedule: PlannedSchedule): void {

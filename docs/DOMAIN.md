@@ -356,7 +356,7 @@ Decisions of the owner on occurrence generation (`src/domain/occurrences.ts`), 1
 - Q1, a cancelled occurrence is kept with `isCancelled: true`, not removed (step 3).
 - Q2, the effective date (business-day rule, then override date) decides whether an occurrence is in the requested range. The nominal date stays its identity.
 - Q3, a version that changes the repetition restarts its series from its `effective_from`. A version that only changes the amount or the amount mode continues the phase of the previous series.
-- Q4, a cancelled planned item produces nothing after today. Its earlier occurrences are flagged cancelled, except a settled one, which stays confirmed (see #162).
+- Q4, a cancelled planned item produces nothing after today. Its earlier occurrences are flagged cancelled, except a settled one, which stays confirmed. Generation alone cannot know which one is settled and flags them all: keeping the settled ones confirmed is the job of the status derivation (#162).
 - Q5, the first version is always effective from the start date.
 
 There is no maximum horizon: the computation is bounded only by what is displayed.
