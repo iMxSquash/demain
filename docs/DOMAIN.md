@@ -190,9 +190,9 @@ Statuses are derived, never stored:
 | Status | Condition |
 | --- | --- |
 | `planned` | Not cancelled, no transaction linked, matching window not yet passed. |
-| `partial` | Provision only: some transactions are linked, the remaining amount is above zero, window not yet passed. |
-| `confirmed` | At least one transaction is linked and the occurrence is settled: for a regular item as soon as its transaction is linked, for a provision when the linked sum reaches the amount or when the window has passed. |
-| `overdue` | No transaction linked and matching window passed: today is strictly after the date plus `match_window_days`, the date being the business-day-adjusted or overridden one. |
+| `partial` | Provision only: some transactions are linked, the remaining amount is above zero, period not yet passed. |
+| `confirmed` | At least one transaction is linked and the occurrence is settled: for a regular item as soon as its transaction is linked, for a provision when the linked sum reaches the amount or when its period has passed. |
+| `overdue` | No transaction linked and matching window passed: today is strictly after the date plus `match_window_days`, the date being the business-day-adjusted or overridden one. For a provision, no transaction linked and its period passed (today after its last day). |
 | `cancelled` | The item or this single occurrence is cancelled, and no transaction is linked: a settled occurrence stays `confirmed` (confirmed wins). |
 
 Decisions of the owner on occurrence status (`src/domain/occurrence-resolution.ts`), 19 Nov 2026, numbered as in issue #162:
@@ -201,7 +201,7 @@ Decisions of the owner on occurrence status (`src/domain/occurrence-resolution.t
 - Q2, the window bound is inclusive: an occurrence is `planned` up to and including the last day of its window (date plus `match_window_days`) and `overdue` the day after.
 - Q3, a link to a nominal date that the schedule no longer produces is ignored for the statuses and reported apart by `findOrphanLinks(item, links, today)`, so that a page can show it. The signature of `resolveOccurrences` does not change. A link dated after the cancellation of an item is reported too, since a cancelled item produces nothing after today. A link on a nominal date the schedule produces but that lies outside the requested range is neither attached nor reported.
 
-Links attach to an occurrence by its nominal date. A settled occurrence of a cancelled item keeps `isCancelled: true` from generation: consumers read `status`, not `isCancelled`. `resolveOccurrences(item, links, range, today)` resolves the occurrences in one pass in nominal-date order. A second link on a regular occurrence keeps it `confirmed` and both links are listed (invariant 5): nothing throws. The `partial` status of provisions and the rolling average are added to the same pass by #164 and #163.
+Links attach to an occurrence by its nominal date. A settled occurrence of a cancelled item keeps `isCancelled: true` from generation: consumers read `status`, not `isCancelled`. `resolveOccurrences(item, links, range, today)` resolves the occurrences in one pass in nominal-date order. A second link on a regular occurrence keeps it `confirmed` and both links are listed (invariant 5): nothing throws. Provisions (the `partial` status, the remaining amount and the period) are resolved in the same pass, see Provisions below.
 
 ### Balance assertion
 
@@ -415,11 +415,19 @@ Because the window feeds on its own estimates, the long-term estimate converges 
 
 A provision is a planned item with `accepts_multiple_transactions`, such as fuel planned at 90 EUR per month on the 15th, settled in reality by several fill-ups.
 
-- **Period of an occurrence.** For an item repeating monthly, the calendar month of its nominal date. For other repetitions, from the day after the previous nominal date to its nominal date.
-- **Linking.** Transactions on the same account, with the item's category, dated within the period and, when the provision has a label filter, whose label contains the filter text, are linked to the occurrence. The filter matters when a category mixes several things (a car category holding fuel, insurance and tolls). Each linked transaction can be unlinked, and any other transaction of the period can be linked, by hand.
-- **Remaining amount.** `max(0, amount - sum of linked transactions)`. Only the remaining amount is counted at the occurrence date in the real trajectory.
-- **After the window.** Once the period has passed, any leftover provision disappears (the occurrence is `confirmed` if at least one transaction was linked, `overdue` otherwise). Spending above the amount is simply real spending.
-- The monthly total of linked transactions is the occurrence's reference value for a rolling average.
+- **Period of an occurrence** (`provisionPeriod`, `src/domain/provision.ts`), both bounds inclusive. For a monthly repetition (`monthly_on_day`, `monthly_on_last_day`, and `every_n_months` with 1), the calendar month of its nominal date. For any other repetition, from the day after the previous nominal date up to its nominal date. The first occurrence has no previous date: its period has the same length as the others, as if an occurrence existed one repetition earlier. The period of a resolved occurrence is exposed as `ResolvedOccurrence.period` (null for a regular item).
+- **Matching window and tolerance** do not apply to a provision: the period is what bounds its transactions, and no amount is compared. "The period has passed" means that today is after its last day.
+- **Linking.** Transactions on the same account, with the item's category, dated within the period and, when the provision has a label filter, whose label contains the filter text, are candidates of the occurrence (`isProvisionCandidate`; a transfer never is). The label test is exactly the "contains" operator of the categorization rules (`labelContains`: trimmed, case-insensitive, accents not folded), with no second logic. The filter matters when a category mixes several things (a car category holding fuel, insurance and tolls). Each linked transaction can be unlinked, and any other transaction of the period can be linked, by hand.
+- **Remaining amount.** `max(0, amount - sum of linked transactions)`, never past zero and keeping the sign of the amount. A linked transaction of the opposite sign covers nothing. Only the remaining amount is counted at the occurrence date in the real trajectory.
+- **Statuses.** `planned` without link, `partial` while the remaining amount is above zero, `confirmed` once the linked sum reaches the amount. A cancelled provision with links follows these rules, without links it stays `cancelled`.
+- **After the period.** Once the period has passed (today after its last day), the remaining amount is 0: any leftover provision disappears (the occurrence is `confirmed` if at least one transaction was linked, `overdue` otherwise). Spending above the amount is simply real spending.
+- The linked sum is the reference value of a confirmed provision for a rolling average.
+
+Decisions of the owner on provisions, 19 Nov 2026, numbered as in issue #164:
+
+- Q1, the first period of a non-monthly provision has the same length as the others.
+- Q2, `every_n_months` with 1 counts as monthly, like `monthly_on_day` and `monthly_on_last_day`.
+- Q3, label matching is the "contains" operator of the categorization rules, with no second logic.
 
 ### Matching planned vs actual
 
