@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, clampedDate, daysInMonth, weekdayOf } from "../../src/domain/calendar-date";
+import { addDays, addMonths, clampedDate, daysInMonth, weekdayOf } from "../../src/domain/calendar-date";
 
 const SATURDAY = 6;
 const SUNDAY = 0;
@@ -53,6 +53,37 @@ describe("addDays", () => {
 
   it("stays where it is before the first supported year", () => {
     expect(addDays("0001-01-01", -1)).toBe("0001-01-01");
+  });
+});
+
+describe("addMonths", () => {
+  it("adds months inside a year", () => {
+    expect(addMonths("2026-03-15", 2)).toBe("2026-05-15");
+  });
+
+  it("crosses a year end going forward", () => {
+    expect(addMonths("2026-11-10", 3)).toBe("2027-02-10");
+  });
+
+  it("crosses a year start going backward", () => {
+    expect(addMonths("2026-02-10", -3)).toBe("2025-11-10");
+    expect(addMonths("2026-01-10", -1)).toBe("2025-12-10");
+  });
+
+  it("moves by whole years", () => {
+    expect(addMonths("2026-06-30", -12)).toBe("2025-06-30");
+    expect(addMonths("2026-06-30", 24)).toBe("2028-06-30");
+  });
+
+  it("clamps the day to the length of the target month", () => {
+    expect(addMonths("2026-03-31", -1)).toBe("2026-02-28");
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
+    expect(addMonths("2028-03-31", -1)).toBe("2028-02-29");
+    expect(addMonths("2026-05-31", 1)).toBe("2026-06-30");
+  });
+
+  it("returns the same date for zero months", () => {
+    expect(addMonths("2026-03-31", 0)).toBe("2026-03-31");
   });
 });
 

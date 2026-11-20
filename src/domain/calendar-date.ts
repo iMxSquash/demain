@@ -5,6 +5,7 @@ export const MIN_YEAR = 1;
 export const MAX_YEAR = 9999;
 const YEAR_WIDTH = 4;
 const PART_WIDTH = 2;
+const MONTHS_IN_YEAR = 12;
 
 interface DateParts {
   year: number;
@@ -55,4 +56,12 @@ export function addDays(date: string, days: number): string {
   moved.setUTCDate(moved.getUTCDate() + days);
   const candidate = fromUtc(moved);
   return candidate.year < MIN_YEAR || candidate.year > MAX_YEAR ? date : format(candidate);
+}
+
+/** The same day some months later (or earlier when negative), clamped to the length of that month. */
+export function addMonths(date: string, months: number): string {
+  const { year, month, day } = parseDate(date);
+  const monthIndex = year * MONTHS_IN_YEAR + (month - 1) + months;
+  const targetYear = Math.floor(monthIndex / MONTHS_IN_YEAR);
+  return clampedDate(targetYear, monthIndex - targetYear * MONTHS_IN_YEAR + 1, day);
 }

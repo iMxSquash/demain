@@ -1,7 +1,7 @@
 // Provisions: planned items settled by several transactions inside a period (DOMAIN, "Planned vs
 // actual"). Pure: dates and data are arguments, nothing reads a clock or a store.
 
-import { addDays, clampedDate, parseDate } from "./calendar-date";
+import { addDays, addMonths, clampedDate, daysInMonth, parseDate } from "./calendar-date";
 import { labelContains } from "./categorization-rule";
 import type { DateRange, Repetition } from "./recurrence";
 import type { EnteredTransactionKind } from "./transaction";
@@ -26,26 +26,20 @@ export interface ProvisionItem {
   provisionLabelFilter: string | null;
 }
 
-function subtractMonths(date: string, months: number): string {
-  const { year, month, day } = parseDate(date);
-  const monthIndex = year * MONTHS_IN_YEAR + (month - 1) - months;
-  return clampedDate(Math.floor(monthIndex / MONTHS_IN_YEAR), (monthIndex % MONTHS_IN_YEAR) + 1, day);
-}
-
-// The date an occurrence one repetition earlier would have had.
+// Only the first occurrence of a schedule needs it: it has no predecessor to start its period from.
 function stepBack(nominalDate: string, repetition: Repetition): string {
   switch (repetition.kind) {
     case "every_n_weeks":
       return addDays(nominalDate, -repetition.weeks * DAYS_IN_WEEK);
     case "every_n_months":
-      return subtractMonths(nominalDate, repetition.months);
+      return addMonths(nominalDate, -repetition.months);
     case "quarterly":
-      return subtractMonths(nominalDate, MONTHS_IN_QUARTER);
+      return addMonths(nominalDate, -MONTHS_IN_QUARTER);
     case "yearly":
-      return subtractMonths(nominalDate, MONTHS_IN_YEAR);
+      return addMonths(nominalDate, -MONTHS_IN_YEAR);
     case "monthly_on_day":
     case "monthly_on_last_day":
-      return subtractMonths(nominalDate, 1);
+      return addMonths(nominalDate, -1);
   }
 }
 
@@ -70,7 +64,7 @@ export function provisionPeriod(
 ): DateRange {
   if (isMonthly(repetition)) {
     const { year, month } = parseDate(nominalDate);
-    return { from: clampedDate(year, month, 1), to: clampedDate(year, month, 31) };
+    return { from: clampedDate(year, month, 1), to: clampedDate(year, month, daysInMonth(year, month)) };
   }
   const previous = previousNominalDate ?? stepBack(nominalDate, repetition);
   return { from: addDays(previous, 1), to: nominalDate };
