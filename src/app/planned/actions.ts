@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
-import { PlannedItemValidationError } from "../../domain/planned-item";
+import { PlannedItemValidationError, type PlannedItemField } from "../../domain/planned-item";
 import { listAccounts } from "../../ledger/accounts";
 import {
   createPlannedItem,
@@ -43,36 +43,28 @@ function loadCurrencies(): CurrencyByAccount {
   );
 }
 
-/** A failure that no field explains is told in a toast, the typed values come back with it. */
-async function toFormState(
+/**
+ * A refusal of the domain is shown on its field, when the form has a control for it. A failure that
+ * no field explains is told in a toast. The typed values come back with both.
+ */
+async function toFailureState<Field extends string, Values>(
   error: unknown,
-  formData: FormData,
+  values: Values,
   translate: Translate,
-): Promise<PlannedItemFormState> {
-  const values = readSubmittedValues(formData);
+  controlOf: (field: PlannedItemField) => Field | undefined,
+): Promise<{ field?: Field; message: string; values: Values }> {
   if (error instanceof PlannedItemValidationError) {
-    return { field: formFieldOf(error.field), message: translate(error.ref), values };
-  }
-  const ref = describeFailure(error);
-  await flashError(ref);
-  return { message: translate(ref), values };
-}
-
-async function toDetailsState(
-  error: unknown,
-  formData: FormData,
-  translate: Translate,
-): Promise<PlannedItemDetailsFormState> {
-  const values = readSubmittedDetails(formData);
-  if (error instanceof PlannedItemValidationError) {
-    // The edit form has four controls: a refusal on another field is shown as a message.
-    const field = DETAILS_FIELDS.find((candidate) => candidate === formFieldOf(error.field));
+    const field = controlOf(error.field);
     return { ...(field === undefined ? {} : { field }), message: translate(error.ref), values };
   }
   const ref = describeFailure(error);
   await flashError(ref);
   return { message: translate(ref), values };
 }
+
+// The edit form has four controls: a refusal on another field is shown as a message.
+const detailsControlOf = (field: PlannedItemField) =>
+  DETAILS_FIELDS.find((candidate) => candidate === formFieldOf(field));
 
 export async function createPlannedItemAction(
   _previous: PlannedItemFormState | null,
@@ -86,7 +78,7 @@ export async function createPlannedItemAction(
   try {
     withDatabase((db) => createPlannedItem(db, parsed.input));
   } catch (error) {
-    return await toFormState(error, formData, translate);
+    return await toFailureState(error, readSubmittedValues(formData), translate, formFieldOf);
   }
 
   refreshData();
@@ -113,7 +105,7 @@ export async function updatePlannedItemAction(
       return null;
     });
   } catch (error) {
-    return await toDetailsState(error, formData, translate);
+    return await toFailureState(error, readSubmittedDetails(formData), translate, detailsControlOf);
   }
   if (rejected !== null) return rejected;
 

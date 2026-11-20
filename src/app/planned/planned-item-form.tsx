@@ -29,7 +29,7 @@ export interface PlannedOption {
   name: string;
 }
 
-export interface PlannedAccountOption extends PlannedOption {
+interface PlannedAccountOption extends PlannedOption {
   currency: string;
 }
 
@@ -109,10 +109,7 @@ export function PlannedItemForm({
   });
 
   const isTransfer = kind === TRANSFER;
-  const numberUnit =
-    repetition === "monthly_on_day" || repetition === "every_n_months" || repetition === "every_n_weeks"
-      ? REPETITION_NUMBER_UNIT[repetition]
-      : undefined;
+  const numberUnit = REPETITION_NUMBER_UNIT[repetition];
   const accountOptions = accounts.map((account) => (
     <option key={account.id} value={account.id}>
       {account.name} ({account.currency})

@@ -42,8 +42,6 @@ export function PlannedItemDetailsForm({
 
   const errorOf = (field: PlannedItemDetailsFormField) =>
     state?.field === field ? state.message : undefined;
-  // A refusal that no control shows, such as a failed save, is told above the button.
-  const hasOwnControl = state?.field !== undefined;
 
   return (
     <form
@@ -86,7 +84,8 @@ export function PlannedItemDetailsForm({
         toleranceError={errorOf("matchTolerancePercent")}
       />
 
-      {state !== null && !hasOwnControl ? (
+      {/* A refusal that no control shows, such as a failed save, is told above the button. */}
+      {state !== null && state.field === undefined ? (
         <p role="alert" className="font-medium text-negative">
           {common("error", { message: state.message })}
         </p>

@@ -13,6 +13,11 @@ import {
   SkeletonRegion,
 } from "../../components/skeleton";
 import { formatAmount } from "../../domain/money";
+import {
+  DEFAULT_MATCH_AMOUNT_TOLERANCE_BP,
+  DEFAULT_MATCH_WINDOW_DAYS,
+  formatTolerancePercent,
+} from "../../domain/planned-item";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listPlannedItems, type PlannedItemWithDetails } from "../../ledger/planned-items";
@@ -40,8 +45,8 @@ const NEW_PLANNED_ITEM_DEFAULTS = {
   repetitionValue: "",
   businessDayRule: "none",
   amount: "",
-  matchWindowDays: "5",
-  matchTolerancePercent: "5",
+  matchWindowDays: String(DEFAULT_MATCH_WINDOW_DAYS),
+  matchTolerancePercent: formatTolerancePercent(DEFAULT_MATCH_AMOUNT_TOLERANCE_BP),
 };
 
 // One read for the whole request: every section below asks for it and gets the same answer.
@@ -135,8 +140,8 @@ async function PlannedList() {
     );
   }
 
-  const accountName = (id: number | null) =>
-    accounts.find((account) => account.id === id)?.name ?? "";
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
+  const accountName = (id: number | null) => (id === null ? "" : (accountById.get(id)?.name ?? ""));
   const accountText = (item: PlannedItemWithDetails) =>
     item.destinationAccountId === null
       ? accountName(item.accountId)
@@ -158,7 +163,7 @@ async function PlannedList() {
             <td className="text-right">
               {formatAmount(
                 currentVersionOf(item).amount,
-                accounts.find((account) => account.id === item.accountId)?.currency ?? "",
+                accountById.get(item.accountId)?.currency ?? "",
                 locale,
               )}
             </td>

@@ -14,7 +14,7 @@ import {
   type BusinessDayRule,
   type Repetition,
 } from "../../domain/recurrence";
-import type { CurrencyByAccount } from "../transactions/transaction-form-data";
+import { readAccount, type CurrencyByAccount } from "../transactions/transaction-form-data";
 
 /** The order of the type segments (DESIGN section 17): Out, In, Move, Interest. */
 export const PLANNED_ITEM_FORM_KINDS = ["expense", "income", "transfer", "interest"] as const;
@@ -31,11 +31,11 @@ export const REPETITION_CHOICES = [
 export type RepetitionChoice = (typeof REPETITION_CHOICES)[number];
 
 /** The repetitions that need a number next to them, and what the number counts. */
-export const REPETITION_NUMBER_UNIT = {
+export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "months" | "weeks">> = {
   monthly_on_day: "day",
   every_n_months: "months",
   every_n_weeks: "weeks",
-} as const satisfies Partial<Record<RepetitionChoice, string>>;
+};
 
 export const BUSINESS_DAY_RULES: readonly BusinessDayRule[] = ["none", "previous", "next"];
 
@@ -80,12 +80,10 @@ export type ParsedPlannedItemForm =
   | { ok: true; input: PlannedItemInput }
   | { ok: false; error: PlannedItemFormState };
 
-export interface PlannedItemDetailsFormValues {
-  name: string;
-  categoryId: string;
-  matchWindowDays: string;
-  matchTolerancePercent: string;
-}
+export type PlannedItemDetailsFormValues = Pick<
+  PlannedItemFormValues,
+  "name" | "categoryId" | "matchWindowDays" | "matchTolerancePercent"
+>;
 
 export type PlannedItemDetailsFormField = keyof PlannedItemDetailsFormValues;
 
@@ -165,10 +163,8 @@ function wholeNumber(text: string): number | null {
   return WHOLE_NUMBER.test(trimmed) ? Number(trimmed) : null;
 }
 
-function readAccount(text: string, known: CurrencyByAccount): { id: number; currency: string } | null {
-  const id = Number(text);
-  const currency = text.trim() === "" ? undefined : known.get(id);
-  return currency === undefined ? null : { id, currency };
+function isBusinessDayRule(value: string): value is BusinessDayRule {
+  return BUSINESS_DAY_RULES.some((rule) => rule === value);
 }
 
 function readAmount(text: string, currency: string): { value: number } | Refusal {
@@ -284,7 +280,8 @@ export function parsePlannedItemForm(
   const repetition = readRepetition(values.repetition, values.repetitionValue);
   if ("ref" in repetition) return fail(repetition.field, repetition.ref);
 
-  if (!(BUSINESS_DAY_RULES as readonly string[]).includes(values.businessDayRule)) {
+  const { businessDayRule } = values;
+  if (!isBusinessDayRule(businessDayRule)) {
     return fail("businessDayRule", messageRef("plannedItemBusinessDayRuleInvalid"));
   }
 
@@ -305,7 +302,7 @@ export function parsePlannedItemForm(
       // A one-off event has no end date: the field may still hold one from before the switch.
       endDate: repetition.repetition === null || endDate === "" ? null : endDate,
       repetition: repetition.repetition,
-      businessDayRule: values.businessDayRule as BusinessDayRule,
+      businessDayRule,
       // `0 - x` keeps a zero amount at +0, which the domain then refuses.
       amount: leavesAccount ? 0 - amount.value : amount.value,
       matchWindowDays: match.windowDays,

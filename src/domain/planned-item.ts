@@ -19,9 +19,9 @@ const PLANNED_ITEM_KINDS: readonly PlannedItemKind[] = ["expense", "income", "in
 
 export const AVERAGE_WINDOWS: readonly number[] = [3, 6, 12];
 
-const DEFAULT_MATCH_WINDOW_DAYS = 5;
+export const DEFAULT_MATCH_WINDOW_DAYS = 5;
 // 5%, in basis points so that no percentage is ever a float.
-const DEFAULT_MATCH_AMOUNT_TOLERANCE_BP = 500;
+export const DEFAULT_MATCH_AMOUNT_TOLERANCE_BP = 500;
 const MAX_TOLERANCE_BP = 10_000;
 const DEFAULT_AVERAGE_WINDOW = 3;
 
@@ -395,14 +395,12 @@ export function parseTolerancePercent(text: string): number {
   const [, whole = "", decimals = ""] = match ?? [];
   const basisPoints =
     Number(whole) * BASIS_POINTS_PER_PERCENT + Number(decimals.padEnd(PERCENT_DECIMALS, "0"));
-  if (match === null || basisPoints > MAX_TOLERANCE_BP) {
-    refuse(
-      "matchAmountToleranceBp",
-      `The tolerance "${text}" is not a percentage from 0 to 100 with two decimals at most`,
-      messageRef("plannedItemTolerancePercentInvalid"),
-    );
-  }
-  return basisPoints;
+  if (match !== null && basisPoints <= MAX_TOLERANCE_BP) return basisPoints;
+  return refuse(
+    "matchAmountToleranceBp",
+    `The tolerance "${text}" is not a percentage from 0 to 100 with two decimals at most`,
+    messageRef("plannedItemTolerancePercentInvalid"),
+  );
 }
 
 /** The inverse of `parseTolerancePercent`, to pre-fill a field: 500 is "5", 250 is "2.5". */
