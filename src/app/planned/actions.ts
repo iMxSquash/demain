@@ -37,7 +37,13 @@ import {
 } from "./planned-item-form-data";
 
 const PLANNED_PATH = "/planned";
-const DETAILS_FIELDS = ["name", "categoryId", "matchWindowDays", "matchTolerancePercent"] as const;
+const DETAILS_FIELDS = [
+  "name",
+  "categoryId",
+  "provisionLabelFilter",
+  "matchWindowDays",
+  "matchTolerancePercent",
+] as const;
 
 function describeFailure(error: unknown): MessageRef {
   if (error instanceof PlannedItemNotFoundError) return messageRef("plannedItemGone");
@@ -71,11 +77,11 @@ async function toFailureState<Field extends string, Values>(
   return { message: translate(ref), values };
 }
 
-// The edit form has four controls: a refusal on another field is shown as a message.
+// A refusal on a field the edit form has no control for is shown as a message.
 const detailsControlOf = (field: PlannedItemField) =>
   DETAILS_FIELDS.find((candidate) => candidate === formFieldOf(field));
 
-// The version form has five controls that the domain can refuse; the business day rule has no
+// The controls of the version form that the domain can refuse; the business day rule has no
 // refusal of its own, and a refusal on another field is shown as a message.
 const VERSION_FIELDS = ["effectiveFrom", "repetition", "amount", "amountMode", "averageWindow"] as const;
 const versionControlOf = (field: PlannedItemField) =>
@@ -110,20 +116,15 @@ export async function updatePlannedItemAction(
   await requireSession();
   const translate = await getTranslator();
 
-  let rejected: PlannedItemDetailsFormState | null;
+  const parsed = parsePlannedItemDetailsForm(formData, translate);
+  if (!parsed.ok) return parsed.error;
+
   try {
-    rejected = withDatabase((db) => {
-      // The label filter has no control on this form: it is kept as it is.
-      const { provisionLabelFilter } = getPlannedItem(db, id);
-      const parsed = parsePlannedItemDetailsForm(formData, provisionLabelFilter, translate);
-      if (!parsed.ok) return parsed.error;
-      updatePlannedItemDetails(db, id, parsed.details);
-      return null;
-    });
+    // The domain refuses a label filter on an item that is not a provision.
+    withDatabase((db) => updatePlannedItemDetails(db, id, parsed.details));
   } catch (error) {
     return await toFailureState(error, readSubmittedDetails(formData), translate, detailsControlOf);
   }
-  if (rejected !== null) return rejected;
 
   refreshData();
   await flashSuccess("plannedItemUpdated");

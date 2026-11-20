@@ -254,6 +254,10 @@
       "averageWindow": "Occurrences averaged",
       "startingEstimate": "Starting estimate",
       "startingEstimateHint": "Used until a previous amount exists.",
+      "provision": "Provision: several transactions settle one occurrence",
+      "provisionLabelFilter": "Label filter",
+      "provisionLabelFilterHint": "A transaction is linked when its label contains this text, ignoring case. Useful when a category mixes several things.",
+      "provisionMatchingNote": "The matching window and tolerance do not apply to a provision. Its transactions are the ones of the same account and category (and label filter) dated inside the period of the occurrence.",
       "matching": "Matching",
       "windowDays": "Window, in days",
       "windowDaysHint": "A transaction may fall this many days before or after the planned date.",
@@ -276,8 +280,10 @@
       "kind": "Type",
       "account": "Account",
       "startDate": "First date",
-      "schedule": "Schedule"
+      "schedule": "Schedule",
+      "provision": "Provision"
     },
+    "provisionValue": "Several transactions settle one occurrence",
     "versions": {
       "heading": "Versions",
       "caption": "Amount and schedule of the planned item from each date",

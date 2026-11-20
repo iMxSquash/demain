@@ -5,19 +5,17 @@
 
 import {
   addDays,
-  clampedDate,
+  addMonths,
+  DAYS_IN_WEEK,
   daysInMonth,
-  MAX_YEAR,
-  MIN_YEAR,
+  MONTHS_IN_YEAR,
   parseDate,
   weekdayOf,
 } from "../domain/calendar-date";
 
 // Re-exported so the callers of the picker keep their import; the definition lives in the domain.
-export { addDays };
+export { addDays, addMonths, DAYS_IN_WEEK };
 
-export const DAYS_IN_WEEK = 7;
-const MONTHS_IN_YEAR = 12;
 const MONDAY = 1;
 // Intl numbers the days 1 (Monday) to 7 (Sunday); Date numbers them 0 (Sunday) to 6.
 const INTL_SUNDAY = 7;
@@ -46,16 +44,6 @@ export type DateKeyAction =
   | { type: "close"; preventDefault: true };
 
 const NONE: DateKeyAction = { type: "none" };
-
-/** The same day of another month, or the last day of that month when it is shorter. */
-export function addMonths(date: string, months: number): string {
-  const { year, month, day } = parseDate(date);
-  const index = year * MONTHS_IN_YEAR + (month - 1) + months;
-  const targetYear = Math.floor(index / MONTHS_IN_YEAR);
-  // Past the supported years the date stays where it is, so a held key never produces an invalid one.
-  if (targetYear < MIN_YEAR || targetYear > MAX_YEAR) return date;
-  return clampedDate(targetYear, (index % MONTHS_IN_YEAR) + 1, day);
-}
 
 export function addYears(date: string, years: number): string {
   return addMonths(date, years * MONTHS_IN_YEAR);

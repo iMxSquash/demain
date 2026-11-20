@@ -57,6 +57,8 @@ export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "m
   every_n_weeks: "weeks",
 };
 
+export const PROVISION_CHECKED = "true";
+
 export const DEFAULT_AMOUNT_MODE: AmountMode = "fixed";
 export const ROLLING_AVERAGE_MODE: AmountMode = "rolling_average";
 
@@ -87,6 +89,10 @@ export interface PlannedItemFormValues {
   amountMode: string;
   /** Occurrences averaged, as text, read in rolling average mode only. */
   averageWindow: string;
+  /** "true" when several transactions settle one occurrence (a provision), blank otherwise. */
+  acceptsMultipleTransactions: string;
+  /** Text a transaction label must contain, read for a provision only. Blank means none. */
+  provisionLabelFilter: string;
   /** Days, as text. */
   matchWindowDays: string;
   /** Percent, as text ("5", "2,5"). */
@@ -108,7 +114,7 @@ export type ParsedPlannedItemForm =
 
 export type PlannedItemDetailsFormValues = Pick<
   PlannedItemFormValues,
-  "name" | "categoryId" | "matchWindowDays" | "matchTolerancePercent"
+  "name" | "categoryId" | "provisionLabelFilter" | "matchWindowDays" | "matchTolerancePercent"
 >;
 
 export type PlannedItemDetailsFormField = keyof PlannedItemDetailsFormValues;
@@ -138,9 +144,9 @@ const FORM_FIELD_OF: Record<PlannedItemField, PlannedItemFormField | undefined> 
   amount: "amount",
   matchWindowDays: "matchWindowDays",
   matchAmountToleranceBp: "matchTolerancePercent",
-  // Provisions have no control yet (#164).
-  acceptsMultipleTransactions: undefined,
-  provisionLabelFilter: undefined,
+  // The refusal says a provision needs a repetition: the repetition control is where to fix it.
+  acceptsMultipleTransactions: "repetition",
+  provisionLabelFilter: "provisionLabelFilter",
   amountMode: "amountMode",
   averageWindow: "averageWindow",
 };
@@ -169,6 +175,8 @@ export function readSubmittedValues(formData: FormData): PlannedItemFormValues {
     amount: readText(formData, "amount"),
     amountMode: readText(formData, "amountMode"),
     averageWindow: readText(formData, "averageWindow"),
+    acceptsMultipleTransactions: readText(formData, "acceptsMultipleTransactions"),
+    provisionLabelFilter: readText(formData, "provisionLabelFilter"),
     matchWindowDays: readText(formData, "matchWindowDays"),
     matchTolerancePercent: readText(formData, "matchTolerancePercent"),
   };
@@ -178,6 +186,7 @@ export function readSubmittedDetails(formData: FormData): PlannedItemDetailsForm
   return {
     name: readText(formData, "name"),
     categoryId: readText(formData, "categoryId"),
+    provisionLabelFilter: readText(formData, "provisionLabelFilter"),
     matchWindowDays: readText(formData, "matchWindowDays"),
     matchTolerancePercent: readText(formData, "matchTolerancePercent"),
   };
@@ -362,16 +371,21 @@ export function parsePlannedItemForm(
       amount: signedAmountOf(kind, amount.value),
       amountMode: mode.amountMode,
       averageWindow: mode.averageWindow,
+      acceptsMultipleTransactions: values.acceptsMultipleTransactions === PROVISION_CHECKED,
+      // The domain refuses a filter without the provision box.
+      provisionLabelFilter: values.provisionLabelFilter,
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
     },
   };
 }
 
-/** The edit form changes the four details the domain allows without a version. */
+/**
+ * The edit form changes the details the domain allows without a version. The label filter is only
+ * posted for a provision: for any other item it stays blank and the domain keeps it null.
+ */
 export function parsePlannedItemDetailsForm(
   formData: FormData,
-  provisionLabelFilter: string | null,
   translate: Translate,
 ): ParsedPlannedItemDetailsForm {
   const values = readSubmittedDetails(formData);
@@ -393,7 +407,7 @@ export function parsePlannedItemDetailsForm(
       categoryId: category.id,
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
-      provisionLabelFilter,
+      provisionLabelFilter: values.provisionLabelFilter,
     },
   };
 }

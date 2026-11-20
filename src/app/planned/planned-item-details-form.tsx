@@ -7,7 +7,7 @@ import { Button } from "../../components/button";
 import { Select } from "../../components/select";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
-import { MatchingFields } from "./matching-fields";
+import { MatchingFields, ProvisionMatchingNote } from "./matching-fields";
 import type { PlannedOption } from "./planned-item-form";
 import type {
   PlannedItemDetailsFormField,
@@ -25,14 +25,17 @@ interface PlannedItemDetailsFormProps {
   categories: PlannedOption[];
   /** A transfer has no category: the field is not offered. */
   hasCategory: boolean;
+  /** A provision has a label filter and no matching settings; it cannot become one later. */
+  isProvision: boolean;
 }
 
-/** The four details of a planned item that change without a new version. */
+/** The details of a planned item that change without a new version. */
 export function PlannedItemDetailsForm({
   action,
   initialValues,
   categories,
   hasCategory,
+  isProvision,
 }: PlannedItemDetailsFormProps) {
   const t = useTranslations("planned");
   const common = useTranslations("common");
@@ -77,12 +80,37 @@ export function PlannedItemDetailsForm({
         </FormField>
       ) : null}
 
-      <MatchingFields
-        windowDays={values.matchWindowDays}
-        tolerancePercent={values.matchTolerancePercent}
-        windowError={errorOf("matchWindowDays")}
-        toleranceError={errorOf("matchTolerancePercent")}
-      />
+      {isProvision ? (
+        <>
+          <FormField
+            id="provisionLabelFilter"
+            label={t("form.provisionLabelFilter")}
+            optional
+            hint={t("form.provisionLabelFilterHint")}
+            error={errorOf("provisionLabelFilter")}
+          >
+            <input
+              id="provisionLabelFilter"
+              name="provisionLabelFilter"
+              defaultValue={values.provisionLabelFilter}
+              className={CONTROL_CLASS}
+              type="text"
+              autoComplete="off"
+            />
+          </FormField>
+          <ProvisionMatchingNote />
+          {/* The settings do not apply to a provision: the stored ones are sent back unchanged. */}
+          <input type="hidden" name="matchWindowDays" value={values.matchWindowDays} />
+          <input type="hidden" name="matchTolerancePercent" value={values.matchTolerancePercent} />
+        </>
+      ) : (
+        <MatchingFields
+          windowDays={values.matchWindowDays}
+          tolerancePercent={values.matchTolerancePercent}
+          windowError={errorOf("matchWindowDays")}
+          toleranceError={errorOf("matchTolerancePercent")}
+        />
+      )}
 
       {/* A refusal that no control shows, such as a failed save, is told above the button. */}
       {state !== null && state.field === undefined ? (

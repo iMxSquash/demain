@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 
 import { Button } from "../../components/button";
+import { Checkbox } from "../../components/checkbox";
 import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 import { useIsHydrated } from "../../components/use-is-hydrated";
@@ -14,12 +15,13 @@ import { DraftTextInput } from "../draft-text-input";
 import { KindSegments } from "../transactions/kind-segments";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { AmountModeFields } from "./amount-mode-fields";
-import { MatchingFields } from "./matching-fields";
+import { MatchingFields, ProvisionMatchingNote } from "./matching-fields";
 import {
   BUSINESS_DAY_RULES,
   DEFAULT_FORM_KIND,
   ONCE,
   PLANNED_ITEM_FORM_KINDS,
+  PROVISION_CHECKED,
   REPETITION_CHOICES,
   repetitionChoiceOf,
   REPETITION_NUMBER_UNIT,
@@ -55,6 +57,29 @@ type FormKind = (typeof PLANNED_ITEM_FORM_KINDS)[number];
 
 const FULL_WIDTH_CLASS = "@min-[640px]:col-span-2";
 
+const MATCHING_FIELDS: readonly PlannedItemFormField[] = ["matchWindowDays", "matchTolerancePercent"];
+
+interface MatchingSettings {
+  windowDays: string;
+  tolerancePercent: string;
+}
+
+const matchingOf = (values: PlannedItemFormValues): MatchingSettings => ({
+  windowDays: values.matchWindowDays,
+  tolerancePercent: values.matchTolerancePercent,
+});
+
+// A control that is not in the form (the matching settings while the note replaces them) keeps its
+// previous value.
+function matchingOfForm(formData: FormData, previous: MatchingSettings): MatchingSettings {
+  const windowDays = formData.get("matchWindowDays");
+  const tolerancePercent = formData.get("matchTolerancePercent");
+  return {
+    windowDays: typeof windowDays === "string" ? windowDays : previous.windowDays,
+    tolerancePercent: typeof tolerancePercent === "string" ? tolerancePercent : previous.tolerancePercent,
+  };
+}
+
 // The server is the authority on what a kind or a repetition means: an unknown value coming back
 // from it falls back to the default instead of being refused here.
 function formKindOf(value: string): FormKind {
@@ -79,6 +104,12 @@ export function PlannedItemForm({
   const [repetition, setRepetition] = useState(() => repetitionChoiceOf(initialValues.repetition));
   const [amountMode, setAmountMode] = useState(initialValues.amountMode);
   const [averageWindow, setAverageWindow] = useState(initialValues.averageWindow);
+  const [isProvision, setIsProvision] = useState(
+    initialValues.acceptsMultipleTransactions === PROVISION_CHECKED,
+  );
+  // The matching settings are not posted by their own controls while the provision note replaces
+  // them: they are kept here so that the server still validates them and unchecking restores them.
+  const [matching, setMatching] = useState(() => matchingOf(initialValues));
   // The automatic form reset after an action sends the native controls back to their first state and
   // React does not re-apply an unchanged value: the key remounts the controlled ones after each result.
   const [resultCount, setResultCount] = useState(0);
@@ -90,6 +121,8 @@ export function PlannedItemForm({
       setRepetition(repetitionChoiceOf(values.repetition));
       setAmountMode(values.amountMode);
       setAverageWindow(values.averageWindow);
+      setIsProvision(values.acceptsMultipleTransactions === PROVISION_CHECKED);
+      setMatching(matchingOf(values));
       setResultCount((count) => count + 1);
       return result;
     },
@@ -120,7 +153,11 @@ export function PlannedItemForm({
     </option>
   ));
   // A refusal that no control shows, such as a failed save, is told above the button.
-  const hasOwnControl = state?.field !== undefined && state.field !== "kind";
+  const isMatchingHidden = isProvision && isHydrated;
+  const hasOwnControl =
+    state?.field !== undefined &&
+    state.field !== "kind" &&
+    !(isMatchingHidden && MATCHING_FIELDS.includes(state.field));
 
   return (
     <div className="@container rounded-card bg-surface p-4 @3xl:p-6">
@@ -261,12 +298,54 @@ export function PlannedItemForm({
         </FormField>
 
         <div className={FULL_WIDTH_CLASS}>
-          <MatchingFields
-            windowDays={values.matchWindowDays}
-            tolerancePercent={values.matchTolerancePercent}
-            windowError={errorOf("matchWindowDays")}
-            toleranceError={errorOf("matchTolerancePercent")}
+          <Checkbox
+            key={`provision-${resultCount}`}
+            name="acceptsMultipleTransactions"
+            value={PROVISION_CHECKED}
+            defaultChecked={values.acceptsMultipleTransactions === PROVISION_CHECKED}
+            onChange={(event) => {
+              const { form } = event.target;
+              if (form !== null) {
+                setMatching((current) => matchingOfForm(new FormData(form), current));
+              }
+              setIsProvision(event.target.checked);
+            }}
+            label={t("provision")}
           />
+        </div>
+
+        {isProvision || !isHydrated ? (
+          <div className={FULL_WIDTH_CLASS}>
+            <FormField
+              {...fieldProps("provisionLabelFilter", t("provisionLabelFilter"))}
+              optional
+              hint={t("provisionLabelFilterHint")}
+            >
+              <input
+                {...controlProps("provisionLabelFilter")}
+                className={CONTROL_CLASS}
+                type="text"
+                autoComplete="off"
+              />
+            </FormField>
+          </div>
+        ) : null}
+
+        <div className={FULL_WIDTH_CLASS}>
+          {isMatchingHidden ? (
+            <>
+              <ProvisionMatchingNote />
+              <input type="hidden" name="matchWindowDays" value={matching.windowDays} />
+              <input type="hidden" name="matchTolerancePercent" value={matching.tolerancePercent} />
+            </>
+          ) : (
+            <MatchingFields
+              windowDays={matching.windowDays}
+              tolerancePercent={matching.tolerancePercent}
+              windowError={errorOf("matchWindowDays")}
+              toleranceError={errorOf("matchTolerancePercent")}
+            />
+          )}
         </div>
 
         {state !== null && !hasOwnControl ? (

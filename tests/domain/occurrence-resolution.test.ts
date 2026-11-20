@@ -212,14 +212,6 @@ describe("resolveOccurrences", () => {
       expect(occurrence?.links).toEqual([first, second]);
       expect(occurrence?.linkedSum).toBe(-45000);
     });
-
-    it("treats an item accepting several transactions like a regular one", () => {
-      const several = { acceptsMultipleTransactions: true };
-      const settling = link("2026-03-05", { amount: -10000 });
-
-      expect(statusOfMarchOccurrence("2026-03-11", several)).toBe("overdue");
-      expect(statusOfMarchOccurrence("2026-03-11", several, [settling])).toBe("confirmed");
-    });
   });
 
   describe("amounts", () => {
@@ -442,6 +434,182 @@ describe("resolveOccurrences", () => {
       const noOccurrenceRange = { from: "2026-03-10", to: "2026-03-20" };
 
       expect(resolveOccurrences(item(), [], noOccurrenceRange, "2026-03-15")).toEqual([]);
+    });
+  });
+});
+
+describe("resolveOccurrences, provisions", () => {
+  const FUEL_RANGE = MARCH;
+  const fuelVersion = (overrides: Partial<PlannedVersion> = {}) =>
+    version({
+      effectiveFrom: "2026-03-15",
+      repetition: { kind: "monthly_on_day", day: 15 },
+      amount: -9000,
+      ...overrides,
+    });
+  const fuel = (overrides: Partial<ResolutionItem> = {}, versionOverrides: Partial<PlannedVersion> = {}) =>
+    item({
+      schedule: schedule({ startDate: "2026-03-15", versions: [fuelVersion(versionOverrides)] }),
+      acceptsMultipleTransactions: true,
+      ...overrides,
+    });
+  const fillUp = (amount: number, transactionId: number, overrides: Partial<OccurrenceLink> = {}) =>
+    link("2026-03-15", { transactionId, amount, date: "2026-03-12", ...overrides });
+  const resolveFuel = (today: string, links: OccurrenceLink[] = [], overrides: Partial<ResolutionItem> = {}) => {
+    const [first] = resolveOccurrences(fuel(overrides), links, FUEL_RANGE, today);
+    if (first === undefined) throw new Error("No occurrence resolved");
+    return first;
+  };
+
+  it("a provision of 90 with fill-ups of 30 and 25 has 35 remaining and is partial", () => {
+    const resolved = resolveFuel("2026-03-20", [fillUp(-3000, 1), fillUp(-2500, 2)]);
+
+    expect(resolved.linkedSum).toBe(-5500);
+    expect(resolved.remaining).toBe(-3500);
+    expect(resolved.status).toBe("partial");
+  });
+
+  it("a further fill-up of 50 leaves 0 remaining, never negative, and confirms it", () => {
+    const resolved = resolveFuel("2026-03-20", [fillUp(-3000, 1), fillUp(-2500, 2), fillUp(-5000, 3)]);
+
+    expect(resolved.linkedSum).toBe(-10500);
+    expect(resolved.remaining).toBe(0);
+    expect(resolved.status).toBe("confirmed");
+  });
+
+  it("is confirmed as soon as the linked sum reaches the expected amount", () => {
+    const resolved = resolveFuel("2026-03-20", [fillUp(-9000, 1)]);
+
+    expect(resolved.remaining).toBe(0);
+    expect(resolved.status).toBe("confirmed");
+  });
+
+  it("after its period, a provision with one fill-up is confirmed and its leftover is 0", () => {
+    const resolved = resolveFuel("2026-04-01", [fillUp(-3000, 1)]);
+
+    expect(resolved.status).toBe("confirmed");
+    expect(resolved.remaining).toBe(0);
+  });
+
+  it("after its period, a provision without fill-up is overdue", () => {
+    const resolved = resolveFuel("2026-04-01");
+
+    expect(resolved.status).toBe("overdue");
+    expect(resolved.remaining).toBe(0);
+  });
+
+  it("stays planned with the full amount remaining before its period ends and has no link", () => {
+    const resolved = resolveFuel("2026-03-31");
+
+    expect(resolved.status).toBe("planned");
+    expect(resolved.remaining).toBe(-9000);
+  });
+
+  it("is still partial on the last day of the period and settled the day after", () => {
+    const links = [fillUp(-3000, 1)];
+
+    expect(resolveFuel("2026-03-31", links)).toMatchObject({ status: "partial", remaining: -6000 });
+    expect(resolveFuel("2026-04-01", links)).toMatchObject({ status: "confirmed", remaining: 0 });
+  });
+
+  it("does not use the matching window: a provision without fill-up is not overdue after the window", () => {
+    expect(resolveFuel("2026-03-25").status).toBe("planned");
+  });
+
+  it("an income provision keeps its positive sign", () => {
+    const income = fuel({}, { amount: 9000 });
+    const [partial] = resolveOccurrences(income, [fillUp(3000, 1)], FUEL_RANGE, "2026-03-20");
+    const [over] = resolveOccurrences(income, [fillUp(3000, 1), fillUp(7000, 2)], FUEL_RANGE, "2026-03-20");
+
+    expect(partial).toMatchObject({ remaining: 6000, status: "partial" });
+    expect(over).toMatchObject({ remaining: 0, status: "confirmed" });
+  });
+
+  it("an override amount is the expected amount of the provision", () => {
+    const overridden = fuel({ overrides: [override("2026-03-15", { overrideAmount: -6000 })] });
+    const [resolved] = resolveOccurrences(overridden, [fillUp(-3000, 1)], FUEL_RANGE, "2026-03-20");
+
+    expect(resolved).toMatchObject({ expectedAmount: -6000, remaining: -3000, status: "partial" });
+  });
+
+  it("a cancelled provision without fill-up is cancelled", () => {
+    const cancelled = fuel({ overrides: [override("2026-03-15", { status: "cancelled" })] });
+    const [resolved] = resolveOccurrences(cancelled, [], FUEL_RANGE, "2026-03-20");
+
+    expect(resolved?.status).toBe("cancelled");
+  });
+
+  it("a cancelled provision with a fill-up follows the provision rules", () => {
+    const cancelled = fuel({ overrides: [override("2026-03-15", { status: "cancelled" })] });
+    const [resolved] = resolveOccurrences(cancelled, [fillUp(-3000, 1)], FUEL_RANGE, "2026-03-20");
+
+    expect(resolved).toMatchObject({ status: "partial", remaining: -6000 });
+  });
+
+  it("the linked sum is the reference value of a rolling-average provision", () => {
+    const rolling = fuel({}, { amountMode: "rolling_average", averageWindow: 3 });
+
+    const resolved = resolveOccurrences(
+      rolling,
+      [fillUp(-3000, 1), fillUp(-2500, 2)],
+      MARCH_TO_APRIL,
+      "2026-04-01",
+    );
+
+    expect(resolved.map((occurrence) => occurrence.expectedAmount)).toEqual([-9000, -5500]);
+  });
+
+  it("a partial provision feeds the rolling average with its estimate, not its partial sum", () => {
+    const rolling = fuel({}, { amountMode: "rolling_average", averageWindow: 3 });
+
+    const resolved = resolveOccurrences(rolling, [fillUp(-3000, 1)], MARCH_TO_APRIL, "2026-03-20");
+
+    expect(resolved.map((occurrence) => occurrence.expectedAmount)).toEqual([-9000, -9000]);
+  });
+
+  it("never produces partial for a regular occurrence", () => {
+    const partialLink = link("2026-03-05", { amount: -10000 });
+    const resolved = resolveOccurrences(item(), [partialLink], MARCH_TO_APRIL, "2026-03-06");
+
+    expect(statuses(resolved)).toEqual(["confirmed", "planned"]);
+    expect(resolved[0]?.remaining).toBe(0);
+  });
+
+  describe("period of the occurrence", () => {
+    const biweekly = (startDate: string) =>
+      item({
+        schedule: schedule({
+          startDate,
+          versions: [version({ effectiveFrom: startDate, repetition: { kind: "every_n_weeks", weeks: 2 } })],
+        }),
+        acceptsMultipleTransactions: true,
+      });
+
+    it("starts the day after the previous occurrence, even when it is before the range", () => {
+      const resolved = resolveOccurrences(
+        biweekly("2026-03-06"),
+        [],
+        { from: "2026-03-20", to: "2026-03-20" },
+        "2026-03-01",
+      );
+
+      expect(resolved.map((occurrence) => occurrence.period)).toEqual([{ from: "2026-03-07", to: "2026-03-20" }]);
+    });
+
+    it("has the length of the other periods for the first occurrence of the schedule", () => {
+      const resolved = resolveOccurrences(biweekly("2026-03-20"), [], MARCH, "2026-03-01");
+
+      expect(resolved[0]?.period).toEqual({ from: "2026-03-07", to: "2026-03-20" });
+    });
+
+    it("is the calendar month for a monthly provision", () => {
+      expect(resolveFuel("2026-03-01").period).toEqual({ from: "2026-03-01", to: "2026-03-31" });
+    });
+
+    it("is null for a regular occurrence", () => {
+      const [regular] = resolveOccurrences(item(), [], MARCH, "2026-03-01");
+
+      expect(regular?.period).toBeNull();
     });
   });
 });

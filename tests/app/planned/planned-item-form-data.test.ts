@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formFieldOf,
   parsePlannedItemDetailsForm,
   parsePlannedItemEndDateForm as parseEndDate,
   parsePlannedItemForm as parse,
@@ -55,6 +56,8 @@ describe("parsePlannedItemForm", () => {
         businessDayRule: "none",
         amount: -999,
         amountMode: "fixed",
+        acceptsMultipleTransactions: false,
+        provisionLabelFilter: "",
         matchWindowDays: 5,
         matchAmountToleranceBp: 500,
       },
@@ -353,6 +356,62 @@ describe("parsePlannedItemForm", () => {
   });
 });
 
+describe("parsePlannedItemForm provisions", () => {
+  it("is not a provision by default", () => {
+    expect(parsePlannedItemForm(formOf())).toMatchObject({
+      ok: true,
+      input: { acceptsMultipleTransactions: false, provisionLabelFilter: "" },
+    });
+  });
+
+  it("reads a checked provision with a label filter", () => {
+    expect(
+      parsePlannedItemForm(
+        formOf({ acceptsMultipleTransactions: "true", provisionLabelFilter: "market" }),
+      ),
+    ).toMatchObject({
+      ok: true,
+      input: { acceptsMultipleTransactions: true, provisionLabelFilter: "market" },
+    });
+  });
+
+  it("passes the label filter as typed for the domain to trim", () => {
+    expect(
+      parsePlannedItemForm(
+        formOf({ acceptsMultipleTransactions: "true", provisionLabelFilter: "  market  " }),
+      ),
+    ).toMatchObject({ ok: true, input: { provisionLabelFilter: "  market  " } });
+  });
+
+  it("passes a label filter without the provision box for the domain to refuse", () => {
+    expect(parsePlannedItemForm(formOf({ provisionLabelFilter: "market" }))).toMatchObject({
+      ok: true,
+      input: { acceptsMultipleTransactions: false, provisionLabelFilter: "market" },
+    });
+  });
+
+  it("passes a provision that does not repeat for the domain to refuse", () => {
+    expect(
+      parsePlannedItemForm(formOf({ acceptsMultipleTransactions: "true", repetition: "once" })),
+    ).toMatchObject({ ok: true, input: { acceptsMultipleTransactions: true, repetition: null } });
+  });
+
+  it("refuses absent matching settings of a provision like those of any item", () => {
+    const formData = formOf({ acceptsMultipleTransactions: "true" });
+    formData.delete("matchWindowDays");
+
+    expect(parsePlannedItemForm(formData)).toMatchObject({
+      ok: false,
+      error: { field: "matchWindowDays" },
+    });
+  });
+
+  it("shows the refusals of the provision on the repetition and the filter controls", () => {
+    expect(formFieldOf("acceptsMultipleTransactions")).toBe("repetition");
+    expect(formFieldOf("provisionLabelFilter")).toBe("provisionLabelFilter");
+  });
+});
+
 describe("parsePlannedItemDetailsForm", () => {
   const detailsOf = (overrides: Record<string, string> = {}) => {
     const formData = new FormData();
@@ -364,10 +423,10 @@ describe("parsePlannedItemDetailsForm", () => {
       ...overrides,
     };
     for (const [key, value] of Object.entries(fields)) formData.set(key, value);
-    return parsePlannedItemDetailsForm(formData, "Market", translateKey);
+    return parsePlannedItemDetailsForm(formData, translateKey);
   };
 
-  it("parses the four editable details and keeps the label filter of the item", () => {
+  it("parses the editable details without a label filter when none is posted", () => {
     expect(detailsOf()).toEqual({
       ok: true,
       details: {
@@ -375,8 +434,22 @@ describe("parsePlannedItemDetailsForm", () => {
         categoryId: 11,
         matchWindowDays: 7,
         matchAmountToleranceBp: 250,
-        provisionLabelFilter: "Market",
+        provisionLabelFilter: "",
       },
+    });
+  });
+
+  it("passes the posted label filter as typed for the domain to normalise", () => {
+    expect(detailsOf({ provisionLabelFilter: " Market " })).toMatchObject({
+      ok: true,
+      details: { provisionLabelFilter: " Market " },
+    });
+  });
+
+  it("keeps the typed label filter when the form is refused", () => {
+    expect(detailsOf({ matchTolerancePercent: "abc", provisionLabelFilter: "Market" })).toMatchObject({
+      ok: false,
+      error: { values: { provisionLabelFilter: "Market" } },
     });
   });
 

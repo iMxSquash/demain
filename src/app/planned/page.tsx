@@ -51,6 +51,8 @@ const NEW_PLANNED_ITEM_DEFAULTS = {
   amount: "",
   amountMode: DEFAULT_AMOUNT_MODE,
   averageWindow: String(DEFAULT_AVERAGE_WINDOW),
+  acceptsMultipleTransactions: "",
+  provisionLabelFilter: "",
   matchWindowDays: String(DEFAULT_MATCH_WINDOW_DAYS),
   matchTolerancePercent: formatTolerancePercent(DEFAULT_MATCH_AMOUNT_TOLERANCE_BP),
 };

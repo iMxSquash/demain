@@ -124,6 +124,9 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
       label: t("facts.schedule"),
       value: scheduleText((key, values) => t(key, values), locale, item, today),
     },
+    ...(item.acceptsMultipleTransactions
+      ? [{ label: t("facts.provision"), value: t("provisionValue") }]
+      : []),
   ];
   // A repeating item whose version in effect is one-off still offers a repeating choice to start from.
   const versionFormValues = {
@@ -217,6 +220,7 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
           initialValues={{
             name: item.name,
             categoryId: item.categoryId === null ? "" : String(item.categoryId),
+            provisionLabelFilter: item.provisionLabelFilter ?? "",
             matchWindowDays: String(item.matchWindowDays),
             matchTolerancePercent: formatTolerancePercent(item.matchAmountToleranceBp),
           }}
@@ -224,6 +228,7 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
             t("categoryArchived", { name }),
           )}
           hasCategory={item.kind !== TRANSFER_KIND}
+          isProvision={item.acceptsMultipleTransactions}
         />
       </PageSection>
 

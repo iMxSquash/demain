@@ -2,7 +2,7 @@
 // occurrences", steps 1 and 2). Pure: dates are "YYYY-MM-DD" strings and nothing reads a clock.
 
 import { isCalendarDate } from "./account";
-import { addDays, clampedDate, parseDate, weekdayOf } from "./calendar-date";
+import { addDays, clampedDate, DAYS_IN_WEEK, MONTHS_IN_YEAR, parseDate, weekdayOf } from "./calendar-date";
 
 export type Repetition =
   | { kind: "monthly_on_day"; day: number } // 1 to 31
@@ -22,9 +22,7 @@ export interface DateRange {
 
 const MIN_DAY_OF_MONTH = 1;
 const MAX_DAY_OF_MONTH = 31;
-const MONTHS_IN_YEAR = 12;
 const MONTHS_IN_QUARTER = 3;
-const DAYS_IN_WEEK = 7;
 const SATURDAY = 6;
 const SUNDAY = 0;
 
