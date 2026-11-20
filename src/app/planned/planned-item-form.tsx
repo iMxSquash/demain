@@ -9,9 +9,10 @@ import { Select } from "../../components/select";
 import { useIsHydrated } from "../../components/use-is-hydrated";
 import { AmountInput } from "../amount-input";
 import { CONTROL_CLASS, FormField } from "../form-field";
+import { isWholeNumberDraft } from "../../domain/amount-syntax";
+import { DraftTextInput } from "../draft-text-input";
 import { KindSegments } from "../transactions/kind-segments";
 import { useFocusFirstError } from "../use-focus-first-error";
-import { WholeNumberInput } from "../whole-number-input";
 import { MatchingFields } from "./matching-fields";
 import {
   BUSINESS_DAY_RULES,
@@ -204,9 +205,12 @@ export function PlannedItemForm({
               numberUnit === undefined ? t("repetitionValue") : t(`repetitionValues.${numberUnit}`),
             )}
           >
-            <WholeNumberInput
+            <DraftTextInput
               id="repetitionValue"
               name="repetitionValue"
+              inputMode="numeric"
+              isDraft={isWholeNumberDraft}
+              refusalMessage="wholeNumberCharacterRefused"
               defaultValue={values.repetitionValue}
               className={CONTROL_CLASS}
             />

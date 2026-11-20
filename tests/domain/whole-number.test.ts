@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { firstNonDigit, parseWholeNumber } from "../../src/domain/amount-syntax";
+import { isWholeNumberDraft, parseWholeNumber } from "../../src/domain/amount-syntax";
 
 describe("parseWholeNumber", () => {
   it.each([
@@ -17,13 +17,12 @@ describe("parseWholeNumber", () => {
   });
 });
 
-describe("firstNonDigit", () => {
-  it("returns the first character that is not a digit", () => {
-    expect(firstNonDigit("12a3b")).toBe("a");
+describe("isWholeNumberDraft", () => {
+  it.each(["", "0", "12", "0123456789"])("accepts %j", (text) => {
+    expect(isWholeNumberDraft(text)).toBe(true);
   });
 
-  it("returns nothing for digits only and for an empty text", () => {
-    expect(firstNonDigit("0123456789")).toBeUndefined();
-    expect(firstNonDigit("")).toBeUndefined();
+  it.each(["-1", "1,5", "1.5", "1 2", "5%", "a"])("refuses %j", (text) => {
+    expect(isWholeNumberDraft(text)).toBe(false);
   });
 });

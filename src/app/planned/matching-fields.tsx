@@ -3,9 +3,10 @@
 import { useTranslations } from "next-intl";
 
 import { Disclosure } from "../../components/disclosure";
-import { AmountInput } from "../amount-input";
+import { isWholeNumberDraft } from "../../domain/amount-syntax";
+import { isTolerancePercentDraft } from "../../domain/planned-item";
+import { DraftTextInput } from "../draft-text-input";
 import { CONTROL_CLASS, FormField } from "../form-field";
-import { WholeNumberInput } from "../whole-number-input";
 
 interface MatchingFieldsProps {
   windowDays: string;
@@ -36,9 +37,12 @@ export function MatchingFields({
           hint={t("windowDaysHint")}
           error={windowError}
         >
-          <WholeNumberInput
+          <DraftTextInput
             id="matchWindowDays"
             name="matchWindowDays"
+            inputMode="numeric"
+            isDraft={isWholeNumberDraft}
+            refusalMessage="wholeNumberCharacterRefused"
             defaultValue={windowDays}
             className={CONTROL_CLASS}
           />
@@ -49,9 +53,12 @@ export function MatchingFields({
           hint={t("toleranceHint")}
           error={toleranceError}
         >
-          <AmountInput
+          <DraftTextInput
             id="matchTolerancePercent"
             name="matchTolerancePercent"
+            inputMode="decimal"
+            isDraft={isTolerancePercentDraft}
+            refusalMessage="percentCharacterRefused"
             defaultValue={tolerancePercent}
             className={CONTROL_CLASS}
           />

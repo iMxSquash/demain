@@ -4,6 +4,7 @@ import {
   formatTolerancePercent,
   fromRepetition,
   isPlannedItemOver,
+  isTolerancePercentDraft,
   parseTolerancePercent,
   PlannedItemValidationError,
   toRepetition,
@@ -325,6 +326,38 @@ describe("formatTolerancePercent", () => {
     "reads back what it wrote for %d",
     (basisPoints) => {
       expect(parseTolerancePercent(formatTolerancePercent(basisPoints))).toBe(basisPoints);
+    },
+  );
+});
+
+describe("isTolerancePercentDraft", () => {
+  it.each(["", "5", "2,", "2.5", "12,34", "100", "100,0", "100.00", "0"])(
+    "accepts %j, which can still become a tolerance",
+    (text) => {
+      expect(isTolerancePercentDraft(text)).toBe(true);
+    },
+  );
+
+  it.each([
+    ["a sign", "-1"],
+    ["a percent sign", "5%"],
+    ["a third decimal", "5,555"],
+    ["a second separator", "1.2.3"],
+    ["a grouping space", "1 000"],
+    ["more than 100", "101"],
+    ["more than three digits", "1000"],
+    ["decimals after 100", "100,5"],
+    ["a letter", "a"],
+  ])("refuses %s", (_label, text) => {
+    expect(isTolerancePercentDraft(text)).toBe(false);
+  });
+
+  it.each(["", "5", "2,", "2.5", "12,34", "100", "0"])(
+    "agrees with the parser: a complete draft %j is read or refused only for its shape",
+    (text) => {
+      // Whatever the browser lets through, the server never refuses it for being above 100.
+      if (text === "" || text.endsWith(",")) return;
+      expect(() => parseTolerancePercent(text)).not.toThrow();
     },
   );
 });

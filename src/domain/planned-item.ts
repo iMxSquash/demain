@@ -384,6 +384,8 @@ const BASIS_POINTS_PER_PERCENT = 100;
 const PERCENT_DECIMALS = 2;
 // Digits, then at most one comma or point and up to two decimals.
 const TOLERANCE_PERCENT = /^(\d+)(?:[.,](\d{1,2}))?$/;
+const TOLERANCE_PERCENT_DRAFT = /^(\d{0,3})(?:[.,](\d{0,2}))?$/;
+const MAX_TOLERANCE_PERCENT = MAX_TOLERANCE_BP / BASIS_POINTS_PER_PERCENT;
 
 /**
  * Reads a tolerance typed as a percentage ("5", "2,5", "2.5") into basis points (500, 250, 250)
@@ -401,6 +403,19 @@ export function parseTolerancePercent(text: string): number {
     `The tolerance "${text}" is not a percentage from 0 to 100 with two decimals at most`,
     messageRef("plannedItemTolerancePercentInvalid"),
   );
+}
+
+/**
+ * Whether `text` can still become a valid tolerance by typing more: digits, then at most one comma
+ * or point and two decimals, never above 100. Incomplete values ("2,") pass, so that "2,5" can be
+ * typed. The browser filters on it while typing, with the rule `parseTolerancePercent` applies.
+ */
+export function isTolerancePercentDraft(text: string): boolean {
+  const match = TOLERANCE_PERCENT_DRAFT.exec(text);
+  if (match === null) return false;
+  const [, whole = "", decimals = ""] = match;
+  const percent = Number(whole);
+  return percent < MAX_TOLERANCE_PERCENT || (percent === MAX_TOLERANCE_PERCENT && /^0*$/.test(decimals));
 }
 
 /** The inverse of `parseTolerancePercent`, to pre-fill a field: 500 is "5", 250 is "2.5". */

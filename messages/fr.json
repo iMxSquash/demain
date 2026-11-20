@@ -1080,6 +1080,7 @@
     "amountSyntax": "Montant invalide « {text} » : uniquement des chiffres et une virgule ou un point",
     "amountCharacterRefused": "« {character} » n'est pas accepté : uniquement des chiffres et une virgule ou un point.",
     "wholeNumberCharacterRefused": "« {character} » n'est pas accepté : uniquement des chiffres.",
+    "percentCharacterRefused": "« {character} » n'est pas accepté : un pourcentage de 0 à 100, avec deux décimales au plus.",
     "currencyCodeSyntax": "Code de devise invalide « {text} » : trois lettres attendues",
     "balanceSideInvalid": "Choisissez crédit ou débit",
     "balanceUnsigned": "Saisissez le solde sans signe : Crédit ou Débit donne le côté",

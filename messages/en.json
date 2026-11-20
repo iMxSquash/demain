@@ -1080,6 +1080,7 @@
     "amountSyntax": "Invalid amount \"{text}\": digits and one comma or point only",
     "amountCharacterRefused": "\"{character}\" is not accepted: digits and one comma or point only.",
     "wholeNumberCharacterRefused": "\"{character}\" is not accepted: digits only.",
+    "percentCharacterRefused": "\"{character}\" is not accepted: a percentage from 0 to 100, with two decimals at most.",
     "currencyCodeSyntax": "Invalid currency code \"{text}\": three letters expected",
     "balanceSideInvalid": "Choose credit or debit",
     "balanceUnsigned": "Enter the balance without a sign: Credit or Debit gives the side",

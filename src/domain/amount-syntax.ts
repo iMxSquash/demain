@@ -118,7 +118,7 @@ export function composeSignedAmountText(magnitude: string, side: BalanceSide): s
 }
 
 const WHOLE_NUMBER = /^\d+$/;
-const NON_DIGIT = /\D/u;
+const WHOLE_NUMBER_DRAFT = /^\d*$/;
 
 /** Reads a whole number typed as digits only (a day, a count of months or weeks, a number of days). */
 export function parseWholeNumber(text: string): number | null {
@@ -126,7 +126,7 @@ export function parseWholeNumber(text: string): number | null {
   return WHOLE_NUMBER.test(trimmed) ? Number(trimmed) : null;
 }
 
-/** The first character of `text` that is not a digit, for a field that accepts digits only. */
-export function firstNonDigit(text: string): string | undefined {
-  return [...text].find((character) => NON_DIGIT.test(character));
+/** Whether `text` can still become a whole number by typing more: digits only. */
+export function isWholeNumberDraft(text: string): boolean {
+  return WHOLE_NUMBER_DRAFT.test(text);
 }
