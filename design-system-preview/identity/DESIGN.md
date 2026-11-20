@@ -640,10 +640,10 @@ With `tailwind.css`, Tailwind's default palette, sizes, weights, radii and shado
 The screens that manage planned items (DOMAIN, "Planned item and versions"): the list `/planned`, the create form and the edit page (the routes of the last two belong to the issues that build them). They are drawn on `components.html`, in the section "Planned items", one card per screen, wide and on a 375 px phone, with the numbers of this section. DECISIONS.md, "Planned items", records what the owner decided on 19 Nov 2026 and what this pass proposes.
 
 **Rules for every screen**
-- **Built from what exists.** Fields, Select, the date picker field, the type segments and choice chips of section 10, Checkbox, Disclosure, Table, notice, dialog and buttons. No new token and no new component. The one new composition is the phone list row (below), because five table columns do not fit 343 px.
+- **Built from what exists.** Fields, Select, the date picker field, the type segments and choice chips of section 10, Checkbox, Disclosure, Table, notice, dialog and buttons. No new token and no new component: the page title, the group titles and the link in a table are styling of existing elements, and the chip and segment rules of the flow are shared, not copied. The one new composition is the phone list row (below), because five table columns do not fit 343 px.
 - **Real values only.** These screens show what the user entered. No blur and no dashed line: the dash and the blur belong to projections (section 1, section 11). The only estimate is the one the user chooses: a rolling average, whose amount is called "Starting estimate" (ADR-011).
 - **Amounts are typed without a sign.** The type (Out, In, Move, Interest) gives the sign (section 9, DOMAIN invariant 1). A figure shown after saving carries its sign (`-€650.00`, `+€2,450.00`) and a move carries none.
-- **One primary action per screen**, ink. The save buttons are 52 px tall, as in section 10, and say a verb and a kind. Red is only on the confirm button of a dialog (section 8).
+- **One primary action per screen**, ink. The primary save buttons are 52 px tall, as in section 10, and say a verb and a kind; the secondary saves of a card ("Save details", "Save end date") are 44 px. Red is only on the confirm button of a dialog (section 8).
 - **Layout switch.** The pages follow the width of their container, not the viewport (section 6): from 640 px of container the form uses two columns and the list is a table; below, one column and rows. The phone reference is 375 px wide with 16 px gutters, so 343 px of content.
 - **Colour.** Ink for what is chosen, red and green only on the type segments and the signed figures, always with the word or the sign. Blue is not used: nothing here means today.
 - **Language.** Sentence case. A hint says the rule before the error has to (section 9). An error starts with "Error:" and an alert icon.
@@ -668,7 +668,7 @@ The screens that manage planned items (DOMAIN, "Planned item and versions"): the
 
 **Phone (under 640 px)**
 - **Header:** `h1`, then the primary "Add planned item" at full width (44 px), 16 px apart.
-- **Card:** padding 16. A list of rows of 64 px at least, with hairlines, each one a single link of the full width (a target of 64 x 343 px).
+- **Card:** padding 16. A list of rows of 64 px at least, with hairlines, each one a single link of the full width of the card (a target at least 64 px tall).
 - **Row:** line 1 is the name (medium, ink) with the signed amount on the right (tabular); line 2 is 13 px `text-muted`: schedule, then "Average of 3" when it applies, then the account, then "Next 5 Dec", separated by " · ". It may wrap to a second line, and the row grows with it. 64 px is the 56 px of the recap rows in section 10 plus one 8 px step for the second line.
 - **Ended and cancelled:** the same disclosure, with the same rows and the words "Ended" or "Cancelled" in place of the next date.
 
@@ -713,6 +713,8 @@ A card of at most 720 px, padding 24 (16 on a phone), with three groups. Each gr
 | Provision on a one-off | Error: a provision needs a repetition. Choose how it repeats, or untick the provision. |
 | Saving | Error: the planned item could not be saved. Try again. |
 
+The messages and the rules behind them (an end date not before the first date, whole numbers of 1 or more, a tolerance between 0 and 100) are proposed: DOMAIN fixes none of them, and they wait for the owner's check (DECISIONS.md, open question 6). The errors card of `components.html` draws the name, the day, the amount, the tolerance and the saving error; the others follow the same pattern. The provision error is the one a form posted without JavaScript returns, since with JavaScript the box is unavailable on a one-off.
+
 **Without JavaScript:** the Selects and dates are the native `select` and `input type="date"` (section 9); the number, the window and the label filter are always in the form and the server ignores those that do not apply to the chosen repetition and mode; the type and mode segments are native radios. The server checks every rule above and returns the errors with the form.
 
 ### The edit page
@@ -720,7 +722,7 @@ A card of at most 720 px, padding 24 (16 on a phone), with three groups. Each gr
 A column of cards at most 720 px wide, 16 px apart, padding 24 (16 on a phone). The header has a back link, an `h1` with the name, and under it a muted line with the schedule in words and, when it applies, the pill "Cancelled" or "Ended 31 Oct 2026".
 
 **Details** (card)
-- **Read-only facts:** type, account and first date in a definition list (section 8, the `kv` list), 13 px muted terms and ink values, under the hint "Fixed once created". Showing them as text makes the rule visible. Whether they can change is an open point.
+- **Read-only facts (proposed):** type, account and first date in a definition list (section 8, the `kv` list), 13 px muted terms and ink values, under the hint "Fixed once created". Showing them as text makes the rule visible. DOMAIN does not say whether they can change: it is an open point (DECISIONS.md, open question 5).
 - **Editable:** name, category, the provision checkbox with its label filter, and the "Matching" disclosure, with the rules of the create form. One secondary button, "Save details".
 
 **Versions** (card)
@@ -728,7 +730,7 @@ A column of cards at most 720 px wide, 16 px apart, padding 24 (16 on a phone). 
 - **Scrolling:** the table sits in a region that scrolls sideways when needed (`tabindex="0"`, `role="region"`, an `aria-label` "Versions of Rent"), the only way to keep four columns of words on 343 px.
 - **Change from a date:** a Disclosure under the table, "Change from a date". It holds the version fields of the create form (Repeats and its number, the weekend rule, the mode, the amount or starting estimate, the averaged occurrences), filled with the version in force, and a **Change from** date picker field first.
   - **Hint under Repeats:** "Changing how it repeats restarts the series from this date. Changing only the amount keeps the current rhythm." (DOMAIN, decisions of 19 Nov 2026, Q3 and Q5).
-  - **Same day:** when the date is the one of an existing version, a notice of section 8 appears under the date, `role="status"`: "Warning: this replaces the version of 1 Jan 2026. Its values are lost." The primary button then says "Replace the version of 1 Jan 2026"; otherwise "Change from 5 Dec 2026". The notice carries a word, so the amber is not alone.
+  - **Same day (proposed):** when the date is the one of an existing version, a notice of section 8 appears under the date, `role="status"`: "Warning: this replaces the version of 5 Sep 2026. Its values are lost." The primary button then says "Replace the version of 5 Sep 2026"; otherwise "Change from 15 Dec 2026". The notice carries a word, so the amber is not alone. DOMAIN does not say what a second version on the same day does. Replacing keeps one version per day, and on the first version it keeps the date of the first date, as DOMAIN Q5 asks. The owner confirms it (DECISIONS.md, "Planned items").
   - Matching and provision are not here: they belong to the item, not to a version.
 
 **End date** (card, repeating items only)
@@ -736,8 +738,9 @@ A column of cards at most 720 px wide, 16 px apart, padding 24 (16 on a phone). 
 
 **Stop or remove** (card)
 - Two rows of one sentence and one secondary button, 16 px apart, with a hairline between them. Neither button is red: red is for the confirmation.
-- **Cancel this planned item:** "Nothing more is planned from today. Occurrences already settled keep their transactions." (DOMAIN, Q4). Hidden on an item already cancelled, where the sentence "This planned item is cancelled." takes its place.
-- **Delete:** "Deletes the planned item and its versions. No transaction changes." with the button "Delete". It exists only when no transaction is linked (owner, 19 Nov 2026): otherwise there is no button, and the sentence reads "This planned item cannot be deleted: 12 transactions are linked to it. Cancel it instead."
+- **Cancel this planned item:** "Nothing more is planned from today. Occurrences already settled keep their transactions." (DOMAIN, Q4). On an item already cancelled the sentence "This planned item is cancelled." takes its place.
+- **Delete:** "Deletes the planned item and its versions. No transaction changes." with the button "Delete". It exists only when no transaction is linked (owner, 19 Nov 2026): otherwise there is no button, and the sentence reads "This planned item cannot be deleted: 10 transactions are linked to it. Cancel it instead."
+- **A cancelled item (proposed):** the header shows the pill "Cancelled" next to the schedule. Details stay editable (name, category), the versions table stays as a record, and "Change from a date" and "End date" are not offered, since nothing is planned after today. DOMAIN says only that a cancelled item produces nothing after today (Q4); the rest is an open point (DECISIONS.md, open question 8).
 - **Both open the native dialog** (section 8): a title with the name ("Cancel Rent?", "Delete Rent?"), one sentence, "Keep it" (secondary, takes the focus first) and the red confirm button, "Cancel this planned item" or "Delete", on the right. The dismiss button never says "Cancel", so the two meanings never meet. Escape closes.
 
 **Without JavaScript:** the disclosures are native `details`; the dialogs are native `dialog` opened by a script, and without it the two buttons post to a confirmation page with the same sentences.
