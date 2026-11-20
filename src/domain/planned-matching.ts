@@ -3,6 +3,7 @@
 // unambiguous; every other candidate is proposed to the owner, never applied silently.
 
 import { addDays } from "./calendar-date";
+import { compareDates } from "./import-savings";
 import type { OccurrenceStatus } from "./occurrence-resolution";
 import { isProvisionCandidate, type ProvisionCandidateTransaction, type ProvisionItem } from "./provision";
 import type { DateRange } from "./recurrence";
@@ -57,7 +58,6 @@ interface Candidate {
  * tolerance is relative to the actual amount and tested by multiplication to avoid a division.
  */
 export function isWithinTolerance(expected: number, actual: number, basisPoints: number): boolean {
-  if (expected === 0 || actual === 0) return expected === actual;
   if (Math.sign(expected) !== Math.sign(actual)) return false;
   return Math.abs(expected - actual) * BASIS_POINTS_DENOMINATOR <= basisPoints * Math.abs(actual);
 }
@@ -65,8 +65,7 @@ export function isWithinTolerance(expected: number, actual: number, basisPoints:
 function comparePairs(a: MatchPair, b: MatchPair): number {
   if (a.transactionId !== b.transactionId) return a.transactionId - b.transactionId;
   if (a.plannedItemId !== b.plannedItemId) return a.plannedItemId - b.plannedItemId;
-  if (a.nominalDate === b.nominalDate) return 0;
-  return a.nominalDate < b.nominalDate ? -1 : 1;
+  return compareDates(a.nominalDate, b.nominalDate);
 }
 
 function occurrenceKey(pair: MatchPair): string {
@@ -103,16 +102,14 @@ function regularCandidates(
   transactions: readonly MatchTransaction[],
   occurrences: readonly MatchOccurrence[],
 ): Candidate[] {
-  return transactions
-    .filter((transaction) => transaction.kind !== "transfer")
-    .flatMap((transaction) =>
-      occurrences
-        .filter((occurrence) => isRegularCandidate(transaction, occurrence))
-        .map((occurrence) => ({
-          pair: toPair(transaction, occurrence.plannedItemId, occurrence.nominalDate),
-          isProvision: false,
-        })),
-    );
+  return transactions.flatMap((transaction) =>
+    occurrences
+      .filter((occurrence) => isRegularCandidate(transaction, occurrence))
+      .map((occurrence) => ({
+        pair: toPair(transaction, occurrence.plannedItemId, occurrence.nominalDate),
+        isProvision: false,
+      })),
+  );
 }
 
 /** Every fill-up of a provision's period, one pair per provision it fits. */
@@ -123,12 +120,6 @@ export function provisionLinks(
   return provisionCandidates(transactions, provisions)
     .map((candidate) => candidate.pair)
     .sort(comparePairs);
-}
-
-function countBy<T>(items: readonly T[], keyOf: (item: T) => string | number): Map<string | number, number> {
-  const counts = new Map<string | number, number>();
-  for (const item of items) counts.set(keyOf(item), (counts.get(keyOf(item)) ?? 0) + 1);
-  return counts;
 }
 
 function createUnionFind(): { find: (key: string) => string; union: (a: string, b: string) => void } {
@@ -156,7 +147,9 @@ function groupAmbiguous(candidates: readonly Candidate[]): MatchPair[][] {
   const groups = new Map<string, MatchPair[]>();
   for (const { pair } of candidates) {
     const root = find(`t${pair.transactionId}`);
-    groups.set(root, [...(groups.get(root) ?? []), pair]);
+    const group = groups.get(root);
+    if (group) group.push(pair);
+    else groups.set(root, [pair]);
   }
   return [...groups.values()];
 }
@@ -171,26 +164,31 @@ export function decideMatches(
   occurrences: readonly MatchOccurrence[],
   provisions: readonly ProvisionOccurrence[] = [],
 ): MatchDecisions {
-  const candidates = [...regularCandidates(transactions, occurrences), ...provisionCandidates(transactions, provisions)].sort(
+  const matchable = transactions.filter((transaction) => transaction.kind !== "transfer");
+  const candidates = [...regularCandidates(matchable, occurrences), ...provisionCandidates(matchable, provisions)].sort(
     (a, b) => comparePairs(a.pair, b.pair),
   );
-  const perTransaction = countBy(candidates, (candidate) => candidate.pair.transactionId);
-  const regularPerOccurrence = countBy(
+  const perTransaction = Map.groupBy(candidates, (candidate) => candidate.pair.transactionId);
+  const regularPerOccurrence = Map.groupBy(
     candidates.filter((candidate) => !candidate.isProvision),
     (candidate) => occurrenceKey(candidate.pair),
   );
 
   const isConfirmed = ({ pair, isProvision }: Candidate): boolean =>
-    perTransaction.get(pair.transactionId) === 1 && (isProvision || regularPerOccurrence.get(occurrenceKey(pair)) === 1);
+    perTransaction.get(pair.transactionId)?.length === 1 &&
+    (isProvision || regularPerOccurrence.get(occurrenceKey(pair))?.length === 1);
 
-  const unmatched = transactions
-    .filter((transaction) => transaction.kind !== "transfer" && !perTransaction.has(transaction.id))
+  const confirmed: MatchPair[] = [];
+  const ambiguous: Candidate[] = [];
+  for (const candidate of candidates) {
+    if (isConfirmed(candidate)) confirmed.push(candidate.pair);
+    else ambiguous.push(candidate);
+  }
+
+  const unmatched = matchable
+    .filter((transaction) => !perTransaction.has(transaction.id))
     .map((transaction) => transaction.id)
     .sort((a, b) => a - b);
 
-  return {
-    confirmed: candidates.filter(isConfirmed).map((candidate) => candidate.pair),
-    proposed: groupAmbiguous(candidates.filter((candidate) => !isConfirmed(candidate))),
-    unmatched,
-  };
+  return { confirmed, proposed: groupAmbiguous(ambiguous), unmatched };
 }

@@ -4,6 +4,7 @@ import {
   decideMatches,
   isWithinTolerance,
   provisionLinks,
+  type MatchDecisions,
   type MatchOccurrence,
   type MatchPair,
   type MatchTransaction,
@@ -74,6 +75,10 @@ function pair(transactionId: number, plannedItemId: number, nominalDate = DEFAUL
   return { transactionId, plannedItemId, nominalDate };
 }
 
+function noMatch(unmatched: number[] = []): MatchDecisions {
+  return { confirmed: [], proposed: [], unmatched };
+}
+
 describe("isWithinTolerance", () => {
   it("accepts an actual amount at the tolerance boundary", () => {
     expect(isWithinTolerance(-10500, -10000, 500)).toBe(true);
@@ -132,47 +137,32 @@ describe("decideMatches", () => {
 
     const result = decideMatches(transactions, occurrences);
 
-    expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [1] });
+    expect(result).toEqual(noMatch([1]));
   });
 
   it("gives no decision without transactions", () => {
     const result = decideMatches([], [occurrence()]);
 
-    expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [] });
+    expect(result).toEqual(noMatch());
   });
 
   it("gives no decision without occurrences", () => {
     const result = decideMatches([], []);
 
-    expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [] });
+    expect(result).toEqual(noMatch());
   });
 
   describe("window", () => {
-    it("accepts a transaction 5 days from the occurrence date", () => {
-      const result = decideMatches([transaction({ date: "2026-03-10" })], [occurrence({ windowDays: 5 })]);
+    it.each([
+      { name: "accepts a transaction 5 days after the occurrence date", date: "2026-03-10", windowDays: 5, isMatched: true },
+      { name: "rejects a transaction 6 days after the occurrence date", date: "2026-03-11", windowDays: 5, isMatched: false },
+      { name: "accepts a transaction 5 days before the occurrence date", date: "2026-02-28", windowDays: 5, isMatched: true },
+      { name: "accepts the same day with a window of 0", date: DEFAULT_DATE, windowDays: 0, isMatched: true },
+      { name: "rejects the next day with a window of 0", date: "2026-03-06", windowDays: 0, isMatched: false },
+    ])("$name", ({ date, windowDays, isMatched }) => {
+      const result = decideMatches([transaction({ date })], [occurrence({ windowDays })]);
 
-      expect(result.confirmed).toEqual([pair(1, 1)]);
-    });
-
-    it("rejects a transaction 6 days from the occurrence date", () => {
-      const result = decideMatches([transaction({ date: "2026-03-11" })], [occurrence({ windowDays: 5 })]);
-
-      expect(result.confirmed).toEqual([]);
-      expect(result.unmatched).toEqual([1]);
-    });
-
-    it("accepts a transaction 5 days before the occurrence date", () => {
-      const result = decideMatches([transaction({ date: "2026-02-28" })], [occurrence({ windowDays: 5 })]);
-
-      expect(result.confirmed).toEqual([pair(1, 1)]);
-    });
-
-    it("accepts the same day only with a window of 0", () => {
-      const sameDay = decideMatches([transaction({ date: DEFAULT_DATE })], [occurrence({ windowDays: 0 })]);
-      const nextDay = decideMatches([transaction({ date: "2026-03-06" })], [occurrence({ windowDays: 0 })]);
-
-      expect(sameDay.confirmed).toEqual([pair(1, 1)]);
-      expect(nextDay.unmatched).toEqual([1]);
+      expect(result).toEqual(isMatched ? { ...noMatch(), confirmed: [pair(1, 1)] } : noMatch([1]));
     });
 
     it("uses the adjusted or overridden date rather than the nominal date", () => {
@@ -192,7 +182,7 @@ describe("decideMatches", () => {
 
       const result = decideMatches([transaction({ amount: -45000 })], [incomeItem]);
 
-      expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [1] });
+      expect(result).toEqual(noMatch([1]));
     });
 
     it("never matches an income against an expense item", () => {
@@ -200,7 +190,7 @@ describe("decideMatches", () => {
 
       const result = decideMatches([transaction({ amount: 45000, kind: "income" })], [expenseItem]);
 
-      expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [1] });
+      expect(result).toEqual(noMatch([1]));
     });
 
     it("does not require the kind to match, the sign is enough", () => {
@@ -222,7 +212,7 @@ describe("decideMatches", () => {
     it.each(["confirmed", "partial", "cancelled"] as const)("ignores a %s occurrence", (status) => {
       const result = decideMatches([transaction()], [occurrence({ status })]);
 
-      expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [1] });
+      expect(result).toEqual(noMatch([1]));
     });
 
     it("accepts an overdue occurrence", () => {
@@ -234,7 +224,7 @@ describe("decideMatches", () => {
     it("ignores an occurrence on another account", () => {
       const result = decideMatches([transaction()], [occurrence({ accountId: OTHER_ACCOUNT_ID })]);
 
-      expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [1] });
+      expect(result).toEqual(noMatch([1]));
     });
 
     it("ignores transfers entirely", () => {
@@ -242,7 +232,7 @@ describe("decideMatches", () => {
 
       const result = decideMatches(transfers, [occurrence()]);
 
-      expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [] });
+      expect(result).toEqual(noMatch());
     });
 
     it("does not let a transfer make a regular match ambiguous", () => {
@@ -270,7 +260,7 @@ describe("decideMatches", () => {
     it("leaves a fill-up outside the provision period unmatched", () => {
       const result = decideMatches([fillUp(1, { date: "2026-04-02" })], [], [provision()]);
 
-      expect(result).toEqual({ confirmed: [], proposed: [], unmatched: [1] });
+      expect(result).toEqual(noMatch([1]));
     });
 
     it("proposes both pairs for a transaction fitting a provision and a regular occurrence", () => {

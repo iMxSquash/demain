@@ -449,7 +449,7 @@ Decisions of the owner on matching, 19 Nov 2026:
 - Q2, a transaction that is a candidate for a provision and for a regular occurrence goes to the proposed group. Nothing is applied silently.
 - Q3, a transaction that fits two provisions goes to the proposed group.
 
-Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones (`decideMatches(transactions, occurrences, provisions = [])`). A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers are ignored here (#175). The output is sorted by transaction id, then planned item id, then nominal date. The window and tolerance of regular items are configurable per planned item, since some direct debits move by several days and some bills vary more than 5%.
+Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones. A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers are ignored here (#175).
 
 ## Estimated variable spending
 
