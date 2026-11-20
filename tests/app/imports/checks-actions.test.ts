@@ -211,7 +211,7 @@ describe("checkBatchBalanceAction", () => {
         kind: "expense",
         label: "EMPTY",
       });
-      archiveAccount(db, accountId);
+      archiveAccount(db, accountId, "2026-06-15");
 
       const state = await recordBatchBalanceAssertionAction(batchId, "937,50", "credit");
 

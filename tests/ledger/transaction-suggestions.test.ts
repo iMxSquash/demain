@@ -187,7 +187,7 @@ describe("transaction suggestions", () => {
       });
       spend("Bakery", "2026-02-02", checking.id);
       spend("Last meal", "2026-02-03", closed.id);
-      archiveAccount(db, closed.id);
+      archiveAccount(db, closed.id, "2026-06-15");
 
       expect(getLastUsedAccountId(db)).toBe(checking.id);
     });

@@ -375,7 +375,7 @@ describe("categories", () => {
         date: "2026-02-12",
         label: "Empty it",
       });
-      archiveAccount(db, closing.id);
+      archiveAccount(db, closing.id, "2026-06-15");
 
       const categorized = setTransactionCategory(db, income.id, groceries.id);
 

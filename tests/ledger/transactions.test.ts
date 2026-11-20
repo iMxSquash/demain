@@ -86,7 +86,7 @@ describe("transactions", () => {
 
   it("refuses a transaction on an archived account", () => {
     const empty = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
-    archiveAccount(db, empty.id);
+    archiveAccount(db, empty.id, "2026-06-15");
 
     expect(() =>
       createTransaction(db, {
@@ -150,7 +150,7 @@ describe("transactions", () => {
     it("records nothing when the destination account is archived", () => {
       const checking = createAccount(db, CHECKING_INPUT);
       const closed = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
-      archiveAccount(db, closed.id);
+      archiveAccount(db, closed.id, "2026-06-15");
 
       expect(() =>
         createTransfer(db, {
@@ -270,7 +270,7 @@ describe("transactions", () => {
         date: "2026-02-02",
         label: "Empty it",
       });
-      archiveAccount(db, closing.id);
+      archiveAccount(db, closing.id, "2026-06-15");
       return { closing, income, incoming };
     }
 

@@ -142,7 +142,7 @@ describe("balance assertions", () => {
       const later = saveBalanceAssertion(db, { accountId: active.id, date: "2026-02-28", amount: 5627 });
       const earlier = saveBalanceAssertion(db, { accountId: active.id, date: "2026-01-31", amount: 5000 });
       saveBalanceAssertion(db, { accountId: closed.id, date: "2026-01-31", amount: 0 });
-      archiveAccount(db, closed.id);
+      archiveAccount(db, closed.id, "2026-06-15");
 
       expect(listAssertionSnapshots(db)).toEqual([
         { id: earlier.id, accountId: active.id, date: "2026-01-31", amount: 5000 },
@@ -182,7 +182,7 @@ describe("balance assertions", () => {
         amount: 4627,
       });
       saveBalanceAssertion(db, { accountId: closed.id, date: "2026-01-31", amount: 0 });
-      archiveAccount(db, closed.id);
+      archiveAccount(db, closed.id, "2026-06-15");
 
       expect(readAssertionLinkSnapshot(db)).toEqual({
         accounts: [{ id: checking.id, openingBalance: 5627 }],
@@ -237,7 +237,7 @@ describe("balance assertions", () => {
       const closed = createAccount(db, { ...CHECKING_INPUT, name: "Old", openingBalance: 0 });
       saveBalanceAssertion(db, { accountId: active.id, date: "2026-01-31", amount: 5627 });
       saveBalanceAssertion(db, { accountId: closed.id, date: "2026-01-31", amount: 0 });
-      archiveAccount(db, closed.id);
+      archiveAccount(db, closed.id, "2026-06-15");
 
       const byAccount = new Map(
         listAllBalanceAssertions(db).map((entry) => [entry.accountId, entry]),
@@ -258,7 +258,7 @@ describe("balance assertions", () => {
     function archivedWithAssertion() {
       const account = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
       saveBalanceAssertion(db, { accountId: account.id, date: "2026-01-31", amount: 0 });
-      archiveAccount(db, account.id);
+      archiveAccount(db, account.id, "2026-06-15");
       return account;
     }
 

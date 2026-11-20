@@ -14,6 +14,7 @@ import {
 import { messageRef } from "../domain/message";
 import type { AppDatabase } from "../storage/database";
 import { accounts, transactions } from "../storage/schema";
+import { listItemsBlockingArchive } from "./planned-items";
 
 export type Account = typeof accounts.$inferSelect;
 
@@ -30,6 +31,15 @@ export class AccountInUseError extends Error {
       `Account ${id} is the overflow account of ${referrers.join(", ")}: change those first`,
     );
     this.name = "AccountInUseError";
+  }
+}
+
+export class AccountInUseByPlannedItemError extends Error {
+  constructor(id: number, itemNames: string[]) {
+    super(
+      `Account ${id} is targeted by the planned items ${itemNames.join(", ")}: cancel or change them first`,
+    );
+    this.name = "AccountInUseByPlannedItemError";
   }
 }
 
@@ -175,7 +185,8 @@ export function updateAccount(
     .get();
 }
 
-export function archiveAccount(db: AppDatabase, id: number): void {
+/** `today` decides which planned items are over: the ledger never reads the clock. */
+export function archiveAccount(db: AppDatabase, id: number, today: string): void {
   // A negative balance blocks the archiving as well (DOMAIN, archiving an account).
   const balance = getAccountBalance(db, id);
   if (balance !== 0) {
@@ -187,6 +198,10 @@ export function archiveAccount(db: AppDatabase, id: number): void {
       id,
       referrers.map((referrer) => referrer.name),
     );
+  }
+  const plannedItemNames = listItemsBlockingArchive(db, id, today);
+  if (plannedItemNames.length > 0) {
+    throw new AccountInUseByPlannedItemError(id, plannedItemNames);
   }
   db.update(accounts).set({ archived: true }).where(eq(accounts.id, id)).run();
 }

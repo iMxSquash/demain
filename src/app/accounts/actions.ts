@@ -1,10 +1,13 @@
 "use server";
 
+import { getTimeZone } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { AccountValidationError } from "../../domain/account";
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
+import { todayIn } from "../../i18n/dates";
 import {
+  AccountInUseByPlannedItemError,
   AccountInUseError,
   AccountNotEmptyError,
   AccountNotFoundError,
@@ -51,6 +54,9 @@ function describeArchiveFailure(error: unknown): MessageRef {
   if (error instanceof AccountNotFoundError) return messageRef("accountGone");
   if (error instanceof AccountNotEmptyError) return messageRef("accountNotEmpty");
   if (error instanceof AccountInUseError) return messageRef("accountInUse");
+  if (error instanceof AccountInUseByPlannedItemError) {
+    return messageRef("accountInUseByPlannedItem");
+  }
   console.error("Account archive failed", error);
   return messageRef("accountNotArchived");
 }
@@ -99,7 +105,8 @@ export async function updateAccountAction(
 
 export async function archiveAccountAction(id: number): Promise<void> {
   await requireSession();
-  await runWithNotice(() => withDatabase((db) => archiveAccount(db, id)), {
+  const today = todayIn(await getTimeZone(), new Date());
+  await runWithNotice(() => withDatabase((db) => archiveAccount(db, id, today)), {
     success: "accountArchived",
     describeFailure: describeArchiveFailure,
   });

@@ -19,7 +19,11 @@ import {
   migrateDatabase,
   openDatabase,
 } from "../../src/storage/database";
-import { accounts } from "../../src/storage/schema";
+import { createPlannedItem } from "../../src/ledger/planned-items";
+import { accounts, plannedItems } from "../../src/storage/schema";
+
+
+const TODAY = "2026-06-15";
 
 const CHECKING_INPUT = {
   name: "Checking",
@@ -66,7 +70,7 @@ describe("accounts", () => {
       openingBalance: 0,
     });
 
-    archiveAccount(db, livretA.id);
+    archiveAccount(db, livretA.id, TODAY);
 
     expect(listAccounts(db)).toEqual([checking]);
     expect(listAccounts(db, { includeArchived: true })).toEqual([
@@ -105,7 +109,7 @@ describe("accounts", () => {
     expect(() => updateAccount(db, 999, CHECKING_INPUT)).toThrow(
       expect.objectContaining({ name: "AccountNotFoundError" }),
     );
-    expect(() => archiveAccount(db, 999)).toThrow(
+    expect(() => archiveAccount(db, 999, TODAY)).toThrow(
       expect.objectContaining({ name: "AccountNotFoundError" }),
     );
   });
@@ -121,7 +125,7 @@ describe("accounts", () => {
     it("refuses to archive an account whose balance is not zero", () => {
       const checking = createAccount(db, CHECKING_INPUT);
 
-      expect(() => archiveAccount(db, checking.id)).toThrow(
+      expect(() => archiveAccount(db, checking.id, TODAY)).toThrow(
         expect.objectContaining({ name: "AccountNotEmptyError" }),
       );
       expect(listAccounts(db)).toHaveLength(1);
@@ -131,7 +135,7 @@ describe("accounts", () => {
       const checking = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
       createTransaction(db, { ...EXPENSE, accountId: checking.id });
 
-      expect(() => archiveAccount(db, checking.id)).toThrow(
+      expect(() => archiveAccount(db, checking.id, TODAY)).toThrow(
         expect.objectContaining({ name: "AccountNotEmptyError" }),
       );
     });
@@ -147,7 +151,7 @@ describe("accounts", () => {
         label: "Empty checking",
       });
 
-      expect(() => archiveAccount(db, checking.id)).not.toThrow();
+      expect(() => archiveAccount(db, checking.id, TODAY)).not.toThrow();
     });
 
     it("refuses a currency change once the account has a transaction", () => {
@@ -206,7 +210,7 @@ describe("accounts", () => {
 
     it("keeps archived accounts, flagged, since the chain is a graph", () => {
       const closed = createAccount(db, { ...CHECKING_INPUT, openingBalance: 0 });
-      archiveAccount(db, closed.id);
+      archiveAccount(db, closed.id, TODAY);
 
       expect(listOverflowAccounts(db)).toEqual([
         expect.objectContaining({ id: closed.id, archived: true, balance: 0 }),
@@ -244,7 +248,7 @@ describe("accounts", () => {
 
     it("refuses an archived overflow account", () => {
       const livretA = createAccount(db, SAVINGS_INPUT);
-      archiveAccount(db, livretA.id);
+      archiveAccount(db, livretA.id, TODAY);
 
       expect(() =>
         createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id }),
@@ -286,7 +290,7 @@ describe("accounts", () => {
       const livretA = createAccount(db, SAVINGS_INPUT);
       createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id });
 
-      expect(() => archiveAccount(db, livretA.id)).toThrow(
+      expect(() => archiveAccount(db, livretA.id, TODAY)).toThrow(
         expect.objectContaining({ name: "AccountInUseError" }),
       );
       expect(listAccounts(db)).toHaveLength(2);
@@ -300,7 +304,7 @@ describe("accounts", () => {
       });
       updateAccount(db, livretJeune.id, SAVINGS_INPUT);
 
-      archiveAccount(db, livretA.id);
+      archiveAccount(db, livretA.id, TODAY);
 
       expect(listAccounts(db).map((account) => account.id)).toEqual([livretJeune.id]);
     });
@@ -331,9 +335,87 @@ describe("accounts", () => {
         ...SAVINGS_INPUT,
         overflowAccountId: livretA.id,
       });
-      archiveAccount(db, livretJeune.id);
+      archiveAccount(db, livretJeune.id, TODAY);
 
-      expect(() => archiveAccount(db, livretA.id)).not.toThrow();
+      expect(() => archiveAccount(db, livretA.id, TODAY)).not.toThrow();
+    });
+  });
+
+  describe("archiving and planned items", () => {
+    const EMPTY_INPUT = { ...CHECKING_INPUT, openingBalance: 0 };
+    const ITEM = {
+      name: "Rent",
+      kind: "expense" as const,
+      startDate: "2026-01-05",
+      repetition: { kind: "monthly_on_day" as const, day: 5 },
+      amount: -80_000,
+    };
+
+    it("refuses to archive an account targeted by a planned item that is not over", () => {
+      const account = createAccount(db, EMPTY_INPUT);
+      createPlannedItem(db, { ...ITEM, accountId: account.id });
+
+      expect(() => archiveAccount(db, account.id, TODAY)).toThrow(
+        expect.objectContaining({ name: "AccountInUseByPlannedItemError" }),
+      );
+      expect(listAccounts(db)).toHaveLength(1);
+    });
+
+    it("refuses to archive the destination account of a planned item that is not over", () => {
+      const source = createAccount(db, EMPTY_INPUT);
+      const destination = createAccount(db, { ...EMPTY_INPUT, name: "Savings" });
+      createPlannedItem(db, {
+        ...ITEM,
+        kind: "transfer",
+        accountId: source.id,
+        destinationAccountId: destination.id,
+      });
+
+      expect(() => archiveAccount(db, destination.id, TODAY)).toThrow(
+        expect.objectContaining({ name: "AccountInUseByPlannedItemError" }),
+      );
+    });
+
+    it("archives once the item is cancelled", () => {
+      const account = createAccount(db, EMPTY_INPUT);
+      const item = createPlannedItem(db, { ...ITEM, accountId: account.id });
+      db.update(plannedItems).set({ cancelled: true }).where(eq(plannedItems.id, item.id)).run();
+
+      expect(() => archiveAccount(db, account.id, TODAY)).not.toThrow();
+    });
+
+    it("archives once the last occurrence is before today", () => {
+      const account = createAccount(db, EMPTY_INPUT);
+      createPlannedItem(db, { ...ITEM, accountId: account.id, endDate: "2026-03-05" });
+
+      expect(() => archiveAccount(db, account.id, TODAY)).not.toThrow();
+    });
+
+    it("refuses while the last occurrence is on or after today", () => {
+      const account = createAccount(db, EMPTY_INPUT);
+      createPlannedItem(db, { ...ITEM, accountId: account.id, endDate: "2026-07-10" });
+
+      expect(() => archiveAccount(db, account.id, TODAY)).toThrow(
+        expect.objectContaining({ name: "AccountInUseByPlannedItemError" }),
+      );
+    });
+
+    it("refuses while an item without end date is not cancelled", () => {
+      const account = createAccount(db, EMPTY_INPUT);
+      createPlannedItem(db, { ...ITEM, accountId: account.id, startDate: "2020-01-05" });
+
+      expect(() => archiveAccount(db, account.id, TODAY)).toThrow(
+        expect.objectContaining({ name: "AccountInUseByPlannedItemError" }),
+      );
+    });
+
+    it("still refuses a non-zero balance first", () => {
+      const account = createAccount(db, CHECKING_INPUT);
+      createPlannedItem(db, { ...ITEM, accountId: account.id });
+
+      expect(() => archiveAccount(db, account.id, TODAY)).toThrow(
+        expect.objectContaining({ name: "AccountNotEmptyError" }),
+      );
     });
   });
 });

@@ -41,7 +41,7 @@ The application is split into modules with explicit responsibilities. The projec
 | **auth** | Single-user account, first-run setup token, password hashing, sessions, optional TOTP with backup codes, offline password recovery, login rate limiting. | storage |
 | **ledger** | Accounts (with deposit ceilings), transactions, transfers, categories, balance assertions, monthly synthesis, real chart data. | storage, currency |
 | **import** | CSV and OFX parsing, column mappings, deduplication, categorization rules, the to-categorize queue. Later hosts the aggregator adapter interface (M4). | ledger, planning (for matching) |
-| **planning** | Planned items and their versions, occurrence generation, overrides, business-day rules, rolling-average amounts, provisions, planned vs actual matching, calendar data. | ledger, currency |
+| **planning** | Planned items and their versions (`src/domain/recurrence.ts`, `src/domain/occurrences.ts`, `src/domain/planned-item.ts` and `src/ledger/planned-items.ts`, no `planning/` folder, as for the other modules), occurrence generation, overrides, business-day rules, rolling-average amounts, provisions, planned vs actual matching, calendar data. | ledger, currency |
 | **scenarios** | Constant-pace simulation, estimated variable spending, scenarios, modifications, the cash flow transformation engine, indicators, comparison, validation into planned items. | planning, currency |
 | **currency** | Minor unit arithmetic, parsing and formatting of amounts, exchange rates, conversion to the reference currency, optional ECB fetcher. | storage |
 | **i18n** | Translation files (French and English at launch), language negotiation, locale-aware formatting of dates, numbers and amounts. See ADR-014. | none |

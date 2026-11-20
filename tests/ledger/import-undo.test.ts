@@ -224,7 +224,7 @@ describe("undoing an imported batch", () => {
         kind: "expense",
         label: "EMPTY",
       });
-      archiveAccount(db, accountId);
+      archiveAccount(db, accountId, "2026-06-15");
 
       expect(catchError(() => undoImportBatch(db, batchId))).toBeInstanceOf(
         TransactionValidationError,
@@ -241,7 +241,7 @@ describe("undoing an imported batch", () => {
         kind: "expense",
         label: "EMPTY",
       });
-      archiveAccount(db, savingsId);
+      archiveAccount(db, savingsId, "2026-06-15");
 
       expect(catchError(() => undoImportBatch(db, batchId))).toBeInstanceOf(
         TransactionValidationError,
