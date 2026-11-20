@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { messageRef, type FeedbackKey } from "../../domain/message";
 import { todayIn } from "../../i18n/dates";
-import { getImportBatch, ImportBatchNotFoundError } from "../../ledger/import-batch-lookup";
+import { ImportBatchNotFoundError } from "../../ledger/import-batch-lookup";
 import {
   confirmMatch,
   listBatchMatches,
@@ -57,21 +57,7 @@ export async function listBatchMatchesAction(batchId: number): Promise<BatchMatc
   if (!parsed.success) return fail("plannedMatchesFailed");
 
   try {
-    const { matched, groups } = withDatabase((db) => listBatchMatches(db, parsed.data, today));
-    return {
-      status: "ready",
-      matched: matched.map(
-        ({ transactionId, label, date, amount, plannedItemName, nominalDate }) => ({
-          transactionId,
-          label,
-          date,
-          amount,
-          plannedItemName,
-          nominalDate,
-        }),
-      ),
-      groups,
-    };
+    return { status: "ready", ...withDatabase((db) => listBatchMatches(db, parsed.data, today)) };
   } catch (error) {
     return failFrom(error, "plannedMatchesFailed");
   }
@@ -115,11 +101,7 @@ export async function undoMatchAction(
   if (!parsed.success) return fail("plannedMatchUndoFailed");
 
   try {
-    withDatabase((db) => {
-      // The ledger looks the transaction up by batch: an unknown batch must read as gone.
-      getImportBatch(db, parsed.data.batchId);
-      undoMatch(db, parsed.data.batchId, parsed.data.transactionId);
-    });
+    withDatabase((db) => undoMatch(db, parsed.data.batchId, parsed.data.transactionId));
     refreshData();
     return { status: "done", message: t("undone") };
   } catch (error) {

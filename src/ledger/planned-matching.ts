@@ -1,8 +1,10 @@
 import { and, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 
+import { compareDates } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
 import { resolveOccurrences, type OccurrenceLink } from "../domain/occurrence-resolution";
 import {
+  comparePairs,
   decideMatches,
   matchingRange,
   type MatchDecisions,
@@ -51,18 +53,26 @@ export const NO_MATCHES: ImportMatchOutcome = {
   proposedCount: 0,
 };
 
+/** A transaction without category takes the one of the item it is linked to. */
+function inheritsCategory(
+  item: Pick<PlannedItemRow, "categoryId">,
+  transaction: Pick<Transaction, "categoryId">,
+): boolean {
+  return item.categoryId !== null && transaction.categoryId === null;
+}
+
 function writeLink(
   db: Pick<AppDatabase, "update">,
   transaction: Transaction,
   item: Pick<PlannedItemRow, "id" | "categoryId">,
   nominalDate: string,
 ): void {
-  const inheritsCategory = item.categoryId !== null && transaction.categoryId === null;
   db.update(transactions)
     .set({
       plannedItemId: item.id,
       occurrenceDate: nominalDate,
-      ...(inheritsCategory ? { categoryId: item.categoryId, categoryFromPlannedItem: true } : {}),
+      ...(inheritsCategory(item, transaction)
+        ? { categoryId: item.categoryId, categoryFromPlannedItem: true } : {}),
     })
     .where(eq(transactions.id, transaction.id))
     .run();
@@ -323,7 +333,6 @@ export interface BatchMatchedItem {
   date: string;
   /** Integer minor units. */
   amount: number;
-  plannedItemId: number;
   plannedItemName: string;
   nominalDate: string;
 }
@@ -348,13 +357,6 @@ export interface ProposedMatchGroup {
 export interface BatchMatches {
   matched: BatchMatchedItem[];
   groups: ProposedMatchGroup[];
-}
-
-function compareByDateThenId(
-  a: { date: string; id: number },
-  b: { date: string; id: number },
-): number {
-  return a.date.localeCompare(b.date) || a.id - b.id;
 }
 
 function unlinkedBatchTransactions(
@@ -411,7 +413,6 @@ export function listBatchMatches(
       label: transactions.label,
       date: transactions.date,
       amount: transactions.amount,
-      plannedItemId: transactions.plannedItemId,
       plannedItemName: plannedItems.name,
       nominalDate: transactions.occurrenceDate,
     })
@@ -427,17 +428,8 @@ export function listBatchMatches(
     .all();
   // The where clause keeps linked transactions only, so the nullable columns are set.
   const matched = linkedRows
-    .map(({ plannedItemId, nominalDate, ...row }) => ({
-      ...row,
-      plannedItemId: plannedItemId!,
-      nominalDate: nominalDate!,
-    }))
-    .sort((a, b) =>
-      compareByDateThenId(
-        { date: a.date, id: a.transactionId },
-        { date: b.date, id: b.transactionId },
-      ),
-    );
+    .map(({ nominalDate, ...row }) => ({ ...row, nominalDate: nominalDate! }))
+    .sort((a, b) => compareDates(a.date, b.date) || a.transactionId - b.transactionId);
 
   const { groups, transactionsById, itemsById } = proposedGroupsOf(db, batchId, today);
   const described = groups.map((pairs) => ({
@@ -451,24 +443,19 @@ export function listBatchMatches(
         transactionAmount: transaction.amount,
         plannedItemName: item.name,
         nominalDate: pair.nominalDate,
-        givesCategory: item.categoryId !== null && transaction.categoryId === null,
+        givesCategory: inheritsCategory(item, transaction),
       };
     }),
   }));
-  const firstOf = ({ options }: ProposedMatchGroup) => ({
-    date: options[0]!.transactionDate,
-    id: options[0]!.pair.transactionId,
+  // A group is never empty: it is ordered by its first option.
+  described.sort((a, b) => {
+    const [first, second] = [a.options[0]!, b.options[0]!];
+    return (
+      compareDates(first.transactionDate, second.transactionDate) ||
+      first.pair.transactionId - second.pair.transactionId
+    );
   });
-  described.sort((a, b) => compareByDateThenId(firstOf(a), firstOf(b)));
   return { matched, groups: described };
-}
-
-function samePair(a: MatchPair, b: MatchPair): boolean {
-  return (
-    a.transactionId === b.transactionId &&
-    a.plannedItemId === b.plannedItemId &&
-    a.nominalDate === b.nominalDate
-  );
 }
 
 /** Links a pair that the batch currently proposes; a pair that is not (any more) is refused. */
@@ -481,7 +468,7 @@ export function confirmMatch(
   db.transaction((tx) => {
     getImportBatch(tx, batchId);
     const { groups } = proposedGroupsOf(tx, batchId, today);
-    if (!groups.some((group) => group.some((proposed) => samePair(proposed, pair)))) {
+    if (!groups.some((group) => group.some((proposed) => comparePairs(proposed, pair) === 0))) {
       throw new PlannedLinkError(
         "The pair is not proposed for this import batch",
         messageRef("matchNotProposed"),
@@ -493,6 +480,7 @@ export function confirmMatch(
 
 /** Unlinks a transaction of the batch that is linked to an occurrence. */
 export function undoMatch(db: AppDatabase, batchId: number, transactionId: number): void {
+  getImportBatch(db, batchId);
   db.transaction((tx) => {
     const transaction = tx
       .select()

@@ -131,7 +131,7 @@ describe("reviewing the planned matches of an import batch", () => {
   }
 
   it("lists the automatic matches of a batch and its proposed groups", () => {
-    const { streaming, gymA, gymB, batchId } = importMixedBatch();
+    const { gymA, gymB, batchId } = importMixedBatch();
     const streamingRow = transactionLabelled("STREAMING");
     const gymRow = transactionLabelled("GYM");
 
@@ -143,7 +143,6 @@ describe("reviewing the planned matches of an import batch", () => {
         label: "STREAMING",
         date: "2026-03-10",
         amount: -1_299,
-        plannedItemId: streaming.id,
         plannedItemName: "Streaming",
         nominalDate: "2026-03-10",
       },
@@ -303,6 +302,16 @@ describe("reviewing the planned matches of an import batch", () => {
 
     expect(refOf(error)).toBe("matchNotInBatch");
     expect(transactionLabelled("JOINT GYM").plannedItemId).toBe(other.plannedItemId);
+  });
+
+  it("refuses to undo in an unknown batch", () => {
+    importMixedBatch();
+    const streamingRow = transactionLabelled("STREAMING");
+
+    expect(catchError(() => undoMatch(db, 9_999, streamingRow.id))).toBeInstanceOf(
+      ImportBatchNotFoundError,
+    );
+    expect(transactionLabelled("STREAMING").plannedItemId).not.toBeNull();
   });
 
   it("refuses to undo a transaction that is not linked", () => {

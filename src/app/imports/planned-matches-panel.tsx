@@ -4,26 +4,24 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import { formatAmount } from "../../domain/money";
+import type { MatchPair } from "../../domain/planned-matching";
 import { formatCalendarDate } from "../../i18n/dates";
 import { Button } from "../../components/button";
 import { Notice } from "../../components/notice";
 import { confirmMatchAction, listBatchMatchesAction, undoMatchAction } from "./match-actions";
-import type {
-  BatchMatchesState,
-  MatchActionState,
-  MatchPairView,
-  ProposedGroupView,
-  ProposedOptionView,
-} from "./import-form-data";
+import type { ProposedMatchGroup, ProposedMatchOption } from "../../ledger/planned-matching";
+import type { BatchMatchesState, MatchActionState } from "./import-form-data";
 
 const LEAVE_UNMATCHED = "";
 
-function pairKey({ transactionId, plannedItemId, nominalDate }: MatchPairView): string {
+const NO_MATCHES = { matched: [], groups: [] } as const;
+
+function pairKey({ transactionId, plannedItemId, nominalDate }: MatchPair): string {
   return `${transactionId}:${plannedItemId}:${nominalDate}`;
 }
 
-/** The first option names the group: a group keeps its options while the owner decides. */
-function groupKey(group: ProposedGroupView): string {
+/** The options name the group: a group keeps them while the owner decides, so the key is stable. */
+function groupKey(group: ProposedMatchGroup): string {
   return group.options.map((option) => pairKey(option.pair)).join("|");
 }
 
@@ -37,32 +35,27 @@ async function loadMatches(batchId: number, failedMessage: string): Promise<Batc
 }
 
 interface ProposedGroupProps {
-  group: ProposedGroupView;
+  group: ProposedMatchGroup;
   number: number;
-  /** The key of the chosen option, or `LEAVE_UNMATCHED`. */
-  chosen: string;
   currency: string;
   isPending: boolean;
-  onChoose: (key: string) => void;
-  onConfirm: (option: ProposedOptionView) => void;
-  onLeave: () => void;
+  /** Receives the chosen option, or null when the owner leaves the group unmatched. */
+  onConfirm: (option: ProposedMatchOption | null) => void;
 }
 
 /** One group of competing options: native radios, nothing applied unless one is chosen and confirmed. */
 function ProposedGroup({
   group,
   number,
-  chosen,
   currency,
   isPending,
-  onChoose,
   onConfirm,
-  onLeave,
 }: ProposedGroupProps) {
   const t = useTranslations("imports.staged.plannedMatches");
   const locale = useLocale();
   const radioName = useId();
   const noteId = useId();
+  const [chosen, setChosen] = useState(LEAVE_UNMATCHED);
   const chosenOption = group.options.find((option) => pairKey(option.pair) === chosen);
   const noteIds = chosenOption?.givesCategory ? noteId : undefined;
 
@@ -70,8 +63,7 @@ function ProposedGroup({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        if (chosenOption === undefined) onLeave();
-        else onConfirm(chosenOption);
+        onConfirm(chosenOption ?? null);
       }}
       className="flex flex-col items-start gap-2"
     >
@@ -87,7 +79,7 @@ function ProposedGroup({
                 value={key}
                 checked={chosen === key}
                 aria-describedby={chosen === key ? noteIds : undefined}
-                onChange={() => onChoose(key)}
+                onChange={() => setChosen(key)}
                 className="mt-3 size-5 shrink-0 accent-primary"
               />
               <span className="py-2.5">
@@ -108,7 +100,7 @@ function ProposedGroup({
             name={radioName}
             value={LEAVE_UNMATCHED}
             checked={chosen === LEAVE_UNMATCHED}
-            onChange={() => onChoose(LEAVE_UNMATCHED)}
+            onChange={() => setChosen(LEAVE_UNMATCHED)}
             className="mt-3 size-5 shrink-0 accent-primary"
           />
           <span className="py-2.5">{t("leaveUnmatched")}</span>
@@ -144,19 +136,19 @@ export function PlannedMatchesPanel({
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [matches, setMatches] = useState<BatchMatchesState | null>(null);
-  const [choices, setChoices] = useState<Readonly<Record<string, string>>>({});
   const [result, setResult] = useState<MatchActionState | null>(null);
   const [isPending, startTransition] = useTransition();
+  const failedMessage = t("failed");
 
   useEffect(() => {
     let isCurrent = true;
-    loadMatches(batchId, t("failed")).then((state) => {
+    loadMatches(batchId, failedMessage).then((state) => {
       if (isCurrent) setMatches(state);
     });
     return () => {
       isCurrent = false;
     };
-  }, [batchId, t]);
+  }, [batchId, failedMessage]);
 
   function run(action: () => Promise<MatchActionState>) {
     startTransition(async () => {
@@ -164,22 +156,23 @@ export function PlannedMatchesPanel({
         setResult(await action());
       } catch (error) {
         console.error("Planned match action failed", error);
-        setResult({ status: "error", message: t("failed") });
+        setResult({ status: "error", message: failedMessage });
       }
-      setChoices({});
-      setMatches(await loadMatches(batchId, t("failed")));
+      setMatches(await loadMatches(batchId, failedMessage));
       headingRef.current?.focus();
     });
   }
 
-  function leaveUnmatched() {
+  function confirmOption(option: ProposedMatchOption | null) {
+    if (option !== null) {
+      run(() => confirmMatchAction(batchId, option.pair));
+      return;
+    }
     setResult({ status: "done", message: t("nothingChosen") });
     headingRef.current?.focus();
   }
 
-  const isReady = matches?.status === "ready";
-  const matched = isReady ? matches.matched : [];
-  const groups = isReady ? matches.groups : [];
+  const { matched, groups } = matches?.status === "ready" ? matches : NO_MATCHES;
 
   return (
     <section
@@ -191,7 +184,7 @@ export function PlannedMatchesPanel({
       </h3>
       {matches === null ? <p>{t("loading")}</p> : null}
       {matches?.status === "error" ? <p>{matches.message}</p> : null}
-      {isReady && matched.length === 0 && groups.length === 0 ? <p>{t("empty")}</p> : null}
+      {matches?.status === "ready" && matched.length === 0 && groups.length === 0 ? <p>{t("empty")}</p> : null}
       {matched.length > 0 ? (
         <div className="flex flex-col gap-1">
           <h4 className="font-medium">{t("matchedHeading")}</h4>
@@ -229,22 +222,16 @@ export function PlannedMatchesPanel({
         <div className="flex flex-col gap-3">
           <h4 className="font-medium">{t("toConfirmHeading")}</h4>
           <p>{t("toConfirmIntro")}</p>
-          {groups.map((group, index) => {
-            const key = groupKey(group);
-            return (
-              <ProposedGroup
-                key={key}
-                group={group}
-                number={index + 1}
-                chosen={choices[key] ?? LEAVE_UNMATCHED}
-                currency={currency}
-                isPending={isPending}
-                onChoose={(choice) => setChoices({ ...choices, [key]: choice })}
-                onConfirm={(option) => run(() => confirmMatchAction(batchId, option.pair))}
-                onLeave={leaveUnmatched}
-              />
-            );
-          })}
+          {groups.map((group, index) => (
+            <ProposedGroup
+              key={groupKey(group)}
+              group={group}
+              number={index + 1}
+              currency={currency}
+              isPending={isPending}
+              onConfirm={confirmOption}
+            />
+          ))}
         </div>
       ) : null}
       <div role="status">

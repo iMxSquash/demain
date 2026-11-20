@@ -16,6 +16,7 @@ import type { OverflowAccount } from "../../domain/overflow";
 import type { Account } from "../../ledger/accounts";
 import type { Category } from "../../ledger/categories";
 import type { ImportFormat } from "../../ledger/imports";
+import type { BatchMatchedItem, ProposedMatchGroup } from "../../ledger/planned-matching";
 import type { ReportedImportIssue } from "./describe-issues";
 
 /** Largest file accepted. `serverActions.bodySizeLimit` in next.config.ts must stay above it. */
@@ -203,41 +204,8 @@ export interface RuleProposalsSaveState {
   message: string;
 }
 
-/** A pair of a transaction and an occurrence of a planned item, as the ledger names it. */
-export interface MatchPairView {
-  transactionId: number;
-  plannedItemId: number;
-  nominalDate: string;
-}
-
-/** A transaction of the file already linked to an occurrence. Amounts are integer minor units. */
-export interface MatchedView {
-  transactionId: number;
-  label: string;
-  date: string;
-  amount: number;
-  plannedItemName: string;
-  nominalDate: string;
-}
-
-/** One way to settle an ambiguous transaction. */
-export interface ProposedOptionView {
-  pair: MatchPairView;
-  transactionLabel: string;
-  transactionDate: string;
-  transactionAmount: number;
-  plannedItemName: string;
-  nominalDate: string;
-  givesCategory: boolean;
-}
-
-/** Options that compete for the same transactions or occurrences: at most one can be confirmed. */
-export interface ProposedGroupView {
-  options: ProposedOptionView[];
-}
-
 export type BatchMatchesState =
-  | { status: "ready"; matched: MatchedView[]; groups: ProposedGroupView[] }
+  | { status: "ready"; matched: BatchMatchedItem[]; groups: ProposedMatchGroup[] }
   | { status: "error"; message: string };
 
 export interface MatchActionState {

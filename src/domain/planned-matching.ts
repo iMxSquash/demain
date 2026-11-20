@@ -81,7 +81,7 @@ export function isWithinTolerance(expected: number, actual: number, basisPoints:
   return Math.abs(expected - actual) * BASIS_POINTS_DENOMINATOR <= basisPoints * Math.abs(actual);
 }
 
-function comparePairs(a: MatchPair, b: MatchPair): number {
+export function comparePairs(a: MatchPair, b: MatchPair): number {
   if (a.transactionId !== b.transactionId) return a.transactionId - b.transactionId;
   if (a.plannedItemId !== b.plannedItemId) return a.plannedItemId - b.plannedItemId;
   return compareDates(a.nominalDate, b.nominalDate);
