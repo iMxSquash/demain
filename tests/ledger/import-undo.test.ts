@@ -31,6 +31,7 @@ import {
 import { importBatches } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");
+const TODAY = "2026-04-15";
 const ACCOUNT_DETAILS = {
   currency: "EUR",
   openingDate: "2026-01-01",
@@ -86,6 +87,7 @@ describe("undoing an imported batch", () => {
       fileName,
       mapping: null,
       now: NOW,
+      today: TODAY,
     });
     if (result.batchId === null) throw new Error("nothing was imported");
     return result.batchId;
@@ -152,6 +154,7 @@ describe("undoing an imported batch", () => {
         fileName: "march.csv",
         mapping: null,
         now: NOW,
+        today: TODAY,
       });
 
       expect(again.duplicateCount).toBe(0);

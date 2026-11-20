@@ -24,6 +24,7 @@ import {
 import { settings } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");
+const TODAY = "2026-04-15";
 
 describe("the type vocabulary", () => {
   let dataDir: string;
@@ -72,6 +73,7 @@ describe("the type vocabulary", () => {
       fileName: `${categoryName}.csv`,
       mapping: null,
       now: NOW,
+      today: TODAY,
     });
   }
 

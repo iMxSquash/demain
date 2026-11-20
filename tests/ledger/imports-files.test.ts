@@ -64,6 +64,7 @@ describe("importing statement files", () => {
       mapping,
       rows: reading.rows,
       now: new Date("2026-03-01T10:00:00Z"),
+      today: "2026-03-01",
     });
   }
 
@@ -75,6 +76,7 @@ describe("importing statement files", () => {
       mapping: null,
       rows: parseOfx(readFixture("statement.ofx"), "EUR"),
       now: new Date("2026-03-01T10:00:00Z"),
+      today: "2026-03-01",
     });
   }
 

@@ -60,6 +60,7 @@ describe("rule proposal actions", () => {
       fileName: "march.csv",
       mapping: null,
       now: new Date("2026-04-15T10:00:00Z"),
+      today: "2026-04-15",
     });
     if (result.batchId === null) throw new Error("nothing was imported");
     batchId = result.batchId;

@@ -29,6 +29,7 @@ import {
 } from "../../src/storage/database";
 
 const NOW = new Date("2026-03-01T10:00:00Z");
+const TODAY = "2026-03-01";
 
 function draft(overrides: Partial<ReviewedDraft> = {}): ReviewedDraft {
   return {
@@ -71,6 +72,7 @@ describe("commitDrafts", () => {
       mapping: null,
       drafts,
       now: NOW,
+      today: TODAY,
     });
   }
 
@@ -230,6 +232,7 @@ describe("commitDrafts with the details of a review", () => {
       mapping: null,
       drafts,
       now: NOW,
+      today: TODAY,
     });
   }
 
@@ -286,6 +289,7 @@ describe("commitDrafts with the details of a review", () => {
       savingsAccountId: A_ID,
       drafts: [savings({}, { savingsAccountId: null })],
       now: NOW,
+      today: TODAY,
     });
 
     expect(result).toMatchObject({ status: "done", transferCount: 2 });
@@ -338,6 +342,7 @@ describe("commitDrafts with the details of a review", () => {
         mapping: null,
         drafts,
         now: NOW,
+        today: TODAY,
         overflow: { choices, openingDate: OPENING_DATE },
       });
     }

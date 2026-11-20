@@ -32,6 +32,7 @@ import {
 import { balanceAssertions, transactions } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");
+const TODAY = "2026-04-15";
 const OPENING_BALANCE = 10_000;
 
 const ACCOUNT = {
@@ -70,6 +71,7 @@ describe("import checks", () => {
       fileName: "march.csv",
       mapping: null,
       now: NOW,
+      today: TODAY,
     });
     if (result.batchId === null) throw new Error("nothing was imported");
     return result.batchId;

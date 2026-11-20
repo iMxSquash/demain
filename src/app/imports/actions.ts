@@ -1,17 +1,18 @@
 "use server";
 
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 
 import { ImportParseError } from "../../domain/import-row";
 import { messageRef } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
-import { formatCalendarDate } from "../../i18n/dates";
+import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
 import {
   commitImport,
   previewImport,
   type ImportFormat,
 } from "../../ledger/imports";
+import { NO_MATCHES } from "../../ledger/planned-matching";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
@@ -38,10 +39,11 @@ export async function importAction(
   formData: FormData,
 ): Promise<ImportFormState> {
   await requireSession();
-  const [t, translate, locale] = await Promise.all([
+  const [t, translate, locale, timeZone] = await Promise.all([
     getTranslations("imports"),
     getTranslator(),
     getLocale(),
+    getTimeZone(),
   ]);
   const accountText = String(formData.get("accountId") ?? "");
   const base: ImportFormState = {
@@ -122,6 +124,7 @@ export async function importAction(
     if (errors.length > 0) return { ...shown, message: t("fixProblems") };
 
     const isImport = formData.get("intent") === IMPORT_INTENT;
+    const now = new Date();
     const outcome = withDatabase((db) =>
       isImport
         ? commitImport(db, {
@@ -130,9 +133,10 @@ export async function importAction(
             fileName: file.name.slice(0, MAX_FILE_NAME_LENGTH),
             mapping: used,
             rows,
-            now: new Date(),
+            now,
+            today: todayIn(timeZone, now),
           })
-        : previewImport(db, { accountId, rows }),
+        : { ...previewImport(db, { accountId, rows }), ...NO_MATCHES },
     );
     const warnings = outcome.ceilingWarnings
       .slice(0, WARNING_COUNT)
@@ -163,6 +167,7 @@ export async function importAction(
     refreshData();
     await flashSuccess("importDone", {
       imported: outcome.newCount,
+      matched: outcome.matchedCount,
       duplicates: outcome.duplicateCount,
     });
     return {
@@ -171,6 +176,7 @@ export async function importAction(
       warnings,
       message: t("imported", {
         imported: outcome.newCount,
+        matched: outcome.matchedCount,
         duplicates: outcome.duplicateCount,
       }),
     };

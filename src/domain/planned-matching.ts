@@ -10,6 +10,11 @@ import type { DateRange } from "./recurrence";
 
 const BASIS_POINTS_DENOMINATOR = 10000;
 const MATCHABLE_STATUSES: readonly OccurrenceStatus[] = ["planned", "overdue"];
+// A provision settles the transactions of its whole period, so its occurrence can lie a repetition
+// away from them: 366 days at most (a yearly repetition across a leap year), plus the 2 days at
+// most of a business-day shift (a Sunday moved back to the Friday), which makes 368; 370 keeps a
+// margin.
+const PROVISION_REACH_DAYS = 370;
 
 export interface MatchTransaction extends ProvisionCandidateTransaction {
   id: number;
@@ -52,6 +57,19 @@ export interface MatchDecisions {
 interface Candidate {
   pair: MatchPair;
   isProvision: boolean;
+}
+
+/**
+ * The range of effective dates to resolve so that every occurrence that can settle a transaction
+ * dated inside `transactionDates` is found: a regular occurrence lies within its matching window
+ * of the transaction, a provision occurrence within its period.
+ */
+export function matchingRange(
+  transactionDates: DateRange,
+  item: { matchWindowDays: number; acceptsMultipleTransactions: boolean },
+): DateRange {
+  const reach = item.acceptsMultipleTransactions ? PROVISION_REACH_DAYS : item.matchWindowDays;
+  return { from: addDays(transactionDates.from, -reach), to: addDays(transactionDates.to, reach) };
 }
 
 /**

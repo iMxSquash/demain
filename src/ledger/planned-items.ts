@@ -77,12 +77,21 @@ export function getPlannedItem(db: Reader, id: number): PlannedItemWithDetails {
 }
 
 export function listPlannedItems(
-  db: AppDatabase,
-  { includeCancelled }: { includeCancelled: boolean },
+  db: Reader,
+  { includeCancelled, accountIds }: { includeCancelled: boolean; accountIds?: readonly number[] },
 ): PlannedItemWithDetails[] {
-  const query = db.select().from(plannedItems);
-  const rows = includeCancelled ? query : query.where(eq(plannedItems.cancelled, false));
-  return attachDetails(db, rows.orderBy(asc(plannedItems.id)).all());
+  const rows = db
+    .select()
+    .from(plannedItems)
+    .where(
+      and(
+        includeCancelled ? undefined : eq(plannedItems.cancelled, false),
+        accountIds === undefined ? undefined : inArray(plannedItems.accountId, [...accountIds]),
+      ),
+    )
+    .orderBy(asc(plannedItems.id))
+    .all();
+  return attachDetails(db, rows);
 }
 
 /**

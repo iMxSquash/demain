@@ -53,6 +53,7 @@ import {
 } from "./accounts";
 import { CategoryNotFoundError, getCategory } from "./categories";
 import { listApplicableRules } from "./categorization-rules";
+import { applyImportMatches, NO_MATCHES } from "./planned-matching";
 import { insertTransferLegs, type LegImportColumns } from "./transactions";
 
 export type ImportBatch = typeof importBatches.$inferSelect;
@@ -132,11 +133,17 @@ export interface CommitImportRequest extends ImportRequest {
   /** The mapping used, for a CSV file: offered again at the next import. */
   mapping: CsvMapping | null;
   now: Date;
+  /** YYYY-MM-DD in the owner's time zone: it decides which occurrences are overdue when matching. */
+  today: string;
 }
 
 export interface ImportResult extends ImportPreview {
   /** Null when every row was already there: no batch is recorded for nothing. */
   batchId: number | null;
+  /** Transactions linked to the planned occurrence they settle. */
+  matchedCount: number;
+  /** Groups of ambiguous matches left to the owner, nothing is linked for them. */
+  proposedCount: number;
 }
 
 interface ImportKeys {
@@ -530,7 +537,7 @@ export function commitImport(
 ): ImportResult {
   const { fresh, pairs, preview } = planImport(db, request);
   if (preview.issues.length > 0) throw new ImportBlockedError(preview.issues);
-  if (preview.newCount === 0) return { ...preview, batchId: null };
+  if (preview.newCount === 0) return { ...preview, batchId: null, ...NO_MATCHES };
 
   // The unique fingerprint index backs the plan: an identical import running
   // at the same time fails here and rolls back instead of duplicating.
@@ -566,6 +573,9 @@ export function commitImport(
       insertTransferLegs(tx, pair.legs, legColumns(pair, batch.id));
     }
 
+    // Before the digest: a category inherited from a planned item is part of what the undo checks.
+    const matches = applyImportMatches(tx, { batchId: batch.id, today: request.today });
+
     // Read back, not computed from the plan: the undo hashes what the rows hold.
     const contentDigest = digestBatchTransactions(
       tx
@@ -578,7 +588,7 @@ export function commitImport(
       .set({ contentDigest })
       .where(eq(importBatches.id, batch.id))
       .run();
-    return { ...preview, batchId: batch.id };
+    return { ...preview, batchId: batch.id, ...matches };
   });
 }
 

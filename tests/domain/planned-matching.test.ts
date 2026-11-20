@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   decideMatches,
   isWithinTolerance,
+  matchingRange,
   provisionLinks,
   type MatchDecisions,
   type MatchOccurrence,
@@ -432,5 +433,21 @@ describe("provisionLinks", () => {
     const links = provisionLinks([fillUp(1)], provisions);
 
     expect(links).toEqual([pair(1, 10, MARCH.to), pair(1, 11, MARCH.to)]);
+  });
+});
+
+describe("matchingRange", () => {
+  const TRANSACTION_DATES: DateRange = { from: "2026-03-10", to: "2026-03-20" };
+
+  it("widens a regular item by its matching window", () => {
+    const range = matchingRange(TRANSACTION_DATES, { matchWindowDays: 5, acceptsMultipleTransactions: false });
+
+    expect(range).toEqual({ from: "2026-03-05", to: "2026-03-25" });
+  });
+
+  it("widens a provision by more than a yearly period, whatever its window", () => {
+    const range = matchingRange(TRANSACTION_DATES, { matchWindowDays: 5, acceptsMultipleTransactions: true });
+
+    expect(range.from <= "2025-03-10" && range.to >= "2027-03-20").toBe(true);
   });
 });
