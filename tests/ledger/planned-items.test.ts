@@ -1,8 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { generateOccurrences } from "../../src/domain/occurrences";
@@ -32,6 +34,27 @@ const CHECKING_INPUT = {
   openingDate: "2026-01-01",
   openingBalance: 100_000,
 };
+
+const LAST_MIGRATION_BEFORE_PLANNED_ITEMS = "0012_category_icon";
+
+/** A database as the release before planned items left it: migrations up to the given tag. */
+function migrateUpTo(db: AppDatabase, workDir: string, lastTag: string): void {
+  const source = path.join(process.cwd(), "drizzle");
+  const target = path.join(workDir, "older-migrations");
+  mkdirSync(path.join(target, "meta"), { recursive: true });
+  const journal = JSON.parse(readFileSync(path.join(source, "meta", "_journal.json"), "utf8")) as {
+    entries: { tag: string }[];
+  };
+  journal.entries = journal.entries.slice(
+    0,
+    journal.entries.findIndex(({ tag }) => tag === lastTag) + 1,
+  );
+  writeFileSync(path.join(target, "meta", "_journal.json"), JSON.stringify(journal));
+  for (const { tag } of journal.entries) {
+    cpSync(path.join(source, `${tag}.sql`), path.join(target, `${tag}.sql`));
+  }
+  migrate(drizzle(db.$client), { migrationsFolder: target });
+}
 
 describe("planned items", () => {
   let dataDir: string;
@@ -221,6 +244,32 @@ describe("planned items", () => {
       occurrenceDate: null,
       categoryFromPlannedItem: false,
     });
+  });
+
+  it("applies on a database at 0012 and keeps its transactions unlinked", () => {
+    const olderDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    try {
+      const older = openDatabase(olderDir);
+      migrateUpTo(older, olderDir, LAST_MIGRATION_BEFORE_PLANNED_ITEMS);
+      older.$client.exec(
+        `insert into accounts (name, kind, currency, opening_date, opening_balance) values ('Checking', 'checking', 'EUR', '2026-01-01', 0);
+         insert into transactions (account_id, date, amount, kind, label) values (1, '2026-01-10', -1000, 'expense', 'Groceries');`,
+      );
+
+      migrateDatabase(older);
+
+      expect(older.select().from(transactions).all()).toEqual([
+        expect.objectContaining({
+          label: "Groceries",
+          plannedItemId: null,
+          occurrenceDate: null,
+          categoryFromPlannedItem: false,
+        }),
+      ]);
+      older.$client.close();
+    } finally {
+      rmSync(olderDir, { recursive: true, force: true });
+    }
   });
 
   function details() {

@@ -164,10 +164,13 @@ describe("validatePlannedItemDetails", () => {
     provisionLabelFilter: null,
   };
 
-  it("refuses an archived category and a label filter without provision", () => {
+  it("refuses an archived category", () => {
     expect(() =>
       validatePlannedItemDetails({ ...DETAILS, categoryId: 11 }, ITEM, CONTEXT.categories),
     ).toThrow(expect.objectContaining({ field: "categoryId" }));
+  });
+
+  it("refuses a label filter on an item that is not a provision", () => {
     expect(() =>
       validatePlannedItemDetails(
         { ...DETAILS, provisionLabelFilter: "fuel" },
