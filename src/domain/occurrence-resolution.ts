@@ -10,6 +10,7 @@ import {
   type PlannedSchedule,
   type PlannedVersion,
 } from "./occurrences";
+import { provisionPeriod } from "./provision";
 import type { DateRange } from "./recurrence";
 
 export type OccurrenceStatus = "planned" | "partial" | "confirmed" | "overdue" | "cancelled";
@@ -37,28 +38,64 @@ export interface ResolvedOccurrence extends Occurrence {
   expectedAmount: number;
   links: OccurrenceLink[];
   linkedSum: number;
-  /** What is still expected: 0 once settled, otherwise expectedAmount (provisions in #164). */
+  /**
+   * What is still expected: 0 once settled, otherwise expectedAmount. For a provision, what the
+   * linked sum leaves of expectedAmount, with its sign and never past zero, and 0 once its period
+   * has passed.
+   */
   remaining: number;
+  /** `partial` is only produced for a provision, which accepts several transactions. */
   status: OccurrenceStatus;
+  /** The period a provision settles; null for a regular occurrence. */
+  period: DateRange | null;
 }
 
 // A business-day rule moves a date by two days at most (weekend to the previous or next weekday).
 const BUSINESS_DAY_SHIFT_MARGIN_DAYS = 2;
 
-function resolveRegularStatus(
+function resolveRegular(
   occurrence: Occurrence,
+  expectedAmount: number,
   hasLinks: boolean,
   matchWindowDays: number,
   today: string,
-): OccurrenceStatus {
+): { status: OccurrenceStatus; remaining: number } {
   // A settled occurrence stays confirmed even if it is cancelled afterwards: confirmed wins.
-  if (hasLinks) return "confirmed";
-  if (occurrence.isCancelled) return "cancelled";
-  return today > addDays(occurrence.date, matchWindowDays) ? "overdue" : "planned";
+  if (hasLinks) return { status: "confirmed", remaining: 0 };
+  if (occurrence.isCancelled) return { status: "cancelled", remaining: expectedAmount };
+  const status = today > addDays(occurrence.date, matchWindowDays) ? "overdue" : "planned";
+  return { status, remaining: expectedAmount };
 }
 
-// Regular behaviour until #164 replaces it with the provision rules (partial settlement).
-const resolveMultiTransactionStatus = resolveRegularStatus;
+// A link of the opposite sign to the expected amount does not reduce what is left: the leftover is
+// bounded by the expected amount, never above it.
+function provisionRemaining(expectedAmount: number, linkedSum: number): number {
+  const direction = Math.sign(expectedAmount);
+  const covered = Math.max(0, direction * linkedSum);
+  const left = Math.max(0, Math.abs(expectedAmount) - covered);
+  // `direction * 0` would be -0 for an expense.
+  return left === 0 ? 0 : direction * left;
+}
+
+// A provision is settled by its linked sum or by the end of its period (the leftover then
+// disappears), and is overdue when its period ends without any transaction. The window of matching
+// does not apply: the period is what bounds the transactions.
+function resolveProvision(
+  occurrence: Occurrence,
+  expectedAmount: number,
+  linkedSum: number,
+  hasLinks: boolean,
+  period: DateRange,
+  today: string,
+): { status: OccurrenceStatus; remaining: number } {
+  const isPeriodOver = today > period.to;
+  if (!hasLinks) {
+    if (occurrence.isCancelled) return { status: "cancelled", remaining: expectedAmount };
+    return isPeriodOver ? { status: "overdue", remaining: 0 } : { status: "planned", remaining: expectedAmount };
+  }
+  const remaining = isPeriodOver ? 0 : provisionRemaining(expectedAmount, linkedSum);
+  return { status: remaining === 0 ? "confirmed" : "partial", remaining };
+}
 
 // The window of the average is per version: a new version restarts it (DOMAIN, "Amount of an occurrence").
 class RollingAverageState {
@@ -86,10 +123,14 @@ function versionInEffect(schedule: PlannedSchedule, date: string): PlannedVersio
 }
 
 // The pass must start where the window of the first occurrence of the range starts, so a rolling
-// average version is enumerated from its effective date. A fixed version needs nothing before the range.
-function passRange(schedule: PlannedSchedule, range: DateRange): DateRange {
-  const current = versionInEffect(schedule, range.from);
-  if (current?.amountMode !== "rolling_average") return range;
+// average version is enumerated from its effective date, and a provision from the start of its
+// schedule. A fixed version of a regular item needs nothing before the range.
+function passRange(item: ResolutionItem, range: DateRange): DateRange {
+  const { schedule } = item;
+  // A provision needs the occurrence before the first of the range to know where its period starts.
+  const current = item.acceptsMultipleTransactions ? schedule.versions[0] : versionInEffect(schedule, range.from);
+  const needsEarlierOccurrences = item.acceptsMultipleTransactions || current?.amountMode === "rolling_average";
+  if (current === undefined || !needsEarlierOccurrences) return range;
   const windowStart = addDays(current.effectiveFrom, -BUSINESS_DAY_SHIFT_MARGIN_DAYS);
   return { from: windowStart < range.from ? windowStart : range.from, to: range.to };
 }
@@ -101,9 +142,8 @@ export function resolveOccurrences(
   today: string,
 ): ResolvedOccurrence[] {
   const linksByOccurrence = Map.groupBy(links, (link) => link.occurrenceDate);
-  const resolveStatus = item.acceptsMultipleTransactions ? resolveMultiTransactionStatus : resolveRegularStatus;
   // generateOccurrences orders by effective date, which an override can move out of nominal order.
-  const occurrences = generateOccurrences(item.schedule, item.overrides, passRange(item.schedule, range), today).sort(
+  const occurrences = generateOccurrences(item.schedule, item.overrides, passRange(item, range), today).sort(
     (a, b) => (a.nominalDate < b.nominalDate ? -1 : a.nominalDate > b.nominalDate ? 1 : 0),
   );
 
@@ -111,31 +151,39 @@ export function resolveOccurrences(
   // before it, including those before the range.
   const average = new RollingAverageState(item.schedule.versions);
   const resolved: ResolvedOccurrence[] = [];
-  for (const occurrence of occurrences) {
+  occurrences.forEach((occurrence, index) => {
     const occurrenceLinks = linksByOccurrence.get(occurrence.nominalDate) ?? [];
     const linkedSum = occurrenceLinks.reduce((sum, link) => sum + link.amount, 0);
-    const status = resolveStatus(occurrence, occurrenceLinks.length > 0, item.matchWindowDays, today);
+    const hasLinks = occurrenceLinks.length > 0;
+    const version = item.schedule.versions[occurrence.versionIndex];
 
     let expectedAmount = occurrence.amount;
-    if (item.schedule.versions[occurrence.versionIndex]?.amountMode === "rolling_average") {
-      const estimate = average.estimate(occurrence.versionIndex);
+    let estimate: number | null = null;
+    if (version?.amountMode === "rolling_average") {
+      estimate = average.estimate(occurrence.versionIndex);
       if (!occurrence.isAmountOverridden) expectedAmount = estimate;
-      // A settled occurrence feeds the average with what was paid, a planned one with the estimate
-      // it would have had without an override. Cancelled and overdue ones are not payments.
-      if (status === "confirmed") average.add(occurrence.versionIndex, linkedSum);
-      else if (status === "planned") average.add(occurrence.versionIndex, estimate);
     }
 
-    if (occurrence.date < range.from || occurrence.date > range.to) continue;
-    resolved.push({
-      ...occurrence,
-      expectedAmount,
-      links: occurrenceLinks,
-      linkedSum,
-      remaining: status === "confirmed" ? 0 : expectedAmount,
-      status,
-    });
-  }
+    // The previous occurrence of the same schedule bounds the period, whatever version it had.
+    const period =
+      item.acceptsMultipleTransactions && version?.repetition
+        ? provisionPeriod(occurrence.nominalDate, occurrences[index - 1]?.nominalDate ?? null, version.repetition)
+        : null;
+    const { status, remaining } =
+      period === null
+        ? resolveRegular(occurrence, expectedAmount, hasLinks, item.matchWindowDays, today)
+        : resolveProvision(occurrence, expectedAmount, linkedSum, hasLinks, period, today);
+
+    // A settled occurrence feeds the average with what was paid, a planned or partial one with the
+    // estimate it would have had without an override. Cancelled and overdue ones are not payments.
+    if (estimate !== null) {
+      if (status === "confirmed") average.add(occurrence.versionIndex, linkedSum);
+      else if (status === "planned" || status === "partial") average.add(occurrence.versionIndex, estimate);
+    }
+
+    if (occurrence.date < range.from || occurrence.date > range.to) return;
+    resolved.push({ ...occurrence, expectedAmount, links: occurrenceLinks, linkedSum, remaining, status, period });
+  });
   return resolved;
 }
 
