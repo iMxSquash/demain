@@ -16,6 +16,7 @@ import type { OverflowAccount } from "../../domain/overflow";
 import type { Account } from "../../ledger/accounts";
 import type { Category } from "../../ledger/categories";
 import type { ImportFormat } from "../../ledger/imports";
+import type { BatchMatchedItem, ProposedMatchGroup } from "../../ledger/planned-matching";
 import type { ReportedImportIssue } from "./describe-issues";
 
 /** Largest file accepted. `serverActions.bodySizeLimit` in next.config.ts must stay above it. */
@@ -200,6 +201,16 @@ export type RuleProposalsState =
 export interface RuleProposalsSaveState {
   status: "saved" | "error";
   /** Translated: how many rules were created, or why none was. */
+  message: string;
+}
+
+export type BatchMatchesState =
+  | { status: "ready"; matched: BatchMatchedItem[]; groups: ProposedMatchGroup[] }
+  | { status: "error"; message: string };
+
+export interface MatchActionState {
+  status: "done" | "error";
+  /** Translated: what was done, or why nothing was. */
   message: string;
 }
 

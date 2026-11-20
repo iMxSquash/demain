@@ -13,7 +13,7 @@ The owner's general conventions (language, commits, security, accessibility, tes
 
 ## Current state
 
-- M1 is in progress: the scaffold, the storage layer, the money core, accounts with deposit ceilings and overflow chains, transactions and transfers, categories with the to-categorize queue, and categorization rules are in place. The milestone on GitHub and [docs/ROADMAP.md](docs/ROADMAP.md) say what is done and what remains.
+- M1 (Ledger) is closed. M2 (Planning) is in progress: occurrence generation, planned items with versions and overrides, occurrence statuses, rolling-average amounts, provisions, and the matching of planned items against imported transactions are in place. The milestone on GitHub and [docs/ROADMAP.md](docs/ROADMAP.md) say what is done and what remains.
 - Next step: take the next open issue of the milestone whose dependencies are closed.
 - Small items still open: the Discussions link in `.github/ISSUE_TEMPLATE/config.yml` points to a feature that is not enabled, and secret scanning and private vulnerability reporting must be enabled when the repository becomes public.
 - Undecided points are listed in the open questions of the roadmap. Do not invent an answer for them: ask.
