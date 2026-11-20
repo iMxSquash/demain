@@ -433,7 +433,7 @@ Decisions of the owner on provisions, 19 Nov 2026, numbered as in issue #164:
 
 Runs after each import, for each new non-transfer transaction (and for transfer legs against planned transfers). Regular items:
 
-1. **Candidates.** Occurrences that are not yet settled or cancelled, on the same account, whose nominal (or business-day adjusted, or overridden) date is within `match_window_days` (default 5) of the transaction date, and whose expected amount is within `match_amount_tolerance` (default 5%) of the transaction amount, with the same sign.
+1. **Candidates.** Occurrences whose status is `planned` or `overdue` (not yet settled or cancelled), on the same account, whose nominal (or business-day adjusted, or overridden) date is within `match_window_days` (default 5) of the transaction date, and whose expected amount is within `match_amount_tolerance` (default 5%) of the transaction amount, with the same sign.
 2. **Decision.**
    - Exactly one candidate occurrence, and that occurrence is the only candidate for exactly this transaction: the match is **confirmed automatically**, and shown in the import summary where it can be undone.
    - Several candidates on either side (two similar subscriptions, two transactions of the same amount in the window): the possible pairs are **proposed for validation**. Nothing is matched silently.
@@ -441,7 +441,15 @@ Runs after each import, for each new non-transfer transaction (and for transfer 
 3. **Effect of a confirmation.** The transaction is linked to the occurrence. If the planned item has a category and the transaction has none, the transaction inherits it.
 4. **Unmatched occurrences** stay `planned` until the window has passed, then become `overdue`. The user can then match by hand, cancel the occurrence, or leave it.
 
-Provisions follow the linking rules of the previous section instead of the window and tolerance. The window and tolerance of regular items are configurable per planned item, since some direct debits move by several days and some bills vary more than 5%.
+The window and tolerance of regular items are configurable per planned item, since some direct debits move by several days and some bills vary more than 5%. The window and the tolerance bounds are inclusive. The tolerance is relative to the transaction amount and tested with integer arithmetic only, without a division (`isWithinTolerance`): the expected amount is within tolerance when `|expected - actual| * 10000 <= basisPoints * |actual|`. The sign must be the same, and a tolerance of 0 basis points means equal amounts.
+
+Decisions of the owner on matching, 19 Nov 2026:
+
+- Q1, the sign is enough: the kind of the transaction need not match the kind of the planned item (an interest can settle an income item).
+- Q2, a transaction that is a candidate for a provision and for a regular occurrence goes to the proposed group. Nothing is applied silently.
+- Q3, a transaction that fits two provisions goes to the proposed group.
+
+Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones. A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers are ignored here (#175).
 
 ## Estimated variable spending
 
