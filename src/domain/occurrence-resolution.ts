@@ -2,11 +2,13 @@
 // actual"). Pure: "today", the links and the item are arguments, nothing reads a clock or a store.
 
 import { addDays } from "./calendar-date";
+import { divideRound } from "./money";
 import {
   generateOccurrences,
   type Occurrence,
   type OccurrenceOverride,
   type PlannedSchedule,
+  type PlannedVersion,
 } from "./occurrences";
 import type { DateRange } from "./recurrence";
 
@@ -28,7 +30,10 @@ export interface ResolutionItem {
 }
 
 export interface ResolvedOccurrence extends Occurrence {
-  /** Fixed amount here; the rolling average in #163; the override amount always wins. */
+  /**
+   * The amount expected: the version amount, or the rolling average of the previous values of its
+   * version. The override amount always wins.
+   */
   expectedAmount: number;
   links: OccurrenceLink[];
   linkedSum: number;
@@ -55,6 +60,40 @@ function resolveRegularStatus(
 // Regular behaviour until #164 replaces it with the provision rules (partial settlement).
 const resolveMultiTransactionStatus = resolveRegularStatus;
 
+// The window of the average is per version: a new version restarts it (DOMAIN, "Amount of an occurrence").
+class RollingAverageState {
+  private readonly valuesByVersion = new Map<number, number[]>();
+
+  constructor(private readonly versions: readonly PlannedVersion[]) {}
+
+  /** The average of the last `averageWindow` values of the version, or its starting estimate. */
+  estimate(versionIndex: number): number {
+    const version = this.versions[versionIndex];
+    if (version === undefined) throw new Error(`No version at index ${versionIndex}`);
+    const window = (this.valuesByVersion.get(versionIndex) ?? []).slice(-version.averageWindow);
+    if (window.length === 0) return version.amount;
+    return divideRound(window.reduce((sum, value) => sum + value, 0), window.length);
+  }
+
+  add(versionIndex: number, value: number): void {
+    this.valuesByVersion.set(versionIndex, [...(this.valuesByVersion.get(versionIndex) ?? []), value]);
+  }
+}
+
+// The version in effect on a date: the last one that started on or before it, else the first.
+function versionInEffect(schedule: PlannedSchedule, date: string): PlannedVersion | undefined {
+  return schedule.versions.findLast((version) => version.effectiveFrom <= date) ?? schedule.versions[0];
+}
+
+// The pass must start where the window of the first occurrence of the range starts, so a rolling
+// average version is enumerated from its effective date. A fixed version needs nothing before the range.
+function passRange(schedule: PlannedSchedule, range: DateRange): DateRange {
+  const current = versionInEffect(schedule, range.from);
+  if (current?.amountMode !== "rolling_average") return range;
+  const windowStart = addDays(current.effectiveFrom, -BUSINESS_DAY_SHIFT_MARGIN_DAYS);
+  return { from: windowStart < range.from ? windowStart : range.from, to: range.to };
+}
+
 export function resolveOccurrences(
   item: ResolutionItem,
   links: readonly OccurrenceLink[],
@@ -64,22 +103,36 @@ export function resolveOccurrences(
   const linksByOccurrence = Map.groupBy(links, (link) => link.occurrenceDate);
   const resolveStatus = item.acceptsMultipleTransactions ? resolveMultiTransactionStatus : resolveRegularStatus;
   // generateOccurrences orders by effective date, which an override can move out of nominal order.
-  const occurrences = generateOccurrences(item.schedule, item.overrides, range, today).sort((a, b) =>
-    a.nominalDate < b.nominalDate ? -1 : a.nominalDate > b.nominalDate ? 1 : 0,
+  const occurrences = generateOccurrences(item.schedule, item.overrides, passRange(item.schedule, range), today).sort(
+    (a, b) => (a.nominalDate < b.nominalDate ? -1 : a.nominalDate > b.nominalDate ? 1 : 0),
   );
 
-  // One ordered pass over nominal dates: the rolling average (#163) needs each occurrence to see
-  // the ones before it.
+  // One ordered pass over nominal dates: the rolling average needs each occurrence to see the ones
+  // before it, including those before the range.
+  const average = new RollingAverageState(item.schedule.versions);
   const resolved: ResolvedOccurrence[] = [];
   for (const occurrence of occurrences) {
     const occurrenceLinks = linksByOccurrence.get(occurrence.nominalDate) ?? [];
+    const linkedSum = occurrenceLinks.reduce((sum, link) => sum + link.amount, 0);
     const status = resolveStatus(occurrence, occurrenceLinks.length > 0, item.matchWindowDays, today);
+
+    let expectedAmount = occurrence.amount;
+    if (item.schedule.versions[occurrence.versionIndex]?.amountMode === "rolling_average") {
+      const estimate = average.estimate(occurrence.versionIndex);
+      if (!occurrence.isAmountOverridden) expectedAmount = estimate;
+      // A settled occurrence feeds the average with what was paid, a planned one with the estimate
+      // it would have had without an override. Cancelled and overdue ones are not payments.
+      if (status === "confirmed") average.add(occurrence.versionIndex, linkedSum);
+      else if (status === "planned") average.add(occurrence.versionIndex, estimate);
+    }
+
+    if (occurrence.date < range.from || occurrence.date > range.to) continue;
     resolved.push({
       ...occurrence,
-      expectedAmount: occurrence.amount,
+      expectedAmount,
       links: occurrenceLinks,
-      linkedSum: occurrenceLinks.reduce((sum, link) => sum + link.amount, 0),
-      remaining: status === "confirmed" ? 0 : occurrence.amount,
+      linkedSum,
+      remaining: status === "confirmed" ? 0 : expectedAmount,
       status,
     });
   }
