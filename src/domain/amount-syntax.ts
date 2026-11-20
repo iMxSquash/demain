@@ -116,3 +116,17 @@ export function splitSignedAmountText(text: string): { magnitude: string; side: 
 export function composeSignedAmountText(magnitude: string, side: BalanceSide): string {
   return side === "debit" ? `-${magnitude}` : magnitude;
 }
+
+const WHOLE_NUMBER = /^\d+$/;
+const WHOLE_NUMBER_DRAFT = /^\d*$/;
+
+/** Reads a whole number typed as digits only (a day, a count of months or weeks, a number of days). */
+export function parseWholeNumber(text: string): number | null {
+  const trimmed = text.trim();
+  return WHOLE_NUMBER.test(trimmed) ? Number(trimmed) : null;
+}
+
+/** Whether `text` can still become a whole number by typing more: digits only. */
+export function isWholeNumberDraft(text: string): boolean {
+  return WHOLE_NUMBER_DRAFT.test(text);
+}

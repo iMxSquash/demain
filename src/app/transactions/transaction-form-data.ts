@@ -129,7 +129,7 @@ export function readTransferValues(formData: FormData): TransferFormValues {
   };
 }
 
-function readAccount(
+export function readAccount(
   text: string,
   known: CurrencyByAccount,
 ): { id: number; currency: string } | null {

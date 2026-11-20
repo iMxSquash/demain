@@ -91,6 +91,7 @@
     "transactions": "Transactions",
     "categories": "Catégories",
     "synthesis": "Synthèse mensuelle",
+    "planned": "Éléments planifiés",
     "imports": "Import",
     "rules": "Règles de catégorisation",
     "currencies": "Devises",
@@ -165,6 +166,111 @@
     "activeCaption": "Comptes actifs avec leur solde et leur plafond de dépôt",
     "archivedCaption": "Comptes archivés, conservés pour leur historique",
     "emptyAction": "Ajouter un compte"
+  },
+  "planned": {
+    "metaTitle": "Éléments planifiés | Demain",
+    "title": "Éléments planifiés",
+    "listHeading": "Éléments planifiés en cours",
+    "addHeading": "Nouvel élément planifié",
+    "listCaption": "Éléments planifiés avec leur échéancier et leur montant",
+    "empty": "Aucun élément planifié pour l'instant. Ajoutez une dépense ou un revenu récurrent, il apparaîtra ici.",
+    "emptyAction": "Ajouter un élément planifié",
+    "noAccount": "Ajoutez un compte avant de planifier un élément.",
+    "noAccountAction": "Ajouter un compte",
+    "columns": {
+      "name": "Nom",
+      "kind": "Type",
+      "schedule": "Échéancier",
+      "account": "Compte",
+      "amount": "Montant"
+    },
+    "kinds": {
+      "expense": "Dépense",
+      "income": "Revenu",
+      "interest": "Intérêts",
+      "transfer": "Virement"
+    },
+    "transferAccounts": "{from} vers {to}",
+    "schedule": {
+      "once": "Une fois le {date}",
+      "monthlyOnDay": "Tous les mois le {day}",
+      "monthlyOnLastDay": "Tous les mois, le dernier jour",
+      "everyNMonths": "{months, plural, one {Tous les mois} other {Tous les # mois}}",
+      "quarterly": "Tous les trimestres",
+      "yearly": "Tous les ans",
+      "everyNWeeks": "{weeks, plural, one {Toutes les semaines} other {Toutes les # semaines}}",
+      "until": "{schedule}, jusqu'au {date}"
+    },
+    "edit": "Modifier",
+    "form": {
+      "name": "Nom",
+      "nameHint": "Par exemple Loyer ou Salaire.",
+      "type": "Type",
+      "kindLabels": {
+        "expense": "Sortie",
+        "income": "Entrée",
+        "transfer": "Virement",
+        "interest": "Intérêts"
+      },
+      "account": "Compte",
+      "destination": "Compte de destination",
+      "destinationHint": "Pour un virement uniquement.",
+      "category": "Catégorie",
+      "startDate": "Première date",
+      "startDateHint": "La première date possible.",
+      "repetition": "Répétition",
+      "repetitions": {
+        "once": "Ne se répète pas",
+        "monthly_on_day": "Tous les mois, un jour donné",
+        "monthly_on_last_day": "Tous les mois, le dernier jour",
+        "every_n_months": "Tous les N mois",
+        "quarterly": "Tous les trimestres",
+        "yearly": "Tous les ans",
+        "every_n_weeks": "Toutes les N semaines"
+      },
+      "repetitionValue": "Jour, mois ou semaines",
+      "repetitionValues": {
+        "day": "Jour du mois",
+        "months": "Nombre de mois entre deux dates",
+        "weeks": "Nombre de semaines entre deux dates"
+      },
+      "endDate": "Date de fin",
+      "endDateHint": "La dernière date possible. Laissez vide pour continuer.",
+      "businessDay": "Si la date tombe un week-end",
+      "businessDayHint": "Samedi et dimanche seulement, les jours fériés ne sont pas connus.",
+      "businessDayRules": {
+        "none": "Garder la date",
+        "previous": "Jour ouvré précédent",
+        "next": "Jour ouvré suivant"
+      },
+      "amount": "Montant",
+      "amountHint": "Sans signe : le type donne le sens.",
+      "matching": "Rapprochement",
+      "windowDays": "Fenêtre, en jours",
+      "windowDaysHint": "Une transaction peut tomber autant de jours avant ou après la date prévue.",
+      "tolerance": "Tolérance, en pourcentage",
+      "toleranceHint": "Écart de montant accepté. 0 signifie le même montant.",
+      "submit": {
+        "expense": "Ajouter la dépense planifiée",
+        "income": "Ajouter le revenu planifié",
+        "transfer": "Ajouter le virement planifié",
+        "interest": "Ajouter les intérêts planifiés"
+      }
+    },
+    "editMetaTitle": "Modifier l'élément planifié | Demain",
+    "editTitle": "Modifier {name}",
+    "backToPlanned": "Retour aux éléments planifiés",
+    "fixedHeading": "Figé à la création",
+    "fixedNote": "Le montant et l'échéancier ne se modifient pas ici : ils changent à partir d'une date, ce qui n'est pas encore disponible.",
+    "facts": {
+      "kind": "Type",
+      "account": "Compte",
+      "startDate": "Première date",
+      "schedule": "Échéancier",
+      "amount": "Montant"
+    },
+    "categoryArchived": "{name} (archivée)",
+    "saveDetails": "Enregistrer les détails"
   },
   "balances": {
     "metaTitle": "Soldes constatés | Demain",
@@ -973,6 +1079,8 @@
     "amountUnsigned": "Saisissez le montant sans signe : le type donne le sens",
     "amountSyntax": "Montant invalide « {text} » : uniquement des chiffres et une virgule ou un point",
     "amountCharacterRefused": "« {character} » n'est pas accepté : uniquement des chiffres et une virgule ou un point.",
+    "wholeNumberCharacterRefused": "« {character} » n'est pas accepté : uniquement des chiffres.",
+    "percentCharacterRefused": "« {character} » n'est pas accepté : un pourcentage de 0 à 100, avec deux décimales au plus.",
     "currencyCodeSyntax": "Code de devise invalide « {text} » : trois lettres attendues",
     "balanceSideInvalid": "Choisissez crédit ou débit",
     "balanceUnsigned": "Saisissez le solde sans signe : Crédit ou Débit donne le côté",
@@ -1081,6 +1189,13 @@
     "plannedItemAverageWindowInvalid": "La fenêtre de moyenne doit valoir {allowed}",
     "plannedItemLabelFilterNeedsProvision": "Un filtre de libellé ne s'applique qu'à une provision",
     "plannedItemProvisionNeedsRepetition": "Une provision a besoin d'une répétition",
+    "plannedItemTolerancePercentInvalid": "La tolérance est un pourcentage de 0 à 100, avec deux décimales au plus",
+    "plannedItemRepetitionNumberInvalid": "Saisissez un nombre entier : de 1 à 31 pour un jour, 1 ou plus pour des mois et des semaines",
+    "plannedItemBusinessDayRuleInvalid": "Choisissez quoi faire quand la date tombe un week-end",
+    "plannedItemNotSaved": "Un problème est survenu, l'élément planifié n'a pas été enregistré.",
+    "plannedItemGone": "Cet élément planifié n'existe plus.",
+    "plannedItemCreated": "Élément planifié créé.",
+    "plannedItemUpdated": "Élément planifié modifié.",
     "accountInUseByPlannedItem": "Un élément planifié qui n'est pas terminé utilise encore ce compte : annulez-le ou donnez-lui une date de fin d'abord.",
     "accountNotArchived": "Une erreur est survenue, le compte n'a pas été archivé.",
     "categoryNotArchived": "Une erreur est survenue, la catégorie n'a pas été archivée.",
