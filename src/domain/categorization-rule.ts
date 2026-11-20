@@ -35,6 +35,14 @@ export function readRuleLabel(label: string): string {
   return label.trim().toLowerCase();
 }
 
+/**
+ * The "contains" comparison of the rules: case-insensitive, label trimmed, accents kept. Shared so
+ * that every feature filtering on a label reads it the same way.
+ */
+export function labelContains(label: string, value: string): boolean {
+  return readRuleLabel(label).includes(value.toLowerCase());
+}
+
 function matches(
   rule: CategorizationRule,
   subject: RuleSubject,
@@ -46,7 +54,7 @@ function matches(
   const value = rule.value.toLowerCase();
   switch (rule.operator) {
     case "contains":
-      return label.includes(value);
+      return labelContains(label, value);
     case "starts_with":
       return label.startsWith(value);
     case "equals":

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CategorizationRuleValidationError,
   findMatchingRule,
+  labelContains,
   parseRuleOperator,
   validateRuleValue,
   type CategorizationRule,
@@ -112,5 +113,34 @@ describe("parseRuleOperator", () => {
     expect(parseRuleOperator("regex")).toBeNull();
     expect(parseRuleOperator("")).toBeNull();
     expect(parseRuleOperator(null)).toBeNull();
+  });
+});
+
+describe("labelContains", () => {
+  it("finds the value inside the label", () => {
+    expect(labelContains("PLEIN Carburant station", "carburant")).toBe(true);
+  });
+
+  it("ignores case on both sides", () => {
+    expect(labelContains("carburant", "CARBURANT")).toBe(true);
+  });
+
+  it("ignores the spaces around the label", () => {
+    expect(labelContains("  carburant  ", "carburant")).toBe(true);
+  });
+
+  it("does not fold accents", () => {
+    expect(labelContains("Carb\u00fcrant", "carburant")).toBe(false);
+  });
+
+  it("refuses a label without the value", () => {
+    expect(labelContains("Courses", "carburant")).toBe(false);
+  });
+
+  it("keeps the contains rule behaviour: same answers as the helper, accents not folded", () => {
+    const contains = rule({ value: "carburant" });
+
+    expect(findMatchingRule([contains], { label: "Plein CARBURANT", accountId: 1 })).toBe(contains);
+    expect(findMatchingRule([contains], { label: "Carb\u00fcrant", accountId: 1 })).toBeNull();
   });
 });
