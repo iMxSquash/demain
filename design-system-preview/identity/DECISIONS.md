@@ -2,6 +2,8 @@
 
 One line per choice, with the evidence that justifies it. Reference IDs are those of [00-reference-audit.md](00-reference-audit.md) (`01` to `03`, then capture times such as `07:20`). `DOMAIN` and `PRODUCT` point to `docs/DOMAIN.md` and `docs/PRODUCT.md`. "Owner" means a decision taken by the owner during review.
 
+Version 0.8 (20 Nov 2026): the planned item screens (issue #176): the `/planned` list, the create form, the edit page with its versions, and the confirmations. The owner's decisions of 19 Nov 2026 are recorded under "Planned items"; every other choice there is proposed and waits for the owner's validation on `components.html`.
+
 Version 0.7 (16 Nov 2026): the loading skeleton and its shimmer, the one motion allowed to repeat (owner's decision of 12 Nov 2026, issue #126). The band tone and the 1500 ms cycle are proposed and wait for the owner's validation on `components.html`.
 
 Version 0.6 (12 Nov 2026): the owner's answers to the open points of the integration plan. Phosphor icons, a Settings page, an interim phone tab bar, Credit and Debit for balances, the import review as a page, a step for a transfer above a ceiling, the chart without planned items, a WOFF2 font, the migration in one pull request, `src/app/tokens.css` as the source after integration.
@@ -349,6 +351,31 @@ Retained by the owner on 11 Nov 2026 from three proposals (`form-proposals.html`
 | Save button | Says what will happen: "Add expense of €42.00"; a transfer names its destination, "Move €42.00 to Savings A" | Voice rule: a verb and an object |
 | Wide layout | From 760 px of available width, one screen in two columns (amount, label and category on the left; date, account and save on the right), at most 920 px; no keypad, steps or recap; Save checks the amount and the label | Owner: a desktop version of the form. Proposal A (one screen) was the one suited to desktop; on a keyboard, steps only add clicks |
 
+## Planned items
+
+The screens of DESIGN.md section 17, drawn on `components.html` with existing components only. "Owner, 19 Nov 2026" marks what the owner decided before the design pass; "Proposed" marks what this pass chose and the owner has not yet validated.
+
+| Choice | Value | Justification |
+| --- | --- | --- |
+| Way in | `/planned` is reached from a link in the calendar and from an entry in the wide sidebar | Owner, 19 Nov 2026. The calendar changes one occurrence (ROADMAP, M2); `/planned` changes the item behind it |
+| Way in on a phone | The tab bar keeps its four destinations: the calendar link is the way in | Proposed, from the interim tab bar (owner, 12 Nov 2026). Whether `/planned` also joins the "More" list of `/settings` is an open question |
+| Average windows | 3, 6 or 12 previous occurrences, 3 by default, offered as three choice chips | Owner, 19 Nov 2026. DOMAIN: `average_window` is 3, 6 or 12 |
+| Provision | Only on a repeating item: there is no one-off provision. On a one-off the checkbox stays, unavailable, with the reason written under it | Owner, 19 Nov 2026. DOMAIN: `accepts_multiple_transactions` needs a repetition. A control that is silently disabled tells nothing |
+| Deletion | "Delete" exists only when no transaction is linked to the item. Otherwise the page says why in a sentence and points to "Cancel this planned item" | Owner, 19 Nov 2026 (issue #180). A linked transaction must keep the item it settles |
+| Amount | Typed without a sign: the type (Out, In, Move, Interest) gives the sign. The type segments are those of the add-transaction flow | DOMAIN invariant 1 and DESIGN section 9 (owner, 12 Nov 2026). One syntax for every amount |
+| Amount mode | Two segments, "Fixed amount" and "Rolling average". The amount of the second is labelled "Starting estimate" and a hint says it is used until a previous amount exists | ADR-011: nothing is estimated unless the user chooses it. DOMAIN: the amount of a rolling average is its starting estimate |
+| First date and end date | The date picker field, not the Today and Yesterday chips | Proposed. A series starts on any day, often in the future; the chips of the add-transaction flow suit a transaction that already happened |
+| Repetition | A select of seven choices, then a number field only for "Monthly on a given day", "Every N months" and "Every N weeks" | Proposed, from DOMAIN `repetition_kind` and `repetition_value`. There is no count of occurrences in DOMAIN, so none is drawn |
+| Matching | A closed disclosure "Matching" with the window in days (5) and the tolerance in percent (5), both with exact-syntax rules | Proposed. DOMAIN defaults suit most items, so they stay out of the way, as "More details" in the add-transaction flow |
+| Real values only | The list and the forms use no blur and no dashed line | Proposed. They show what the user entered, not a projection (DESIGN section 1). The dash belongs to the trajectory chart |
+| List, wide | A table with a name, the schedule in words, the account, the next date and the amount, 48 px rows | Proposed. DESIGN section 8 table; the schedule in words is read before any date |
+| List, phone | Two-line rows of 64 px instead of a table: name and amount, then schedule, account and next date | Proposed. Five columns do not fit 343 px; the recap rows of the add-transaction flow (56 px) are the precedent, one line taller here |
+| Ended and cancelled | Behind a disclosure under the list, each with a word in a pill | Proposed. The list answers what is still coming; history stays one tap away |
+| Versions | A table of the versions with the word "In effect" or "Upcoming" in a pill, inside a scrolling region that takes the focus | Proposed. Versions are compared across columns, so the table stays a table on a phone |
+| Change from a date | A disclosure holding the version fields. A same-day version triggers a warning notice, and the button then says "Replace the version of 1 Jan 2026" | Proposed. DOMAIN does not say what a second version on the same day does; replacing keeps one version per day. To be confirmed by the owner |
+| Cancel and delete | Each opens the native dialog, Cancel taking the focus first. The dismiss button says "Keep it", never "Cancel", so the two words never meet | The app's `ConfirmActionButton` and the Dialog row above. Red stays on the confirm button only |
+| Save button | Says the verb and the kind: "Add planned expense". It carries no amount | Voice rule, as the add-transaction save button. The amount is already on the same screen |
+
 ## Trajectory chart
 
 The React reference in `react/` (hand-written SVG with `d3-scale` and `d3-shape`, as ADR-012). It replaces the board's single-total chart: where the board differs, this section wins.
@@ -456,3 +483,8 @@ Since version 0.3 the board shows the React trajectory chart (`react/preview/boa
 1. **Trademark.** No clearance search was done for the symbol or the name.
 2. **Gradient in print.** The colour symbol uses four gradients; print and embroidery should use the black, white or mono masters.
 3. **Roadmap.** The dark theme (#107) and the phone navigation (#112) are recorded as decided in `docs/ROADMAP.md`.
+4. **Planned items, phone.** Is `/planned` reached from the calendar link only, or also from the "More" list of `/settings` (ROADMAP, phone navigation)?
+5. **Planned items, fields that cannot change.** The edit page shows the type, the account and the first date as read-only text. DOMAIN does not say whether they can change after creation.
+6. **Planned items, limits and messages not in DOMAIN.** The largest number of months or weeks between dates, and the largest matching window in days, are not documented. The forms refuse zero and a non-integer, and nothing more until DOMAIN says. The error messages and their rules (an end date not before the first date, a tolerance between 0 and 100 with 2 decimals, the "could not be saved" line) are proposed too, as is the same-day replacement of a version.
+7. **Planned items, category.** DOMAIN gives a planned item a category (`category_id`, nullability not stated) while a transfer has none (DOMAIN, transactions). The form follows the add-transaction form: no category for a move, an optional one for the other types. A provision matches the same category, so a provision without a category is also undocumented.
+8. **Planned items, cancel.** DOMAIN has no way back from a cancelled item, and says only that it produces nothing after today. The edit page offers no way back, and no "Change from a date" or "End date" on a cancelled item.

@@ -22,7 +22,8 @@ The repository documents still win over this file: `docs/DOMAIN.md`, the ADRs in
 14. [Voice](#14-voice)
 15. [Accessibility checklist](#15-accessibility-checklist)
 16. [Migrating the current classes](#16-migrating-the-current-classes)
-17. [Open points](#17-open-points)
+17. [Planned items](#17-planned-items)
+18. [Open points](#18-open-points)
 
 ## 1. Principles
 
@@ -634,9 +635,140 @@ With `tailwind.css`, Tailwind's default palette, sizes, weights, radii and shado
 
 `min-h-11`, `min-w-11`, the spacing utilities, flex and grid utilities, `sr-only` and the breakpoints are unchanged.
 
-## 17. Open points
+## 17. Planned items
+
+The screens that manage planned items (DOMAIN, "Planned item and versions"): the list `/planned`, the create form and the edit page (the routes of the last two belong to the issues that build them). They are drawn on `components.html`, in the section "Planned items", one card per screen, wide and on a 375 px phone, with the numbers of this section. DECISIONS.md, "Planned items", records what the owner decided on 19 Nov 2026 and what this pass proposes.
+
+**Rules for every screen**
+- **Built from what exists.** Fields, Select, the date picker field, the type segments and choice chips of section 10, Checkbox, Disclosure, Table, notice, dialog and buttons. No new token and no new component: the page title, the group titles and the link in a table are styling of existing elements, and the chip and segment rules of the flow are shared, not copied. The one new composition is the phone list row (below), because five table columns do not fit 343 px.
+- **Real values only.** These screens show what the user entered. No blur and no dashed line: the dash and the blur belong to projections (section 1, section 11). The only estimate is the one the user chooses: a rolling average, whose amount is called "Starting estimate" (ADR-011).
+- **Amounts are typed without a sign.** The type (Out, In, Move, Interest) gives the sign (section 9, DOMAIN invariant 1). A figure shown after saving carries its sign (`-€650.00`, `+€2,450.00`) and a move carries none.
+- **One primary action per screen**, ink. The primary save buttons are 52 px tall, as in section 10, and say a verb and a kind; the secondary saves of a card ("Save details", "Save end date") are 44 px. Red is only on the confirm button of a dialog (section 8).
+- **Layout switch.** The pages follow the width of their container, not the viewport (section 6): from 640 px of container the form uses two columns and the list is a table; below, one column and rows. The phone reference is 375 px wide with 16 px gutters, so 343 px of content.
+- **Colour.** Ink for what is chosen, red and green only on the type segments and the signed figures, always with the word or the sign. Blue is not used: nothing here means today.
+- **Language.** Sentence case. A hint says the rule before the error has to (section 9). An error starts with "Error:" and an alert icon.
+- **Page frame.** One `h1` of 28 px (`text-heading`), a back link "Planned items" above it on the form and edit pages (a link of 44 px), and `<title>` unique per page: "Planned items", "New planned item", the name of the item.
+
+**Way in** (owner, 19 Nov 2026)
+- A link "Planned items" in the calendar, and an entry in the wide sidebar (section 6, navigation). The phone tab bar keeps its four destinations, so the calendar link is the way in on a phone. Whether the "More" list of `/settings` also lists it is an open point.
+
+### The list
+
+**Wide (container of 640 px and more)**
+- **Header:** `h1` "Planned items" on the left and the primary "Add planned item" (44 px) on the right, 24 px above the card.
+- **Card:** `surface`, `rounded-card`, padding 24, holding a table (section 8): 48 px rows, hairlines, labels in 12 px uppercase `text-muted`, hover on `surface-sunken`. The caption is visually hidden, since the `h1` already names the table.
+- **Columns:** Name, Schedule, Account, Next, Amount (right-aligned, tabular). The order reads as a sentence: what, how often, where, when, how much.
+- **Name:** a link in ink, 44 px tall, underlined on hover and with the focus ring. The link is the row's way to the edit page; the row itself is not a target.
+- **Schedule, in words:** "Once", "Monthly on day 5", "Monthly on the last day", "Every month", "Every 2 months", "Every quarter", "Every year", "Every week", "Every 3 weeks", followed by ", until 31 Dec 2027" when an end date is set. The business-day rule stays on the edit page. Words come first because a date alone does not say how often.
+- **Account:** the account name, or "Current to Savings A" for a move (a word, no arrow icon).
+- **Next:** the next occurrence, a date from `Intl`.
+- **Amount:** the amount of the next occurrence, signed. A rolling average adds the pill "Average of 3" (6, 12) before the figure, so the word says that the figure follows the previous amounts.
+- **Order:** by next date, earliest first.
+- **Ended and cancelled:** a disclosure under the table, closed, "Ended and cancelled (2)", 24 px below it. Same columns; the Next cell holds the pill "Ended 31 Oct 2026" or "Cancelled" instead of a date. They are history, so they stay one click away and out of "what is still coming".
+
+**Phone (under 640 px)**
+- **Header:** `h1`, then the primary "Add planned item" at full width (44 px), 16 px apart.
+- **Card:** padding 16. A list of rows of 64 px at least, with hairlines, each one a single link of the full width of the card (a target at least 64 px tall).
+- **Row:** line 1 is the name (medium, ink) with the signed amount on the right (tabular); line 2 is 13 px `text-muted`: schedule, then "Average of 3" when it applies, then the account, then "Next 5 Dec", separated by " · ". It may wrap to a second line, and the row grows with it. 64 px is the 56 px of the recap rows in section 10 plus one 8 px step for the second line.
+- **Ended and cancelled:** the same disclosure, with the same rows and the words "Ended" or "Cancelled" in place of the next date.
+
+**Empty state**
+- The inner-surface block of section 8, centred, padding 32 x 16: "No planned item yet. Add a bill or an income that comes back, and the calendar will show it ahead." and one secondary action, "Add planned item". The header keeps its primary button.
+
+### The create form
+
+A card of at most 720 px, padding 24 (16 on a phone), with three groups. Each group has an `h2` of 20 px (`text-title`); groups are 32 px apart and fields 16 px apart. From 640 px of container the fields use two columns 16 px apart, and the fields marked "full" span both.
+
+**Details**
+- **Name** (full): text field. Hint "For example Rent or Salary." Required.
+- **Type** (full): the four segments Out, In, Move, Interest of section 10, with their icons, under a visible legend "Type". Same component: the user already knows it from adding a transaction.
+- **Account** and **Category (optional):** two Selects. Archived accounts are not offered (DOMAIN). Hint under Category: "A matched transaction without a category takes this one." For a move, Account becomes **From** and **To, the account that receives**, and the category goes, as in the add-transaction form. The From account is disabled in To.
+- **Why Selects and not chips:** the list of accounts and categories has no fixed length, and a Select keeps the form short (section 9).
+
+**Schedule**
+- **First date:** the date picker field of section 9, not the Today and Yesterday chips. A series starts on any day, often ahead; the chips fit a transaction that already happened. Hint: "The first date it can fall on. It does not have to follow the rule below."
+- **Repeats:** a Select of seven choices: "Does not repeat", "Monthly on a given day", "Monthly on the last day", "Every N months", "Every quarter", "Every year", "Every N weeks". They are the six `repetition_kind` of DOMAIN and the one-off. A count of occurrences is not drawn: DOMAIN has none, only an end date.
+- **Number:** a field that appears only for "Monthly on a given day" (label "Day of the month", 1 to 31, hint "A short month uses its last day."), "Every N months" ("Months between dates") and "Every N weeks" ("Weeks between dates"). Whole numbers only: the exact-syntax rule of section 9 with digits and no separator, in the browser and in the schema.
+- **End date (optional):** the date picker field, shown for a repeating item only. Hint: "The last date it can fall on. Leave it empty to go on."
+- **If the date falls on a weekend:** a Select, "Keep the date", "Previous business day", "Next business day". Hint: "Saturday and Sunday only, public holidays are not known."
+
+**Amount**
+- **Amount mode** (full): two segments, "Fixed amount" and "Rolling average", the segmented control of section 8 with a hint "A rolling average follows the amounts of the previous occurrences. Nothing is estimated unless you choose it."
+- **Amount** (fixed) or **Starting estimate** (rolling average): the amount field of section 9, right-aligned, `€` at the end in muted text, `inputmode="decimal"`, hint "Without a sign: the type sets the direction." In rolling mode the hint adds "Used until a previous amount exists."
+- **Occurrences averaged:** shown in rolling mode only: three choice chips "3", "6", "12" under the legend, 3 by default. Chips of 44 px, ink when chosen. Only three values exist (DOMAIN), so chips beat a Select.
+- **Provision** (full): a Checkbox row of 44 px, "Provision for this period", with the hint "Several transactions can settle it. What is left when the period ends disappears." Ticking it shows **Only transactions whose label contains** (optional), hint "Leave it empty to count every transaction of the same account and category." On "Does not repeat" the box stays, unavailable, with the hint "A provision needs a repetition." under it, linked by `aria-describedby`: a control that is silently disabled tells nothing. No one-off provision exists (owner, 19 Nov 2026).
+- **Matching:** a Disclosure (section 8), closed, holding two fields in two columns: **Window, in days** (whole number, 5 by default, hint "A transaction may fall this many days before or after the planned date.") and **Tolerance, in percent** (digits and one comma or point, 2 decimals at most, from 0 to 100, 5 by default, `%` at the end, hint "How far the amount may differ. 0 means the same amount."). Closed, because the defaults suit most items (as "More details" in section 10). The tolerance is stored in basis points: the browser shows percent and the server turns it back, with the same rule on both sides (section 9).
+
+**Save**
+- A primary button of 52 px that says the verb and the kind: "Add planned expense", "Add planned income", "Add planned transfer", "Add planned interest". No amount in it: the amount is on the same screen. Pending: "Adding…" with `aria-busy`. The button is left-aligned with the fields on a wide form and full width on a phone.
+- **Errors:** the invalid state of section 9 under each field, with "Error:" and the alert icon. On save, the browser checks the form and moves the focus to the first field in error with its message. A failure of the server shows one error line above the button, `role="alert"`.
+
+| Field | Error |
+| --- | --- |
+| Name | Error: enter a name. |
+| Amount | Error: invalid amount "12,": digits missing after the decimal separator. |
+| Day, months, weeks | Error: the day is a whole number from 1 to 31. (months and weeks: a whole number, 1 or more) |
+| End date | Error: the end date is on or after the first date. |
+| Tolerance | Error: the tolerance is between 0 and 100 percent. |
+| Provision on a one-off | Error: a provision needs a repetition. Choose how it repeats, or untick the provision. |
+| Saving | Error: the planned item could not be saved. Try again. |
+
+The messages and the rules behind them (an end date not before the first date, whole numbers of 1 or more, a tolerance between 0 and 100) are proposed: DOMAIN fixes none of them, and they wait for the owner's check (DECISIONS.md, open question 6). The errors card of `components.html` draws the name, the day, the amount, the tolerance and the saving error; the others follow the same pattern. The provision error is the one a form posted without JavaScript returns, since with JavaScript the box is unavailable on a one-off.
+
+**Without JavaScript:** the Selects and dates are the native `select` and `input type="date"` (section 9); the number, the window and the label filter are always in the form and the server ignores those that do not apply to the chosen repetition and mode; the type and mode segments are native radios. The server checks every rule above and returns the errors with the form.
+
+### The edit page
+
+A column of cards at most 720 px wide, 16 px apart, padding 24 (16 on a phone). The header has a back link, an `h1` with the name, and under it a muted line with the schedule in words and, when it applies, the pill "Cancelled" or "Ended 31 Oct 2026".
+
+**Details** (card)
+- **Read-only facts (proposed):** type, account and first date in a definition list (section 8, the `kv` list), 13 px muted terms and ink values, under the hint "Fixed once created". Showing them as text makes the rule visible. DOMAIN does not say whether they can change: it is an open point (DECISIONS.md, open question 5).
+- **Editable:** name, category, the provision checkbox with its label filter, and the "Matching" disclosure, with the rules of the create form. One secondary button, "Save details".
+
+**Versions** (card)
+- **Table** of the versions, oldest first, as a timeline: From, Repeats, Amount, Mode. From holds the date and, for the version in force, the pill "In effect", and for a later one "Upcoming". Repeats is in words and carries the business-day rule ("Monthly on day 5, next business day"). Mode is "Fixed" or "Average of 3". Under the table a hint: "For a rolling average, the amount is the starting estimate."
+- **Scrolling:** the table sits in a region that scrolls sideways when needed (`tabindex="0"`, `role="region"`, an `aria-label` "Versions of Rent"), the only way to keep four columns of words on 343 px.
+- **Change from a date:** a Disclosure under the table, "Change from a date". It holds the version fields of the create form (Repeats and its number, the weekend rule, the mode, the amount or starting estimate, the averaged occurrences), filled with the version in force, and a **Change from** date picker field first.
+  - **Hint under Repeats:** "Changing how it repeats restarts the series from this date. Changing only the amount keeps the current rhythm." (DOMAIN, decisions of 19 Nov 2026, Q3 and Q5).
+  - **Same day (proposed):** when the date is the one of an existing version, a notice of section 8 appears under the date, `role="status"`: "Warning: this replaces the version of 5 Sep 2026. Its values are lost." The primary button then says "Replace the version of 5 Sep 2026"; otherwise "Change from 15 Dec 2026". The notice carries a word, so the amber is not alone. DOMAIN does not say what a second version on the same day does. Replacing keeps one version per day, and on the first version it keeps the date of the first date, as DOMAIN Q5 asks. The owner confirms it (DECISIONS.md, "Planned items").
+  - Matching and provision are not here: they belong to the item, not to a version.
+
+**End date** (card, repeating items only)
+- A date picker field "End date" with the hint "The last date it can fall on. Leave it empty to go on." and a secondary "Save end date". It is a card of its own because it changes the item, not a version.
+
+**Stop or remove** (card)
+- Two rows of one sentence and one secondary button, 16 px apart, with a hairline between them. Neither button is red: red is for the confirmation.
+- **Cancel this planned item:** "Nothing more is planned from today. Occurrences already settled keep their transactions." (DOMAIN, Q4). On an item already cancelled the sentence "This planned item is cancelled." takes its place.
+- **Delete:** "Deletes the planned item and its versions. No transaction changes." with the button "Delete". It exists only when no transaction is linked (owner, 19 Nov 2026): otherwise there is no button, and the sentence reads "This planned item cannot be deleted: 10 transactions are linked to it. Cancel it instead."
+- **A cancelled item (proposed):** the header shows the pill "Cancelled" next to the schedule. Details stay editable (name, category), the versions table stays as a record, and "Change from a date" and "End date" are not offered, since nothing is planned after today. DOMAIN says only that a cancelled item produces nothing after today (Q4); the rest is an open point (DECISIONS.md, open question 8).
+- **Both open the native dialog** (section 8): a title with the name ("Cancel Rent?", "Delete Rent?"), one sentence, "Keep it" (secondary, takes the focus first) and the red confirm button, "Cancel this planned item" or "Delete", on the right. The dismiss button never says "Cancel", so the two meanings never meet. Escape closes.
+
+**Without JavaScript:** the disclosures are native `details`; the dialogs are native `dialog` opened by a script, and without it the two buttons post to a confirmation page with the same sentences.
+
+### Measures
+
+| Element | Wide | Phone |
+| --- | --- | --- |
+| Page gutter, content | 32 px, column of 720 px at most | 16 px, 343 px |
+| Card padding | 24 | 16 |
+| Gap between cards, groups, fields | 16, 32, 16 | 16, 32, 16 |
+| List row | 48 px (table) | 64 px at least (link) |
+| Field, Select, date field | 48 px | 48 px |
+| Segment, chip, checkbox row, button, back link | 44 px | 44 px |
+| Save button | 52 px, left-aligned | 52 px, full width |
+| Columns in a form | 2, from 640 px of container | 1 |
+| Text | `h1` 28, group title 20, body 15, hint 13, labels 12 | same |
+
+### Checks
+- **Contrast:** no new colour pair. Every pair used (hints and captions on `surface`, the pills on `control`, the signed figures on `surface` and on the hovered row, the notice, the error text, the destructive button) is in the table of `components.html`, in both themes.
+- **Keyboard:** reading order is top to bottom, left to right; each Select and date picker follows section 9; the disclosures, the segments, the chips and the checkbox are native inputs; the focus returns to the button that opened a dialog.
+- **Nothing by colour alone:** the sign, the word of a pill, "Error:", "Warning:", and the icon of each type.
+
+## 18. Open points
 
 These need action before the related work lands in `src/` (details in DECISIONS.md, "Open questions for the owner"):
+
+- **Planned items:** the way in on a phone, the fields that cannot change after creation, the limits DOMAIN does not give (months, weeks, window in days), the category of a planned item, and whether a cancelled item can be resumed are listed in DECISIONS.md, "Open questions for the owner", items 4 to 8. The owner also validates the rendered references of section 17 on `components.html`.
 
 - **Motion on the references:** `components.html` shows the CSS part of section 6 (states, popovers, dialog, disclosure, step editor, flow steps, progress bar, toast in and out). The trajectory line drawing and the page entrance are specified but not drawn: `brand-board.html` would need its bundle rebuilt. They are checked in the app when the chart and the layout land.
 - **Values to confirm:** the motion tokens are proposed by role, since the references are still images. The owner confirms them on `components.html` (DECISIONS.md, "Motion").
