@@ -132,6 +132,8 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
     repetitionValue: inEffect.repetitionValue === null ? "" : String(inEffect.repetitionValue),
     businessDayRule: inEffect.businessDayRule,
     amount: formatEditableAmount(Math.abs(inEffect.amount), currency),
+    amountMode: inEffect.amountMode,
+    averageWindow: String(inEffect.averageWindow),
   };
   // The key remounts a form when the data it is pre-filled from changes after a save.
   const versionFormKey = Object.values(versionFormValues).join("|");

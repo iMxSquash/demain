@@ -19,13 +19,15 @@ export type PlannedItemKind = "expense" | "income" | "interest" | "transfer";
 
 const PLANNED_ITEM_KINDS: readonly PlannedItemKind[] = ["expense", "income", "interest", "transfer"];
 
+export const AMOUNT_MODES: readonly AmountMode[] = ["fixed", "rolling_average"];
+
 export const AVERAGE_WINDOWS: readonly number[] = [3, 6, 12];
 
 export const DEFAULT_MATCH_WINDOW_DAYS = 5;
 // 5%, in basis points so that no percentage is ever a float.
 export const DEFAULT_MATCH_AMOUNT_TOLERANCE_BP = 500;
 const MAX_TOLERANCE_BP = 10_000;
-const DEFAULT_AVERAGE_WINDOW = 3;
+export const DEFAULT_AVERAGE_WINDOW = 3;
 
 // Covers any effective date of a schedule, whatever its overrides move.
 const LAST_DATE = "9999-12-31";
@@ -91,6 +93,7 @@ export type PlannedItemField =
   | "matchAmountToleranceBp"
   | "repetition"
   | "amount"
+  | "amountMode"
   | "averageWindow";
 
 export class PlannedItemValidationError extends Error {
@@ -260,6 +263,24 @@ function assertMatchSettings(matchWindowDays: number, matchAmountToleranceBp: nu
   }
 }
 
+function assertAmountMode(amountMode: AmountMode): void {
+  if (AMOUNT_MODES.includes(amountMode)) return;
+  refuse(
+    "amountMode",
+    `The amount mode must be one of ${AMOUNT_MODES.join(", ")}`,
+    messageRef("plannedItemAmountModeInvalid"),
+  );
+}
+
+function assertAverageWindow(averageWindow: number): void {
+  if (AVERAGE_WINDOWS.includes(averageWindow)) return;
+  refuse(
+    "averageWindow",
+    `The average window must be one of ${AVERAGE_WINDOWS.join(", ")}`,
+    messageRef("plannedItemAverageWindowInvalid", { allowed: AVERAGE_WINDOWS.join(", ") }),
+  );
+}
+
 function normalizeLabelFilter(
   filter: string | null | undefined,
   isProvision: boolean,
@@ -304,14 +325,10 @@ export function validatePlannedItemInput(
   const matchAmountToleranceBp =
     input.matchAmountToleranceBp ?? DEFAULT_MATCH_AMOUNT_TOLERANCE_BP;
   assertMatchSettings(matchWindowDays, matchAmountToleranceBp);
+  const amountMode = input.amountMode ?? "fixed";
+  assertAmountMode(amountMode);
   const averageWindow = input.averageWindow ?? DEFAULT_AVERAGE_WINDOW;
-  if (!AVERAGE_WINDOWS.includes(averageWindow)) {
-    refuse(
-      "averageWindow",
-      `The average window must be one of ${AVERAGE_WINDOWS.join(", ")}`,
-      messageRef("plannedItemAverageWindowInvalid", { allowed: AVERAGE_WINDOWS.join(", ") }),
-    );
-  }
+  assertAverageWindow(averageWindow);
   const acceptsMultipleTransactions = input.acceptsMultipleTransactions ?? false;
   // A provision settles a period: without a repetition it has none (owner, 19 Nov 2026).
   if (acceptsMultipleTransactions && input.repetition === null) {
@@ -340,7 +357,7 @@ export function validatePlannedItemInput(
     repetition: input.repetition,
     businessDayRule: input.businessDayRule ?? "none",
     amount: input.amount,
-    amountMode: input.amountMode ?? "fixed",
+    amountMode,
     averageWindow,
   };
 }
@@ -493,6 +510,10 @@ export interface PlannedItemVersionInput {
   businessDayRule?: BusinessDayRule;
   /** Signed integer in minor units. */
   amount: number;
+  /** Default: the mode of the version in effect at `effectiveFrom`. */
+  amountMode?: AmountMode;
+  /** Default: the window of the version in effect at `effectiveFrom`. */
+  averageWindow?: number;
 }
 
 interface VersionChangeContext {
@@ -607,13 +628,17 @@ export function validatePlannedItemVersion(
   assertNoBlockingDateFrom(input.effectiveFrom, context);
 
   const inEffect = versionInEffectAt(item.versions, input.effectiveFrom);
+  const amountMode = input.amountMode ?? inEffect.amountMode;
+  assertAmountMode(amountMode);
+  const averageWindow = input.averageWindow ?? inEffect.averageWindow;
+  assertAverageWindow(averageWindow);
   return {
     effectiveFrom: input.effectiveFrom,
     repetition: input.repetition,
     businessDayRule: input.businessDayRule ?? inEffect.businessDayRule,
     amount: input.amount,
-    amountMode: inEffect.amountMode,
-    averageWindow: inEffect.averageWindow,
+    amountMode,
+    averageWindow,
     replaces: item.versions.some((version) => version.effectiveFrom === input.effectiveFrom),
   };
 }

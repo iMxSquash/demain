@@ -10,12 +10,14 @@ import {
   toRepetition,
   validatePlannedItemDetails,
   validatePlannedItemInput,
+  validatePlannedItemVersion,
   versionInEffectAt,
   type PlannedItemContext,
   type PlannedItemInput,
+  type PlannedItemVersionInput,
 } from "../../src/domain/planned-item";
 import type { Repetition } from "../../src/domain/recurrence";
-import type { PlannedSchedule } from "../../src/domain/occurrences";
+import type { PlannedSchedule, PlannedVersion } from "../../src/domain/occurrences";
 
 const CONTEXT: PlannedItemContext = {
   accounts: [
@@ -382,5 +384,75 @@ describe("versionInEffectAt", () => {
 
   it("throws on an empty list", () => {
     expect(() => versionInEffectAt([], "2026-01-01")).toThrow(RangeError);
+  });
+});
+
+describe("validatePlannedItemVersion amount mode", () => {
+  const rollingVersion = {
+    effectiveFrom: "2026-01-05",
+    repetition: { kind: "monthly_on_day", day: 5 } as Repetition,
+    businessDayRule: "none" as const,
+    amount: -80_000,
+    amountMode: "rolling_average" as const,
+    averageWindow: 12,
+  };
+  const fixedVersion = { ...rollingVersion, amountMode: "fixed" as const, averageWindow: 3 };
+
+  const contextOf = (version: PlannedVersion) => ({
+    item: {
+      kind: "expense" as const,
+      startDate: "2026-01-05",
+      endDate: null,
+      cancelled: false,
+      versions: [version],
+    },
+    accountArchived: false,
+    settledNominalDates: [],
+    overrides: [],
+  });
+
+  const change: PlannedItemVersionInput = {
+    effectiveFrom: "2026-04-05",
+    repetition: { kind: "monthly_on_day", day: 5 },
+    amount: -85_000,
+  };
+
+  it("returns the submitted mode and window", () => {
+    const valid = validatePlannedItemVersion(
+      { ...change, amountMode: "rolling_average", averageWindow: 6 },
+      contextOf(fixedVersion),
+    );
+
+    expect(valid).toMatchObject({ amountMode: "rolling_average", averageWindow: 6 });
+  });
+
+  it("inherits the mode and window of the version in effect when absent", () => {
+    const valid = validatePlannedItemVersion(change, contextOf(rollingVersion));
+
+    expect(valid).toMatchObject({ amountMode: "rolling_average", averageWindow: 12 });
+  });
+
+  it("refuses a window outside the allowed values", () => {
+    let error: unknown;
+    try {
+      validatePlannedItemVersion(
+        { ...change, amountMode: "rolling_average", averageWindow: 5 },
+        contextOf(fixedVersion),
+      );
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(PlannedItemValidationError);
+    expect((error as PlannedItemValidationError).field).toBe("averageWindow");
+  });
+
+  it("accepts switching back to the fixed mode", () => {
+    const valid = validatePlannedItemVersion(
+      { ...change, amountMode: "fixed" },
+      contextOf(rollingVersion),
+    );
+
+    expect(valid).toMatchObject({ amountMode: "fixed" });
   });
 });

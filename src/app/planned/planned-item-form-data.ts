@@ -5,7 +5,10 @@ import {
 } from "../../domain/amount-syntax";
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { MoneyParseError } from "../../domain/money";
+import type { AmountMode } from "../../domain/occurrences";
 import {
+  AMOUNT_MODES,
+  AVERAGE_WINDOWS,
   parseTolerancePercent,
   PlannedItemValidationError,
   type PlannedItemDetails,
@@ -54,6 +57,9 @@ export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "m
   every_n_weeks: "weeks",
 };
 
+export const DEFAULT_AMOUNT_MODE: AmountMode = "fixed";
+export const ROLLING_AVERAGE_MODE: AmountMode = "rolling_average";
+
 export const BUSINESS_DAY_RULES: readonly BusinessDayRule[] = ["none", "previous", "next"];
 
 // Refused by `isValidRepetition` for every repetition that counts (a day from 1, months and weeks
@@ -77,6 +83,10 @@ export interface PlannedItemFormValues {
   businessDayRule: string;
   /** Unsigned: the kind decides the direction. */
   amount: string;
+  /** "fixed" or "rolling_average"; blank means fixed. */
+  amountMode: string;
+  /** Occurrences averaged, as text, read in rolling average mode only. */
+  averageWindow: string;
   /** Days, as text. */
   matchWindowDays: string;
   /** Percent, as text ("5", "2,5"). */
@@ -128,10 +138,11 @@ const FORM_FIELD_OF: Record<PlannedItemField, PlannedItemFormField | undefined> 
   amount: "amount",
   matchWindowDays: "matchWindowDays",
   matchAmountToleranceBp: "matchTolerancePercent",
-  // Provisions and rolling averages have no control yet (#163, #164).
+  // Provisions have no control yet (#164).
   acceptsMultipleTransactions: undefined,
   provisionLabelFilter: undefined,
-  averageWindow: undefined,
+  amountMode: "amountMode",
+  averageWindow: "averageWindow",
 };
 
 export function formFieldOf(field: PlannedItemField): PlannedItemFormField | undefined {
@@ -156,6 +167,8 @@ export function readSubmittedValues(formData: FormData): PlannedItemFormValues {
     repetitionValue: readText(formData, "repetitionValue"),
     businessDayRule: readText(formData, "businessDayRule"),
     amount: readText(formData, "amount"),
+    amountMode: readText(formData, "amountMode"),
+    averageWindow: readText(formData, "averageWindow"),
     matchWindowDays: readText(formData, "matchWindowDays"),
     matchTolerancePercent: readText(formData, "matchTolerancePercent"),
   };
@@ -236,6 +249,28 @@ function readRepetition(choice: string, valueText: string): RepetitionResult {
   return { repetition: candidate };
 }
 
+type AmountModeResult =
+  | { amountMode: AmountMode; averageWindow: number | undefined }
+  | { field: "amountMode" | "averageWindow"; ref: MessageRef };
+
+// The window only exists in rolling average mode: a fixed item drops whatever was typed for it.
+function readAmountMode(modeText: string, windowText: string): AmountModeResult {
+  const mode = modeText.trim() === "" ? DEFAULT_AMOUNT_MODE : modeText;
+  const amountMode = AMOUNT_MODES.find((candidate) => candidate === mode);
+  if (amountMode === undefined) {
+    return { field: "amountMode", ref: messageRef("plannedItemAmountModeInvalid") };
+  }
+  if (amountMode !== ROLLING_AVERAGE_MODE) return { amountMode, averageWindow: undefined };
+  const averageWindow = parseWholeNumber(windowText);
+  if (averageWindow === null || !AVERAGE_WINDOWS.includes(averageWindow)) {
+    return {
+      field: "averageWindow",
+      ref: messageRef("plannedItemAverageWindowInvalid", { allowed: AVERAGE_WINDOWS.join(", ") }),
+    };
+  }
+  return { amountMode, averageWindow };
+}
+
 type MatchResult =
   | { windowDays: number; toleranceBp: number }
   | { field: "matchWindowDays" | "matchTolerancePercent"; ref: MessageRef };
@@ -304,6 +339,9 @@ export function parsePlannedItemForm(
     return fail("businessDayRule", messageRef("plannedItemBusinessDayRuleInvalid"));
   }
 
+  const mode = readAmountMode(values.amountMode, values.averageWindow);
+  if ("ref" in mode) return fail(mode.field, mode.ref);
+
   const match = readMatchSettings(values.matchWindowDays, values.matchTolerancePercent);
   if ("ref" in match) return fail(match.field, match.ref);
 
@@ -322,6 +360,8 @@ export function parsePlannedItemForm(
       repetition: repetition.repetition,
       businessDayRule,
       amount: signedAmountOf(kind, amount.value),
+      amountMode: mode.amountMode,
+      averageWindow: mode.averageWindow,
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
     },
@@ -360,7 +400,7 @@ export function parsePlannedItemDetailsForm(
 
 export type PlannedItemVersionFormValues = Pick<
   PlannedItemFormValues,
-  "repetition" | "repetitionValue" | "businessDayRule" | "amount"
+  "repetition" | "repetitionValue" | "businessDayRule" | "amount" | "amountMode" | "averageWindow"
 > & { effectiveFrom: string };
 
 export type PlannedItemVersionFormField = keyof PlannedItemVersionFormValues;
@@ -403,6 +443,8 @@ export function readSubmittedVersion(formData: FormData): PlannedItemVersionForm
     repetitionValue: readText(formData, "repetitionValue"),
     businessDayRule: readText(formData, "businessDayRule"),
     amount: readText(formData, "amount"),
+    amountMode: readText(formData, "amountMode"),
+    averageWindow: readText(formData, "averageWindow"),
   };
 }
 
@@ -429,6 +471,9 @@ export function parsePlannedItemVersionForm(
     return fail("businessDayRule", messageRef("plannedItemBusinessDayRuleInvalid"));
   }
 
+  const mode = readAmountMode(values.amountMode, values.averageWindow);
+  if ("ref" in mode) return fail(mode.field, mode.ref);
+
   return {
     ok: true,
     input: {
@@ -436,6 +481,8 @@ export function parsePlannedItemVersionForm(
       repetition: repetition.repetition,
       businessDayRule,
       amount: signedAmountOf(context.kind, amount.value),
+      amountMode: mode.amountMode,
+      averageWindow: mode.averageWindow,
     },
   };
 }

@@ -75,9 +75,9 @@ async function toFailureState<Field extends string, Values>(
 const detailsControlOf = (field: PlannedItemField) =>
   DETAILS_FIELDS.find((candidate) => candidate === formFieldOf(field));
 
-// The version form has three controls that the domain can refuse; the business day rule has no
+// The version form has five controls that the domain can refuse; the business day rule has no
 // refusal of its own, and a refusal on another field is shown as a message.
-const VERSION_FIELDS = ["effectiveFrom", "repetition", "amount"] as const;
+const VERSION_FIELDS = ["effectiveFrom", "repetition", "amount", "amountMode", "averageWindow"] as const;
 const versionControlOf = (field: PlannedItemField) =>
   VERSION_FIELDS.find((candidate) => candidate === field);
 const endDateControlOf = (field: PlannedItemField) => (field === "endDate" ? field : undefined);

@@ -256,6 +256,170 @@ describe("resolveOccurrences", () => {
     });
   });
 
+  describe("rolling average amount", () => {
+    const STARTING_ESTIMATE = 9000;
+    const FAR_FUTURE_START = "2026-01-01";
+
+    // Occurrences fall on the 5th of each month from March 2026: index 0 is 2026-03-05.
+    function occurrenceDate(index: number): string {
+      const month = 3 + index;
+      const year = 2026 + Math.floor((month - 1) / 12);
+      const monthInYear = ((month - 1) % 12) + 1;
+      return `${year}-${String(monthInYear).padStart(2, "0")}-05`;
+    }
+
+    function paid(index: number, amount: number): OccurrenceLink {
+      return link(occurrenceDate(index), { transactionId: index + 1, amount });
+    }
+
+    function rollingVersion(overrides: Partial<PlannedVersion> = {}): PlannedVersion {
+      return version({ amount: STARTING_ESTIMATE, amountMode: "rolling_average", ...overrides });
+    }
+
+    function rollingItem(
+      versionOverrides: Partial<PlannedVersion> = {},
+      itemOverrides: Partial<ResolutionItem> = {},
+    ): ResolutionItem {
+      return item({ schedule: schedule({ versions: [rollingVersion(versionOverrides)] }), ...itemOverrides });
+    }
+
+    const expectedAmounts = (occurrences: ResolvedOccurrence[]) =>
+      occurrences.map((occurrence) => occurrence.expectedAmount);
+
+    it("nothing paid yet: every occurrence is the starting estimate", () => {
+      const resolved = resolveOccurrences(rollingItem(), [], MARCH_TO_JUNE, FAR_FUTURE_START);
+
+      expect(expectedAmounts(resolved)).toEqual([9000, 9000, 9000, 9000]);
+      expect(resolved.map((occurrence) => occurrence.remaining)).toEqual([9000, 9000, 9000, 9000]);
+    });
+
+    it("occurrence 1 paid 10000: the next three are 10000", () => {
+      const resolved = resolveOccurrences(rollingItem(), [paid(0, 10000)], MARCH_TO_JUNE, "2026-03-06");
+
+      expect(expectedAmounts(resolved).slice(1)).toEqual([10000, 10000, 10000]);
+    });
+
+    it("occurrences 2 and 3 paid 11000 and 12000: occurrence 4 is 11000", () => {
+      const links = [paid(0, 10000), paid(1, 11000), paid(2, 12000)];
+
+      const resolved = resolveOccurrences(rollingItem(), links, MARCH_TO_JUNE, "2026-05-06");
+
+      expect(resolved[3]?.expectedAmount).toBe(11000);
+    });
+
+    it("skips a cancelled occurrence", () => {
+      const cancelled = override(occurrenceDate(1), { status: "cancelled" });
+      const links = [paid(0, 10000), paid(2, 12000)];
+
+      const resolved = resolveOccurrences(rollingItem({}, { overrides: [cancelled] }), links, MARCH_TO_JUNE, "2026-05-06");
+
+      expect(resolved[1]?.status).toBe("cancelled");
+      // Counting the cancelled occurrence would give 10667.
+      expect(resolved[3]?.expectedAmount).toBe(11000);
+    });
+
+    it("skips an overdue occurrence", () => {
+      const links = [paid(0, 10000), paid(2, 12000)];
+
+      const resolved = resolveOccurrences(rollingItem(), links, MARCH_TO_JUNE, "2026-05-06");
+
+      expect(resolved[1]?.status).toBe("overdue");
+      // Counting the overdue occurrence at its estimate would give 10667.
+      expect(resolved[3]?.expectedAmount).toBe(11000);
+    });
+
+    it("restarts the average on a new version with its own starting estimate", () => {
+      const restarted = schedule({
+        versions: [
+          rollingVersion(),
+          rollingVersion({ effectiveFrom: occurrenceDate(3), amount: 5000 }),
+        ],
+      });
+      const links = [paid(0, 10000), paid(1, 11000), paid(2, 12000)];
+      const range = { from: "2026-03-01", to: "2026-07-31" };
+
+      const resolved = resolveOccurrences(item({ schedule: restarted }), links, range, "2026-05-06");
+
+      expect(expectedAmounts(resolved).slice(3)).toEqual([5000, 5000]);
+    });
+
+    it("an override amount is used once and does not feed the next occurrence", () => {
+      const repriced = override(occurrenceDate(1), { overrideAmount: 20000 });
+
+      const resolved = resolveOccurrences(rollingItem({}, { overrides: [repriced] }), [], MARCH_TO_JUNE, FAR_FUTURE_START);
+
+      expect(expectedAmounts(resolved)).toEqual([9000, 20000, 9000, 9000]);
+    });
+
+    it("averages fewer values when fewer exist", () => {
+      const links = [paid(0, 10000), paid(1, 11000)];
+
+      const resolved = resolveOccurrences(rollingItem(), links, MARCH_TO_JUNE, "2026-04-06");
+
+      // Occurrence 3 averages 10000 and 11000, occurrence 4 averages 10000, 11000 and 10500.
+      expect(expectedAmounts(resolved).slice(2)).toEqual([10500, 10500]);
+    });
+
+    it("rounds to the nearest minor unit, ties away from zero, for a negative expense", () => {
+      const links = [paid(0, -1000), paid(1, -1001)];
+
+      const resolved = resolveOccurrences(rollingItem({ amount: -9000 }), links, MARCH_TO_JUNE, "2026-04-06");
+
+      // The exact average is -1000.5.
+      expect(resolved[2]?.expectedAmount).toBe(-1001);
+    });
+
+    it("a window of 6 and of 12", () => {
+      const sixPaid = [0, 1, 2, 3, 4, 5, 6].map((index) => paid(index, (index + 1) * 1000));
+      const sixRange = { from: "2026-03-01", to: "2026-10-31" };
+      const twelvePaid = Array.from({ length: 12 }, (_, index) => paid(index, (index + 1) * 1000));
+      const twelveRange = { from: "2026-03-01", to: "2027-03-31" };
+
+      const withSix = resolveOccurrences(rollingItem({ averageWindow: 6 }), sixPaid, sixRange, "2026-09-06");
+      const withTwelve = resolveOccurrences(
+        rollingItem({ averageWindow: 12 }),
+        twelvePaid,
+        twelveRange,
+        "2027-02-06",
+      );
+
+      // Average of 2000..7000, then of 1000..12000.
+      expect(withSix[7]?.expectedAmount).toBe(4500);
+      expect(withTwelve[12]?.expectedAmount).toBe(6500);
+    });
+
+    it("a fixed version after a rolling one freezes the amount", () => {
+      const frozen = schedule({
+        versions: [rollingVersion(), version({ effectiveFrom: occurrenceDate(2), amount: 7000 })],
+      });
+      const links = [paid(0, 10000), paid(1, 11000)];
+      const range = { from: "2026-03-01", to: "2026-07-31" };
+
+      const resolved = resolveOccurrences(item({ schedule: frozen }), links, range, "2026-04-06");
+
+      expect(expectedAmounts(resolved).slice(2)).toEqual([7000, 7000, 7000]);
+    });
+
+    it("fills the window from before the range", () => {
+      const links = [paid(0, 10000), paid(1, 11000), paid(2, 12000), paid(3, 13000)];
+      const julyOnly = { from: "2026-07-01", to: "2026-07-31" };
+
+      const resolved = resolveOccurrences(rollingItem(), links, julyOnly, "2026-06-06");
+
+      // Occurrences 2, 3 and 4 (11000, 12000, 13000), not 1.
+      expect(expectedAmounts(resolved)).toEqual([12000]);
+    });
+
+    it("converges toward a weighted average with rounding at every step", () => {
+      const links = [paid(0, 8000), paid(1, 9000), paid(2, 10000)];
+      const range = { from: "2026-03-01", to: "2026-10-31" };
+
+      const resolved = resolveOccurrences(rollingItem(), links, range, "2026-05-06");
+
+      expect(expectedAmounts(resolved).slice(3)).toEqual([9000, 9333, 9444, 9259, 9345]);
+    });
+  });
+
   describe("ordering and range", () => {
     it("returns occurrences in nominal date order with their own links", () => {
       const march = link("2026-03-05", { transactionId: 1 });
