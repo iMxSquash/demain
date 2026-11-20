@@ -203,6 +203,49 @@ export interface RuleProposalsSaveState {
   message: string;
 }
 
+/** A pair of a transaction and an occurrence of a planned item, as the ledger names it. */
+export interface MatchPairView {
+  transactionId: number;
+  plannedItemId: number;
+  nominalDate: string;
+}
+
+/** A transaction of the file already linked to an occurrence. Amounts are integer minor units. */
+export interface MatchedView {
+  transactionId: number;
+  label: string;
+  date: string;
+  amount: number;
+  plannedItemName: string;
+  nominalDate: string;
+}
+
+/** One way to settle an ambiguous transaction. */
+export interface ProposedOptionView {
+  pair: MatchPairView;
+  transactionLabel: string;
+  transactionDate: string;
+  transactionAmount: number;
+  plannedItemName: string;
+  nominalDate: string;
+  givesCategory: boolean;
+}
+
+/** Options that compete for the same transactions or occurrences: at most one can be confirmed. */
+export interface ProposedGroupView {
+  options: ProposedOptionView[];
+}
+
+export type BatchMatchesState =
+  | { status: "ready"; matched: MatchedView[]; groups: ProposedGroupView[] }
+  | { status: "error"; message: string };
+
+export interface MatchActionState {
+  status: "done" | "error";
+  /** Translated: what was done, or why nothing was. */
+  message: string;
+}
+
 /** Decodes as UTF-8, or as Windows-1252 when the bytes are not valid UTF-8 (older bank exports). */
 export function decodeImportFile(bytes: ArrayBuffer): string {
   try {

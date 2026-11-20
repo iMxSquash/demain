@@ -924,6 +924,10 @@
         "saved": "Rules created: {count}.",
         "failed": "Something went wrong, no rule was created."
       },
+      "plannedMatches": {
+        "confirmed": "Match confirmed.",
+        "undone": "Match undone."
+      },
       "blocked": "This file cannot be imported as it is: nothing was imported from it. See the points below.",
       "issues": {
         "withRow": "{label} ({date}): {text}",
@@ -1193,6 +1197,9 @@
     "ruleAccountUnknown": "Unknown account",
     "ruleProposalsFailed": "Something went wrong, the suggested rules could not be listed.",
     "ruleProposalsNotSaved": "Something went wrong, no rule was created.",
+    "plannedMatchesFailed": "Something went wrong, the planned matches could not be listed.",
+    "plannedMatchConfirmFailed": "Something went wrong, the match was not confirmed.",
+    "plannedMatchUndoFailed": "Something went wrong, the match was not undone.",
     "balanceAssertionNotSaved": "The balance could not be saved",
     "exchangeRateNotSaved": "The exchange rate could not be saved",
     "ecbFetchDisabled": "The ECB fetch is disabled: enable it first",
@@ -1259,6 +1266,8 @@
     "matchTransactionAlreadyLinked": "This transaction is already linked to a planned item.",
     "matchOtherAccount": "The transaction and the planned item are on different accounts.",
     "matchOccurrenceTaken": "Another transaction already settles this occurrence.",
+    "matchNotProposed": "This match is not proposed any more: the data changed since the page was loaded.",
+    "matchNotInBatch": "This transaction is not a linked transaction of this import.",
     "accountInUseByPlannedItem": "A planned item that is not over still uses this account: cancel it or give it an end date first.",
     "accountNotArchived": "Something went wrong, the account was not archived.",
     "categoryNotArchived": "Something went wrong, the category was not archived.",

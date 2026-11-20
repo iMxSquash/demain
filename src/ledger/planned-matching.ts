@@ -1,10 +1,11 @@
-import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 
 import { messageRef, type MessageRef } from "../domain/message";
 import { resolveOccurrences, type OccurrenceLink } from "../domain/occurrence-resolution";
 import {
   decideMatches,
   matchingRange,
+  type MatchDecisions,
   type MatchOccurrence,
   type MatchPair,
   type ProvisionOccurrence,
@@ -12,6 +13,7 @@ import {
 import type { DateRange } from "../domain/recurrence";
 import type { AppDatabase } from "../storage/database";
 import { plannedItems, transactions } from "../storage/schema";
+import { getImportBatch } from "./import-batch-lookup";
 import { listPlannedItems, toPlannedSchedule, type PlannedItemWithDetails } from "./planned-items";
 import type { Transaction } from "./transactions";
 
@@ -238,28 +240,26 @@ function openOccurrencesOf(
   return open;
 }
 
-/**
- * Links the transactions of an imported batch to the occurrences they settle (DOMAIN, "Matching
- * planned vs actual"). Only unambiguous pairs are written, fill-ups of a provision included; the
- * ambiguous ones are counted and left alone. Run it in the transaction that records the batch.
- */
-export function applyImportMatches(
-  db: Executor,
-  { batchId, today }: ImportMatchRequest,
-): ImportMatchOutcome {
-  const batchTransactions = db
-    .select()
-    .from(transactions)
-    .where(and(eq(transactions.importBatchId, batchId), ne(transactions.kind, "transfer")))
-    .all();
-  if (batchTransactions.length === 0) return NO_MATCHES;
+interface BatchDecisions {
+  decisions: MatchDecisions;
+  transactionsById: Map<number, Transaction>;
+  itemsById: Map<number, PlannedItemWithDetails>;
+}
+
+/** Runs the matching on `batchTransactions`, which must be non-transfer rows; null when no item can match. */
+function decideBatchMatches(
+  db: Pick<AppDatabase, "select">,
+  batchTransactions: readonly Transaction[],
+  today: string,
+): BatchDecisions | null {
+  if (batchTransactions.length === 0) return null;
 
   const accountIds = new Set(batchTransactions.map((transaction) => transaction.accountId));
   const items = listPlannedItems(db, {
     includeCancelled: false,
     accountIds: [...accountIds],
   });
-  if (items.length === 0) return NO_MATCHES;
+  if (items.length === 0) return null;
 
   const links = linksOf(
     db,
@@ -274,12 +274,34 @@ export function applyImportMatches(
     open.flatMap(({ regular }) => regular),
     open.flatMap(({ provisions }) => provisions),
   );
+  // The decisions only name rows of `batchTransactions` and of `items`, so both lookups succeed.
+  return {
+    decisions,
+    transactionsById: new Map(
+      batchTransactions.map((transaction) => [transaction.id, transaction]),
+    ),
+    itemsById: new Map(items.map((item) => [item.id, item])),
+  };
+}
 
-  // The decisions only name rows of this batch and of `items`, so both lookups succeed.
-  const transactionsById = new Map(
-    batchTransactions.map((transaction) => [transaction.id, transaction]),
-  );
-  const itemsById = new Map(items.map((item) => [item.id, item]));
+/**
+ * Links the transactions of an imported batch to the occurrences they settle (DOMAIN, "Matching
+ * planned vs actual"). Only unambiguous pairs are written, fill-ups of a provision included; the
+ * ambiguous ones are counted and left alone. Run it in the transaction that records the batch.
+ */
+export function applyImportMatches(
+  db: Executor,
+  { batchId, today }: ImportMatchRequest,
+): ImportMatchOutcome {
+  const batchTransactions = db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.importBatchId, batchId), ne(transactions.kind, "transfer")))
+    .all();
+  const result = decideBatchMatches(db, batchTransactions, today);
+  if (result === null) return NO_MATCHES;
+
+  const { decisions, transactionsById, itemsById } = result;
   for (const pair of decisions.confirmed) {
     writeLink(
       db,
@@ -292,4 +314,197 @@ export function applyImportMatches(
     matchedCount: decisions.confirmed.length,
     proposedCount: decisions.proposed.length,
   };
+}
+
+/** A transaction of a batch already linked to an occurrence. */
+export interface BatchMatchedItem {
+  transactionId: number;
+  label: string;
+  date: string;
+  /** Integer minor units. */
+  amount: number;
+  plannedItemId: number;
+  plannedItemName: string;
+  nominalDate: string;
+}
+
+/** One way to settle an ambiguous transaction, with what the owner needs to choose. */
+export interface ProposedMatchOption {
+  pair: MatchPair;
+  transactionLabel: string;
+  transactionDate: string;
+  transactionAmount: number;
+  plannedItemName: string;
+  nominalDate: string;
+  /** True when confirming gives the transaction the category of the item (it has none now). */
+  givesCategory: boolean;
+}
+
+/** Options that compete for the same transactions or occurrences: at most one can be confirmed. */
+export interface ProposedMatchGroup {
+  options: ProposedMatchOption[];
+}
+
+export interface BatchMatches {
+  matched: BatchMatchedItem[];
+  groups: ProposedMatchGroup[];
+}
+
+function compareByDateThenId(
+  a: { date: string; id: number },
+  b: { date: string; id: number },
+): number {
+  return a.date.localeCompare(b.date) || a.id - b.id;
+}
+
+function unlinkedBatchTransactions(
+  db: Pick<AppDatabase, "select">,
+  batchId: number,
+): Transaction[] {
+  return db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.importBatchId, batchId),
+        ne(transactions.kind, "transfer"),
+        isNull(transactions.plannedItemId),
+      ),
+    )
+    .all();
+}
+
+/**
+ * The proposals of a batch, computed on its transactions still unlinked. A pair the matching would
+ * confirm on its own is a proposal too: it only reaches this list once an automatic match was undone.
+ */
+function proposedGroupsOf(
+  db: Pick<AppDatabase, "select">,
+  batchId: number,
+  today: string,
+): {
+  groups: MatchPair[][];
+  transactionsById: Map<number, Transaction>;
+  itemsById: Map<number, PlannedItemWithDetails>;
+} {
+  const result = decideBatchMatches(db, unlinkedBatchTransactions(db, batchId), today);
+  if (result === null) return { groups: [], transactionsById: new Map(), itemsById: new Map() };
+  const { decisions, transactionsById, itemsById } = result;
+  const groups = [...decisions.confirmed.map((pair) => [pair]), ...decisions.proposed];
+  return { groups, transactionsById, itemsById };
+}
+
+/**
+ * What the matching did and still proposes for a batch: the linked transactions, and the groups of
+ * pairs left to the owner. Nothing is stored: proposals are recomputed on each call.
+ */
+export function listBatchMatches(
+  db: Pick<AppDatabase, "select">,
+  batchId: number,
+  today: string,
+): BatchMatches {
+  getImportBatch(db, batchId);
+
+  const linkedRows = db
+    .select({
+      transactionId: transactions.id,
+      label: transactions.label,
+      date: transactions.date,
+      amount: transactions.amount,
+      plannedItemId: transactions.plannedItemId,
+      plannedItemName: plannedItems.name,
+      nominalDate: transactions.occurrenceDate,
+    })
+    .from(transactions)
+    .innerJoin(plannedItems, eq(plannedItems.id, transactions.plannedItemId))
+    .where(
+      and(
+        eq(transactions.importBatchId, batchId),
+        isNotNull(transactions.plannedItemId),
+        isNotNull(transactions.occurrenceDate),
+      ),
+    )
+    .all();
+  // The where clause keeps linked transactions only, so the nullable columns are set.
+  const matched = linkedRows
+    .map(({ plannedItemId, nominalDate, ...row }) => ({
+      ...row,
+      plannedItemId: plannedItemId!,
+      nominalDate: nominalDate!,
+    }))
+    .sort((a, b) =>
+      compareByDateThenId(
+        { date: a.date, id: a.transactionId },
+        { date: b.date, id: b.transactionId },
+      ),
+    );
+
+  const { groups, transactionsById, itemsById } = proposedGroupsOf(db, batchId, today);
+  const described = groups.map((pairs) => ({
+    options: pairs.map((pair): ProposedMatchOption => {
+      const transaction = transactionsById.get(pair.transactionId)!;
+      const item = itemsById.get(pair.plannedItemId)!;
+      return {
+        pair,
+        transactionLabel: transaction.label,
+        transactionDate: transaction.date,
+        transactionAmount: transaction.amount,
+        plannedItemName: item.name,
+        nominalDate: pair.nominalDate,
+        givesCategory: item.categoryId !== null && transaction.categoryId === null,
+      };
+    }),
+  }));
+  const firstOf = ({ options }: ProposedMatchGroup) => ({
+    date: options[0]!.transactionDate,
+    id: options[0]!.pair.transactionId,
+  });
+  described.sort((a, b) => compareByDateThenId(firstOf(a), firstOf(b)));
+  return { matched, groups: described };
+}
+
+function samePair(a: MatchPair, b: MatchPair): boolean {
+  return (
+    a.transactionId === b.transactionId &&
+    a.plannedItemId === b.plannedItemId &&
+    a.nominalDate === b.nominalDate
+  );
+}
+
+/** Links a pair that the batch currently proposes; a pair that is not (any more) is refused. */
+export function confirmMatch(
+  db: AppDatabase,
+  batchId: number,
+  pair: MatchPair,
+  today: string,
+): void {
+  db.transaction((tx) => {
+    getImportBatch(tx, batchId);
+    const { groups } = proposedGroupsOf(tx, batchId, today);
+    if (!groups.some((group) => group.some((proposed) => samePair(proposed, pair)))) {
+      throw new PlannedLinkError(
+        "The pair is not proposed for this import batch",
+        messageRef("matchNotProposed"),
+      );
+    }
+    linkTransactionToOccurrence(tx, pair);
+  });
+}
+
+/** Unlinks a transaction of the batch that is linked to an occurrence. */
+export function undoMatch(db: AppDatabase, batchId: number, transactionId: number): void {
+  db.transaction((tx) => {
+    const transaction = tx
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.id, transactionId), eq(transactions.importBatchId, batchId)))
+      .get();
+    if (transaction === undefined || transaction.plannedItemId === null) {
+      throw new PlannedLinkError(
+        `Transaction ${transactionId} is not a linked transaction of batch ${batchId}`,
+        messageRef("matchNotInBatch"),
+      );
+    }
+    unlinkTransaction(tx, transactionId);
+  });
 }
