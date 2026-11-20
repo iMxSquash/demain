@@ -164,7 +164,7 @@ async function PlannedList() {
             <td>
               <Link
                 href={`/planned/${item.id}/edit`}
-                className="inline-flex min-h-11 items-center px-2 underline"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 underline"
               >
                 {t("edit")}
                 <span className="sr-only"> {item.name}</span>

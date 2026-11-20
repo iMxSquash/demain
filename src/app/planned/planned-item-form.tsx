@@ -180,11 +180,13 @@ export function PlannedItemForm({
         </FormField>
 
         <FormField {...fieldProps("repetition", t("repetition"))}>
+          {/* Not a controlled `value`: the form reset after an action puts a controlled select back
+              on its first option, and only a `defaultValue` (remounted by the key) survives it. */}
           <Select
             key={`repetition-${resultCount}`}
             id="repetition"
             name="repetition"
-            value={repetition}
+            defaultValue={repetition}
             onChange={(event) => setRepetition(repetitionChoiceOf(event.target.value))}
           >
             {REPETITION_CHOICES.map((choice) => (
