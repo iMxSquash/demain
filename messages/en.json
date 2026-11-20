@@ -91,6 +91,7 @@
     "transactions": "Transactions",
     "categories": "Categories",
     "synthesis": "Monthly synthesis",
+    "planned": "Planned items",
     "imports": "Import",
     "rules": "Categorization rules",
     "currencies": "Currencies",
@@ -165,6 +166,110 @@
     "activeCaption": "Active accounts with their balance and deposit ceiling",
     "archivedCaption": "Archived accounts, kept for their history",
     "emptyAction": "Add an account"
+  },
+  "planned": {
+    "metaTitle": "Planned items | Demain",
+    "title": "Planned items",
+    "listHeading": "Current planned items",
+    "addHeading": "New planned item",
+    "listCaption": "Planned items with their schedule and amount",
+    "empty": "No planned item yet. Add a bill or an income that comes back, and it will show here.",
+    "emptyAction": "Add a planned item",
+    "noAccount": "Add an account before planning an item.",
+    "noAccountAction": "Add an account",
+    "columns": {
+      "name": "Name",
+      "kind": "Type",
+      "schedule": "Schedule",
+      "account": "Account",
+      "amount": "Amount"
+    },
+    "kinds": {
+      "expense": "Expense",
+      "income": "Income",
+      "interest": "Interest",
+      "transfer": "Transfer"
+    },
+    "transferAccounts": "{from} to {to}",
+    "schedule": {
+      "once": "Once on {date}",
+      "monthlyOnDay": "Monthly on day {day}",
+      "monthlyOnLastDay": "Monthly on the last day",
+      "everyNMonths": "{months, plural, one {Every month} other {Every # months}}",
+      "quarterly": "Every quarter",
+      "yearly": "Every year",
+      "everyNWeeks": "{weeks, plural, one {Every week} other {Every # weeks}}",
+      "until": "{schedule}, until {date}"
+    },
+    "edit": "Edit",
+    "form": {
+      "name": "Name",
+      "nameHint": "For example Rent or Salary.",
+      "type": "Type",
+      "kindLabels": {
+        "expense": "Out",
+        "income": "In",
+        "transfer": "Move",
+        "interest": "Interest"
+      },
+      "account": "Account",
+      "destination": "Destination account",
+      "destinationHint": "For a transfer only.",
+      "category": "Category",
+      "startDate": "First date",
+      "startDateHint": "The first date it can fall on.",
+      "repetition": "Repeats",
+      "repetitions": {
+        "once": "Does not repeat",
+        "monthly_on_day": "Monthly on a given day",
+        "monthly_on_last_day": "Monthly on the last day",
+        "every_n_months": "Every N months",
+        "quarterly": "Every quarter",
+        "yearly": "Every year",
+        "every_n_weeks": "Every N weeks"
+      },
+      "repetitionValue": "Day, months or weeks",
+      "repetitionValues": {
+        "day": "Day of the month",
+        "months": "Months between dates",
+        "weeks": "Weeks between dates"
+      },
+      "endDate": "End date",
+      "endDateHint": "The last date it can fall on. Leave it empty to go on.",
+      "businessDay": "If the date falls on a weekend",
+      "businessDayHint": "Saturday and Sunday only, public holidays are not known.",
+      "businessDayRules": {
+        "none": "Keep the date",
+        "previous": "Previous business day",
+        "next": "Next business day"
+      },
+      "amount": "Amount",
+      "amountHint": "Without a sign: the type sets the direction.",
+      "matching": "Matching",
+      "windowDays": "Window, in days",
+      "windowDaysHint": "A transaction may fall this many days before or after the planned date.",
+      "tolerance": "Tolerance, in percent",
+      "toleranceHint": "How far the amount may differ. 0 means the same amount.",
+      "submit": {
+        "expense": "Add planned expense",
+        "income": "Add planned income",
+        "transfer": "Add planned transfer",
+        "interest": "Add planned interest"
+      }
+    },
+    "editMetaTitle": "Edit planned item | Demain",
+    "editTitle": "Edit {name}",
+    "backToPlanned": "Back to planned items",
+    "fixedHeading": "Fixed once created",
+    "fixedNote": "The amount and the schedule cannot be edited here: they change from a date, which is not available yet.",
+    "facts": {
+      "kind": "Type",
+      "account": "Account",
+      "startDate": "First date",
+      "schedule": "Schedule",
+      "amount": "Amount"
+    },
+    "saveDetails": "Save details"
   },
   "balances": {
     "metaTitle": "Balance assertions | Demain",
@@ -973,6 +1078,7 @@
     "amountUnsigned": "Enter the amount without a sign: the type sets the direction",
     "amountSyntax": "Invalid amount \"{text}\": digits and one comma or point only",
     "amountCharacterRefused": "\"{character}\" is not accepted: digits and one comma or point only.",
+    "wholeNumberCharacterRefused": "\"{character}\" is not accepted: digits only.",
     "currencyCodeSyntax": "Invalid currency code \"{text}\": three letters expected",
     "balanceSideInvalid": "Choose credit or debit",
     "balanceUnsigned": "Enter the balance without a sign: Credit or Debit gives the side",
