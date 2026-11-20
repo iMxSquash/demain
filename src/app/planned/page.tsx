@@ -14,6 +14,7 @@ import {
 } from "../../components/skeleton";
 import { formatAmount } from "../../domain/money";
 import {
+  DEFAULT_AVERAGE_WINDOW,
   DEFAULT_MATCH_AMOUNT_TOLERANCE_BP,
   DEFAULT_MATCH_WINDOW_DAYS,
   formatTolerancePercent,
@@ -27,7 +28,7 @@ import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 import { createPlannedItemAction } from "./actions";
-import { DEFAULT_FORM_KIND, DEFAULT_REPETITION } from "./planned-item-form-data";
+import { DEFAULT_AMOUNT_MODE, DEFAULT_FORM_KIND, DEFAULT_REPETITION } from "./planned-item-form-data";
 import { PlannedItemForm } from "./planned-item-form";
 import { accountTextOf, scheduleText } from "./planned-item-view";
 
@@ -48,6 +49,8 @@ const NEW_PLANNED_ITEM_DEFAULTS = {
   repetitionValue: "",
   businessDayRule: "none",
   amount: "",
+  amountMode: DEFAULT_AMOUNT_MODE,
+  averageWindow: String(DEFAULT_AVERAGE_WINDOW),
   matchWindowDays: String(DEFAULT_MATCH_WINDOW_DAYS),
   matchTolerancePercent: formatTolerancePercent(DEFAULT_MATCH_AMOUNT_TOLERANCE_BP),
 };

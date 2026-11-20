@@ -643,6 +643,22 @@ describe("planned items", () => {
       expect(versionCount()).toBe(2);
     });
 
+    it("persists the amount mode and the average window of a new version", () => {
+      const item = createPlannedItem(db, rent);
+
+      const { item: changed } = addPlannedItemVersion(
+        db,
+        item.id,
+        rentFrom("2026-04-01", { amountMode: "rolling_average", averageWindow: 6 }),
+      );
+
+      expect(changed.versions[1]).toMatchObject({ amountMode: "rolling_average", averageWindow: 6 });
+      expect(getPlannedItem(db, item.id)?.versions[1]).toMatchObject({
+        amountMode: "rolling_average",
+        averageWindow: 6,
+      });
+    });
+
     it("inherits the amount mode and the average window of the version in effect", () => {
       const item = createPlannedItem(db, rent);
       db.update(plannedItemVersions)

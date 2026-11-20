@@ -54,6 +54,7 @@ describe("parsePlannedItemForm", () => {
         repetition: { kind: "monthly_on_day", day: 12 },
         businessDayRule: "none",
         amount: -999,
+        amountMode: "fixed",
         matchWindowDays: 5,
         matchAmountToleranceBp: 500,
       },
@@ -295,6 +296,55 @@ describe("parsePlannedItemForm", () => {
     });
   });
 
+  it("parses the rolling average mode and its window", () => {
+    expect(
+      parsePlannedItemForm(formOf({ amountMode: "rolling_average", averageWindow: "6" })),
+    ).toMatchObject({
+      ok: true,
+      input: { amountMode: "rolling_average", averageWindow: 6, amount: -999 },
+    });
+  });
+
+  it("keeps the fixed mode by default", () => {
+    const parsed = parsePlannedItemForm(formOf());
+
+    expect(parsed).toMatchObject({ ok: true, input: { amountMode: "fixed" } });
+  });
+
+  it("ignores the window in fixed mode", () => {
+    const parsed = parsePlannedItemForm(formOf({ amountMode: "fixed", averageWindow: "5" }));
+
+    expect(parsed).toMatchObject({ ok: true, input: { amountMode: "fixed" } });
+    expect(parsed.ok && parsed.input.averageWindow).toBeUndefined();
+  });
+
+  it.each(["5", "abc", ""])("refuses the average window %j in rolling average mode", (averageWindow) => {
+    expect(
+      parsePlannedItemForm(formOf({ amountMode: "rolling_average", averageWindow })),
+    ).toMatchObject({
+      ok: false,
+      error: { field: "averageWindow", message: "plannedItemAverageWindowInvalid" },
+    });
+  });
+
+  it("refuses an unknown amount mode", () => {
+    expect(parsePlannedItemForm(formOf({ amountMode: "median" }))).toMatchObject({
+      ok: false,
+      error: { field: "amountMode", message: "plannedItemAmountModeInvalid" },
+    });
+  });
+
+  it("keeps the submitted mode and window in the error state", () => {
+    expect(
+      parsePlannedItemForm(
+        formOf({ amountMode: "rolling_average", averageWindow: "5", amount: "abc" }),
+      ),
+    ).toMatchObject({
+      ok: false,
+      error: { values: { amountMode: "rolling_average", averageWindow: "5" } },
+    });
+  });
+
   it("treats a missing field as an empty string", () => {
     const formData = formOf();
     formData.delete("name");
@@ -377,6 +427,7 @@ describe("parsePlannedItemVersionForm", () => {
         repetition: { kind: "monthly_on_day", day: 25 },
         businessDayRule: "none",
         amount: -117_147,
+        amountMode: "fixed",
       },
     });
   });
@@ -425,6 +476,8 @@ describe("parsePlannedItemVersionForm", () => {
           repetitionValue: "25",
           businessDayRule: "none",
           amount: "abc",
+          amountMode: "",
+          averageWindow: "",
         },
       },
     });
@@ -448,6 +501,47 @@ describe("parsePlannedItemVersionForm", () => {
     expect(versionOf({ businessDayRule: "sometimes" })).toMatchObject({
       ok: false,
       error: { field: "businessDayRule", message: "plannedItemBusinessDayRuleInvalid" },
+    });
+  });
+
+  it("parses the rolling average mode and its window", () => {
+    expect(versionOf({ amountMode: "rolling_average", averageWindow: "12" })).toMatchObject({
+      ok: true,
+      input: { amountMode: "rolling_average", averageWindow: 12, amount: -117_147 },
+    });
+  });
+
+  it("keeps the fixed mode by default", () => {
+    expect(versionOf()).toMatchObject({ ok: true, input: { amountMode: "fixed" } });
+  });
+
+  it("ignores the window in fixed mode", () => {
+    const parsed = versionOf({ amountMode: "fixed", averageWindow: "5" });
+
+    expect(parsed).toMatchObject({ ok: true, input: { amountMode: "fixed" } });
+    expect(parsed.ok && parsed.input.averageWindow).toBeUndefined();
+  });
+
+  it.each(["5", "abc", ""])("refuses the average window %j in rolling average mode", (averageWindow) => {
+    expect(versionOf({ amountMode: "rolling_average", averageWindow })).toMatchObject({
+      ok: false,
+      error: { field: "averageWindow", message: "plannedItemAverageWindowInvalid" },
+    });
+  });
+
+  it("refuses an unknown amount mode", () => {
+    expect(versionOf({ amountMode: "median" })).toMatchObject({
+      ok: false,
+      error: { field: "amountMode", message: "plannedItemAmountModeInvalid" },
+    });
+  });
+
+  it("keeps the submitted mode and window in the error state", () => {
+    expect(
+      versionOf({ amountMode: "rolling_average", averageWindow: "5", amount: "abc" }),
+    ).toMatchObject({
+      ok: false,
+      error: { values: { amountMode: "rolling_average", averageWindow: "5" } },
     });
   });
 });

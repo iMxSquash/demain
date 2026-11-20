@@ -12,12 +12,14 @@ import { AmountInput } from "../amount-input";
 import { DraftTextInput } from "../draft-text-input";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
+import { AmountModeFields } from "./amount-mode-fields";
 import {
   BUSINESS_DAY_RULES,
   ONCE,
   REPETITION_CHOICES,
   repetitionChoiceOf,
   REPETITION_NUMBER_UNIT,
+  ROLLING_AVERAGE_MODE,
   type PlannedItemVersionFormField,
   type PlannedItemVersionFormState,
   type PlannedItemVersionFormValues,
@@ -41,6 +43,8 @@ const ID_OF: Record<PlannedItemVersionFormField, string> = {
   repetitionValue: "versionRepetitionValue",
   businessDayRule: "versionBusinessDayRule",
   amount: "versionAmount",
+  amountMode: "versionAmountMode",
+  averageWindow: "versionAverageWindow",
 };
 
 /** Changes the amount and the schedule of a planned item from a date, as a new version. */
@@ -54,13 +58,18 @@ export function PlannedItemVersionForm({
   const common = useTranslations("common");
   const isHydrated = useIsHydrated();
   const [repetition, setRepetition] = useState(() => repetitionChoiceOf(initialValues.repetition));
+  const [amountMode, setAmountMode] = useState(initialValues.amountMode);
+  const [averageWindow, setAverageWindow] = useState(initialValues.averageWindow);
   // The automatic form reset after an action sends the native controls back to their first state and
   // React does not re-apply an unchanged value: the key remounts the controlled ones after each result.
   const [resultCount, setResultCount] = useState(0);
   const [state, formAction, isPending] = useActionState(
     async (previous: PlannedItemVersionFormState | null, formData: FormData) => {
       const result = await action(previous, formData);
-      setRepetition(repetitionChoiceOf((result?.values ?? initialValues).repetition));
+      const values = result?.values ?? initialValues;
+      setRepetition(repetitionChoiceOf(values.repetition));
+      setAmountMode(values.amountMode);
+      setAverageWindow(values.averageWindow);
       setResultCount((count) => count + 1);
       return result;
     },
@@ -80,6 +89,7 @@ export function PlannedItemVersionForm({
     defaultValue: values[field],
   });
 
+  const isRolling = amountMode === ROLLING_AVERAGE_MODE;
   const numberUnit = REPETITION_NUMBER_UNIT[repetition];
   const hasOwnControl =
     state?.field !== undefined && !(isOneOff && state.field === "repetition");
@@ -144,7 +154,23 @@ export function PlannedItemVersionForm({
         </Select>
       </FormField>
 
-      <FormField {...fieldProps("amount", t("amount"))} hint={t("amountHint")}>
+      <AmountModeFields
+        key={`amount-mode-${resultCount}`}
+        modeId={ID_OF.amountMode}
+        windowId={ID_OF.averageWindow}
+        mode={amountMode}
+        averageWindow={averageWindow}
+        onModeChange={setAmountMode}
+        onAverageWindowChange={setAverageWindow}
+        showWindow={isRolling || !isHydrated}
+        modeError={state?.field === "amountMode" ? state.message : undefined}
+        windowError={state?.field === "averageWindow" ? state.message : undefined}
+      />
+
+      <FormField
+        {...fieldProps("amount", isRolling ? t("startingEstimate") : t("amount"))}
+        hint={isRolling ? `${t("amountHint")} ${t("startingEstimateHint")}` : t("amountHint")}
+      >
         <AmountInput {...controlProps("amount")} className={CONTROL_CLASS} required />
       </FormField>
 

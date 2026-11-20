@@ -245,6 +245,15 @@
       },
       "amount": "Montant",
       "amountHint": "Sans signe : le type donne le sens.",
+      "amountMode": "Mode de montant",
+      "amountModeHint": "Une moyenne glissante suit les montants des occurrences précédentes. Rien n'est estimé sans que vous le choisissiez.",
+      "amountModes": {
+        "fixed": "Montant fixe",
+        "rolling_average": "Moyenne glissante"
+      },
+      "averageWindow": "Occurrences prises en compte",
+      "startingEstimate": "Estimation de départ",
+      "startingEstimateHint": "Utilisée tant qu'aucun montant précédent n'existe.",
       "matching": "Rapprochement",
       "windowDays": "Fenêtre, en jours",
       "windowDaysHint": "Une transaction peut tomber autant de jours avant ou après la date prévue.",
@@ -1218,6 +1227,7 @@
     "plannedItemRepetitionInvalid": "La répétition n'est pas valide",
     "plannedItemMatchWindowInvalid": "La fenêtre de rapprochement doit être un nombre entier de jours, 0 ou plus",
     "plannedItemToleranceInvalid": "La tolérance doit être un nombre entier de points de base de 0 à {max}",
+    "plannedItemAmountModeInvalid": "Le mode de montant doit être fixe ou moyenne glissante",
     "plannedItemAverageWindowInvalid": "La fenêtre de moyenne doit valoir {allowed}",
     "plannedItemLabelFilterNeedsProvision": "Un filtre de libellé ne s'applique qu'à une provision",
     "plannedItemProvisionNeedsRepetition": "Une provision a besoin d'une répétition",

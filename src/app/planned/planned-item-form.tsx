@@ -13,6 +13,7 @@ import { isWholeNumberDraft } from "../../domain/amount-syntax";
 import { DraftTextInput } from "../draft-text-input";
 import { KindSegments } from "../transactions/kind-segments";
 import { useFocusFirstError } from "../use-focus-first-error";
+import { AmountModeFields } from "./amount-mode-fields";
 import { MatchingFields } from "./matching-fields";
 import {
   BUSINESS_DAY_RULES,
@@ -22,6 +23,7 @@ import {
   REPETITION_CHOICES,
   repetitionChoiceOf,
   REPETITION_NUMBER_UNIT,
+  ROLLING_AVERAGE_MODE,
   TRANSFER_KIND,
   type PlannedItemFormField,
   type PlannedItemFormState,
@@ -75,6 +77,8 @@ export function PlannedItemForm({
   const isHydrated = useIsHydrated();
   const [kind, setKind] = useState(() => formKindOf(initialValues.kind));
   const [repetition, setRepetition] = useState(() => repetitionChoiceOf(initialValues.repetition));
+  const [amountMode, setAmountMode] = useState(initialValues.amountMode);
+  const [averageWindow, setAverageWindow] = useState(initialValues.averageWindow);
   // The automatic form reset after an action sends the native controls back to their first state and
   // React does not re-apply an unchanged value: the key remounts the controlled ones after each result.
   const [resultCount, setResultCount] = useState(0);
@@ -84,6 +88,8 @@ export function PlannedItemForm({
       const values = result?.values ?? initialValues;
       setKind(formKindOf(values.kind));
       setRepetition(repetitionChoiceOf(values.repetition));
+      setAmountMode(values.amountMode);
+      setAverageWindow(values.averageWindow);
       setResultCount((count) => count + 1);
       return result;
     },
@@ -106,6 +112,7 @@ export function PlannedItemForm({
   });
 
   const isTransfer = kind === TRANSFER_KIND;
+  const isRolling = amountMode === ROLLING_AVERAGE_MODE;
   const numberUnit = REPETITION_NUMBER_UNIT[repetition];
   const accountOptions = accounts.map((account) => (
     <option key={account.id} value={account.id}>
@@ -231,7 +238,25 @@ export function PlannedItemForm({
           </Select>
         </FormField>
 
-        <FormField {...fieldProps("amount", t("amount"))} hint={t("amountHint")}>
+        <div className={FULL_WIDTH_CLASS}>
+          <AmountModeFields
+            key={`amount-mode-${resultCount}`}
+            modeId="amountMode"
+            windowId="averageWindow"
+            mode={amountMode}
+            averageWindow={averageWindow}
+            onModeChange={setAmountMode}
+            onAverageWindowChange={setAverageWindow}
+            showWindow={isRolling || !isHydrated}
+            modeError={errorOf("amountMode")}
+            windowError={errorOf("averageWindow")}
+          />
+        </div>
+
+        <FormField
+          {...fieldProps("amount", isRolling ? t("startingEstimate") : t("amount"))}
+          hint={isRolling ? `${t("amountHint")} ${t("startingEstimateHint")}` : t("amountHint")}
+        >
           <AmountInput {...controlProps("amount")} className={CONTROL_CLASS} required />
         </FormField>
 

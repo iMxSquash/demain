@@ -245,6 +245,15 @@
       },
       "amount": "Amount",
       "amountHint": "Without a sign: the type sets the direction.",
+      "amountMode": "Amount mode",
+      "amountModeHint": "A rolling average follows the amounts of the previous occurrences. Nothing is estimated unless you choose it.",
+      "amountModes": {
+        "fixed": "Fixed amount",
+        "rolling_average": "Rolling average"
+      },
+      "averageWindow": "Occurrences averaged",
+      "startingEstimate": "Starting estimate",
+      "startingEstimateHint": "Used until a previous amount exists.",
       "matching": "Matching",
       "windowDays": "Window, in days",
       "windowDaysHint": "A transaction may fall this many days before or after the planned date.",
@@ -1218,6 +1227,7 @@
     "plannedItemRepetitionInvalid": "The repetition is not valid",
     "plannedItemMatchWindowInvalid": "The matching window must be a whole number of days, 0 or more",
     "plannedItemToleranceInvalid": "The tolerance must be a whole number of basis points from 0 to {max}",
+    "plannedItemAmountModeInvalid": "The amount mode must be fixed or rolling average",
     "plannedItemAverageWindowInvalid": "The average window must be one of {allowed}",
     "plannedItemLabelFilterNeedsProvision": "A label filter only applies to a provision",
     "plannedItemProvisionNeedsRepetition": "A provision needs a repetition",
