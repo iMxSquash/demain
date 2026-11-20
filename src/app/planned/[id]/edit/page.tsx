@@ -18,7 +18,12 @@ import { requireSession } from "../../../auth/session";
 import { updatePlannedItemAction } from "../../actions";
 import { TRANSFER_KIND } from "../../planned-item-form-data";
 import { PlannedItemDetailsForm } from "../../planned-item-details-form";
-import { accountTextOf, currentVersionOf, scheduleText } from "../../planned-item-view";
+import {
+  accountTextOf,
+  categoryOptionsOf,
+  currentVersionOf,
+  scheduleText,
+} from "../../planned-item-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned");
@@ -75,8 +80,6 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
     data = withDatabase((db) => ({
       item: getPlannedItem(db, id),
       accounts: listAccounts(db, { includeArchived: true }),
-      // The category of the item stays in the list when it was archived since, so that saving
-      // does not drop it without a word: the domain then refuses it and names the field.
       categories: listCategories(db, { includeArchived: true }),
     }));
   } catch (error) {
@@ -131,12 +134,9 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
           matchWindowDays: String(item.matchWindowDays),
           matchTolerancePercent: formatTolerancePercent(item.matchAmountToleranceBp),
         }}
-        categories={categories
-          .filter((category) => !category.archived || category.id === item.categoryId)
-          .map((category) => ({
-            id: category.id,
-            name: category.archived ? t("categoryArchived", { name: category.name }) : category.name,
-          }))}
+        categories={categoryOptionsOf(categories, item.categoryId, (name) =>
+          t("categoryArchived", { name }),
+        )}
         hasCategory={item.kind !== TRANSFER_KIND}
       />
     </>

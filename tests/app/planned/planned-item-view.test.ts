@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { PlannedItemVersion } from "../../../src/ledger/planned-items";
 import {
   accountTextOf,
+  categoryOptionsOf,
   currentVersionOf,
   scheduleText,
   type ScheduleTranslate,
@@ -81,5 +82,27 @@ describe("accountTextOf", () => {
     expect(accountTextOf({ accountId: 1, destinationAccountId: 2 }, names, transferText)).toBe(
       "Current to Savings A",
     );
+  });
+});
+
+describe("categoryOptionsOf", () => {
+  const categories = [
+    { id: 1, name: "Housing", archived: false },
+    { id: 2, name: "Old hobby", archived: true },
+    { id: 3, name: "Old gym", archived: true },
+  ];
+  const archivedName = (name: string) => `${name} (archived)`;
+
+  it("offers the active categories and no archived one", () => {
+    expect(categoryOptionsOf(categories, null, archivedName)).toEqual([
+      { id: 1, name: "Housing" },
+    ]);
+  });
+
+  it("keeps the archived category the item already has, worded as archived", () => {
+    expect(categoryOptionsOf(categories, 2, archivedName)).toEqual([
+      { id: 1, name: "Housing" },
+      { id: 2, name: "Old hobby (archived)" },
+    ]);
   });
 });

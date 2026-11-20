@@ -82,3 +82,21 @@ export function accountTextOf(
   if (item.destinationAccountId === null) return from;
   return transferText({ from, to: accountNames.get(item.destinationAccountId) ?? "" });
 }
+
+/**
+ * The categories an item may be given. Archived ones are not offered, except the one the item has
+ * already: it stays in the list, worded as archived, so that saving does not drop it without a word
+ * (the domain then refuses it and names the field).
+ */
+export function categoryOptionsOf(
+  categories: readonly { id: number; name: string; archived: boolean }[],
+  currentCategoryId: number | null,
+  archivedName: (name: string) => string,
+): { id: number; name: string }[] {
+  return categories
+    .filter((category) => !category.archived || category.id === currentCategoryId)
+    .map((category) => ({
+      id: category.id,
+      name: category.archived ? archivedName(category.name) : category.name,
+    }));
+}
