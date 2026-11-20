@@ -69,7 +69,7 @@ erDiagram
 An account that is no longer used is archived, not deleted, so that its history and the balances of past months stay correct.
 
 - **Zero balance.** An account can be archived only when its computed balance is exactly zero. A negative balance blocks the archiving as well. The user empties the account first, typically with a transfer to another account.
-- **No more entered movements.** No transaction can be entered on an archived account, and account pickers do not offer it. Its existing transactions can be neither edited nor deleted, since that would move its balance away from zero. A planned item cannot target it, and an account targeted by a planned item that is not over cannot be archived until the item is changed.
+- **No more entered movements.** No transaction can be entered on an archived account, and account pickers do not offer it. Its existing transactions can be neither edited nor deleted, since that would move its balance away from zero. A planned item cannot target it, and an account targeted (as account or as destination) by a planned item that is not over cannot be archived until the item is changed. An item is over when it is cancelled, or when it has an end date and the effective date of its last non-cancelled occurrence is before today. An item without end date is never over until it is cancelled or given an end date.
 - **Balance assertions are frozen.** No balance assertion can be added, replaced or deleted on an archived account. The ones it already has stay visible, on its own page and on the page listing the assertions of every account, where they are shown as archived with the account. This state is derived from the account: an assertion has no archived field of its own.
 - **Imports are the exception.** A transaction imported from the bank has already happened, so it is accepted on an archived account and flagged with a visible warning.
 - **History stays.** Past transactions, balances and statistics of an archived account remain in the views that cover their period.
@@ -88,7 +88,8 @@ An account that is no longer used is archived, not deleted, so that its history 
 | payment_mode | Optional: card, transfer, direct debit (kept from the sheet and from imports when available). Both legs of a transfer always carry `transfer`, whether entered in the add-transaction form or created by an import. |
 | category_id | Nullable. Null means the transaction is in the **to categorize** queue. Transfers have no category. |
 | transfer_counterpart_id | For a transfer leg, the other leg. Null otherwise. |
-| planned_item_id, occurrence_date | Set when the transaction settles an occurrence of a planned item (nominal date of that occurrence). Null otherwise. |
+| planned_item_id, occurrence_date | Set when the transaction settles an occurrence of a planned item (nominal date of that occurrence). Null otherwise: both are null or both are set. They are not part of the import digest, since a link moves no balance and the undo deletes it with the row. |
+| category_from_planned_item | True when the category was inherited from a planned item by a match, so that undoing the match can clear it. Any change of category by hand sets it back to false. Default false. |
 | import_batch_id | The import that created it, if any. |
 | import_fingerprint | Value used to detect duplicates across imports, unique per account, carried by the leg of the account that receives the file (the first leg when the row is split into several transfers). It is the OFX identifier (`FITID`) when present, otherwise the content key: built from date, amount and normalized label (case and spacing ignored) plus the rank of the row among identical rows of the file, so that two genuine identical movements both survive and are both recognized the next time. Without a bank identifier, a movement identical to an earlier one that first appears in an export starting between them (same day, same amount, same label) cannot be told from the earlier one and is ignored as a duplicate: the preview shows the number of duplicates so that it can be checked. |
 | import_content_key | The content key of every imported transaction, kept even when the bank gave an identifier. It lets the same movement exported again in the other format (CSV after OFX, OFX after CSV) be recognized. Bank identifiers stay authoritative between themselves: two OFX movements with the same content but other identifiers are both kept. |
@@ -128,11 +129,11 @@ An account that is no longer used is archived, not deleted, so that its history 
 | kind | `expense`, `income`, `interest` or `transfer` (a planned savings transfer also names the destination account). |
 | start_date | Lower bound of the nominal dates: the first occurrence is the first date of the rule on or after it. For a one-off item, its only date. |
 | end_date | Optional last date for a recurrence. |
-| accepts_multiple_transactions | True for a provision (several transactions settle one occurrence). Default false. |
+| accepts_multiple_transactions | True for a provision (several transactions settle one occurrence). Default false. A provision needs a repetition: it is refused on a one-off event. |
 | provision_label_filter | Optional text for a provision: only transactions whose label contains it are linked automatically (for example `carburant`). |
 | match_window_days | Default 5. |
-| match_amount_tolerance | Default 5%. |
-| cancelled | A cancelled planned item produces no future occurrence. |
+| match_amount_tolerance_bp | Tolerance of the amount when matching, stored in basis points so that no percentage is ever a float: 500 is 5% (the default), from 0 to 10000. |
+| cancelled | A cancelled planned item produces no future occurrence. Only cancelling is possible: deleting an item with no link and no override is tracked apart. |
 | source_scenario_id | Set when the item was created by validating a scenario. |
 
 A planned item has one or more **versions**. A version applies from its `effective_from` date until the next version:
@@ -141,11 +142,11 @@ A planned item has one or more **versions**. A version applies from its `effecti
 | --- | --- |
 | planned_item_id | Owner. |
 | effective_from | Date from which this version applies. |
-| repetition | Null for a one-off event. Otherwise one of: monthly on day N, monthly on last day, yearly, every N months, quarterly, every N weeks. |
+| repetition | Null for a one-off event. Otherwise one of: monthly on day N, monthly on last day, yearly, every N months, quarterly, every N weeks. Stored as `repetition_kind` (`monthly_on_day`, `monthly_on_last_day`, `every_n_months`, `quarterly`, `yearly`, `every_n_weeks`, null for a one-off event) and `repetition_value` (the day, the months or the weeks). |
 | business_day_rule | Optional: none, previous business day, next business day. |
 | amount | Signed integer in minor units: the fixed amount, or the starting estimate when the mode is rolling average. |
 | amount_mode | `fixed` or `rolling_average`. |
-| average_window | Number of previous occurrences averaged, 3 by default (configurable, for example 6 or 12). |
+| average_window | Number of previous occurrences averaged: 3 (default), 6 or 12 and nothing else. |
 
 Examples:
 

@@ -174,7 +174,7 @@ demain/
 │   ├── i18n/                 Language negotiation, calendar date formatting, next-intl request setup
 │   ├── charts/               SVG chart components (trajectory chart and its data table) and their pure geometry (d3-scale, d3-shape)
 │   ├── domain/               Pure domain logic, no clock, database or network (money core, account, transaction and overflow rules, recurrence rules and the business-day rule)
-│   ├── ledger/               Account and transaction use cases on top of the storage layer
+│   ├── ledger/               Account, transaction and planned item use cases on top of the storage layer
 │   ├── export/               Encrypted snapshot and its restoration, JSON export and its schema
 │   └── storage/              Drizzle schema, SQLite access, environment validation
 ├── public/icons/             Manifest icons (192, 512 and maskable 512 px)
