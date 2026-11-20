@@ -91,6 +91,12 @@ function assertValidSchedule(schedule: PlannedSchedule): void {
   if (first.effectiveFrom !== schedule.startDate) {
     throw new Error(`The first version must be effective from the start date ${schedule.startDate}`);
   }
+  schedule.versions.forEach((version, index) => {
+    const previous = schedule.versions[index - 1];
+    if (previous !== undefined && version.effectiveFrom <= previous.effectiveFrom) {
+      throw new Error(`Versions must be sorted by strictly increasing effective date, got ${version.effectiveFrom}`);
+    }
+  });
 }
 
 interface RawOccurrence {

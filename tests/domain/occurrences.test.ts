@@ -358,6 +358,26 @@ describe("generateOccurrences", () => {
   });
 
   describe("invalid schedules", () => {
+    it("throws when the versions are not sorted by effective date", () => {
+      const planned = schedule([
+        version({ effectiveFrom: SALARY_START }),
+        version({ effectiveFrom: "2026-06-01" }),
+        version({ effectiveFrom: "2026-03-01" }),
+      ]);
+
+      expect(() => generate(planned, YEAR_2026)).toThrow(Error);
+    });
+
+    it("throws when two versions share an effective date", () => {
+      const planned = schedule([
+        version({ effectiveFrom: SALARY_START }),
+        version({ effectiveFrom: "2026-03-01" }),
+        version({ effectiveFrom: "2026-03-01" }),
+      ]);
+
+      expect(() => generate(planned, YEAR_2026)).toThrow(Error);
+    });
+
     it("throws for a schedule without version", () => {
       const planned = schedule([], { startDate: SALARY_START });
 
