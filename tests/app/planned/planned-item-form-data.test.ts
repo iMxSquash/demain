@@ -57,7 +57,7 @@ describe("parsePlannedItemForm", () => {
         amount: -999,
         amountMode: "fixed",
         acceptsMultipleTransactions: false,
-        provisionLabelFilter: null,
+        provisionLabelFilter: "",
         matchWindowDays: 5,
         matchAmountToleranceBp: 500,
       },
@@ -360,7 +360,7 @@ describe("parsePlannedItemForm provisions", () => {
   it("is not a provision by default", () => {
     expect(parsePlannedItemForm(formOf())).toMatchObject({
       ok: true,
-      input: { acceptsMultipleTransactions: false, provisionLabelFilter: null },
+      input: { acceptsMultipleTransactions: false, provisionLabelFilter: "" },
     });
   });
 
@@ -375,27 +375,12 @@ describe("parsePlannedItemForm provisions", () => {
     });
   });
 
-  it("reads a checked provision without a label filter as none", () => {
-    expect(parsePlannedItemForm(formOf({ acceptsMultipleTransactions: "true" }))).toMatchObject({
-      ok: true,
-      input: { acceptsMultipleTransactions: true, provisionLabelFilter: null },
-    });
-  });
-
-  it("trims the label filter", () => {
+  it("passes the label filter as typed for the domain to trim", () => {
     expect(
       parsePlannedItemForm(
         formOf({ acceptsMultipleTransactions: "true", provisionLabelFilter: "  market  " }),
       ),
-    ).toMatchObject({ ok: true, input: { provisionLabelFilter: "market" } });
-  });
-
-  it("reads a whitespace-only label filter as none", () => {
-    expect(
-      parsePlannedItemForm(
-        formOf({ acceptsMultipleTransactions: "true", provisionLabelFilter: "   " }),
-      ),
-    ).toMatchObject({ ok: true, input: { provisionLabelFilter: null } });
+    ).toMatchObject({ ok: true, input: { provisionLabelFilter: "  market  " } });
   });
 
   it("passes a label filter without the provision box for the domain to refuse", () => {
@@ -411,14 +396,13 @@ describe("parsePlannedItemForm provisions", () => {
     ).toMatchObject({ ok: true, input: { acceptsMultipleTransactions: true, repetition: null } });
   });
 
-  it("keeps the default matching settings when a provision posts none", () => {
+  it("refuses absent matching settings of a provision like those of any item", () => {
     const formData = formOf({ acceptsMultipleTransactions: "true" });
     formData.delete("matchWindowDays");
-    formData.delete("matchTolerancePercent");
 
     expect(parsePlannedItemForm(formData)).toMatchObject({
-      ok: true,
-      input: { matchWindowDays: 5, matchAmountToleranceBp: 500 },
+      ok: false,
+      error: { field: "matchWindowDays" },
     });
   });
 
@@ -450,19 +434,15 @@ describe("parsePlannedItemDetailsForm", () => {
         categoryId: 11,
         matchWindowDays: 7,
         matchAmountToleranceBp: 250,
-        provisionLabelFilter: null,
+        provisionLabelFilter: "",
       },
     });
   });
 
-  it("trims the posted label filter and reads a blank one as none", () => {
+  it("passes the posted label filter as typed for the domain to normalise", () => {
     expect(detailsOf({ provisionLabelFilter: " Market " })).toMatchObject({
       ok: true,
-      details: { provisionLabelFilter: "Market" },
-    });
-    expect(detailsOf({ provisionLabelFilter: "  " })).toMatchObject({
-      ok: true,
-      details: { provisionLabelFilter: null },
+      details: { provisionLabelFilter: " Market " },
     });
   });
 

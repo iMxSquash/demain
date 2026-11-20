@@ -158,6 +158,21 @@ describe("validatePlannedItemInput", () => {
 
     expect(valid.provisionLabelFilter).toBe("fuel");
   });
+
+  it("reads a blank label filter as none", () => {
+    const valid = validatePlannedItemInput(
+      { ...RENT, acceptsMultipleTransactions: true, provisionLabelFilter: "   " },
+      CONTEXT,
+    );
+
+    expect(valid.provisionLabelFilter).toBeNull();
+  });
+
+  it("accepts a blank label filter on an item that is not a provision", () => {
+    const valid = validatePlannedItemInput({ ...RENT, provisionLabelFilter: "  " }, CONTEXT);
+
+    expect(valid.provisionLabelFilter).toBeNull();
+  });
 });
 
 describe("validatePlannedItemDetails", () => {
@@ -184,6 +199,17 @@ describe("validatePlannedItemDetails", () => {
         CONTEXT.categories,
       ),
     ).toThrow(expect.objectContaining({ field: "provisionLabelFilter" }));
+  });
+
+  it("trims the label filter of a provision and reads a blank one as none", () => {
+    const provision = { kind: "expense", acceptsMultipleTransactions: true } as const;
+
+    expect(
+      validatePlannedItemDetails({ ...DETAILS, provisionLabelFilter: " Market " }, provision, CONTEXT.categories),
+    ).toMatchObject({ provisionLabelFilter: "Market" });
+    expect(
+      validatePlannedItemDetails({ ...DETAILS, provisionLabelFilter: "  " }, provision, CONTEXT.categories),
+    ).toMatchObject({ provisionLabelFilter: null });
   });
 
   it("refuses a category on a transfer", () => {
