@@ -47,6 +47,7 @@ type MoneyOf = (accountId: number, minorUnits: number) => Money;
 
 function buildExport(db: AppDatabase, now: Date): DemainExport {
   const moneyOf = createMoneyBuilder(db);
+  const itemMoneyOf = createItemMoneyBuilder(db, moneyOf);
   return {
     format: EXPORT_FORMAT,
     schemaVersion: EXPORT_SCHEMA_VERSION,
@@ -61,8 +62,8 @@ function buildExport(db: AppDatabase, now: Date): DemainExport {
       .all(),
     importBatches: exportImportBatches(db),
     plannedItems: db.select().from(plannedItems).orderBy(asc(plannedItems.id)).all(),
-    plannedItemVersions: exportPlannedItemVersions(db, moneyOf),
-    occurrenceOverrides: exportOccurrenceOverrides(db, moneyOf),
+    plannedItemVersions: exportPlannedItemVersions(db, itemMoneyOf),
+    occurrenceOverrides: exportOccurrenceOverrides(db, itemMoneyOf),
     transactions: exportTransactions(db, moneyOf),
     balanceAssertions: exportBalanceAssertions(db, moneyOf),
     exchangeRates: db.select().from(exchangeRates).orderBy(asc(exchangeRates.id)).all(),
@@ -170,9 +171,8 @@ function createItemMoneyBuilder(db: AppDatabase, moneyOf: MoneyOf): MoneyOf {
 
 function exportPlannedItemVersions(
   db: AppDatabase,
-  moneyOf: MoneyOf,
+  itemMoneyOf: MoneyOf,
 ): DemainExport["plannedItemVersions"] {
-  const itemMoneyOf = createItemMoneyBuilder(db, moneyOf);
   return db
     .select()
     .from(plannedItemVersions)
@@ -186,9 +186,8 @@ function exportPlannedItemVersions(
 
 function exportOccurrenceOverrides(
   db: AppDatabase,
-  moneyOf: MoneyOf,
+  itemMoneyOf: MoneyOf,
 ): DemainExport["occurrenceOverrides"] {
-  const itemMoneyOf = createItemMoneyBuilder(db, moneyOf);
   return db
     .select()
     .from(occurrenceOverrides)
