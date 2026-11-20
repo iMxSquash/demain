@@ -1081,6 +1081,7 @@
     "plannedItemAverageWindowInvalid": "La fenêtre de moyenne doit valoir {allowed}",
     "plannedItemLabelFilterNeedsProvision": "Un filtre de libellé ne s'applique qu'à une provision",
     "plannedItemProvisionNeedsRepetition": "Une provision a besoin d'une répétition",
+    "accountInUseByPlannedItem": "Un élément planifié qui n'est pas terminé utilise encore ce compte : annulez-le ou donnez-lui une date de fin d'abord.",
     "accountNotArchived": "Une erreur est survenue, le compte n'a pas été archivé.",
     "categoryNotArchived": "Une erreur est survenue, la catégorie n'a pas été archivée.",
     "categoryReactivated": "Catégorie réactivée.",

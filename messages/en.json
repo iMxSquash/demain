@@ -1081,6 +1081,7 @@
     "plannedItemAverageWindowInvalid": "The average window must be one of {allowed}",
     "plannedItemLabelFilterNeedsProvision": "A label filter only applies to a provision",
     "plannedItemProvisionNeedsRepetition": "A provision needs a repetition",
+    "accountInUseByPlannedItem": "A planned item that is not over still uses this account: cancel it or give it an end date first.",
     "accountNotArchived": "Something went wrong, the account was not archived.",
     "categoryNotArchived": "Something went wrong, the category was not archived.",
     "categoryReactivated": "Category reactivated.",

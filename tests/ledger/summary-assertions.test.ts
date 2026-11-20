@@ -83,7 +83,7 @@ describe("summary assertions", () => {
 
   it("refuses every month of an archived account in the preview", () => {
     const account = createAccount(db, CHECKING_INPUT);
-    archiveAccount(db, account.id);
+    archiveAccount(db, account.id, "2026-06-15");
 
     const preview = previewSummaryAssertions(db, account.id, BALANCES, TODAY);
 
@@ -138,7 +138,7 @@ describe("summary assertions", () => {
 
   it("throws on an archived account and records nothing", () => {
     const account = createAccount(db, CHECKING_INPUT);
-    archiveAccount(db, account.id);
+    archiveAccount(db, account.id, "2026-06-15");
 
     expect(() => saveSummaryAssertions(db, account.id, BALANCES, TODAY)).toThrow(
       BalanceAssertionOnArchivedAccountError,

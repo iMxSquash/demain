@@ -86,7 +86,7 @@ describe("getMonthlySynthesis", () => {
       date: "2026-01-20",
       label: "Empty it",
     });
-    archiveAccount(db, closed.id);
+    archiveAccount(db, closed.id, "2026-06-15");
 
     const [january] = getMonthlySynthesis(db, {
       referenceCurrency: "EUR",
@@ -166,7 +166,7 @@ describe("getMonthlySynthesis", () => {
       date: "2026-02-10",
       label: "Back to checking",
     });
-    archiveAccount(db, savings.id);
+    archiveAccount(db, savings.id, "2026-06-15");
 
     const months = getMonthlySynthesis(db, {
       referenceCurrency: "EUR",

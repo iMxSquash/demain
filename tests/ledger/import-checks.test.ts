@@ -184,7 +184,7 @@ describe("import checks", () => {
     it("refuses an archived account and writes nothing", () => {
       const batchId = importFile([row("2026-03-31", -500, "B")]);
       createTransaction(db, { accountId, date: "2026-04-01", amount: -9_500, kind: "expense", label: "Empty" });
-      archiveAccount(db, accountId);
+      archiveAccount(db, accountId, "2026-06-15");
 
       expect(() => recordBatchBalanceAssertion(db, batchId, TYPED_BALANCE)).toThrow(
         BalanceAssertionOnArchivedAccountError,

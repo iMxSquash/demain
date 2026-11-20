@@ -261,7 +261,7 @@ describe("imports", () => {
   });
 
   it("accepts an import on an archived account and flags it", () => {
-    archiveAccount(db, accountId);
+    archiveAccount(db, accountId, "2026-06-15");
 
     const result = importRows([row({ amount: 0 + 1, label: "LATE" })]);
 
