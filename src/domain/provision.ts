@@ -1,14 +1,20 @@
 // Provisions: planned items settled by several transactions inside a period (DOMAIN, "Planned vs
 // actual"). Pure: dates and data are arguments, nothing reads a clock or a store.
 
-import { addDays, addMonths, clampedDate, daysInMonth, parseDate } from "./calendar-date";
+import {
+  addDays,
+  addMonths,
+  clampedDate,
+  DAYS_IN_WEEK,
+  daysInMonth,
+  MONTHS_IN_YEAR,
+  parseDate,
+} from "./calendar-date";
 import { labelContains } from "./categorization-rule";
 import type { DateRange, Repetition } from "./recurrence";
 import type { EnteredTransactionKind } from "./transaction";
 
-const MONTHS_IN_YEAR = 12;
 const MONTHS_IN_QUARTER = 3;
-const DAYS_IN_WEEK = 7;
 
 /** What a transaction must expose to be tested as a candidate of a provision. */
 export interface ProvisionCandidateTransaction {

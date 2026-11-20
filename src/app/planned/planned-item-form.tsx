@@ -304,8 +304,9 @@ export function PlannedItemForm({
             value={PROVISION_CHECKED}
             defaultChecked={values.acceptsMultipleTransactions === PROVISION_CHECKED}
             onChange={(event) => {
-              if (event.target.form !== null) {
-                setMatching((current) => matchingOfForm(new FormData(event.target.form!), current));
+              const { form } = event.target;
+              if (form !== null) {
+                setMatching((current) => matchingOfForm(new FormData(form), current));
               }
               setIsProvision(event.target.checked);
             }}

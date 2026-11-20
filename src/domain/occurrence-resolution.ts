@@ -129,8 +129,7 @@ function passRange(item: ResolutionItem, range: DateRange): DateRange {
   return { from: windowStart < range.from ? windowStart : range.from, to: range.to };
 }
 
-// The strategy depends on the item alone, so it is chosen once. A provision whose version has no
-// repetition has no period and is resolved as a regular occurrence.
+// A provision whose version has no repetition has no period and is resolved as a regular occurrence.
 function periodOfProvision(
   occurrence: Occurrence,
   previous: Occurrence | undefined,
@@ -191,6 +190,7 @@ export function resolveOccurrences(
   // One ordered pass over nominal dates: the rolling average needs each occurrence to see the ones
   // before it, including those before the range.
   const average = new RollingAverageState(item.schedule.versions);
+  // The strategy depends on the item alone, so it is chosen once.
   const periodOf = item.acceptsMultipleTransactions ? periodOfProvision : noPeriod;
   const resolved: ResolvedOccurrence[] = [];
   for (const [index, occurrence] of occurrences.entries()) {

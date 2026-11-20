@@ -5,7 +5,8 @@ export const MIN_YEAR = 1;
 export const MAX_YEAR = 9999;
 const YEAR_WIDTH = 4;
 const PART_WIDTH = 2;
-const MONTHS_IN_YEAR = 12;
+export const MONTHS_IN_YEAR = 12;
+export const DAYS_IN_WEEK = 7;
 
 interface DateParts {
   year: number;
