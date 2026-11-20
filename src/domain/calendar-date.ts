@@ -59,10 +59,12 @@ export function addDays(date: string, days: number): string {
   return candidate.year < MIN_YEAR || candidate.year > MAX_YEAR ? date : format(candidate);
 }
 
+// Past the supported years the date stays where it is, like `addDays`.
 /** The same day some months later (or earlier when negative), clamped to the length of that month. */
 export function addMonths(date: string, months: number): string {
   const { year, month, day } = parseDate(date);
   const monthIndex = year * MONTHS_IN_YEAR + (month - 1) + months;
   const targetYear = Math.floor(monthIndex / MONTHS_IN_YEAR);
+  if (targetYear < MIN_YEAR || targetYear > MAX_YEAR) return date;
   return clampedDate(targetYear, monthIndex - targetYear * MONTHS_IN_YEAR + 1, day);
 }

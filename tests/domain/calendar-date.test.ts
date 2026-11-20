@@ -85,6 +85,21 @@ describe("addMonths", () => {
   it("returns the same date for zero months", () => {
     expect(addMonths("2026-03-31", 0)).toBe("2026-03-31");
   });
+
+  it("stays where it is past the last supported year", () => {
+    expect(addMonths("9999-12-15", 1)).toBe("9999-12-15");
+    expect(addMonths("9999-06-30", 24)).toBe("9999-06-30");
+  });
+
+  it("stays where it is before the first supported year", () => {
+    expect(addMonths("0001-01-15", -1)).toBe("0001-01-15");
+    expect(addMonths("0002-06-30", -24)).toBe("0002-06-30");
+  });
+
+  it("still reaches the first and last supported months", () => {
+    expect(addMonths("0001-02-15", -1)).toBe("0001-01-15");
+    expect(addMonths("9999-11-30", 1)).toBe("9999-12-30");
+  });
 });
 
 describe("weekdayOf", () => {
