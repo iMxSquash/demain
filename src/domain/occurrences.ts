@@ -96,6 +96,11 @@ function assertValidSchedule(schedule: PlannedSchedule): void {
 interface RawOccurrence {
   nominalDate: string;
   versionIndex: number;
+  version: PlannedVersion;
+}
+
+function earliest(first: string, ...others: (string | null)[]): string {
+  return others.reduce<string>((min, date) => (date !== null && date < min ? date : min), first);
 }
 
 function enumerateNominalDates(schedule: PlannedSchedule, range: DateRange): RawOccurrence[] {
@@ -104,15 +109,12 @@ function enumerateNominalDates(schedule: PlannedSchedule, range: DateRange): Raw
   schedule.versions.forEach((version, versionIndex) => {
     const next = schedule.versions[versionIndex + 1];
     const spanEnd = next === undefined ? null : addDays(next.effectiveFrom, -1);
-    const to = [range.to, spanEnd, schedule.endDate].reduce<string>(
-      (earliest, bound) => (bound !== null && bound < earliest ? bound : earliest),
-      range.to,
-    );
+    const to = earliest(range.to, spanEnd, schedule.endDate);
     const from = version.effectiveFrom > range.from ? version.effectiveFrom : range.from;
     const anchor = anchors[versionIndex];
     if (anchor === undefined || from > to) return;
     for (const nominalDate of nominalDates(version.repetition, anchor, { from, to })) {
-      raw.push({ nominalDate, versionIndex });
+      raw.push({ nominalDate, versionIndex, version });
     }
   });
   return raw;
@@ -122,10 +124,8 @@ function enumerateNominalDates(schedule: PlannedSchedule, range: DateRange): Raw
 // `range` is found: the shift of the business-day rule, and the nominal date of each override that
 // moves an occurrence to a date of the range (an override date has no bound).
 function enumerationRange(range: DateRange, overrides: readonly OccurrenceOverride[]): DateRange {
-  let { from, to } = {
-    from: addDays(range.from, -MAX_BUSINESS_DAY_SHIFT_DAYS),
-    to: addDays(range.to, MAX_BUSINESS_DAY_SHIFT_DAYS),
-  };
+  let from = addDays(range.from, -MAX_BUSINESS_DAY_SHIFT_DAYS);
+  let to = addDays(range.to, MAX_BUSINESS_DAY_SHIFT_DAYS);
   for (const { nominalDate, overrideDate } of overrides) {
     if (overrideDate === null || overrideDate < range.from || overrideDate > range.to) continue;
     if (nominalDate < from) from = nominalDate;
@@ -168,9 +168,7 @@ export function generateOccurrences(
 
   return enumerateNominalDates(schedule, enumerationRange(range, overrides))
     .filter(({ nominalDate }) => !schedule.cancelled || nominalDate <= today)
-    .map(({ nominalDate, versionIndex }) => {
-      const version = schedule.versions[versionIndex];
-      if (version === undefined) throw new Error(`Missing version ${versionIndex}`);
+    .map(({ nominalDate, versionIndex, version }) => {
       const occurrence: Occurrence = {
         nominalDate,
         date: adjustToBusinessDay(nominalDate, version.businessDayRule),
