@@ -260,14 +260,46 @@
     "editMetaTitle": "Modifier l'élément planifié | Demain",
     "editTitle": "Modifier {name}",
     "backToPlanned": "Retour aux éléments planifiés",
-    "fixedHeading": "Figé à la création",
-    "fixedNote": "Le montant et l'échéancier ne se modifient pas ici : ils changent à partir d'une date, ce qui n'est pas encore disponible.",
+    "summaryHeading": "Résumé",
+    "detailsHeading": "Détails",
+    "cancelled": "Annulé",
     "facts": {
       "kind": "Type",
       "account": "Compte",
       "startDate": "Première date",
-      "schedule": "Échéancier",
-      "amount": "Montant"
+      "schedule": "Échéancier"
+    },
+    "versions": {
+      "heading": "Versions",
+      "caption": "Montant et échéancier de l'élément planifié à partir de chaque date",
+      "columns": {
+        "effectiveFrom": "À partir du",
+        "schedule": "Échéancier",
+        "businessDay": "Règle de week-end",
+        "amount": "Montant",
+        "status": "Statut"
+      },
+      "inEffect": "En vigueur",
+      "upcoming": "À venir"
+    },
+    "versionForm": {
+      "heading": "Changer à partir d'une date",
+      "effectiveFrom": "En vigueur à partir du",
+      "effectiveFromHint": "Une date qui a déjà une version la remplace. Les dates déjà réglées ou modifiées ne peuvent plus changer.",
+      "submit": "Enregistrer le changement"
+    },
+    "endDateForm": {
+      "heading": "Date de fin",
+      "endDate": "Dernière date",
+      "hint": "La dernière date possible. Laissez vide pour continuer.",
+      "submit": "Enregistrer la date de fin"
+    },
+    "cancel": {
+      "heading": "Annulation",
+      "label": "Annuler cet élément planifié",
+      "title": "Annuler {name} ?",
+      "message": "Ses occurrences à venir disparaîtront. Les occurrences passées restent.",
+      "confirm": "Annuler l'élément planifié"
     },
     "categoryArchived": "{name} (archivée)",
     "saveDetails": "Enregistrer les détails"
@@ -1196,6 +1228,16 @@
     "plannedItemGone": "Cet élément planifié n'existe plus.",
     "plannedItemCreated": "Élément planifié créé.",
     "plannedItemUpdated": "Élément planifié modifié.",
+    "plannedItemVersionOnCancelled": "Un élément planifié annulé ne peut pas recevoir de nouvelle version.",
+    "plannedItemVersionBeforeStart": "Un changement ne peut pas prendre effet avant la date de début, {date}.",
+    "plannedItemVersionAfterEnd": "Un changement ne peut pas prendre effet après la date de fin, {date}.",
+    "plannedItemVersionRepeatsOneOff": "Un événement unique ne peut pas se répéter.",
+    "plannedItemVersionTooEarly": "Une occurrence à partir de cette date est déjà réglée ou modifiée : la première date possible est le {date}.",
+    "plannedItemVersionSaved": "Changement enregistré.",
+    "plannedItemVersionReplaced": "Changement enregistré. Il remplace celui déjà en vigueur le {date}.",
+    "plannedItemEndDateSaved": "Date de fin enregistrée.",
+    "plannedItemEndDateCleared": "Date de fin supprimée.",
+    "plannedItemCancelled": "Élément planifié annulé.",
     "accountInUseByPlannedItem": "Un élément planifié qui n'est pas terminé utilise encore ce compte : annulez-le ou donnez-lui une date de fin d'abord.",
     "accountNotArchived": "Une erreur est survenue, le compte n'a pas été archivé.",
     "categoryNotArchived": "Une erreur est survenue, la catégorie n'a pas été archivée.",

@@ -153,6 +153,22 @@ Examples:
 - A salary has a version with amount 1143.88 and a later version with amount 1171.47, effective from the date of the raise. Occurrences before that date use 1143.88, occurrences on or after use 1171.47.
 - A rent paid on the 5th moves to the 1st from March: a new version effective from March with the same amount and a new repetition. Occurrences before March keep the 5th. This is how "change all future dates of a subscription at once" works.
 
+Rules of a new version, as implemented (`validatePlannedItemVersion` in `src/domain/planned-item.ts`, used by `addPlannedItemVersion` in `src/ledger/planned-items.ts` and by the "Change from a date" section of the edit page):
+
+- The effective date is a calendar date between the start date and, when there is one, the end date.
+- The amount is nonzero and has the sign of the kind of the item.
+- A repetition cannot be added to a one-off item: its versions all stay one-off events.
+- A new version inherits the amount mode and the average window of the version in effect on its effective date (the last version whose date is on or before it, else the first). The business-day rule is inherited the same way when the form does not give one.
+- A cancelled item takes no new version, nor does an item whose account is archived.
+- The end date can be set or cleared on a repeating item (the "End date" section of the edit page), and not before the start date. A one-off item has no end date.
+- Cancelling an item (the "Cancel" section) stops all its occurrences after today. It is idempotent and nothing is written when a validation refuses.
+
+Decisions of the owner on versions, 19 Nov 2026, issue #161 (numbered as in that issue, not as in #157):
+
+- Q1, an effective date in the past is allowed, but refused when an occurrence on or after it is settled or has an override: history is never rewritten. The message gives the earliest allowed date, the day after the latest settled or overridden nominal date. The linked transactions (as nominal dates) and the overrides are arguments of the pure validation, since `src/domain` reads neither the database nor the clock.
+- Q2, a version effective on the start date replaces the first version, as long as no occurrence is settled.
+- Q3, a version on a date that already has one replaces it, and the interface says so (as for a balance assertion of the same day).
+
 ### Occurrence override
 
 Occurrences are generated on the fly (see [invariants](#invariants)). Only the occurrences that the user changed individually are recorded:

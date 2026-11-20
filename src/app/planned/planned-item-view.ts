@@ -1,4 +1,4 @@
-import { toRepetition } from "../../domain/planned-item";
+import { toRepetition, versionInEffectAt } from "../../domain/planned-item";
 import type { Repetition } from "../../domain/recurrence";
 import { formatCalendarDate } from "../../i18n/dates";
 import type { PlannedItemVersion, PlannedItemWithDetails } from "../../ledger/planned-items";
@@ -19,17 +19,6 @@ export type ScheduleTranslate = (
   values?: Record<string, string | number>,
 ) => string;
 
-/**
- * The version that holds the amount and the repetition shown for an item. Versions are ordered by
- * effective date and an item has only its first one until #161 adds the others, so the last one
- * is the one to show without reading the clock.
- */
-export function currentVersionOf<Version>(item: { id: number; versions: Version[] }): Version {
-  const version = item.versions.at(-1);
-  if (version === undefined) throw new RangeError(`Planned item ${item.id} has no version`);
-  return version;
-}
-
 function repetitionText(translate: ScheduleTranslate, repetition: Repetition): string {
   switch (repetition.kind) {
     case "monthly_on_day":
@@ -47,29 +36,46 @@ function repetitionText(translate: ScheduleTranslate, repetition: Repetition): s
   }
 }
 
-/** What the schedule of an item is read from. */
-interface ScheduleSource {
-  id: number;
-  startDate: string;
-  endDate: string | null;
-  versions: Pick<PlannedItemVersion, "repetitionKind" | "repetitionValue">[];
+/** What the schedule of a version is read from. */
+type ScheduleVersion = Pick<PlannedItemVersion, "repetitionKind" | "repetitionValue">;
+
+/** The repetition of one version in words, or "Once on <date>" for a one-off event. */
+export function versionScheduleText(
+  translate: ScheduleTranslate,
+  locale: string,
+  startDate: string,
+  version: ScheduleVersion,
+): string {
+  const repetition = toRepetition(version.repetitionKind, version.repetitionValue);
+  if (repetition === null) {
+    return translate("schedule.once", { date: formatCalendarDate(startDate, locale) });
+  }
+  return repetitionText(translate, repetition);
 }
 
-/** The schedule of an item in words: "Monthly on day 12", "Every 2 weeks", "Once on 5 March 2027". */
+/** What the schedule of an item is read from. */
+interface ScheduleSource {
+  startDate: string;
+  endDate: string | null;
+  versions: (ScheduleVersion & Pick<PlannedItemVersion, "effectiveFrom">)[];
+}
+
+/**
+ * The schedule of an item in words, as it stands on `today`: "Monthly on day 12", "Every 2 weeks",
+ * "Once on 5 March 2027". `today` is a calendar date read by the caller, so that no clock is read here.
+ */
 export function scheduleText(
   translate: ScheduleTranslate,
   locale: string,
   item: ScheduleSource,
+  today: string,
 ): string {
-  const version = currentVersionOf(item);
-  const repetition = toRepetition(version.repetitionKind, version.repetitionValue);
-  if (repetition === null) {
-    return translate("schedule.once", { date: formatCalendarDate(item.startDate, locale) });
+  const version = versionInEffectAt(item.versions, today);
+  const text = versionScheduleText(translate, locale, item.startDate, version);
+  if (version.repetitionKind === null || item.endDate === null) {
+    return text;
   }
-  const text = repetitionText(translate, repetition);
-  return item.endDate === null
-    ? text
-    : translate("schedule.until", { schedule: text, date: formatCalendarDate(item.endDate, locale) });
+  return translate("schedule.until", { schedule: text, date: formatCalendarDate(item.endDate, locale) });
 }
 
 /** The account of an item, or "from X to Y" for a transfer. `transferText` words the pair. */

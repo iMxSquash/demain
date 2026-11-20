@@ -4,12 +4,14 @@
  */
 
 import { isCalendarDate } from "./account";
+import { addDays } from "./calendar-date";
 import { messageRef, type MessageRef } from "./message";
 import {
   generateOccurrences,
   type AmountMode,
   type OccurrenceOverride,
   type PlannedSchedule,
+  type PlannedVersion,
 } from "./occurrences";
 import { isValidRepetition, type BusinessDayRule, type Repetition } from "./recurrence";
 
@@ -82,6 +84,7 @@ export type PlannedItemField =
   | "categoryId"
   | "startDate"
   | "endDate"
+  | "effectiveFrom"
   | "acceptsMultipleTransactions"
   | "provisionLabelFilter"
   | "matchWindowDays"
@@ -183,18 +186,8 @@ function assertAmount(kind: PlannedItemKind, amount: number): void {
 }
 
 function assertDates(input: PlannedItemInput): void {
-  for (const [field, date] of [
-    ["startDate", input.startDate],
-    ["endDate", input.endDate],
-  ] as const) {
-    if (date != null && !isCalendarDate(date)) {
-      refuse(
-        field,
-        `Invalid date "${date}", expected YYYY-MM-DD`,
-        messageRef("plannedItemDateInvalid", { date }),
-      );
-    }
-  }
+  assertCalendarDate("startDate", input.startDate);
+  if (input.endDate != null) assertCalendarDate("endDate", input.endDate);
   if (input.endDate == null) return;
   if (input.repetition === null) {
     refuse(
@@ -490,4 +483,156 @@ export function isPlannedItemOver(
   return !generateOccurrences(schedule, overrides, { from: today, to: LAST_DATE }, today).some(
     (occurrence) => !occurrence.isCancelled,
   );
+}
+
+export interface PlannedItemVersionInput {
+  /** Calendar date, YYYY-MM-DD. */
+  effectiveFrom: string;
+  repetition: Repetition | null;
+  /** Default: the rule of the version in effect at `effectiveFrom`. */
+  businessDayRule?: BusinessDayRule;
+  /** Signed integer in minor units. */
+  amount: number;
+}
+
+interface VersionChangeContext {
+  item: PlannedSchedule & { kind: PlannedItemKind };
+  accountArchived: boolean;
+  /** Nominal dates of the occurrences settled by a transaction. */
+  settledNominalDates: readonly string[];
+  overrides: readonly OccurrenceOverride[];
+}
+
+interface ValidVersionInput {
+  effectiveFrom: string;
+  repetition: Repetition | null;
+  businessDayRule: BusinessDayRule;
+  amount: number;
+  amountMode: AmountMode;
+  averageWindow: number;
+  /** A version already has this effective date: the new one takes its place. */
+  replaces: boolean;
+}
+
+/** The last version effective on or before `date`, else the first. */
+export function versionInEffectAt<V extends { effectiveFrom: string }>(
+  versions: readonly V[],
+  date: string,
+): V {
+  const first = versions[0];
+  if (first === undefined) throw new RangeError("A planned item has at least one version");
+  return versions.findLast((version) => version.effectiveFrom <= date) ?? first;
+}
+
+export function isOneOff(versions: readonly PlannedVersion[]): boolean {
+  return versions.every((version) => version.repetition === null);
+}
+
+function assertCalendarDate(field: "startDate" | "endDate" | "effectiveFrom", date: string): void {
+  if (isCalendarDate(date)) return;
+  refuse(
+    field,
+    `Invalid date "${date}", expected YYYY-MM-DD`,
+    messageRef("plannedItemDateInvalid", { date }),
+  );
+}
+
+function assertVersionDateInRange(effectiveFrom: string, item: VersionChangeContext["item"]): void {
+  if (effectiveFrom < item.startDate) {
+    refuse(
+      "effectiveFrom",
+      "A version cannot take effect before the start date",
+      messageRef("plannedItemVersionBeforeStart", { date: item.startDate }),
+    );
+  }
+  if (item.endDate !== null && effectiveFrom > item.endDate) {
+    refuse(
+      "effectiveFrom",
+      "A version cannot take effect after the end date",
+      messageRef("plannedItemVersionAfterEnd", { date: item.endDate }),
+    );
+  }
+}
+
+// A settled or overridden occurrence keeps the date, amount and link it was given: a version that
+// would reach back over one is refused, so that history is never rewritten.
+function assertNoBlockingDateFrom(effectiveFrom: string, context: VersionChangeContext): void {
+  const blockingDates = [
+    ...context.settledNominalDates,
+    ...context.overrides.map((override) => override.nominalDate),
+  ].filter((date) => date >= effectiveFrom);
+  if (blockingDates.length === 0) return;
+  const earliestAllowed = addDays(blockingDates.reduce((latest, date) => (date > latest ? date : latest)), 1);
+  refuse(
+    "effectiveFrom",
+    `An occurrence from this date on is already settled or modified: the earliest date allowed is ${earliestAllowed}`,
+    messageRef("plannedItemVersionTooEarly", { date: earliestAllowed }),
+  );
+}
+
+export function validatePlannedItemVersion(
+  input: PlannedItemVersionInput,
+  context: VersionChangeContext,
+): ValidVersionInput {
+  const { item } = context;
+  if (item.cancelled) {
+    refuse(
+      "effectiveFrom",
+      "A cancelled planned item cannot get a new version",
+      messageRef("plannedItemVersionOnCancelled"),
+    );
+  }
+  if (context.accountArchived) {
+    refuse(
+      "effectiveFrom",
+      "A planned item whose account is archived cannot get a new version",
+      messageRef("plannedItemAccountArchived"),
+    );
+  }
+  assertCalendarDate("effectiveFrom", input.effectiveFrom);
+  assertVersionDateInRange(input.effectiveFrom, item);
+  assertAmount(item.kind, input.amount);
+  if (input.repetition !== null) {
+    if (!isValidRepetition(input.repetition)) {
+      refuse("repetition", "Invalid repetition", messageRef("plannedItemRepetitionInvalid"));
+    }
+    if (isOneOff(item.versions)) {
+      refuse(
+        "repetition",
+        "A one-off event cannot repeat",
+        messageRef("plannedItemVersionRepeatsOneOff"),
+      );
+    }
+  }
+  assertNoBlockingDateFrom(input.effectiveFrom, context);
+
+  const inEffect = versionInEffectAt(item.versions, input.effectiveFrom);
+  return {
+    effectiveFrom: input.effectiveFrom,
+    repetition: input.repetition,
+    businessDayRule: input.businessDayRule ?? inEffect.businessDayRule,
+    amount: input.amount,
+    amountMode: inEffect.amountMode,
+    averageWindow: inEffect.averageWindow,
+    replaces: item.versions.some((version) => version.effectiveFrom === input.effectiveFrom),
+  };
+}
+
+export function validatePlannedItemEndDate(
+  endDate: string | null,
+  item: { startDate: string; versions: readonly PlannedVersion[] },
+): string | null {
+  if (endDate === null) return null;
+  assertCalendarDate("endDate", endDate);
+  if (endDate < item.startDate) {
+    refuse(
+      "endDate",
+      "The end date cannot be before the start date",
+      messageRef("plannedItemEndBeforeStart"),
+    );
+  }
+  if (isOneOff(item.versions)) {
+    refuse("endDate", "A one-off event has no end date", messageRef("plannedItemOneOffHasNoEndDate"));
+  }
+  return endDate;
 }

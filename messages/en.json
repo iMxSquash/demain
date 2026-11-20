@@ -260,14 +260,46 @@
     "editMetaTitle": "Edit planned item | Demain",
     "editTitle": "Edit {name}",
     "backToPlanned": "Back to planned items",
-    "fixedHeading": "Fixed once created",
-    "fixedNote": "The amount and the schedule cannot be edited here: they change from a date, which is not available yet.",
+    "summaryHeading": "Summary",
+    "detailsHeading": "Details",
+    "cancelled": "Cancelled",
     "facts": {
       "kind": "Type",
       "account": "Account",
       "startDate": "First date",
-      "schedule": "Schedule",
-      "amount": "Amount"
+      "schedule": "Schedule"
+    },
+    "versions": {
+      "heading": "Versions",
+      "caption": "Amount and schedule of the planned item from each date",
+      "columns": {
+        "effectiveFrom": "From",
+        "schedule": "Schedule",
+        "businessDay": "Weekend rule",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "inEffect": "In effect",
+      "upcoming": "Upcoming"
+    },
+    "versionForm": {
+      "heading": "Change from a date",
+      "effectiveFrom": "Effective from",
+      "effectiveFromHint": "A date that already has a version replaces it. Dates already settled or modified cannot change.",
+      "submit": "Save the change"
+    },
+    "endDateForm": {
+      "heading": "End date",
+      "endDate": "Last date",
+      "hint": "The last date it can fall on. Leave it empty to go on.",
+      "submit": "Save the end date"
+    },
+    "cancel": {
+      "heading": "Cancel",
+      "label": "Cancel this planned item",
+      "title": "Cancel {name}?",
+      "message": "Its future occurrences will disappear. The past ones stay.",
+      "confirm": "Cancel the planned item"
     },
     "categoryArchived": "{name} (archived)",
     "saveDetails": "Save details"
@@ -1196,6 +1228,16 @@
     "plannedItemGone": "This planned item no longer exists.",
     "plannedItemCreated": "Planned item created.",
     "plannedItemUpdated": "Planned item updated.",
+    "plannedItemVersionOnCancelled": "A cancelled planned item cannot get a new version.",
+    "plannedItemVersionBeforeStart": "A change cannot take effect before the start date, {date}.",
+    "plannedItemVersionAfterEnd": "A change cannot take effect after the end date, {date}.",
+    "plannedItemVersionRepeatsOneOff": "A one-off event cannot repeat.",
+    "plannedItemVersionTooEarly": "An occurrence from this date on is already settled or modified: the earliest date allowed is {date}.",
+    "plannedItemVersionSaved": "Change saved.",
+    "plannedItemVersionReplaced": "Change saved. It replaced the one already effective on {date}.",
+    "plannedItemEndDateSaved": "End date saved.",
+    "plannedItemEndDateCleared": "End date removed.",
+    "plannedItemCancelled": "Planned item cancelled.",
     "accountInUseByPlannedItem": "A planned item that is not over still uses this account: cancel it or give it an end date first.",
     "accountNotArchived": "Something went wrong, the account was not archived.",
     "categoryNotArchived": "Something went wrong, the category was not archived.",

@@ -12,6 +12,7 @@ import {
   type PlannedItemField,
   type PlannedItemInput,
   type PlannedItemKind,
+  type PlannedItemVersionInput,
 } from "../../domain/planned-item";
 import {
   isValidRepetition,
@@ -39,6 +40,12 @@ export const REPETITION_CHOICES = [
   "every_n_weeks",
 ] as const;
 export type RepetitionChoice = (typeof REPETITION_CHOICES)[number];
+
+// The server is the authority on what a repetition means: an unknown value coming back from it
+// falls back to the default instead of being refused here.
+export function repetitionChoiceOf(value: string): RepetitionChoice {
+  return REPETITION_CHOICES.find((choice) => choice === value) ?? DEFAULT_REPETITION;
+}
 
 /** The repetitions that need a number next to them, and what the number counts. */
 export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "months" | "weeks">> = {
@@ -115,6 +122,8 @@ const FORM_FIELD_OF: Record<PlannedItemField, PlannedItemFormField | undefined> 
   categoryId: "categoryId",
   startDate: "startDate",
   endDate: "endDate",
+  // The version form owns its own date control: the creation form has none.
+  effectiveFrom: undefined,
   repetition: "repetition",
   amount: "amount",
   matchWindowDays: "matchWindowDays",
@@ -180,6 +189,12 @@ function readAmount(text: string, currency: string): { value: number } | Refusal
     if (error instanceof MoneyParseError) return { ref: error.ref };
     throw error;
   }
+}
+
+// The kind decides the direction. `0 - x` keeps a zero amount at +0, which the domain then refuses.
+function signedAmountOf(kind: PlannedItemKind, unsignedMinorUnits: number): number {
+  const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
+  return leavesAccount ? 0 - unsignedMinorUnits : unsignedMinorUnits;
 }
 
 function readCategoryId(text: string): { id: number | null } | Refusal {
@@ -293,7 +308,6 @@ export function parsePlannedItemForm(
   if ("ref" in match) return fail(match.field, match.ref);
 
   const endDate = values.endDate.trim();
-  const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
   return {
     ok: true,
     input: {
@@ -307,8 +321,7 @@ export function parsePlannedItemForm(
       endDate: repetition.repetition === null || endDate === "" ? null : endDate,
       repetition: repetition.repetition,
       businessDayRule,
-      // `0 - x` keeps a zero amount at +0, which the domain then refuses.
-      amount: leavesAccount ? 0 - amount.value : amount.value,
+      amount: signedAmountOf(kind, amount.value),
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
     },
@@ -343,4 +356,95 @@ export function parsePlannedItemDetailsForm(
       provisionLabelFilter,
     },
   };
+}
+
+export type PlannedItemVersionFormValues = Pick<
+  PlannedItemFormValues,
+  "repetition" | "repetitionValue" | "businessDayRule" | "amount"
+> & { effectiveFrom: string };
+
+export type PlannedItemVersionFormField = keyof PlannedItemVersionFormValues;
+
+export interface PlannedItemVersionFormState {
+  field?: PlannedItemVersionFormField;
+  message: string;
+  values: PlannedItemVersionFormValues;
+}
+
+/** What the version form needs to sign and scale the amount. */
+interface PlannedItemVersionFormContext {
+  kind: PlannedItemKind;
+  currency: string;
+}
+
+type ParsedPlannedItemVersionForm =
+  | { ok: true; input: PlannedItemVersionInput }
+  | { ok: false; error: PlannedItemVersionFormState };
+
+export interface PlannedItemEndDateFormValues {
+  /** Blank clears the end date. */
+  endDate: string;
+}
+
+export interface PlannedItemEndDateFormState {
+  field?: "endDate";
+  message: string;
+  values: PlannedItemEndDateFormValues;
+}
+
+type ParsedPlannedItemEndDateForm =
+  | { ok: true; endDate: string | null }
+  | { ok: false; error: PlannedItemEndDateFormState };
+
+export function readSubmittedVersion(formData: FormData): PlannedItemVersionFormValues {
+  return {
+    effectiveFrom: readText(formData, "effectiveFrom"),
+    repetition: readText(formData, "repetition"),
+    repetitionValue: readText(formData, "repetitionValue"),
+    businessDayRule: readText(formData, "businessDayRule"),
+    amount: readText(formData, "amount"),
+  };
+}
+
+/** The version form changes the schedule and the amount from a date; the kind gives the sign. */
+export function parsePlannedItemVersionForm(
+  formData: FormData,
+  context: PlannedItemVersionFormContext,
+  translate: Translate,
+): ParsedPlannedItemVersionForm {
+  const values = readSubmittedVersion(formData);
+  const fail = (field: PlannedItemVersionFormField, ref: MessageRef) => ({
+    ok: false as const,
+    error: { field, message: translate(ref), values },
+  });
+
+  const amount = readAmount(values.amount, context.currency);
+  if ("ref" in amount) return fail("amount", amount.ref);
+
+  const repetition = readRepetition(values.repetition, values.repetitionValue);
+  if ("ref" in repetition) return fail(repetition.field, repetition.ref);
+
+  const { businessDayRule } = values;
+  if (!isBusinessDayRule(businessDayRule)) {
+    return fail("businessDayRule", messageRef("plannedItemBusinessDayRuleInvalid"));
+  }
+
+  return {
+    ok: true,
+    input: {
+      effectiveFrom: values.effectiveFrom,
+      repetition: repetition.repetition,
+      businessDayRule,
+      amount: signedAmountOf(context.kind, amount.value),
+    },
+  };
+}
+
+export function readSubmittedEndDate(formData: FormData): PlannedItemEndDateFormValues {
+  return { endDate: readText(formData, "endDate") };
+}
+
+export function parsePlannedItemEndDateForm(formData: FormData): ParsedPlannedItemEndDateForm {
+  const endDate = readSubmittedEndDate(formData).endDate.trim();
+  return { ok: true, endDate: endDate === "" ? null : endDate };
 }

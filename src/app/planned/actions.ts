@@ -4,27 +4,36 @@ import { redirect } from "next/navigation";
 
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { PlannedItemValidationError, type PlannedItemField } from "../../domain/planned-item";
-import { listAccounts } from "../../ledger/accounts";
+import { getAccount, listAccounts } from "../../ledger/accounts";
 import {
+  addPlannedItemVersion,
+  cancelPlannedItem,
   createPlannedItem,
   getPlannedItem,
   PlannedItemNotFoundError,
+  setPlannedItemEnd,
   updatePlannedItemDetails,
 } from "../../ledger/planned-items";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
-import { flashError, flashSuccess } from "../feedback/flash";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import type { CurrencyByAccount } from "../transactions/transaction-form-data";
 import {
   formFieldOf,
   parsePlannedItemDetailsForm,
+  parsePlannedItemEndDateForm,
   parsePlannedItemForm,
+  parsePlannedItemVersionForm,
   readSubmittedDetails,
+  readSubmittedEndDate,
   readSubmittedValues,
+  readSubmittedVersion,
   type PlannedItemDetailsFormState,
+  type PlannedItemEndDateFormState,
   type PlannedItemFormState,
+  type PlannedItemVersionFormState,
 } from "./planned-item-form-data";
 
 const PLANNED_PATH = "/planned";
@@ -65,6 +74,13 @@ async function toFailureState<Field extends string, Values>(
 // The edit form has four controls: a refusal on another field is shown as a message.
 const detailsControlOf = (field: PlannedItemField) =>
   DETAILS_FIELDS.find((candidate) => candidate === formFieldOf(field));
+
+// The version form has three controls that the domain can refuse; the business day rule has no
+// refusal of its own, and a refusal on another field is shown as a message.
+const VERSION_FIELDS = ["effectiveFrom", "repetition", "amount"] as const;
+const versionControlOf = (field: PlannedItemField) =>
+  VERSION_FIELDS.find((candidate) => candidate === field);
+const endDateControlOf = (field: PlannedItemField) => (field === "endDate" ? field : undefined);
 
 export async function createPlannedItemAction(
   _previous: PlannedItemFormState | null,
@@ -113,4 +129,81 @@ export async function updatePlannedItemAction(
   await flashSuccess("plannedItemUpdated");
   // redirect throws, so it stays outside the try block.
   redirect(PLANNED_PATH);
+}
+
+type VersionOutcome =
+  | { rejected: PlannedItemVersionFormState }
+  | { replaced: boolean; effectiveFrom: string };
+
+export async function addPlannedItemVersionAction(
+  itemId: number,
+  _previous: PlannedItemVersionFormState | null,
+  formData: FormData,
+): Promise<PlannedItemVersionFormState | null> {
+  await requireSession();
+  const translate = await getTranslator();
+
+  let outcome: VersionOutcome;
+  try {
+    outcome = withDatabase((db) => {
+      // The kind gives the sign of the amount and the account its currency: both are read first.
+      const { kind, accountId } = getPlannedItem(db, itemId);
+      const { currency } = getAccount(db, accountId);
+      const parsed = parsePlannedItemVersionForm(formData, { kind, currency }, translate);
+      if (!parsed.ok) return { rejected: parsed.error };
+      const { replaced } = addPlannedItemVersion(db, itemId, parsed.input);
+      return { replaced, effectiveFrom: parsed.input.effectiveFrom };
+    });
+  } catch (error) {
+    return await toFailureState(error, readSubmittedVersion(formData), translate, versionControlOf);
+  }
+  if ("rejected" in outcome) return outcome.rejected;
+
+  refreshData();
+  // Replacing a version is told, so that nobody believes a second one was added.
+  if (outcome.replaced) {
+    await flashSuccess("plannedItemVersionReplaced", { date: outcome.effectiveFrom });
+  } else {
+    await flashSuccess("plannedItemVersionSaved");
+  }
+  return null;
+}
+
+type EndDateOutcome = { rejected: PlannedItemEndDateFormState } | { endDate: string | null };
+
+export async function setPlannedItemEndAction(
+  itemId: number,
+  _previous: PlannedItemEndDateFormState | null,
+  formData: FormData,
+): Promise<PlannedItemEndDateFormState | null> {
+  await requireSession();
+  const translate = await getTranslator();
+
+  let outcome: EndDateOutcome;
+  try {
+    outcome = withDatabase((db) => {
+      const parsed = parsePlannedItemEndDateForm(formData);
+      if (!parsed.ok) return { rejected: parsed.error };
+      setPlannedItemEnd(db, itemId, parsed.endDate);
+      return { endDate: parsed.endDate };
+    });
+  } catch (error) {
+    return await toFailureState(error, readSubmittedEndDate(formData), translate, endDateControlOf);
+  }
+  if ("rejected" in outcome) return outcome.rejected;
+
+  refreshData();
+  await flashSuccess(outcome.endDate === null ? "plannedItemEndDateCleared" : "plannedItemEndDateSaved");
+  return null;
+}
+
+export async function cancelPlannedItemAction(itemId: number): Promise<void> {
+  await requireSession();
+  await runWithNotice(
+    () => {
+      withDatabase((db) => cancelPlannedItem(db, itemId));
+    },
+    { success: "plannedItemCancelled", describeFailure },
+  );
+  refreshData();
 }

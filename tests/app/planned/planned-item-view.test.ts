@@ -4,8 +4,8 @@ import type { PlannedItemVersion } from "../../../src/ledger/planned-items";
 import {
   accountTextOf,
   categoryOptionsOf,
-  currentVersionOf,
   scheduleText,
+  versionScheduleText,
   type ScheduleTranslate,
 } from "../../../src/app/planned/planned-item-view";
 
@@ -26,13 +26,15 @@ function itemOf(
     id: 1,
     startDate: "2027-03-05",
     endDate,
-    versions: [{ repetitionKind, repetitionValue }],
+    versions: [{ effectiveFrom: "2027-03-05", repetitionKind, repetitionValue }],
   };
 }
 
+const TODAY = "2027-06-01";
+
 describe("scheduleText", () => {
   it("words a one-off event with its date", () => {
-    expect(scheduleText(translate, "en", itemOf(null, null))).toBe(
+    expect(scheduleText(translate, "en", itemOf(null, null), TODAY)).toBe(
       "schedule.once:date=Mar 5, 2027",
     );
   });
@@ -45,23 +47,44 @@ describe("scheduleText", () => {
     ["yearly", null, "schedule.yearly:"],
     ["every_n_weeks", 3, "schedule.everyNWeeks:weeks=3"],
   ])("words the repetition %s", (kind, value, expected) => {
-    expect(scheduleText(translate, "en", itemOf(kind, value))).toBe(expected);
+    expect(scheduleText(translate, "en", itemOf(kind, value), TODAY)).toBe(expected);
   });
 
   it("adds the end date of a repeating item", () => {
-    expect(scheduleText(translate, "en", itemOf("yearly", null, "2030-12-31"))).toBe(
+    expect(scheduleText(translate, "en", itemOf("yearly", null, "2030-12-31"), TODAY)).toBe(
       "schedule.until:schedule=schedule.yearly:,date=Dec 31, 2030",
     );
   });
 });
 
-describe("currentVersionOf", () => {
-  it("returns the last version", () => {
-    expect(currentVersionOf({ id: 1, versions: ["first", "second"] })).toBe("second");
+describe("scheduleText across versions", () => {
+  const item = {
+    startDate: "2027-03-05",
+    endDate: null,
+    versions: [
+      { effectiveFrom: "2027-03-05", repetitionKind: "yearly" as const, repetitionValue: null },
+      { effectiveFrom: "2027-09-01", repetitionKind: "every_n_weeks" as const, repetitionValue: 2 },
+    ],
+  };
+
+  it("words the version in effect today, not the last one", () => {
+    expect(scheduleText(translate, "en", item, "2027-08-31")).toBe("schedule.yearly:");
+  });
+
+  it("words the new version from its effective date", () => {
+    expect(scheduleText(translate, "en", item, "2027-09-01")).toBe("schedule.everyNWeeks:weeks=2");
   });
 
   it("refuses an item without any version, which is corrupted data", () => {
-    expect(() => currentVersionOf({ id: 7, versions: [] })).toThrow("Planned item 7 has no version");
+    expect(() => scheduleText(translate, "en", { ...item, versions: [] }, TODAY)).toThrow(RangeError);
+  });
+});
+
+describe("versionScheduleText", () => {
+  it("words a one-off version with the start date of the item", () => {
+    expect(
+      versionScheduleText(translate, "en", "2027-03-05", { repetitionKind: null, repetitionValue: null }),
+    ).toBe("schedule.once:date=Mar 5, 2027");
   });
 });
 
