@@ -25,9 +25,7 @@ const DEFAULT_MATCH_AMOUNT_TOLERANCE_BP = 500;
 const MAX_TOLERANCE_BP = 10_000;
 const DEFAULT_AVERAGE_WINDOW = 3;
 
-// Bounds that cover any effective date of a schedule, whatever its overrides move. The lower one
-// stays above year 99, which `Date.UTC` would read as 19xx.
-const FIRST_DATE = "1000-01-01";
+// Covers any effective date of a schedule, whatever its overrides move.
 const LAST_DATE = "9999-12-31";
 
 export interface PlannedItemAccount {
@@ -440,14 +438,9 @@ export function isPlannedItemOver(
 ): boolean {
   if (schedule.cancelled) return true;
   if (schedule.endDate === null) return false;
-  const lastDate = generateOccurrences(
-    schedule,
-    overrides,
-    { from: FIRST_DATE, to: LAST_DATE },
-    today,
-  )
-    .filter((occurrence) => !occurrence.isCancelled)
-    .at(-1)?.date;
-  // No occurrence left: nothing remains to be settled.
-  return lastDate === undefined || lastDate < today;
+  // Only what is left from today matters: an occurrence moved by an override is counted by its
+  // effective date.
+  return !generateOccurrences(schedule, overrides, { from: today, to: LAST_DATE }, today).some(
+    (occurrence) => !occurrence.isCancelled,
+  );
 }

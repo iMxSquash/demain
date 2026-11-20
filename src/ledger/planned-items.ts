@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, or } from "drizzle-orm";
+import { asc, eq, inArray, or } from "drizzle-orm";
 
-import type { OccurrenceOverride, PlannedSchedule } from "../domain/occurrences";
+import type { PlannedSchedule } from "../domain/occurrences";
 import {
   fromRepetition,
   isPlannedItemOver,
@@ -159,17 +159,6 @@ export function toPlannedSchedule(item: PlannedItemWithDetails): PlannedSchedule
   };
 }
 
-function toOccurrenceOverrides(
-  overrides: readonly StoredOccurrenceOverride[],
-): OccurrenceOverride[] {
-  return overrides.map((override) => ({
-    nominalDate: override.nominalDate,
-    status: override.status,
-    overrideDate: override.overrideDate,
-    overrideAmount: override.overrideAmount,
-  }));
-}
-
 /**
  * The names of the planned items that keep an account in use: it is their account or their
  * destination and they are not over at `today` (DOMAIN, archiving an account).
@@ -183,14 +172,11 @@ export function listItemsBlockingArchive(
     .select()
     .from(plannedItems)
     .where(
-      and(
-        eq(plannedItems.cancelled, false),
-        or(eq(plannedItems.accountId, accountId), eq(plannedItems.destinationAccountId, accountId)),
-      ),
+      or(eq(plannedItems.accountId, accountId), eq(plannedItems.destinationAccountId, accountId)),
     )
     .orderBy(asc(plannedItems.id))
     .all();
   return attachDetails(db, targeting)
-    .filter((item) => !isPlannedItemOver(toPlannedSchedule(item), toOccurrenceOverrides(item.overrides), today))
+    .filter((item) => !isPlannedItemOver(toPlannedSchedule(item), item.overrides, today))
     .map((item) => item.name);
 }
