@@ -62,8 +62,9 @@ The **JSON export** form downloads `demain-export-YYYY-MM-DD.json`. It is meant 
 - **Amounts are integers in minor units**, always next to their currency code: `{ "minorUnits": -1234, "currency": "EUR" }` is -12.34 EUR. There is no decimal number anywhere. An exchange `rate` is an exact integer: 1 `base` is worth `rate / 100000000` `quote`.
 - **The credentials of the account are not exported**: no password hash, no second-factor secret or backup code, no session. Neither are the internal keys Demain uses to recognize a movement imported twice, nor the digest that guards the undo of an imported file.
 - Dates are `YYYY-MM-DD` calendar days, instants are ISO 8601 in UTC, and the two legs of a transfer reference each other through `transferCounterpartId`.
+- **Planned items** are exported as three tables: `plannedItems`, `plannedItemVersions` (the schedule and the amount from a date on) and `occurrenceOverrides` (a cancelled or modified occurrence, identified by its `nominalDate`). The amounts of versions and overrides carry the currency of the account of the item, and the matching tolerance `matchAmountToleranceBp` is an integer in basis points (500 is 5 percent). The occurrences themselves are computed, so they are not exported. A transaction that settles an occurrence carries `plannedItemId` and `occurrenceDate` (both null otherwise), and `categoryFromPlannedItem` tells whether its category came from the planned item.
 
-The format is defined by [export.schema.json](export.schema.json) (JSON Schema, draft 2020-12), which carries a description of every field. `schemaVersion` is `1`; any change to an existing field is a new version, and a test keeps the schema file in step with the code that writes the export.
+The format is defined by [export.schema.json](export.schema.json) (JSON Schema, draft 2020-12), which carries a description of every field. `schemaVersion` is `2` (version 2 added the planned item tables and the three transaction fields above); any change to the fields is a new version, and a test keeps the schema file in step with the code that writes the export.
 
 ### Regenerating the schema
 
@@ -114,4 +115,4 @@ Before an upgrade, take either an encrypted snapshot or this volume backup.
 
 ### What was tested
 
-The snapshot (creation, restore in the same instance and in a new one, every refusal listed above) and the JSON export (validity against the schema, absence of credentials, encryption) are covered by automated tests in `tests/export/`. The volume procedure was run by hand with Docker: a volume holding a migrated database was archived, deleted, restored into a new volume with the commands above, and the database read back with its integrity check and its data intact.
+The snapshot (creation, restore in the same instance and in a new one, every refusal listed above) and the JSON export (validity against the schema, planned items, absence of credentials, encryption) are covered by automated tests in `tests/export/`. The volume procedure was run by hand with Docker: a volume holding a migrated database was archived, deleted, restored into a new volume with the commands above, and the database read back with its integrity check and its data intact.

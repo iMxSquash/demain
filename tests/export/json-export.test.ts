@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { setupOwner } from "../../src/auth/owner";
@@ -15,7 +16,15 @@ import { commitImport } from "../../src/ledger/imports";
 import { setVocabularyWord } from "../../src/ledger/type-vocabulary";
 import { createTransaction, createTransfer } from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
-import { balanceAssertions, exchangeRates, settings } from "../../src/storage/schema";
+import {
+  balanceAssertions,
+  exchangeRates,
+  occurrenceOverrides,
+  plannedItems,
+  plannedItemVersions,
+  settings,
+  transactions as transactionsTable,
+} from "../../src/storage/schema";
 
 const NOW = new Date("2026-10-30T09:15:00.000Z");
 const PASSWORD = "a long enough backup passphrase";
@@ -111,7 +120,7 @@ describe("JSON export", () => {
   it("states its format, its version and when it was made", async () => {
     expect(await exportAsObject()).toMatchObject({
       format: "demain-export",
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: "2026-10-30T09:15:00.000Z",
     });
   });
@@ -145,6 +154,127 @@ describe("JSON export", () => {
       currency: "EUR",
     });
     expect(exported.balanceAssertions[0]?.amount).toEqual({ minorUnits: 9_876, currency: "EUR" });
+  });
+
+  function seedMonthlyRent() {
+    const account = createAccount(db, {
+      name: "Checking",
+      kind: "checking",
+      currency: "EUR",
+      openingDate: "2026-01-01",
+      openingBalance: 0,
+    });
+    const item = db
+      .insert(plannedItems)
+      .values({
+        name: "Rent",
+        kind: "expense",
+        accountId: account.id,
+        startDate: "2026-01-05",
+        matchAmountToleranceBp: 250,
+      })
+      .returning()
+      .get();
+    return { account, item };
+  }
+
+  it("exports a planned item with its versions and overrides", async () => {
+    const { account, item } = seedMonthlyRent();
+    db.insert(plannedItemVersions)
+      .values([
+        {
+          plannedItemId: item.id,
+          effectiveFrom: "2026-01-05",
+          repetitionKind: "monthly_on_day",
+          repetitionValue: 5,
+          amount: -80_000,
+        },
+        {
+          plannedItemId: item.id,
+          effectiveFrom: "2026-07-05",
+          repetitionKind: "monthly_on_day",
+          repetitionValue: 5,
+          businessDayRule: "next",
+          amount: -85_050,
+        },
+      ])
+      .run();
+    db.insert(occurrenceOverrides)
+      .values({
+        plannedItemId: item.id,
+        nominalDate: "2026-08-05",
+        status: "modified",
+        overrideDate: "2026-08-07",
+        overrideAmount: -90_000,
+      })
+      .run();
+
+    const exported = exportSchema.parse(await exportAsObject());
+
+    expect(exported.plannedItems).toEqual([
+      expect.objectContaining({
+        id: item.id,
+        name: "Rent",
+        accountId: account.id,
+        startDate: "2026-01-05",
+        matchAmountToleranceBp: 250,
+      }),
+    ]);
+    expect(exported.plannedItemVersions.map((v) => v.amount)).toEqual([
+      { minorUnits: -80_000, currency: "EUR" },
+      { minorUnits: -85_050, currency: "EUR" },
+    ]);
+    expect(exported.occurrenceOverrides).toEqual([
+      expect.objectContaining({
+        nominalDate: "2026-08-05",
+        status: "modified",
+        overrideDate: "2026-08-07",
+        overrideAmount: { minorUnits: -90_000, currency: "EUR" },
+      }),
+    ]);
+  });
+
+  it("exports the occurrence a transaction settles", async () => {
+    const { account, item } = seedMonthlyRent();
+    const settled = createTransaction(db, {
+      accountId: account.id,
+      date: "2026-02-06",
+      amount: -80_000,
+      kind: "expense",
+      label: "Rent February",
+    });
+    const unrelated = createTransaction(db, {
+      accountId: account.id,
+      date: "2026-02-10",
+      amount: -1_500,
+      kind: "expense",
+      label: "Coffee beans",
+    });
+    db.update(transactionsTable)
+      .set({ plannedItemId: item.id, occurrenceDate: "2026-02-05", categoryFromPlannedItem: true })
+      .where(eq(transactionsTable.id, settled.id))
+      .run();
+
+    const exported = exportSchema.parse(await exportAsObject());
+
+    expect(exported.transactions.find((t) => t.id === settled.id)).toMatchObject({
+      plannedItemId: item.id,
+      occurrenceDate: "2026-02-05",
+      categoryFromPlannedItem: true,
+    });
+    expect(exported.transactions.find((t) => t.id === unrelated.id)).toMatchObject({
+      plannedItemId: null,
+      occurrenceDate: null,
+      categoryFromPlannedItem: false,
+    });
+  });
+
+  it("an export without planned items has empty arrays", async () => {
+    const exported = exportSchema.parse(await exportAsObject());
+
+    expect(exported.plannedItems).toEqual([]);
+    expect(exported.plannedItemVersions).toEqual([]);
+    expect(exported.occurrenceOverrides).toEqual([]);
   });
 
   it("keeps the two legs of a transfer linked to each other", async () => {
