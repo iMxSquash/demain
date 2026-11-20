@@ -22,13 +22,14 @@ import {
   getPlannedItem,
   listPlannedItems,
   PlannedItemNotFoundError,
-  setPlannedItemEndDate,
+  setPlannedItemEnd,
   toPlannedSchedule,
   updatePlannedItemDetails,
 } from "../../src/ledger/planned-items";
 import { createTransaction } from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import {
+  accounts,
   occurrenceOverrides,
   plannedItems,
   plannedItemVersions,
@@ -440,6 +441,13 @@ describe("planned items", () => {
       expectRefused(item.id, rentFrom("2026-04-01"), "effectiveFrom", "plannedItemVersionOnCancelled");
     });
 
+    it("refuses a version on an item whose account is archived", () => {
+      const item = createPlannedItem(db, rent);
+      db.update(accounts).set({ archived: true }).where(eq(accounts.id, accountId)).run();
+
+      expectRefused(item.id, rentFrom("2026-04-01"), "effectiveFrom", "plannedItemAccountArchived");
+    });
+
     it("refuses a repetition on a one-off item", () => {
       const oneOff = createPlannedItem(db, { ...rent, startDate: "2026-03-10", repetition: null });
 
@@ -461,7 +469,7 @@ describe("planned items", () => {
     it("refuses an end date before the start date", () => {
       const item = createPlannedItem(db, rent);
 
-      const error = refusalOf(() => setPlannedItemEndDate(db, item.id, "2026-01-04"));
+      const error = refusalOf(() => setPlannedItemEnd(db, item.id, "2026-01-04"));
 
       expect(error.field).toBe("endDate");
       expect(error.ref.key).toBe("plannedItemEndBeforeStart");
@@ -471,7 +479,7 @@ describe("planned items", () => {
     it("stops the occurrences at the end date", () => {
       const item = createPlannedItem(db, rent);
 
-      const bounded = setPlannedItemEndDate(db, item.id, "2026-03-31");
+      const bounded = setPlannedItemEnd(db, item.id, "2026-03-31");
 
       expect(bounded.endDate).toBe("2026-03-31");
       expect(occurrencesOf(bounded).map(([date]) => date)).toEqual([
@@ -484,7 +492,7 @@ describe("planned items", () => {
     it("clears the end date with null", () => {
       const item = createPlannedItem(db, { ...rent, endDate: "2026-03-31" });
 
-      const cleared = setPlannedItemEndDate(db, item.id, null);
+      const cleared = setPlannedItemEnd(db, item.id, null);
 
       expect(cleared.endDate).toBeNull();
       expect(occurrencesOf(cleared)).toHaveLength(8);
@@ -493,7 +501,7 @@ describe("planned items", () => {
     it("refuses an end date on a one-off item", () => {
       const oneOff = createPlannedItem(db, { ...rent, startDate: "2026-03-10", repetition: null });
 
-      const error = refusalOf(() => setPlannedItemEndDate(db, oneOff.id, "2026-12-31"));
+      const error = refusalOf(() => setPlannedItemEnd(db, oneOff.id, "2026-12-31"));
 
       expect(error.field).toBe("endDate");
       expect(error.ref.key).toBe("plannedItemOneOffHasNoEndDate");
@@ -525,7 +533,7 @@ describe("planned items", () => {
     });
 
     it("throws for a missing item on the end date and the cancellation", () => {
-      expect(() => setPlannedItemEndDate(db, 999, null)).toThrow(PlannedItemNotFoundError);
+      expect(() => setPlannedItemEnd(db, 999, null)).toThrow(PlannedItemNotFoundError);
       expect(() => cancelPlannedItem(db, 999)).toThrow(PlannedItemNotFoundError);
     });
 

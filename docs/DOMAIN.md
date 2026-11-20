@@ -159,7 +159,7 @@ Rules of a new version, as implemented (`validatePlannedItemVersion` in `src/dom
 - The amount is nonzero and has the sign of the kind of the item.
 - A repetition cannot be added to a one-off item: its versions all stay one-off events.
 - A new version inherits the amount mode and the average window of the version in effect on its effective date (the last version whose date is on or before it, else the first). The business-day rule is inherited the same way when the form does not give one.
-- A cancelled item takes no new version.
+- A cancelled item takes no new version, nor does an item whose account is archived.
 - The end date can be set or cleared on a repeating item (the "End date" section of the edit page), and not before the start date. A one-off item has no end date.
 - Cancelling an item (the "Cancel" section) stops all its occurrences after today. It is idempotent and nothing is written when a validation refuses.
 

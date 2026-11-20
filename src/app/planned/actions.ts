@@ -11,7 +11,7 @@ import {
   createPlannedItem,
   getPlannedItem,
   PlannedItemNotFoundError,
-  setPlannedItemEndDate,
+  setPlannedItemEnd,
   updatePlannedItemDetails,
 } from "../../ledger/planned-items";
 import { withDatabase } from "../../storage/with-database";
@@ -171,7 +171,7 @@ export async function addPlannedItemVersionAction(
 
 type EndDateOutcome = { rejected: PlannedItemEndDateFormState } | { endDate: string | null };
 
-export async function setPlannedItemEndDateAction(
+export async function setPlannedItemEndAction(
   itemId: number,
   _previous: PlannedItemEndDateFormState | null,
   formData: FormData,
@@ -184,7 +184,7 @@ export async function setPlannedItemEndDateAction(
     outcome = withDatabase((db) => {
       const parsed = parsePlannedItemEndDateForm(formData);
       if (!parsed.ok) return { rejected: parsed.error };
-      setPlannedItemEndDate(db, itemId, parsed.endDate);
+      setPlannedItemEnd(db, itemId, parsed.endDate);
       return { endDate: parsed.endDate };
     });
   } catch (error) {

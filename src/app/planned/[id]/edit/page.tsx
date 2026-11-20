@@ -25,7 +25,7 @@ import { ConfirmActionButton } from "../../../confirm-action-button";
 import {
   addPlannedItemVersionAction,
   cancelPlannedItemAction,
-  setPlannedItemEndDateAction,
+  setPlannedItemEndAction,
   updatePlannedItemAction,
 } from "../../actions";
 import { DEFAULT_REPETITION, TRANSFER_KIND } from "../../planned-item-form-data";
@@ -201,7 +201,7 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
             <PageSection id="end-date-heading" heading={t("endDateForm.heading")}>
               <PlannedItemEndDateForm
                 key={item.endDate ?? "none"}
-                action={setPlannedItemEndDateAction.bind(null, item.id)}
+                action={setPlannedItemEndAction.bind(null, item.id)}
                 initialValues={{ endDate: item.endDate ?? "" }}
               />
             </PageSection>

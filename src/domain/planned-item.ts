@@ -497,6 +497,7 @@ export interface PlannedItemVersionInput {
 
 interface VersionChangeContext {
   item: PlannedSchedule & { kind: PlannedItemKind };
+  accountArchived: boolean;
   /** Nominal dates of the occurrences settled by a transaction. */
   settledNominalDates: readonly string[];
   overrides: readonly OccurrenceOverride[];
@@ -579,6 +580,13 @@ export function validatePlannedItemVersion(
       "effectiveFrom",
       "A cancelled planned item cannot get a new version",
       messageRef("plannedItemVersionOnCancelled"),
+    );
+  }
+  if (context.accountArchived) {
+    refuse(
+      "effectiveFrom",
+      "A planned item whose account is archived cannot get a new version",
+      messageRef("plannedItemAccountArchived"),
     );
   }
   assertCalendarDate("effectiveFrom", input.effectiveFrom);

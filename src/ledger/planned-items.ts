@@ -203,8 +203,14 @@ export function addPlannedItemVersion(
       .where(and(eq(transactions.plannedItemId, itemId), isNotNull(transactions.occurrenceDate)))
       .all()
       .flatMap(({ occurrenceDate }) => (occurrenceDate === null ? [] : [occurrenceDate]));
+    const account = tx
+      .select({ archived: accounts.archived })
+      .from(accounts)
+      .where(eq(accounts.id, current.accountId))
+      .get();
     const valid = validatePlannedItemVersion(input, {
       item: { ...toPlannedSchedule(current), kind: current.kind },
+      accountArchived: account?.archived ?? false,
       settledNominalDates,
       overrides: current.overrides,
     });
@@ -228,7 +234,7 @@ export function addPlannedItemVersion(
   });
 }
 
-export function setPlannedItemEndDate(
+export function setPlannedItemEnd(
   db: AppDatabase,
   itemId: number,
   endDate: string | null,
