@@ -347,9 +347,17 @@ For a requested horizon `[from, to]`:
      - Q2, quarterly: every 3 months from the start date, not the calendar quarters. It stays its own kind, as a shortcut of the form.
      - Q3, a start date that is not on the rule: not refused. It is a lower bound, so "monthly on day 5" from 20 January gives 5 February first.
 2. Apply the business-day rule if set (move a date falling on a weekend to the previous or next weekday). Weekends only: public holidays are not handled in V1. The nominal date is still the identity of the occurrence.
-3. Apply recorded overrides: a `cancelled` occurrence is removed, a `modified` one takes its `override_date` and/or `override_amount`.
+3. Apply recorded overrides, found by nominal date (an override for a date the rule does not produce is ignored): a `cancelled` occurrence is kept with `isCancelled: true` (the projection and the matching drop it, the calendar can show it), a `modified` one takes its `override_date` and/or `override_amount` (with neither, it has no effect).
 4. Compute the amount of each occurrence (next section).
 5. Link settling transactions and derive the status (see [Occurrence status](#occurrence-status)).
+
+Decisions of the owner on occurrence generation (`src/domain/occurrences.ts`), 19 Nov 2026, numbered as in issue #157:
+
+- Q1, a cancelled occurrence is kept with `isCancelled: true`, not removed (step 3).
+- Q2, the effective date (business-day rule, then override date) decides whether an occurrence is in the requested range. The nominal date stays its identity.
+- Q3, a version that changes the repetition restarts its series from its `effective_from`. A version that only changes the amount or the amount mode continues the phase of the previous series.
+- Q4, a cancelled planned item produces nothing after today. Its earlier occurrences are flagged cancelled, except a settled one, which stays confirmed (see #162).
+- Q5, the first version is always effective from the start date.
 
 There is no maximum horizon: the computation is bounded only by what is displayed.
 
