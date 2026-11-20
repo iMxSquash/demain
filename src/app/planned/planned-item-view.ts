@@ -24,7 +24,7 @@ export type ScheduleTranslate = (
  * effective date and an item has only its first one until #161 adds the others, so the last one
  * is the one to show without reading the clock.
  */
-export function currentVersionOf(item: PlannedItemWithDetails): PlannedItemVersion {
+export function currentVersionOf<Version>(item: { id: number; versions: Version[] }): Version {
   const version = item.versions.at(-1);
   if (version === undefined) throw new RangeError(`Planned item ${item.id} has no version`);
   return version;
@@ -47,11 +47,19 @@ function repetitionText(translate: ScheduleTranslate, repetition: Repetition): s
   }
 }
 
+/** What the schedule of an item is read from. */
+interface ScheduleSource {
+  id: number;
+  startDate: string;
+  endDate: string | null;
+  versions: Pick<PlannedItemVersion, "repetitionKind" | "repetitionValue">[];
+}
+
 /** The schedule of an item in words: "Monthly on day 12", "Every 2 weeks", "Once on 5 March 2027". */
 export function scheduleText(
   translate: ScheduleTranslate,
   locale: string,
-  item: PlannedItemWithDetails,
+  item: ScheduleSource,
 ): string {
   const version = currentVersionOf(item);
   const repetition = toRepetition(version.repetitionKind, version.repetitionValue);
@@ -62,4 +70,15 @@ export function scheduleText(
   return item.endDate === null
     ? text
     : translate("schedule.until", { schedule: text, date: formatCalendarDate(item.endDate, locale) });
+}
+
+/** The account of an item, or "from X to Y" for a transfer. `transferText` words the pair. */
+export function accountTextOf(
+  item: Pick<PlannedItemWithDetails, "accountId" | "destinationAccountId">,
+  accountNames: ReadonlyMap<number, string>,
+  transferText: (names: { from: string; to: string }) => string,
+): string {
+  const from = accountNames.get(item.accountId) ?? "";
+  if (item.destinationAccountId === null) return from;
+  return transferText({ from, to: accountNames.get(item.destinationAccountId) ?? "" });
 }

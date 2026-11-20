@@ -3,12 +3,13 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ComponentPropsWithoutRef } from "react";
 
+import { firstNonDigit } from "../domain/amount-syntax";
+
 type WholeNumberInputProps = Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "inputMode" | "autoComplete" | "id"
 > & { id: string };
 
-const NOT_A_DIGIT = /\D/u;
 const REMOVAL_INPUT_TYPES = /^(delete|history)/;
 const PASTE_INPUT_TYPES = new Set(["insertFromPaste", "insertFromDrop"]);
 
@@ -33,7 +34,7 @@ export function WholeNumberInput({ id, ...rest }: WholeNumberInputProps) {
       if (event.isComposing || REMOVAL_INPUT_TYPES.test(event.inputType)) return;
       const isPaste = PASTE_INPUT_TYPES.has(event.inputType);
       const data = isPaste ? (event.dataTransfer?.getData("text/plain") ?? "") : (event.data ?? "");
-      const character = [...data].find((candidate) => NOT_A_DIGIT.test(candidate));
+      const character = firstNonDigit(data);
       if (character === undefined) {
         setRefused(null);
         return;

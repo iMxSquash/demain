@@ -269,6 +269,7 @@
       "schedule": "Schedule",
       "amount": "Amount"
     },
+    "categoryArchived": "{name} (archived)",
     "saveDetails": "Save details"
   },
   "balances": {

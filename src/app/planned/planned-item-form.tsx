@@ -15,9 +15,13 @@ import { WholeNumberInput } from "../whole-number-input";
 import { MatchingFields } from "./matching-fields";
 import {
   BUSINESS_DAY_RULES,
+  DEFAULT_FORM_KIND,
+  DEFAULT_REPETITION,
+  ONCE,
   PLANNED_ITEM_FORM_KINDS,
   REPETITION_CHOICES,
   REPETITION_NUMBER_UNIT,
+  TRANSFER_KIND,
   type PlannedItemFormField,
   type PlannedItemFormState,
   type PlannedItemFormValues,
@@ -47,18 +51,16 @@ interface PlannedItemFormProps {
 
 type FormKind = (typeof PLANNED_ITEM_FORM_KINDS)[number];
 
-const TRANSFER: FormKind = "transfer";
-const ONCE: RepetitionChoice = "once";
 const FULL_WIDTH_CLASS = "@min-[640px]:col-span-2";
 
 // The server is the authority on what a kind or a repetition means: an unknown value coming back
 // from it falls back to the default instead of being refused here.
 function formKindOf(value: string): FormKind {
-  return PLANNED_ITEM_FORM_KINDS.find((kind) => kind === value) ?? "expense";
+  return PLANNED_ITEM_FORM_KINDS.find((kind) => kind === value) ?? DEFAULT_FORM_KIND;
 }
 
 function repetitionChoiceOf(value: string): RepetitionChoice {
-  return REPETITION_CHOICES.find((choice) => choice === value) ?? "monthly_on_day";
+  return REPETITION_CHOICES.find((choice) => choice === value) ?? DEFAULT_REPETITION;
 }
 
 /**
@@ -92,7 +94,6 @@ export function PlannedItemForm({
     null,
   );
   const formRef = useFocusFirstError(state);
-  // After a failed submit the typed values come back with the error.
   const values = state?.values ?? initialValues;
 
   const errorOf = (field: PlannedItemFormField) =>
@@ -108,7 +109,7 @@ export function PlannedItemForm({
     defaultValue: values[field],
   });
 
-  const isTransfer = kind === TRANSFER;
+  const isTransfer = kind === TRANSFER_KIND;
   const numberUnit = REPETITION_NUMBER_UNIT[repetition];
   const accountOptions = accounts.map((account) => (
     <option key={account.id} value={account.id}>

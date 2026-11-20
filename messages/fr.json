@@ -269,6 +269,7 @@
       "schedule": "Échéancier",
       "amount": "Montant"
     },
+    "categoryArchived": "{name} (archivée)",
     "saveDetails": "Enregistrer les détails"
   },
   "balances": {

@@ -1,4 +1,8 @@
-import { containsTypedSign, parseUnsignedAmount } from "../../domain/amount-syntax";
+import {
+  containsTypedSign,
+  parseUnsignedAmount,
+  parseWholeNumber,
+} from "../../domain/amount-syntax";
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { MoneyParseError } from "../../domain/money";
 import {
@@ -17,11 +21,17 @@ import {
 import { readAccount, type CurrencyByAccount } from "../transactions/transaction-form-data";
 
 /** The order of the type segments (DESIGN section 17): Out, In, Move, Interest. */
-export const PLANNED_ITEM_FORM_KINDS = ["expense", "income", "transfer", "interest"] as const;
+export const DEFAULT_FORM_KIND = "expense";
+export const TRANSFER_KIND = "transfer";
+export const PLANNED_ITEM_FORM_KINDS = [DEFAULT_FORM_KIND, "income", TRANSFER_KIND, "interest"] as const;
+
+/** The choice of a one-off event: it has no repetition and no end date. */
+export const ONCE = "once";
+export const DEFAULT_REPETITION = "monthly_on_day";
 
 export const REPETITION_CHOICES = [
-  "once",
-  "monthly_on_day",
+  ONCE,
+  DEFAULT_REPETITION,
   "monthly_on_last_day",
   "every_n_months",
   "quarterly",
@@ -39,10 +49,9 @@ export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "m
 
 export const BUSINESS_DAY_RULES: readonly BusinessDayRule[] = ["none", "previous", "next"];
 
-const WHOLE_NUMBER = /^\d+$/;
 // Refused by `isValidRepetition` for every repetition that counts (a day from 1, months and weeks
 // from 1), so that a missing or unreadable number is refused with the same rule as a zero.
-const NO_NUMBER = 0;
+const UNREADABLE_COUNT = 0;
 
 export interface PlannedItemFormValues {
   name: string;
@@ -158,11 +167,6 @@ function isKind(value: string): value is PlannedItemKind {
   return (PLANNED_ITEM_FORM_KINDS as readonly string[]).includes(value);
 }
 
-function wholeNumber(text: string): number | null {
-  const trimmed = text.trim();
-  return WHOLE_NUMBER.test(trimmed) ? Number(trimmed) : null;
-}
-
 function isBusinessDayRule(value: string): value is BusinessDayRule {
   return BUSINESS_DAY_RULES.some((rule) => rule === value);
 }
@@ -206,8 +210,8 @@ type RepetitionResult =
   | { field: "repetition" | "repetitionValue"; ref: MessageRef };
 
 function readRepetition(choice: string, valueText: string): RepetitionResult {
-  if (choice === "once") return { repetition: null };
-  const candidate = candidateRepetition(choice, wholeNumber(valueText) ?? NO_NUMBER);
+  if (choice === ONCE) return { repetition: null };
+  const candidate = candidateRepetition(choice, parseWholeNumber(valueText) ?? UNREADABLE_COUNT);
   if (candidate === null) {
     return { field: "repetition", ref: messageRef("plannedItemRepetitionInvalid") };
   }
@@ -222,7 +226,7 @@ type MatchResult =
   | { field: "matchWindowDays" | "matchTolerancePercent"; ref: MessageRef };
 
 function readMatchSettings(windowText: string, toleranceText: string): MatchResult {
-  const windowDays = wholeNumber(windowText);
+  const windowDays = parseWholeNumber(windowText);
   if (windowDays === null) {
     return { field: "matchWindowDays", ref: messageRef("plannedItemMatchWindowInvalid") };
   }
@@ -260,7 +264,7 @@ export function parsePlannedItemForm(
   if (account === null) return fail("accountId", messageRef("accountUnknown"));
 
   let destinationAccountId: number | null = null;
-  if (kind === "transfer") {
+  if (kind === TRANSFER_KIND) {
     if (values.destinationAccountId.trim() === "") {
       return fail("destinationAccountId", messageRef("plannedItemTransferDestinationRequired"));
     }
@@ -274,7 +278,7 @@ export function parsePlannedItemForm(
   if ("ref" in amount) return fail("amount", amount.ref);
 
   // A transfer has no category: whatever was typed before switching to it is dropped.
-  const category = kind === "transfer" ? { id: null } : readCategoryId(values.categoryId);
+  const category = kind === TRANSFER_KIND ? { id: null } : readCategoryId(values.categoryId);
   if ("ref" in category) return fail("categoryId", category.ref);
 
   const repetition = readRepetition(values.repetition, values.repetitionValue);
@@ -289,7 +293,7 @@ export function parsePlannedItemForm(
   if ("ref" in match) return fail(match.field, match.ref);
 
   const endDate = values.endDate.trim();
-  const leavesAccount = kind === "expense" || kind === "transfer";
+  const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
   return {
     ok: true,
     input: {

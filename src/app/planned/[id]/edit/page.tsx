@@ -16,8 +16,9 @@ import { getPlannedItem, PlannedItemNotFoundError } from "../../../../ledger/pla
 import { withDatabase } from "../../../../storage/with-database";
 import { requireSession } from "../../../auth/session";
 import { updatePlannedItemAction } from "../../actions";
+import { TRANSFER_KIND } from "../../planned-item-form-data";
 import { PlannedItemDetailsForm } from "../../planned-item-details-form";
-import { currentVersionOf, scheduleText } from "../../planned-item-view";
+import { accountTextOf, currentVersionOf, scheduleText } from "../../planned-item-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned");
@@ -74,7 +75,9 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
     data = withDatabase((db) => ({
       item: getPlannedItem(db, id),
       accounts: listAccounts(db, { includeArchived: true }),
-      categories: listCategories(db),
+      // The category of the item stays in the list when it was archived since, so that saving
+      // does not drop it without a word: the domain then refuses it and names the field.
+      categories: listCategories(db, { includeArchived: true }),
     }));
   } catch (error) {
     if (error instanceof PlannedItemNotFoundError) notFound();
@@ -82,22 +85,24 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
   }
   const { item, accounts, categories } = data;
 
-  const accountOf = (accountId: number | null) =>
-    accounts.find((account) => account.id === accountId);
-  const source = accountOf(item.accountId);
-  const destination = accountOf(item.destinationAccountId);
-  const accountText =
-    destination === undefined
-      ? (source?.name ?? "")
-      : t("transferAccounts", { from: source?.name ?? "", to: destination.name });
+  const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
+  const version = currentVersionOf(item);
   const facts = [
     { label: t("facts.kind"), value: t(`kinds.${item.kind}`) },
-    { label: t("facts.account"), value: accountText },
+    {
+      label: t("facts.account"),
+      value: accountTextOf(item, accountNames, (names) => t("transferAccounts", names)),
+    },
     { label: t("facts.startDate"), value: formatCalendarDate(item.startDate, locale) },
     { label: t("facts.schedule"), value: scheduleText((key, values) => t(key, values), locale, item) },
+    { label: t("form.businessDay"), value: t(`form.businessDayRules.${version.businessDayRule}`) },
     {
       label: t("facts.amount"),
-      value: formatAmount(currentVersionOf(item).amount, source?.currency ?? "", locale),
+      value: formatAmount(
+        version.amount,
+        accounts.find((account) => account.id === item.accountId)?.currency ?? "",
+        locale,
+      ),
     },
   ];
 
@@ -126,8 +131,13 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
           matchWindowDays: String(item.matchWindowDays),
           matchTolerancePercent: formatTolerancePercent(item.matchAmountToleranceBp),
         }}
-        categories={categories}
-        hasCategory={item.kind !== "transfer"}
+        categories={categories
+          .filter((category) => !category.archived || category.id === item.categoryId)
+          .map((category) => ({
+            id: category.id,
+            name: category.archived ? t("categoryArchived", { name: category.name }) : category.name,
+          }))}
+        hasCategory={item.kind !== TRANSFER_KIND}
       />
     </>
   );

@@ -20,13 +20,14 @@ import {
 } from "../../domain/planned-item";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
-import { listPlannedItems, type PlannedItemWithDetails } from "../../ledger/planned-items";
+import { listPlannedItems } from "../../ledger/planned-items";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 import { createPlannedItemAction } from "./actions";
+import { DEFAULT_FORM_KIND, DEFAULT_REPETITION } from "./planned-item-form-data";
 import { PlannedItemForm } from "./planned-item-form";
-import { currentVersionOf, scheduleText } from "./planned-item-view";
+import { accountTextOf, currentVersionOf, scheduleText } from "./planned-item-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned");
@@ -35,13 +36,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const NEW_PLANNED_ITEM_DEFAULTS = {
   name: "",
-  kind: "expense",
+  kind: DEFAULT_FORM_KIND,
   accountId: "",
   destinationAccountId: "",
   categoryId: "",
   startDate: "",
   endDate: "",
-  repetition: "monthly_on_day",
+  repetition: DEFAULT_REPETITION,
   repetitionValue: "",
   businessDayRule: "none",
   amount: "",
@@ -92,7 +93,7 @@ export default async function PlannedPage() {
   );
 }
 
-// The same `thead` for the loaded table and for the skeleton.
+// Shared with the skeleton, so the column headings cannot drift apart.
 function PlannedHead() {
   const t = useTranslations("planned");
   const common = useTranslations("common");
@@ -141,14 +142,7 @@ async function PlannedList() {
   }
 
   const accountById = new Map(accounts.map((account) => [account.id, account]));
-  const accountName = (id: number | null) => (id === null ? "" : (accountById.get(id)?.name ?? ""));
-  const accountText = (item: PlannedItemWithDetails) =>
-    item.destinationAccountId === null
-      ? accountName(item.accountId)
-      : t("transferAccounts", {
-          from: accountName(item.accountId),
-          to: accountName(item.destinationAccountId),
-        });
+  const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
 
   return (
     <DataTable caption={t("listCaption")}>
@@ -159,7 +153,7 @@ async function PlannedList() {
             <th scope="row">{item.name}</th>
             <td>{t(`kinds.${item.kind}`)}</td>
             <td>{scheduleText((key, values) => t(key, values), locale, item)}</td>
-            <td>{accountText(item)}</td>
+            <td>{accountTextOf(item, accountNames, (names) => t("transferAccounts", names))}</td>
             <td className="text-right">
               {formatAmount(
                 currentVersionOf(item).amount,
