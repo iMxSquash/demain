@@ -44,6 +44,7 @@ export async function createJsonExport(
 }
 
 type MoneyOf = (accountId: number, minorUnits: number) => Money;
+type ItemMoneyOf = (plannedItemId: number, minorUnits: number) => Money;
 
 function buildExport(db: AppDatabase, now: Date): DemainExport {
   const moneyOf = createMoneyBuilder(db);
@@ -152,7 +153,7 @@ function exportTransactions(db: AppDatabase, moneyOf: MoneyOf): DemainExport["tr
 }
 
 /** The amounts of a planned item are in the currency of its account. */
-function createItemMoneyBuilder(db: AppDatabase, moneyOf: MoneyOf): MoneyOf {
+function createItemMoneyBuilder(db: AppDatabase, moneyOf: MoneyOf): ItemMoneyOf {
   const accountByItem = new Map(
     db
       .select({ id: plannedItems.id, accountId: plannedItems.accountId })
@@ -171,7 +172,7 @@ function createItemMoneyBuilder(db: AppDatabase, moneyOf: MoneyOf): MoneyOf {
 
 function exportPlannedItemVersions(
   db: AppDatabase,
-  itemMoneyOf: MoneyOf,
+  itemMoneyOf: ItemMoneyOf,
 ): DemainExport["plannedItemVersions"] {
   return db
     .select()
@@ -186,7 +187,7 @@ function exportPlannedItemVersions(
 
 function exportOccurrenceOverrides(
   db: AppDatabase,
-  itemMoneyOf: MoneyOf,
+  itemMoneyOf: ItemMoneyOf,
 ): DemainExport["occurrenceOverrides"] {
   return db
     .select()

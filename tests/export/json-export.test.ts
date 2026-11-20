@@ -156,11 +156,11 @@ describe("JSON export", () => {
     expect(exported.balanceAssertions[0]?.amount).toEqual({ minorUnits: 9_876, currency: "EUR" });
   });
 
-  function seedMonthlyRent() {
+  function seedMonthlyRent(currency = "EUR") {
     const account = createAccount(db, {
       name: "Checking",
       kind: "checking",
-      currency: "EUR",
+      currency,
       openingDate: "2026-01-01",
       openingBalance: 0,
     });
@@ -232,6 +232,31 @@ describe("JSON export", () => {
         overrideAmount: { minorUnits: -90_000, currency: "EUR" },
       }),
     ]);
+  });
+
+  it("writes planned amounts in the currency of the account of the item", async () => {
+    const { item } = seedMonthlyRent("USD");
+    db.insert(plannedItemVersions)
+      .values({
+        plannedItemId: item.id,
+        effectiveFrom: "2026-01-05",
+        repetitionKind: "monthly_on_day",
+        repetitionValue: 5,
+        amount: -12_345,
+      })
+      .run();
+    db.insert(occurrenceOverrides)
+      .values({ plannedItemId: item.id, nominalDate: "2026-03-05", status: "cancelled" })
+      .run();
+
+    const exported = exportSchema.parse(await exportAsObject());
+
+    expect(exported.plannedItemVersions[0]?.amount).toEqual({ minorUnits: -12_345, currency: "USD" });
+    expect(exported.occurrenceOverrides[0]).toMatchObject({
+      status: "cancelled",
+      overrideDate: null,
+      overrideAmount: null,
+    });
   });
 
   it("exports the occurrence a transaction settles", async () => {
