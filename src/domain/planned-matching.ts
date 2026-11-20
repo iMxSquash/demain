@@ -29,6 +29,7 @@ export interface MatchOccurrence {
   toleranceBasisPoints: number;
 }
 
+/** An open provision occurrence: the caller leaves out the cancelled ones, no status is checked here. */
 export type ProvisionOccurrence = ProvisionItem & {
   plannedItemId: number;
   nominalDate: string;
