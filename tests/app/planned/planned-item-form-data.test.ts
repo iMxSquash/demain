@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   parsePlannedItemDetailsForm,
+  parsePlannedItemEndDateForm as parseEndDate,
   parsePlannedItemForm as parse,
+  parsePlannedItemVersionForm as parseVersion,
 } from "../../../src/app/planned/planned-item-form-data";
 import { translateKey } from "../translate-key";
 
@@ -343,5 +345,126 @@ describe("parsePlannedItemDetailsForm", () => {
         values: { name: "Rent", matchWindowDays: "7", matchTolerancePercent: "abc" },
       },
     });
+  });
+});
+
+describe("parsePlannedItemVersionForm", () => {
+  const versionOf = (
+    overrides: Record<string, string> = {},
+    context: { kind: "expense" | "income" | "interest" | "transfer"; currency: string } = {
+      kind: "expense",
+      currency: "EUR",
+    },
+  ) => {
+    const formData = new FormData();
+    const fields = {
+      effectiveFrom: "2026-06-25",
+      repetition: "monthly_on_day",
+      repetitionValue: "25",
+      businessDayRule: "none",
+      amount: "1171,47",
+      ...overrides,
+    };
+    for (const [key, value] of Object.entries(fields)) formData.set(key, value);
+    return parseVersion(formData, context, translateKey);
+  };
+
+  it("parses the effective date, the repetition and the amount signed from the kind", () => {
+    expect(versionOf()).toEqual({
+      ok: true,
+      input: {
+        effectiveFrom: "2026-06-25",
+        repetition: { kind: "monthly_on_day", day: 25 },
+        businessDayRule: "none",
+        amount: -117_147,
+      },
+    });
+  });
+
+  it("gives an income a positive amount", () => {
+    expect(versionOf({}, { kind: "income", currency: "EUR" })).toMatchObject({
+      ok: true,
+      input: { amount: 117_147 },
+    });
+  });
+
+  it("scales the amount to the minor units of the currency", () => {
+    expect(versionOf({ amount: "1200" }, { kind: "expense", currency: "JPY" })).toMatchObject({
+      ok: true,
+      input: { amount: -1200 },
+    });
+  });
+
+  it("reads a one-off choice as no repetition", () => {
+    expect(versionOf({ repetition: "once" })).toMatchObject({
+      ok: true,
+      input: { repetition: null },
+    });
+  });
+
+  it.each([
+    ["every_n_months", "2", { kind: "every_n_months", months: 2 }],
+    ["quarterly", "", { kind: "quarterly" }],
+    ["every_n_weeks", "3", { kind: "every_n_weeks", weeks: 3 }],
+  ])("reads the repetition %s and its number", (repetition, repetitionValue, expected) => {
+    expect(versionOf({ repetition, repetitionValue })).toMatchObject({
+      ok: true,
+      input: { repetition: expected },
+    });
+  });
+
+  it("refuses an unreadable amount on its field and keeps the typed values", () => {
+    expect(versionOf({ amount: "abc" })).toEqual({
+      ok: false,
+      error: {
+        field: "amount",
+        message: "amountSyntax",
+        values: {
+          effectiveFrom: "2026-06-25",
+          repetition: "monthly_on_day",
+          repetitionValue: "25",
+          businessDayRule: "none",
+          amount: "abc",
+        },
+      },
+    });
+  });
+
+  it("refuses an unknown repetition", () => {
+    expect(versionOf({ repetition: "daily" })).toMatchObject({
+      ok: false,
+      error: { field: "repetition", message: "plannedItemRepetitionInvalid" },
+    });
+  });
+
+  it("refuses a repetition number that is out of range", () => {
+    expect(versionOf({ repetitionValue: "32" })).toMatchObject({
+      ok: false,
+      error: { field: "repetitionValue", message: "plannedItemRepetitionNumberInvalid" },
+    });
+  });
+
+  it("refuses an unknown business-day rule", () => {
+    expect(versionOf({ businessDayRule: "sometimes" })).toMatchObject({
+      ok: false,
+      error: { field: "businessDayRule", message: "plannedItemBusinessDayRuleInvalid" },
+    });
+  });
+});
+
+describe("parsePlannedItemEndDateForm", () => {
+  const endDateOf = (endDate: string) => {
+    const formData = new FormData();
+    formData.set("endDate", endDate);
+    return parseEndDate(formData);
+  };
+
+  it("parses a date", () => {
+    expect(endDateOf("2027-12-31")).toEqual({ ok: true, endDate: "2027-12-31" });
+  });
+
+  it("treats an empty field as clearing the end date", () => {
+    expect(endDateOf("")).toEqual({ ok: true, endDate: null });
+    expect(endDateOf("   ")).toEqual({ ok: true, endDate: null });
   });
 });

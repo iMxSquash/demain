@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
@@ -17,7 +17,9 @@ import {
   DEFAULT_MATCH_AMOUNT_TOLERANCE_BP,
   DEFAULT_MATCH_WINDOW_DAYS,
   formatTolerancePercent,
+  versionInEffectAt,
 } from "../../domain/planned-item";
+import { todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listPlannedItems } from "../../ledger/planned-items";
@@ -27,7 +29,7 @@ import { tagDataRead } from "../data-cache";
 import { createPlannedItemAction } from "./actions";
 import { DEFAULT_FORM_KIND, DEFAULT_REPETITION } from "./planned-item-form-data";
 import { PlannedItemForm } from "./planned-item-form";
-import { accountTextOf, currentVersionOf, scheduleText } from "./planned-item-view";
+import { accountTextOf, scheduleText } from "./planned-item-view";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned");
@@ -129,11 +131,14 @@ function PlannedListLoading() {
 }
 
 async function PlannedList() {
-  const [t, locale, { items, accounts }] = await Promise.all([
+  const [t, locale, timeZone, { items, accounts }] = await Promise.all([
     getTranslations("planned"),
     getLocale(),
+    getTimeZone(),
     readPlanned(),
   ]);
+  // Read here, never in the cached read: a cached "today" would go stale.
+  const today = todayIn(timeZone, new Date());
 
   if (items.length === 0) {
     return (
@@ -152,11 +157,11 @@ async function PlannedList() {
           <tr key={item.id}>
             <th scope="row">{item.name}</th>
             <td>{t(`kinds.${item.kind}`)}</td>
-            <td>{scheduleText((key, values) => t(key, values), locale, item)}</td>
+            <td>{scheduleText((key, values) => t(key, values), locale, item, today)}</td>
             <td>{accountTextOf(item, accountNames, (names) => t("transferAccounts", names))}</td>
             <td className="text-right">
               {formatAmount(
-                currentVersionOf(item).amount,
+                versionInEffectAt(item.versions, today).amount,
                 accountById.get(item.accountId)?.currency ?? "",
                 locale,
               )}
