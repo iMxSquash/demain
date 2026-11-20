@@ -935,7 +935,7 @@
         "undoLabel": "Undo match of {label}",
         "undoPending": "Undoing…",
         "toConfirmHeading": "To confirm",
-        "toConfirmIntro": "Several planned items could fit. Nothing is applied until you choose one and confirm.",
+        "toConfirmIntro": "Nothing is applied until you choose a planned item and confirm.",
         "groupLegend": "Possible matches, group {number}",
         "option": "{item}, planned on {nominalDate} (transaction {label}, {date}, {amount})",
         "leaveUnmatched": "Leave unmatched",

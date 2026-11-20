@@ -72,7 +72,8 @@ function writeLink(
       plannedItemId: item.id,
       occurrenceDate: nominalDate,
       ...(inheritsCategory(item, transaction)
-        ? { categoryId: item.categoryId, categoryFromPlannedItem: true } : {}),
+        ? { categoryId: item.categoryId, categoryFromPlannedItem: true }
+        : {}),
     })
     .where(eq(transactions.id, transaction.id))
     .run();
@@ -256,7 +257,10 @@ interface BatchDecisions {
   itemsById: Map<number, PlannedItemWithDetails>;
 }
 
-/** Runs the matching on `batchTransactions`, which must be non-transfer rows; null when no item can match. */
+/**
+ * Runs the matching on `batchTransactions`, which must be non-transfer rows; null when no item
+ * can match.
+ */
 function decideBatchMatches(
   db: Pick<AppDatabase, "select">,
   batchTransactions: readonly Transaction[],
@@ -377,8 +381,9 @@ function unlinkedBatchTransactions(
 }
 
 /**
- * The proposals of a batch, computed on its transactions still unlinked. A pair the matching would
- * confirm on its own is a proposal too: it only reaches this list once an automatic match was undone.
+ * The proposals of a batch, computed on its transactions still unlinked. A pair the matching
+ * would confirm on its own is a proposal too: it only reaches this list once an automatic match
+ * was undone.
  */
 function proposedGroupsOf(
   db: Pick<AppDatabase, "select">,
@@ -396,17 +401,8 @@ function proposedGroupsOf(
   return { groups, transactionsById, itemsById };
 }
 
-/**
- * What the matching did and still proposes for a batch: the linked transactions, and the groups of
- * pairs left to the owner. Nothing is stored: proposals are recomputed on each call.
- */
-export function listBatchMatches(
-  db: Pick<AppDatabase, "select">,
-  batchId: number,
-  today: string,
-): BatchMatches {
-  getImportBatch(db, batchId);
-
+/** The transactions of a batch already linked to an occurrence, oldest first. */
+function matchedRowsOf(db: Pick<AppDatabase, "select">, batchId: number): BatchMatchedItem[] {
   const linkedRows = db
     .select({
       transactionId: transactions.id,
@@ -427,35 +423,61 @@ export function listBatchMatches(
     )
     .all();
   // The where clause keeps linked transactions only, so the nullable columns are set.
-  const matched = linkedRows
+  return linkedRows
     .map(({ nominalDate, ...row }) => ({ ...row, nominalDate: nominalDate! }))
     .sort((a, b) => compareDates(a.date, b.date) || a.transactionId - b.transactionId);
+}
+
+function describeOption(
+  pair: MatchPair,
+  transaction: Transaction,
+  item: PlannedItemWithDetails,
+): ProposedMatchOption {
+  return {
+    pair,
+    transactionLabel: transaction.label,
+    transactionDate: transaction.date,
+    transactionAmount: transaction.amount,
+    plannedItemName: item.name,
+    nominalDate: pair.nominalDate,
+    givesCategory: inheritsCategory(item, transaction),
+  };
+}
+
+/** Groups ordered by their first option; a group is never empty. */
+function compareGroups(a: ProposedMatchGroup, b: ProposedMatchGroup): number {
+  const [first, second] = [a.options[0]!, b.options[0]!];
+  return (
+    compareDates(first.transactionDate, second.transactionDate) ||
+    first.pair.transactionId - second.pair.transactionId
+  );
+}
+
+/**
+ * What the matching did and still proposes for a batch: the linked transactions, and the groups of
+ * pairs left to the owner. Nothing is stored: proposals are recomputed on each call.
+ */
+export function listBatchMatches(
+  db: Pick<AppDatabase, "select">,
+  batchId: number,
+  today: string,
+): BatchMatches {
+  getImportBatch(db, batchId);
 
   const { groups, transactionsById, itemsById } = proposedGroupsOf(db, batchId, today);
   const described = groups.map((pairs) => ({
-    options: pairs.map((pair): ProposedMatchOption => {
-      const transaction = transactionsById.get(pair.transactionId)!;
-      const item = itemsById.get(pair.plannedItemId)!;
-      return {
+    options: pairs.map((pair) =>
+      describeOption(
         pair,
-        transactionLabel: transaction.label,
-        transactionDate: transaction.date,
-        transactionAmount: transaction.amount,
-        plannedItemName: item.name,
-        nominalDate: pair.nominalDate,
-        givesCategory: inheritsCategory(item, transaction),
-      };
-    }),
+        transactionsById.get(pair.transactionId)!,
+        itemsById.get(pair.plannedItemId)!,
+      ),
+    ),
   }));
-  // A group is never empty: it is ordered by its first option.
-  described.sort((a, b) => {
-    const [first, second] = [a.options[0]!, b.options[0]!];
-    return (
-      compareDates(first.transactionDate, second.transactionDate) ||
-      first.pair.transactionId - second.pair.transactionId
-    );
-  });
-  return { matched, groups: described };
+  return {
+    matched: matchedRowsOf(db, batchId),
+    groups: described.sort(compareGroups),
+  };
 }
 
 /** Links a pair that the batch currently proposes; a pair that is not (any more) is refused. */

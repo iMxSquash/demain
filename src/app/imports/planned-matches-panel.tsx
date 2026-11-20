@@ -9,7 +9,11 @@ import { formatCalendarDate } from "../../i18n/dates";
 import { Button } from "../../components/button";
 import { Notice } from "../../components/notice";
 import { confirmMatchAction, listBatchMatchesAction, undoMatchAction } from "./match-actions";
-import type { ProposedMatchGroup, ProposedMatchOption } from "../../ledger/planned-matching";
+import type {
+  BatchMatchedItem,
+  ProposedMatchGroup,
+  ProposedMatchOption,
+} from "../../ledger/planned-matching";
 import type { BatchMatchesState, MatchActionState } from "./import-form-data";
 
 const LEAVE_UNMATCHED = "";
@@ -43,14 +47,8 @@ interface ProposedGroupProps {
   onConfirm: (option: ProposedMatchOption | null) => void;
 }
 
-/** One group of competing options: native radios, nothing applied unless one is chosen and confirmed. */
-function ProposedGroup({
-  group,
-  number,
-  currency,
-  isPending,
-  onConfirm,
-}: ProposedGroupProps) {
+/** One group of competing options: native radios, nothing is applied until one is confirmed. */
+function ProposedGroup({ group, number, currency, isPending, onConfirm }: ProposedGroupProps) {
   const t = useTranslations("imports.staged.plannedMatches");
   const locale = useLocale();
   const radioName = useId();
@@ -119,6 +117,50 @@ function ProposedGroup({
   );
 }
 
+interface MatchedListProps {
+  matched: readonly BatchMatchedItem[];
+  currency: string;
+  isPending: boolean;
+  onUndo: (transactionId: number) => void;
+}
+
+/** The automatic matches of the file, each with a button to undo it. */
+function MatchedList({ matched, currency, isPending, onUndo }: MatchedListProps) {
+  const t = useTranslations("imports.staged.plannedMatches");
+  const locale = useLocale();
+
+  return (
+    <div className="flex flex-col gap-1">
+      <h4 className="font-medium">{t("matchedHeading")}</h4>
+      <ul className="flex flex-col gap-2">
+        {matched.map((match) => (
+          <li key={match.transactionId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              {t("matched", {
+                label: match.label,
+                date: formatCalendarDate(match.date, locale),
+                amount: formatAmount(match.amount, currency, locale),
+                item: match.plannedItemName,
+                nominalDate: formatCalendarDate(match.nominalDate, locale),
+              })}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label={t("undoLabel", { label: match.label })}
+              pending={isPending}
+              pendingLabel={t("undoPending")}
+              onClick={() => onUndo(match.transactionId)}
+            >
+              {t("undo")}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * What the matching did on a recorded file: the automatic matches the owner can undo, and the
  * ambiguous ones the owner can confirm one by one. A match is only created by an explicit choice.
@@ -132,7 +174,6 @@ export function PlannedMatchesPanel({
   currency: string;
 }) {
   const t = useTranslations("imports.staged.plannedMatches");
-  const locale = useLocale();
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [matches, setMatches] = useState<BatchMatchesState | null>(null);
@@ -172,6 +213,10 @@ export function PlannedMatchesPanel({
     headingRef.current?.focus();
   }
 
+  function undo(transactionId: number) {
+    run(() => undoMatchAction(batchId, transactionId));
+  }
+
   const { matched, groups } = matches?.status === "ready" ? matches : NO_MATCHES;
 
   return (
@@ -184,39 +229,11 @@ export function PlannedMatchesPanel({
       </h3>
       {matches === null ? <p>{t("loading")}</p> : null}
       {matches?.status === "error" ? <p>{matches.message}</p> : null}
-      {matches?.status === "ready" && matched.length === 0 && groups.length === 0 ? <p>{t("empty")}</p> : null}
+      {matches?.status === "ready" && matched.length === 0 && groups.length === 0 ? (
+        <p>{t("empty")}</p>
+      ) : null}
       {matched.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <h4 className="font-medium">{t("matchedHeading")}</h4>
-          <ul className="flex flex-col gap-2">
-            {matched.map((match) => (
-              <li
-                key={match.transactionId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1"
-              >
-                <span>
-                  {t("matched", {
-                    label: match.label,
-                    date: formatCalendarDate(match.date, locale),
-                    amount: formatAmount(match.amount, currency, locale),
-                    item: match.plannedItemName,
-                    nominalDate: formatCalendarDate(match.nominalDate, locale),
-                  })}
-                </span>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  aria-label={t("undoLabel", { label: match.label })}
-                  pending={isPending}
-                  pendingLabel={t("undoPending")}
-                  onClick={() => run(() => undoMatchAction(batchId, match.transactionId))}
-                >
-                  {t("undo")}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <MatchedList matched={matched} currency={currency} isPending={isPending} onUndo={undo} />
       ) : null}
       {groups.length > 0 ? (
         <div className="flex flex-col gap-3">

@@ -4,6 +4,7 @@ import { getTimeZone, getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { messageRef, type FeedbackKey } from "../../domain/message";
+import type { MatchPair } from "../../domain/planned-matching";
 import { todayIn } from "../../i18n/dates";
 import { ImportBatchNotFoundError } from "../../ledger/import-batch-lookup";
 import {
@@ -69,7 +70,7 @@ export async function listBatchMatchesAction(batchId: number): Promise<BatchMatc
  */
 export async function confirmMatchAction(
   batchId: number,
-  pair: { transactionId: number; plannedItemId: number; nominalDate: string },
+  pair: MatchPair,
 ): Promise<MatchActionState> {
   await requireSession();
   const { t, today, fail, failFrom } = await loadActionContext();

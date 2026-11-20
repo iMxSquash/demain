@@ -234,6 +234,36 @@ describe("reviewing the planned matches of an import batch", () => {
     expect(result.matched.map((item) => item.label).sort()).toEqual(["GYM", "STREAMING"]);
   });
 
+  it("confirming a proposed pair links a fill-up of a provision", () => {
+    const provision = monthlyItem({
+      name: "Fuel",
+      acceptsMultipleTransactions: true,
+      startDate: "2026-03-15",
+      repetition: { kind: "monthly_on_day", day: 15 },
+      amount: -9_000,
+    });
+    const batchId = importFile([
+      row("2026-03-03", -4_500, "STATION NORTH"),
+      row("2026-03-20", -3_800, "STATION SOUTH"),
+    ]);
+    const north = transactionLabelled("STATION NORTH");
+    undoMatch(db, batchId, north.id);
+    const pair = {
+      transactionId: north.id,
+      plannedItemId: provision.id,
+      nominalDate: "2026-03-15",
+    };
+
+    confirmMatch(db, batchId, pair, TODAY);
+
+    expect(transactionLabelled("STATION NORTH")).toMatchObject({
+      plannedItemId: provision.id,
+      occurrenceDate: "2026-03-15",
+    });
+    expect(transactionLabelled("STATION SOUTH").plannedItemId).toBe(provision.id);
+    expect(listBatchMatches(db, batchId, TODAY).groups).toEqual([]);
+  });
+
   it("refuses a pair that is not proposed any more", () => {
     const { gymA, batchId } = importMixedBatch();
     const gymRow = transactionLabelled("GYM");
