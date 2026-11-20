@@ -127,6 +127,17 @@ export const transactions = sqliteTable(
     // Date, amount and label of an imported movement, kept even when the bank gave an
     // identifier, to recognize the same movement exported again in another format.
     importContentKey: text("import_content_key"),
+    // The planned item and the nominal date of the occurrence this transaction settles. Both are
+    // null or both are set (DOMAIN, invariant 5); the matching writes them.
+    plannedItemId: integer("planned_item_id").references(() => plannedItems.id, {
+      onDelete: "restrict",
+    }),
+    occurrenceDate: text("occurrence_date"),
+    // True when the category was inherited from the planned item by a match, so that undoing
+    // the match can clear it. A change of category by hand sets it back to false.
+    categoryFromPlannedItem: integer("category_from_planned_item", { mode: "boolean" })
+      .notNull()
+      .default(false),
   },
   (table) => [
     // The guarantee behind the application check: one movement, one row per
@@ -134,6 +145,102 @@ export const transactions = sqliteTable(
     uniqueIndex("transactions_import_fingerprint_unique")
       .on(table.accountId, table.importFingerprint)
       .where(sql`${table.importFingerprint} is not null`),
+  ],
+);
+
+// What the user plans: a repetition rule with its versions, never the occurrences, which are
+// generated (DOMAIN, invariant 4).
+export const plannedItems = sqliteTable("planned_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  kind: text("kind", {
+    enum: ["expense", "income", "interest", "transfer"],
+  }).notNull(),
+  // Restrict: an account with planned items is archived, never deleted.
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "restrict" }),
+  // Only for a transfer: the account that receives the amount.
+  destinationAccountId: integer("destination_account_id").references(() => accounts.id, {
+    onDelete: "restrict",
+  }),
+  categoryId: integer("category_id").references(() => categories.id, {
+    onDelete: "restrict",
+  }),
+  // Calendar dates as YYYY-MM-DD, without time or timezone.
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
+  // True for a provision: several transactions settle one occurrence.
+  acceptsMultipleTransactions: integer("accepts_multiple_transactions", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  provisionLabelFilter: text("provision_label_filter"),
+  matchWindowDays: integer("match_window_days").notNull().default(5),
+  // Basis points, so that no percentage is ever a float: 500 is 5%.
+  matchAmountToleranceBp: integer("match_amount_tolerance_bp").notNull().default(500),
+  cancelled: integer("cancelled", { mode: "boolean" }).notNull().default(false),
+});
+
+// A version applies from `effective_from` until the next one.
+export const plannedItemVersions = sqliteTable(
+  "planned_item_versions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    plannedItemId: integer("planned_item_id")
+      .notNull()
+      .references(() => plannedItems.id, { onDelete: "restrict" }),
+    effectiveFrom: text("effective_from").notNull(),
+    // Null: a one-off event. The values are the `kind` strings of `Repetition`.
+    repetitionKind: text("repetition_kind", {
+      enum: [
+        "monthly_on_day",
+        "monthly_on_last_day",
+        "every_n_months",
+        "quarterly",
+        "yearly",
+        "every_n_weeks",
+      ],
+    }),
+    // The day, the months or the weeks, depending on the kind.
+    repetitionValue: integer("repetition_value"),
+    businessDayRule: text("business_day_rule", { enum: ["none", "previous", "next"] })
+      .notNull()
+      .default("none"),
+    // Signed integer in minor units.
+    amount: integer("amount").notNull(),
+    amountMode: text("amount_mode", { enum: ["fixed", "rolling_average"] })
+      .notNull()
+      .default("fixed"),
+    averageWindow: integer("average_window").notNull().default(3),
+  },
+  (table) => [
+    uniqueIndex("planned_item_versions_item_effective_unique").on(
+      table.plannedItemId,
+      table.effectiveFrom,
+    ),
+  ],
+);
+
+// The single occurrences the user changed. Occurrences themselves are never stored.
+export const occurrenceOverrides = sqliteTable(
+  "occurrence_overrides",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    plannedItemId: integer("planned_item_id")
+      .notNull()
+      .references(() => plannedItems.id, { onDelete: "restrict" }),
+    // The date computed by the rule: the identity of the occurrence.
+    nominalDate: text("nominal_date").notNull(),
+    status: text("status", { enum: ["cancelled", "modified"] }).notNull(),
+    overrideDate: text("override_date"),
+    // Signed integer in minor units.
+    overrideAmount: integer("override_amount"),
+  },
+  (table) => [
+    uniqueIndex("occurrence_overrides_item_nominal_unique").on(
+      table.plannedItemId,
+      table.nominalDate,
+    ),
   ],
 );
 
