@@ -184,13 +184,14 @@ export async function commitStagedFileAction(
 
   try {
     const now = new Date();
-    const openingDate = todayIn(timeZone, now);
+    const today = todayIn(timeZone, now);
     const { currency, outcome, endDate } = withDatabase((db) => {
       const outcome = commitDrafts(db, {
         ...file,
         savingsAccountId: savingsAccountId ?? undefined,
         now,
-        overflow: { choices: overflowChoices, openingDate },
+        today,
+        overflow: { choices: overflowChoices, openingDate: today },
       });
       return {
         currency: getAccount(db, file.accountId).currency,
@@ -235,6 +236,7 @@ export async function commitStagedFileAction(
     refreshData();
     await flashSuccess("importDone", {
       imported: outcome.newCount,
+      matched: outcome.matchedCount,
       duplicates: outcome.duplicateCount,
     });
     const warnings = outcome.ceilingWarnings
@@ -254,6 +256,7 @@ export async function commitStagedFileAction(
           ? t("nothingToImport")
           : t("imported", {
               imported: outcome.newCount,
+              matched: outcome.matchedCount,
               duplicates: outcome.duplicateCount,
             }),
       warnings,

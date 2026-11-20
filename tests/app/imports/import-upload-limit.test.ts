@@ -6,6 +6,7 @@ import { translateKey } from "../translate-key";
 
 vi.mock("next-intl/server", () => ({
   getLocale: async () => "en",
+  getTimeZone: async () => "UTC",
   getTranslations: async () => (key: string) => key,
 }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));

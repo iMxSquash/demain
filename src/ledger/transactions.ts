@@ -304,7 +304,7 @@ export function updateTransaction(
   assertCategoryChoice(db, valid.kind, valid.categoryId, current.categoryId);
   return db
     .update(transactions)
-    .set(valid)
+    .set({ ...valid, categoryFromPlannedItem: keepsInheritedFlag(current, valid.categoryId) })
     .where(eq(transactions.id, id))
     .returning()
     .get();
@@ -324,14 +324,14 @@ export function setTransactionCategory(
 ): Transaction {
   const current = getTransaction(db, id);
   assertCategoryChoice(db, current.kind, categoryId, current.categoryId);
-  if (rule === null) return writeCategory(db, id, categoryId);
+  if (rule === null) return writeCategory(db, current, categoryId);
 
   if (categoryId === null) {
     throw new Error("A rule needs a category to assign");
   }
   const value = validateRuleValue(rule.value);
   return db.transaction((tx) => {
-    const updated = writeCategory(tx, id, categoryId);
+    const updated = writeCategory(tx, current, categoryId);
     insertRule(tx, {
       operator: rule.operator,
       value,
@@ -342,15 +342,21 @@ export function setTransactionCategory(
   });
 }
 
+// Only a category changed by hand stops coming from the planned item: forms
+// resubmit the stored category on every edit, which must not clear the flag.
+function keepsInheritedFlag(current: Transaction, categoryId: number | null): boolean {
+  return current.categoryFromPlannedItem && categoryId === current.categoryId;
+}
+
 function writeCategory(
   writer: Pick<AppDatabase, "update">,
-  id: number,
+  current: Transaction,
   categoryId: number | null,
 ): Transaction {
   return writer
     .update(transactions)
-    .set({ categoryId })
-    .where(eq(transactions.id, id))
+    .set({ categoryId, categoryFromPlannedItem: keepsInheritedFlag(current, categoryId) })
+    .where(eq(transactions.id, current.id))
     .returning()
     .get();
 }

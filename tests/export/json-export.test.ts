@@ -27,6 +27,7 @@ import {
 } from "../../src/storage/schema";
 
 const NOW = new Date("2026-10-30T09:15:00.000Z");
+const TODAY = "2026-10-30";
 const PASSWORD = "a long enough backup passphrase";
 const SCHEMA_FILE = path.join(process.cwd(), "docs", "export.schema.json");
 
@@ -360,6 +361,7 @@ describe("JSON export", () => {
       fileName: "march.csv",
       mapping: null,
       now: NOW,
+      today: TODAY,
     });
 
     const text = (await createJsonExport(db, NOW)).toString("utf8");

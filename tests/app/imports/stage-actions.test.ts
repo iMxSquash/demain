@@ -485,6 +485,7 @@ VERSION:102
         fileName: "2026-02.csv",
         mapping: null,
         now: new Date("2026-03-01T00:00:00Z"),
+        today: "2026-03-01",
       });
 
       const file = await stage(BONUS_CSV);
@@ -558,6 +559,7 @@ VERSION:102
       mapping: null,
       rows: [{ date: "2026-03-02", label: "Carrefour", amount: -1_250, externalId: null }],
       now: new Date("2026-03-20T10:00:00Z"),
+      today: "2026-03-20",
     });
 
     const file = await stage(TYPED_CSV);
@@ -609,6 +611,7 @@ VERSION:102
         },
         rows: [{ date: "2026-01-02", label: "OLD", amount: -100, externalId: null }],
         now: new Date("2026-03-20T10:00:00Z"),
+        today: "2026-03-20",
       });
 
       const file = await stage(HEADERLESS);

@@ -33,6 +33,7 @@ import {
 import { importBatches } from "../../src/storage/schema";
 
 const NOW = new Date("2026-03-01T10:00:00Z");
+const TODAY = "2026-03-01";
 
 const MAPPING: CsvMapping = {
   delimiter: ";",
@@ -84,6 +85,7 @@ describe("imports", () => {
       mapping,
       rows,
       now: NOW,
+      today: TODAY,
     });
   }
 
@@ -209,6 +211,7 @@ describe("imports", () => {
       mapping: null,
       rows: [row()],
       now: NOW,
+      today: TODAY,
     });
 
     expect(result.newCount).toBe(1);
@@ -231,6 +234,7 @@ describe("imports", () => {
       mapping: null,
       rows: [row({ amount: 20_000, label: "DEPOSIT" })],
       now: NOW,
+      today: TODAY,
     });
 
     expect(result.newCount).toBe(1);

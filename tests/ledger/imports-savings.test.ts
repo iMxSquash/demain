@@ -27,6 +27,7 @@ import {
 } from "../../src/storage/database";
 
 const NOW = new Date("2026-04-01T10:00:00Z");
+const TODAY = "2026-04-01";
 
 // The ids are the ones the brief of the change uses: checking 1, A 2, B 3.
 const CHECKING_ID = 1;
@@ -128,6 +129,7 @@ describe("importing savings rows", () => {
       mapping: null,
       rows,
       now: NOW,
+      today: TODAY,
     });
   }
 
@@ -204,6 +206,7 @@ describe("importing savings rows", () => {
       savingsAccountId: A_ID,
       rows: [savingsRow({}, { savingsAccountId: null })],
       now: NOW,
+      today: TODAY,
     });
 
     expect(getAccountBalance(db, A_ID)).toBe(100_000);
@@ -456,6 +459,7 @@ describe("importing rows with details", () => {
       mapping: null,
       rows,
       now: NOW,
+      today: TODAY,
     });
   }
 
