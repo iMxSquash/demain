@@ -8,7 +8,7 @@
     },
     "schemaVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
     },
     "exportedAt": {
       "type": "string",
@@ -287,6 +287,317 @@
         "additionalProperties": false
       }
     },
+    "plannedItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "income",
+              "interest",
+              "transfer"
+            ]
+          },
+          "accountId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "destinationAccountId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Transfers only: the account that receives."
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "Lower bound: nothing is planned before this date."
+          },
+          "endDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "Calendar date, YYYY-MM-DD, without time or timezone."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: no end."
+          },
+          "acceptsMultipleTransactions": {
+            "type": "boolean"
+          },
+          "provisionLabelFilter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "matchWindowDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days around the nominal date in which a transaction may match."
+          },
+          "matchAmountToleranceBp": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Amount tolerance of the matching in basis points, 500 is 5 percent."
+          },
+          "cancelled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "accountId",
+          "destinationAccountId",
+          "categoryId",
+          "startDate",
+          "endDate",
+          "acceptsMultipleTransactions",
+          "provisionLabelFilter",
+          "matchWindowDays",
+          "matchAmountToleranceBp",
+          "cancelled"
+        ],
+        "additionalProperties": false,
+        "description": "A dated item of the plan. Its occurrences are computed, never exported."
+      }
+    },
+    "plannedItemVersions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "plannedItemId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "First nominal date this version applies to."
+          },
+          "repetitionKind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "monthly_on_day",
+                  "monthly_on_last_day",
+                  "every_n_months",
+                  "quarterly",
+                  "yearly",
+                  "every_n_weeks"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: a single event."
+          },
+          "repetitionValue": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Day of the month or interval, by kind."
+          },
+          "businessDayRule": {
+            "type": "string",
+            "enum": [
+              "none",
+              "previous",
+              "next"
+            ]
+          },
+          "amount": {
+            "type": "object",
+            "properties": {
+              "minorUnits": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Signed integer in the minor unit of the currency (cents for EUR). Never a decimal."
+              },
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$",
+                "description": "ISO 4217 currency code."
+              }
+            },
+            "required": [
+              "minorUnits",
+              "currency"
+            ],
+            "additionalProperties": false,
+            "description": "In the currency of the account of the item. With a rolling average, the starting estimate."
+          },
+          "amountMode": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "rolling_average"
+            ]
+          },
+          "averageWindow": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of past payments averaged: 3, 6 or 12."
+          }
+        },
+        "required": [
+          "id",
+          "plannedItemId",
+          "effectiveFrom",
+          "repetitionKind",
+          "repetitionValue",
+          "businessDayRule",
+          "amount",
+          "amountMode",
+          "averageWindow"
+        ],
+        "additionalProperties": false,
+        "description": "The schedule and amount of a planned item from a date on."
+      }
+    },
+    "occurrenceOverrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "plannedItemId": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "nominalDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "Identifies the occurrence the override applies to."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "cancelled",
+              "modified"
+            ]
+          },
+          "overrideDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "Calendar date, YYYY-MM-DD, without time or timezone."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overrideAmount": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "minorUnits": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Signed integer in the minor unit of the currency (cents for EUR). Never a decimal."
+                  },
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "ISO 4217 currency code."
+                  }
+                },
+                "required": [
+                  "minorUnits",
+                  "currency"
+                ],
+                "additionalProperties": false,
+                "description": "An amount with its currency."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "plannedItemId",
+          "nominalDate",
+          "status",
+          "overrideDate",
+          "overrideAmount"
+        ],
+        "additionalProperties": false,
+        "description": "A change to one occurrence of a planned item."
+      }
+    },
     "transactions": {
       "type": "array",
       "items": {
@@ -400,6 +711,37 @@
                 "type": "null"
               }
             ]
+          },
+          "plannedItemId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The planned item whose occurrence this transaction settles. Null: not matched."
+          },
+          "occurrenceDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "Calendar date, YYYY-MM-DD, without time or timezone."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nominal date of the settled occurrence. Null exactly when plannedItemId is null."
+          },
+          "categoryFromPlannedItem": {
+            "type": "boolean",
+            "description": "True when the category was taken from the planned item rather than chosen."
           }
         },
         "required": [
@@ -413,7 +755,10 @@
           "paymentMode",
           "categoryId",
           "transferCounterpartId",
-          "importBatchId"
+          "importBatchId",
+          "plannedItemId",
+          "occurrenceDate",
+          "categoryFromPlannedItem"
         ],
         "additionalProperties": false
       }
@@ -539,6 +884,9 @@
     "categories",
     "categorizationRules",
     "importBatches",
+    "plannedItems",
+    "plannedItemVersions",
+    "occurrenceOverrides",
     "transactions",
     "balanceAssertions",
     "exchangeRates"

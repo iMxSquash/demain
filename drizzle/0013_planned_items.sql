@@ -42,6 +42,6 @@ CREATE TABLE `planned_items` (
 	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
-ALTER TABLE `transactions` ADD `planned_item_id` integer REFERENCES planned_items(id);--> statement-breakpoint
+ALTER TABLE `transactions` ADD `planned_item_id` integer REFERENCES `planned_items`(`id`) ON UPDATE no action ON DELETE restrict;--> statement-breakpoint
 ALTER TABLE `transactions` ADD `occurrence_date` text;--> statement-breakpoint
 ALTER TABLE `transactions` ADD `category_from_planned_item` integer DEFAULT false NOT NULL;

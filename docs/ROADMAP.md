@@ -2,7 +2,7 @@
 
 Demain is built in four milestones. Each one delivers something usable and ends with an explicit definition of done. There are no dates: milestones are ordered by value, and the order matters more than the pace. The product context is in [PRODUCT.md](PRODUCT.md), the model in [DOMAIN.md](DOMAIN.md), the technical decisions in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Current status: M1 (Ledger) in progress.**
+**Current status: M1 (Ledger) closed, M2 (Planning) in progress.**
 
 | Milestone | Theme | Outcome |
 | --- | --- | --- |
@@ -49,7 +49,7 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 - [x] A fresh instance creates its single account only through the setup token, and a forgotten password can be reset with the documented command.
 - [x] A backup can be restored from both the encrypted snapshot and the volume procedure, and the JSON export is valid against its documented schema.
 - [x] The security baseline in [ARCHITECTURE.md](ARCHITECTURE.md#security) is in place, and an accessibility check (axe and keyboard navigation) passes on the main screens.
-- [ ] CI is green: lint, typecheck, tests.
+- [x] CI is green: lint, typecheck, tests.
 
 ## M2: Planning
 

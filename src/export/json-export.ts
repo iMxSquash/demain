@@ -8,6 +8,9 @@ import {
   categorizationRules,
   exchangeRates,
   importBatches,
+  occurrenceOverrides,
+  plannedItems,
+  plannedItemVersions,
   settings,
   transactions,
 } from "../storage/schema";
@@ -41,9 +44,11 @@ export async function createJsonExport(
 }
 
 type MoneyOf = (accountId: number, minorUnits: number) => Money;
+type ItemMoneyOf = (plannedItemId: number, minorUnits: number) => Money;
 
 function buildExport(db: AppDatabase, now: Date): DemainExport {
   const moneyOf = createMoneyBuilder(db);
+  const itemMoneyOf = createItemMoneyBuilder(db, moneyOf);
   return {
     format: EXPORT_FORMAT,
     schemaVersion: EXPORT_SCHEMA_VERSION,
@@ -57,6 +62,9 @@ function buildExport(db: AppDatabase, now: Date): DemainExport {
       .orderBy(asc(categorizationRules.id))
       .all(),
     importBatches: exportImportBatches(db),
+    plannedItems: db.select().from(plannedItems).orderBy(asc(plannedItems.id)).all(),
+    plannedItemVersions: exportPlannedItemVersions(db, itemMoneyOf),
+    occurrenceOverrides: exportOccurrenceOverrides(db, itemMoneyOf),
     transactions: exportTransactions(db, moneyOf),
     balanceAssertions: exportBalanceAssertions(db, moneyOf),
     exchangeRates: db.select().from(exchangeRates).orderBy(asc(exchangeRates.id)).all(),
@@ -138,6 +146,58 @@ function exportTransactions(db: AppDatabase, moneyOf: MoneyOf): DemainExport["tr
       categoryId: row.categoryId,
       transferCounterpartId: row.transferCounterpartId,
       importBatchId: row.importBatchId,
+      plannedItemId: row.plannedItemId,
+      occurrenceDate: row.occurrenceDate,
+      categoryFromPlannedItem: row.categoryFromPlannedItem,
+    }));
+}
+
+/** The amounts of a planned item are in the currency of its account. */
+function createItemMoneyBuilder(db: AppDatabase, moneyOf: MoneyOf): ItemMoneyOf {
+  const accountByItem = new Map(
+    db
+      .select({ id: plannedItems.id, accountId: plannedItems.accountId })
+      .from(plannedItems)
+      .all()
+      .map((row) => [row.id, row.accountId]),
+  );
+  return (plannedItemId, minorUnits) => {
+    const accountId = accountByItem.get(plannedItemId);
+    if (accountId === undefined) {
+      throw new Error(`Cannot export an amount of the unknown planned item ${plannedItemId}`);
+    }
+    return moneyOf(accountId, minorUnits);
+  };
+}
+
+function exportPlannedItemVersions(
+  db: AppDatabase,
+  itemMoneyOf: ItemMoneyOf,
+): DemainExport["plannedItemVersions"] {
+  return db
+    .select()
+    .from(plannedItemVersions)
+    .orderBy(asc(plannedItemVersions.id))
+    .all()
+    .map((row) => ({
+      ...row,
+      amount: itemMoneyOf(row.plannedItemId, row.amount),
+    }));
+}
+
+function exportOccurrenceOverrides(
+  db: AppDatabase,
+  itemMoneyOf: ItemMoneyOf,
+): DemainExport["occurrenceOverrides"] {
+  return db
+    .select()
+    .from(occurrenceOverrides)
+    .orderBy(asc(occurrenceOverrides.id))
+    .all()
+    .map((row) => ({
+      ...row,
+      overrideAmount:
+        row.overrideAmount === null ? null : itemMoneyOf(row.plannedItemId, row.overrideAmount),
     }));
 }
 
