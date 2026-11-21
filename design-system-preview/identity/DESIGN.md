@@ -785,7 +785,7 @@ The month grid, the monthly line view, the actions on one occurrence, the "To pa
 - **Statuses are words in a pill** (DOMAIN): Planned, Partial, Confirmed, Overdue, Cancelled. A pill is never a button (section 8). Colour (**proposed**, DECISIONS.md "Calendar" and open question 9): every status is neutral (`bg-control text-text`) except **Overdue**, which is the warning pill (`bg-warning-tint text-warning`), since an overdue occurrence "needs attention" (section 4, amber). Amber stays tied to what needs attention: the unplaced surplus and the ceiling line below use it for the same reason, and the count badge never does.
 - **Money amounts** come from `Intl` from minor units (section 5), signed (`-€650.00`, `+€2,450.00`; a move carries no sign), regular weight, tabular. Real amounts are ink and planned amounts muted: green and red are not used on these screens, the sign says the direction. The one red is the words "Below zero" (money below zero is "negative" text, section 4). A currency other than the reference one is shown in its own symbol.
 - **Dates** come from `Intl`: "Sat 21 Nov 2026" in headings, "Sat 21 Nov" in lists.
-- **Layout switches follow the width of the page column (`main`), as in section 17**, not the viewport: the wide navigation switches on the app frame (section 6, 900 px), so a page in a 1280 px frame has about 1016 px, and one in a 900 px frame about 636 px. Header: wide from 640. Grid: wide from **720** (7 cells of 96 px and 48 px of card padding make 720 px; **proposed**, the frozen figure of 640 cannot hold 96 px cells). Lines: table from **880**, stacked list below. Form fields: two columns from 640 (section 17).
+- **Layout switches follow the width of the page column (`main`), as in section 17**, not the viewport: the wide navigation switches on the app frame (section 6, 900 px), so a page in a 1280 px frame has about 1016 px, and one in a 900 px frame about 636 px. Header: wide from 640. Grid: wide from **744** (7 cells of 96 px, 6 gaps of 4 px and 48 px of card padding make 744 px; **proposed**, the frozen figure of 640 cannot hold 96 px cells). Lines: table from **880**, stacked list below. Form fields: two columns from 640 (section 17).
 - **Targets, focus, text.** Every control is 44 x 44 px or more, the focus ring is the base 2 px `focus` outline with a 2 px offset, no text is under 12 px (`text-label`), nothing scrolls sideways at 375 px.
 - **Page frame.** One `h1` of 28 px (`text-heading`) per page: "Calendar" (grid and lines) and "To pay". `<title>`: "Calendar, November 2026" (grid), "Calendar lines, November 2026", "To pay". Skip link and landmarks as in section 15.
 - **Colour.** Ink for what is chosen and what is real. Blue is today only: the ring, the day number and the word "Today" of the grid and its details (section 4).
@@ -812,7 +812,7 @@ Shared by the grid and the lines.
 
 **Structure.** A card (`bg-surface rounded-card`, padding 24 wide, 0 on the sides and 12 above and below on a phone) holding one `role="grid"` named by the month (`aria-label="November 2026"`): a header row of seven `role="columnheader"` and five or six `role="row"` of seven `role="gridcell"`. The week starts on the first day of the language (week data, ADR-025; the reference draws Monday first). Days outside the month are empty cells (no border, no content, not focusable). The weekday labels are `text-label` uppercase muted, the short name visible and the full name in `aria-label` ("Mon", "Monday"), 32 px tall.
 
-**Wide cell (container 720 px and more)**
+**Wide cell (container 744 px and more)**
 - **Box:** `min-w-24` (96 px) by `min-h-26` (104 px), `p-2` (8 px), `rounded-control`, `bg-surface`, a 1 px `divider` border, 4 px gap between cells (`gap-1`). The cell grows with its content and the whole row follows. The gap is 4 px so that the focus outline, 2 px wide and 2 px away, fills it exactly.
 - **Content, top to bottom:**
   1. A line with the day number on the left (`text-caption font-medium`, tabular) and, on a today cell, the word "Today" on the right (`text-caption font-medium text-accent`).
@@ -831,7 +831,7 @@ Shared by the grid and the lines.
   | Selected and today | Drawn selected (ink fill, no ring), `aria-current="date"` still on the cell, the word "Today" still in it and in its name (as the date picker, ADR-025) |
   | Focus | The base outline (2 px `focus`, 2 px offset) on the cell, above its neighbours (`focus-visible:z-10`) |
 
-**Compact cell (phone, container under 720 px)**
+**Compact cell (phone, container under 744 px)**
 - **Box:** 49 x 56 px (343 px of content in seven columns), no gap, no border, `rounded-control`, `p-1` (4) on the sides and `pt-2` (8) above. Never narrower than 44 px, never scrolling sideways.
 - **Content:** the day number (`text-caption font-medium`, centred, tabular), 4 px under it a row of at most three glyphs 3 px apart:
   - a solid dot, 6 px, `bg-text`: there are real entries;
@@ -969,7 +969,7 @@ Settings stays at the foot (`GearSix`).
 
 **Phone tab bar**: Overview, Calendar, Accounts, Imports, in the 343 px pill track with 52 px items (section 6), the current one in ink. Their icons are `ChartLine`, `CalendarBlank`, `Wallet`, `TrayArrowDown`. **Transactions** and **To pay** are rows of the "More" list at the end of `/settings`, each with its icon; the "To pay" row carries the count badge. The Settings button of the top bar gets no badge. **Planned** has no tab and no row: the link "Planned items" of the calendar header stays its way in.
 
-What differs from section 6 and ROADMAP: they decide the interim bar (Overview, Transactions, Accounts, Imports) and say that Calendar takes the place of Transactions, and Simulations the place of Imports, when each lands. The four tabs of this proposal are therefore the bar after Calendar lands and before Simulations, so far as section 6 plans it; the sidebar and the phone More list go beyond the text. Section 6 does not say where Transactions goes when it loses its tab, and its More list is Balances, Categories, Rules, Currencies, Backup, Security. This proposal puts Transactions and To pay at the head of that list (To pay with its count badge), leaves Planned out of it, and keeps the due count out of the bar (it is only on the row in More). The ROADMAP line is worded as the interim bar only. The owner decides (open question 9).
+What the texts say. Section 6: "the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land", and the More list is "Balances, Categories, Rules, Currencies, Backup, Security". ROADMAP, "Phone layout details": "a floating tab bar (Overview, Transactions, Accounts, Imports until Calendar and Simulations land) and the other pages in the More list of `/settings`". Issue #177 proposes the four tabs above, with Transactions and To pay at the head of the More list (To pay with its count badge), Planned left out of it, and the due count only on the row in More. Section 6 does not say where Transactions goes when it loses its tab, and neither text mentions the sidebar entries or To pay. The three texts are not reconciled here: which one applies is open question 9 of DECISIONS.md, and the owner decides.
 
 ### Phone layout
 
@@ -990,6 +990,7 @@ What differs from section 6 and ROADMAP: they decide the interim bar (Overview, 
 | View switch | 88 px items in a pill track | two equal segments, full width |
 | Account selector | 280 px | 343 px |
 | Weekday row | 32 px, `text-label` | 32 px |
+| Grid breakpoint | container of 744 px and more (7 x 96 + 6 x 4 + 2 x 24) | under 744 px |
 | Day cell | 96 x 104 px at least, `p-2`, `gap-1`, radius 12 | 49 x 56 px, no gap, radius 12 |
 | Marks | dash 12 px, 1.5 px | dot 6 px, ring 6 px (1.5 px), bar 12 x 3 px |
 | Today | 1.5 px `accent` inner ring | same |
@@ -1033,7 +1034,7 @@ What differs from section 6 and ROADMAP: they decide the interim bar (Overview, 
 
 These need action before the related work lands in `src/` (details in DECISIONS.md, "Open questions for the owner"):
 
-- **Calendar:** the owner validates the rendered references of section 18 on `components.html`, and answers open question 9 of DECISIONS.md: the phone tab bar and the More list (the conflict with section 6 and ROADMAP), the compact day cell with its three glyphs, the Overdue pill in amber, the secondary style of "Mark as paid", the grid breakpoint of 720 px, and which occurrences "To pay" lists.
+- **Calendar:** the owner validates the rendered references of section 18 on `components.html`, and answers open question 9 of DECISIONS.md: the phone tab bar and the More list (the conflict with section 6 and ROADMAP), the compact day cell with its three glyphs, the Overdue pill in amber, the secondary style of "Mark as paid", the grid breakpoint of 744 px, and which occurrences "To pay" lists.
 
 - **Planned items:** the way in on a phone, the fields that cannot change after creation, the limits DOMAIN does not give (months, weeks, window in days), the category of a planned item, and whether a cancelled item can be resumed are listed in DECISIONS.md, "Open questions for the owner", items 4 to 8. The owner also validates the rendered references of section 17 on `components.html`.
 
