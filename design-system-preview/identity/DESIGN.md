@@ -23,7 +23,8 @@ The repository documents still win over this file: `docs/DOMAIN.md`, the ADRs in
 15. [Accessibility checklist](#15-accessibility-checklist)
 16. [Migrating the current classes](#16-migrating-the-current-classes)
 17. [Planned items](#17-planned-items)
-18. [Open points](#18-open-points)
+18. [Calendar](#18-calendar)
+19. [Open points](#19-open-points)
 
 ## 1. Principles
 
@@ -289,6 +290,7 @@ Motion shows a change the user caused, or that the app made for them: a layer th
 | Balances, Categories, Rules, Currencies, Backup, Security | `Scales`, `Tag`, `Funnel`, `CurrencyEur`, `Archive`, `ShieldCheck` |
 | Calendar, Simulations (M2, M3) | `CalendarBlank`, `ArrowsSplit` |
 | Add, ceiling, overflow | `Plus`, `ArrowLineUp`, `ArrowLineRight` |
+| Planned, To pay (proposed, issue #177, section 18) | `Repeat`, `Receipt` |
 
 - A new icon is picked from Phosphor Regular and added to this table.
 - An icon that carries meaning has a text label next to it or an accessible name. A decorative icon has `aria-hidden="true"`.
@@ -764,9 +766,274 @@ A column of cards at most 720 px wide, 16 px apart, padding 24 (16 on a phone). 
 - **Keyboard:** reading order is top to bottom, left to right; each Select and date picker follows section 9; the disclosures, the segments, the chips and the checkbox are native inputs; the focus returns to the button that opened a dialog.
 - **Nothing by colour alone:** the sign, the word of a pill, "Error:", "Warning:", and the icon of each type.
 
-## 18. Open points
+## 18. Calendar
+
+The month grid, the monthly line view, the actions on one occurrence, the "To pay" page, the navigation entries they need, and the phone layout of all of them (issue #177, DOMAIN "Occurrence status", "Occurrence override", "The real chart", "Deposit ceiling and overflow"). They are drawn on `components.html`, in the section "Calendar", one card per screen, wide and on a 375 px phone, light and dark. DECISIONS.md, "Calendar", records what the owner decided on 19 Nov 2026 (the design pass comes first, the scope, the statuses as words, no estimation) and what this pass proposes. Every measure below is **proposed** until the owner validates the rendered references.
+
+**Rules for every screen**
+- **Built from what exists.** Select, the date picker field and its grid pattern, the exact-syntax amount field, Table, Pill, buttons, the native dialog, the segmented control and the count badge (sections 8 and 9). The new compositions are the day cell, its compact phone form, the view switch (two links in the track of a segmented control), the stacked line list, the card of the "To pay" page and the markup of the count badge. No new token.
+- **Real values only, no estimation (ADR-011).** The balance of a day is computed from real transactions and dated planned items, nothing else. No figure on these screens is called an average or an estimate. An occurrence of a rolling-average item carries the pill "Average of 3" (6, 12) before its amount, as in section 17, because the user chose that rule.
+- **Real and planned are told apart without colour.** Three signals, always together:
+
+  | | Real | Planned |
+  | --- | --- | --- |
+  | Word | "Real" | "Planned" |
+  | Text | `text-text` | `text-text-muted` |
+  | Mark | Solid dot (6 px, `bg-text`) | Dashed hairline: a 12 px dash on a cell or a count, a `border-dashed` top border on a row (the dashed segment of section 11) and, on a phone cell, a hollow ring (6 px, 1.5 px `border-text-muted`) |
+
+  The dash and the muted text mean "not real yet" here as in the chart; the word is what carries the meaning.
+- **Statuses are words in a pill** (DOMAIN): Planned, Partial, Confirmed, Overdue, Cancelled. A pill is never a button (section 8). Colour (**proposed**, DECISIONS.md "Calendar" and open question 9): every status is neutral (`bg-control text-text`) except **Overdue**, which is the warning pill (`bg-warning-tint text-warning`), since an overdue occurrence "needs attention" (section 4, amber). Amber stays tied to what needs attention: the unplaced surplus and the ceiling line below use it for the same reason, and the count badge never does.
+- **Money amounts** come from `Intl` from minor units (section 5), signed (`-€650.00`, `+€2,450.00`; a move carries no sign), regular weight, tabular. Real amounts are ink and planned amounts muted: green and red are not used on these screens, the sign says the direction. The one red is the words "Below zero" (money below zero is "negative" text, section 4). A currency other than the reference one is shown in its own symbol.
+- **Dates** come from `Intl`: "Sat 21 Nov 2026" in headings, "Sat 21 Nov" in lists.
+- **Layout switches follow the width of the page column (`main`), as in section 17**, not the viewport: the wide navigation switches on the app frame (section 6, 900 px), so a page in a 1280 px frame has about 1016 px, and one in a 900 px frame about 636 px. Header: wide from 640. Grid: wide from **720** (7 cells of 96 px and 48 px of card padding make 720 px; **proposed**, the frozen figure of 640 cannot hold 96 px cells). Lines: table from **880**, stacked list below. Form fields: two columns from 640 (section 17).
+- **Targets, focus, text.** Every control is 44 x 44 px or more, the focus ring is the base 2 px `focus` outline with a 2 px offset, no text is under 12 px (`text-label`), nothing scrolls sideways at 375 px.
+- **Page frame.** One `h1` of 28 px (`text-heading`) per page: "Calendar" (grid and lines) and "To pay". `<title>`: "Calendar, November 2026" (grid), "Calendar lines, November 2026", "To pay". Skip link and landmarks as in section 15.
+- **Colour.** Ink for what is chosen and what is real. Blue is today only: the ring, the day number and the word "Today" of the grid and its details (section 4).
+
+### Month header
+
+Shared by the grid and the lines.
+
+**Wide (container 640 px and more)**
+- **Row 1:** `h1` "Calendar" on the left, and on the right the link "Planned items" (the way in of section 17; a `btn link` of 44 px). `mb-6`.
+- **Row 2:** one flex row, `gap-4`, wrapping, `items-end`:
+  - **Month navigator:** previous icon button (44 px circle, `hover:bg-control`, `aria-label="Previous month, October 2026"`), the month name in an `h2` of 20 px (`text-title`, medium, `min-w-40` = 160 px, centred, `aria-live="polite"` so a change is announced), next icon button (`aria-label="Next month, December 2026"`). The icon is the `CaretDown` of the date picker head, turned 90 degrees (previous) and minus 90 (next), `aria-hidden`. Both buttons change the month shown and keep the view and the account.
+  - **View switch** (`nav aria-label="Calendar view"`): two links "Grid" and "Lines" in the track of the segmented control (`rounded-pill bg-control p-[3px] gap-0.5`), 44 px items, `min-w-22` (88 px), `text-body font-medium`. The current one is ink (`bg-primary text-on-primary`) with `aria-current="page"`, the other `text-text-muted`, hover `text-text`. They are links (they change the URL), not radios, so they keep the look of section 8 and not its markup.
+  - **Account selector** (`ml-auto`, 280 px): the Select of section 9. Label "Daily balance" (`text-caption font-medium`), hint "Real transactions and dated planned items only." (`text-caption text-text-muted`, `aria-describedby`), a 48 px control. Options: "Checking accounts, EUR" first and default (the checking accounts in the reference currency, summed), then one option per account in its own currency ("Current, EUR", "Savings A, EUR", "Travel card, USD"). Without JavaScript it is the native select in a GET form with a secondary "Show" button.
+- `mb-4` under the row.
+
+**Phone (under 640 px)**
+- Row 1 unchanged (`h1` and the link on one line, `gap-3`).
+- Navigator full width: previous at the left edge, next at the right edge, the month name centred between.
+- View switch full width, two equal segments (`grid grid-cols-2`).
+- Select full width (343 px), under the switch. Rows are 12 px apart.
+
+### Month grid
+
+**Structure.** A card (`bg-surface rounded-card`, padding 24 wide, 0 on the sides and 12 above and below on a phone) holding one `role="grid"` named by the month (`aria-label="November 2026"`): a header row of seven `role="columnheader"` and five or six `role="row"` of seven `role="gridcell"`. The week starts on the first day of the language (week data, ADR-025; the reference draws Monday first). Days outside the month are empty cells (no border, no content, not focusable). The weekday labels are `text-label` uppercase muted, the short name visible and the full name in `aria-label` ("Mon", "Monday"), 32 px tall.
+
+**Wide cell (container 720 px and more)**
+- **Box:** `min-w-24` (96 px) by `min-h-26` (104 px), `p-2` (8 px), `rounded-control`, `bg-surface`, a 1 px `divider` border, 4 px gap between cells (`gap-1`). The cell grows with its content and the whole row follows. The gap is 4 px so that the focus outline, 2 px wide and 2 px away, fills it exactly.
+- **Content, top to bottom:**
+  1. A line with the day number on the left (`text-caption font-medium`, tabular) and, on a today cell, the word "Today" on the right (`text-caption font-medium text-accent`).
+  2. The end-of-day balance, right-aligned (`text-caption`, tabular, ink, signed: `€1,240.00`, `-€85.00`).
+  3. When the balance is below zero, the words "Below zero" under it (`text-caption font-medium text-negative`, right-aligned). The sign alone is not enough.
+  4. When a planned transfer leaves a surplus that fits nowhere, "Unplaced surplus" (`text-caption font-medium text-warning`, wrapping on two lines when the cell is narrow). The figure and the accounts are in the details (DOMAIN, deposit ceiling and overflow).
+  5. At the bottom (`mt-auto`), the counts in words, one per line, only those above zero: "2 real" in ink, then "1 planned" in muted text preceded by the 12 px dashed mark (`inline-block w-3 border-t-[1.5px] border-dashed border-text-muted`, `aria-hidden`, 6 px before the text).
+- **States:**
+
+  | State | Treatment |
+  | --- | --- |
+  | Rest | As above |
+  | Hover | `bg-surface-sunken`; cell colours do not change |
+  | Today | A 1.5 px `accent` inner ring (`shadow-[inset_0_0_0_1.5px_var(--color-accent)]`, section 9), the day number in `text-accent` medium, the word "Today". `aria-current="date"` |
+  | Selected | `bg-primary text-on-primary`, no hover. **Every element in it turns `on-primary`**: the number, the balance, the counts, the words "Below zero", "Unplaced surplus" and "Today", the dashed mark. The words carry the meaning, since red, amber and muted fail on the ink fill (3.65:1 and 2.67:1 for red) |
+  | Selected and today | Drawn selected (ink fill, no ring), `aria-current="date"` still on the cell, the word "Today" still in it and in its name (as the date picker, ADR-025) |
+  | Focus | The base outline (2 px `focus`, 2 px offset) on the cell, above its neighbours (`focus-visible:z-10`) |
+
+**Compact cell (phone, container under 720 px)**
+- **Box:** 49 x 56 px (343 px of content in seven columns), no gap, no border, `rounded-control`, `p-1` (4) on the sides and `pt-2` (8) above. Never narrower than 44 px, never scrolling sideways.
+- **Content:** the day number (`text-caption font-medium`, centred, tabular), 4 px under it a row of at most three glyphs 3 px apart:
+  - a solid dot, 6 px, `bg-text`: there are real entries;
+  - a hollow ring, 6 px, 1.5 px `border-text-muted`: there are planned entries;
+  - a short bar, 12 x 3 px, `rounded-pill bg-negative`: the balance is below zero.
+
+  In the selected cell the glyphs are `on-primary` (the bar too). Glyphs are `aria-hidden` and always repeated in words (legend, name, details).
+- **Today:** the same 1.5 px `accent` ring on the cell and the accent day number. The hollow ring glyph is another thing, 6 px inside the cell. The word "Today" is not drawn (there is no room): it is in the name and in the details heading. Hover does not exist on a touch screen; the selected cell is `bg-primary`.
+- **Legend:** one line of `text-caption text-text-muted` above the weekday row, linked to the grid by `aria-describedby`: "Solid dot: real entries. Hollow ring: planned entries. Bar: below zero." (**proposed**: it sits above and not between the weekday row and the days because a paragraph inside a `grid` is not valid). It wraps on two lines at 343 px.
+- **All the content lives in the details panel** (below), the main reading surface on a phone: the balance, the counts, "Below zero" and the unplaced surplus are not drawn in the cell.
+
+**Name of a gridcell.** Visible content is hidden from the name by an `aria-label` that says everything, the figure formatted by `Intl` with the currency code (`currencyDisplay: "code"`), never by hand:
+
+`{day} {month}[, today], end-of-day balance {amount}[, {n} real][, {n} planned][, no entries][, below zero][, unplaced surplus]`
+
+Example, a negative balance: "21 November, today, end-of-day balance -85.00 EUR, 2 real, 1 planned, below zero, unplaced surplus". A day without entries says "no entries".
+
+**Keyboard** (the model of the date picker, ADR-025). One tab stop: the grid is entered on one day (the selected day, else today, else the first of the month) with `tabindex="0"` (roving tabindex, every other cell `-1`), and Tab leaves it for the details panel.
+
+| Key | Effect |
+| --- | --- |
+| Left, Right | A day before, a day after |
+| Up, Down | A week before, a week after |
+| Home, End | First and last day of the week |
+| Page Up, Page Down | A month before, after (the day is kept or clamped to the last day of a shorter month); with Shift a year |
+| Enter, Space | Select the day: the details panel shows it, the cell is `aria-selected="true"` and drawn selected |
+
+Moving does not select, and a key that leaves the month changes the month shown (the title is announced, the focus lands on the resulting date). The date arithmetic is `addDays` and `addMonths` of the date picker. There is no Escape: nothing opens.
+
+**Day details** (under the grid, `mt-4`)
+- **Card:** `bg-surface rounded-card`, padding 24 (16 on a phone), a `region` named by its heading. Reading order: heading, balance, entries.
+- **Heading:** an `h3` of 20 px (`text-title`) with the date, "Sat 21 Nov 2026", and for today the word "Today" 8 px after it in `text-accent font-medium`. The heading line is a polite live region, so selecting a day is announced.
+- **Balance:** the end-of-day balance first, in `text-amount` (36 px, regular, tabular), the words "End-of-day balance" under it in `text-label` uppercase muted. When below zero, "Below zero" in `text-body font-medium text-negative` follows the figure. An unplaced surplus adds the line "Unplaced surplus: €100.00 stays in Current, Savings B is full." (`text-caption text-warning`, the words of section 10). These lines are on phone and wide alike.
+- **Entries:** an `h4` of 15 px medium holds the counts in words ("2 real, 1 planned"), then a list of entries 16 px under it. A day without entries says "No entries on this day." in muted text.
+- **Entry, wide:** a grid of five columns, `grid-cols-[72px_minmax(0,1fr)_96px_112px_auto] gap-4 items-center`, `min-h-14` (56 px), a hairline above (`divider` for a real entry, 1 px `border-dashed border-border-control` for a planned one):
+  1. The kind word, "Real" or "Planned" (`text-caption font-medium`, ink or muted);
+  2. The description (`text-body font-medium`, ink or muted) over the account (`text-caption text-text-muted`); under them, for a planned income above a ceiling, the ceiling line (below);
+  3. The status pill (a real transaction linked to an occurrence says "Confirmed"; an unlinked real transaction has no pill);
+  4. The signed amount, right-aligned, tabular, preceded by "Average of 3" where it applies;
+  5. The actions (section "Actions on an occurrence"), `gap-2`, only for the statuses that have them.
+- **Entry, phone:** a stack, 12 px padding above and below and the same hairline: line 1 the description (medium) and the amount on the right; line 2 `text-caption`, the kind word, the account and the pill, wrapping; line 3 the actions, wrapping, each 44 px high.
+- **Ceiling line:** a planned income above the ceiling of its account shows "Exceeds the declared ceiling of Savings A" under its description: `WarningCircle` icon (16 px, `aria-hidden`) and `text-caption text-warning`, the words being the signal (DOMAIN: an income is accepted with a warning, not routed).
+
+### Monthly line view
+
+The same header, then one card (`bg-surface rounded-card p-6`, `p-4` on a phone).
+
+**Table (container 880 px and more)** (section 8, Table)
+- **Caption** "November 2026" (medium), visible. Header cells in `text-label` uppercase muted, bottom-aligned, wrapping.
+- **Columns, left to right:**
+
+  | Column | Width | Content |
+  | --- | --- | --- |
+  | Date | 96 px | "Sat 21 Nov", on every row |
+  | Description | flexible, 160 px at least | Medium, ink or muted. Under it the ceiling line, when it applies |
+  | Account | 128 px | The account, "Current to Savings A" for a move |
+  | Kind | 72 px | "Real" or "Planned", as a word |
+  | Status | 104 px | The pill, for an occurrence or a linked transaction |
+  | Amount | 104 px | Signed, right-aligned, tabular |
+  | Balance at end of day | 144 px | Right-aligned, **on the last row of each day only**, with "Below zero" under it when negative (`text-caption font-medium text-negative`). The header says "Balance at end of day" in two lines |
+
+- **Rows:** 48 px (more with the ceiling line), a `divider` hairline above, hover `bg-surface-sunken`, cells `px-3`, one day after another in date order. A real row is `text-text`; a planned row is `text-text-muted` with a 1 px `border-dashed border-border-control` top border instead of the `divider` one, and its Kind cell says "Planned". Money below zero shows its balance in ink with the word, never the colour alone.
+- **Cancelled row:** muted text, the description struck through (`line-through`), and the pill "Cancelled". The strike is decoration: the pill is the status. Its only action is "Restore".
+- **Action row:** under every occurrence that has actions, a row of its own (`td colspan="7"`, `pb-3`, no top border), the buttons right-aligned (`flex justify-end gap-2`, 44 px high). Seven columns have no room for three buttons, and a menu would be a new component. Rows that have none have no second row.
+
+**Stacked list (container under 880 px, the phone)**
+- A `ul` inside the card, each entry a `li` with 12 px padding above and below and the hairline (dashed for a planned one):
+  1. Date (`text-caption text-text-muted`, 72 px wide) and description (medium) side by side, wrapping;
+  2. The kind word, the pill and the amount (right-aligned) on one line, `gap-2`; the account (caption muted) under it;
+  3. For the last entry of a day: "Balance after the day: €1,240.00" (`text-caption text-text-muted`, the figure ink), and "Below zero" next to it in `text-negative font-medium` when it applies;
+  4. The actions, wrapping, each 44 px high.
+- The list is a real list; the caption becomes an `h2`.
+
+### Actions on an occurrence
+
+| Status | Actions |
+| --- | --- |
+| Planned, Partial, Overdue | "Mark as paid", "Link a transaction", "Change" |
+| Confirmed | None |
+| Cancelled | "Restore" only |
+
+- **Buttons:** secondary (`bg-control text-text`), 44 px, in lists and rows. The primary is for the one main action of a screen, and no screen of this section has one. Each one has a name that starts with its visible words and adds what it acts on, since several share a page: `aria-label="Mark as paid, Rent, 5 Nov 2026"`, "Link a transaction, Rent, 5 Nov 2026", "Change, Rent, 5 Nov 2026", "Restore, Rent, 5 Nov 2026".
+- **Mark as paid** records a transaction with the planned date and amount of the occurrence (the remaining amount of a partial one) and links it. The "To pay" page is where date and amount are corrected first. Pending: "Marking as paid…", `aria-busy="true"`. A success toast (section 8) says "Success. Rent marked as paid." and the row becomes Confirmed. The destination of "Link a transaction" is not designed here (the matching screens of the import review exist; open point).
+- **Restore** removes the override at once, with no dialog (pending "Restoring…", toast "Success. Rent is back on its planned date." for a move, "Success. Rent is planned again." for a skip).
+
+**The dialog "Change this occurrence"** (the native dialog of section 8)
+- **Box:** `rounded-card bg-surface shadow-overlay p-6`, at most 420 px (343 px less than the viewport minus 32 on a phone), `bg-backdrop` backdrop, in the top layer. Title `h3` `text-title`: "Change this occurrence". Under it, one line of `text-caption text-text-muted` that names the occurrence: "Rent, planned for 5 Nov 2026".
+- **Choice:** a fieldset with the visible legend "What to do" (`text-caption font-medium`) and a three-segment control, full width (`grid grid-cols-3`), native radios, "Move", "Change", "Skip", "Move" chosen first, 44 px segments, ink when chosen (section 8).
+- **Fields**, shown for Move and Change and hidden for Skip: "Date" (the date picker field, prefilled with the date in force) and "Amount" (the exact-syntax amount field of section 9, right-aligned, the currency at the end, `inputmode="decimal"`, hint "Without a sign: the type sets the direction.", prefilled with the amount in force). The same errors as section 17 ("Error: invalid amount …", "Error: enter a date.").
+- **Note**, always visible, `text-caption text-text-muted`: "Only this occurrence changes. The planned item and its other occurrences stay as they are." For Skip it adds "This occurrence will show as Cancelled."
+- **Footer:** `mt-6`, right-aligned, `gap-2`: Cancel (secondary, **takes the focus first**), then Save (primary, ink). For an occurrence that already has an override, a link button "Restore" (`btn link`, `aria-label="Restore, back to the rule of the planned item"`) sits on the left (`mr-auto`) and restores it without saving. A server failure is one line above the footer, `role="alert"`: "Error: the occurrence could not be changed. Try again."
+- Escape closes. The focus returns to the button that opened it. Success closes, with a toast ("Success. Rent moved to 8 Nov 2026.", "Success. Rent changed to €680.00.", "Success. Rent skipped.").
+
+### To pay page
+
+**Page.** `h1` "To pay" (`text-heading`). Under it one line (`text-body text-text-muted`, 8 px below): "Occurrences that are due. Check the date and the amount, then mark each one as paid." Then sections 32 px apart, each an `h2` of 20 px (`text-title`):
+- **"Due"**: overdue occurrences and those due today, oldest first.
+- **"Due in the next 7 days"**: the following ones, in date order.
+
+A section with nothing in it is not drawn. When both are empty, the inner-surface block of section 8 (`bg-surface-sunken rounded-control`, centred, padding 32 x 16, muted) says "Nothing to pay." and has no action.
+
+**Item, wide (container 640 px and more)**
+- **Card:** `bg-surface rounded-card p-4`, 12 px between cards, one grid, `grid-cols-[minmax(0,1fr)_176px_160px_auto] gap-4 items-end`:
+  1. **What:** the description (`text-body font-medium`), the status pill beside it (Planned, Partial or Overdue), and under them `text-caption text-text-muted` the account and "Due Thu 5 Nov 2026";
+  2. **Date:** the date picker field of section 9, 48 px, label "Date", prefilled with the planned date (the override date when there is one);
+  3. **Amount:** the exact-syntax amount field, 48 px, right-aligned, the currency at the end, label "Amount" ("Remaining amount" for a partial occurrence, prefilled with what remains), prefilled with the planned amount, without a sign;
+  4. **Button:** "Mark as paid", secondary, 44 px, aligned with the bottom of the fields.
+- **Names.** The visible labels stay short; each carries the item in a visually hidden suffix: "Date of Rent, due 5 Nov 2026", "Amount of Rent, due 5 Nov 2026", and the button `aria-label="Mark as paid, Rent, due 5 Nov 2026"`.
+- **After a click:** the transaction is created with the date and the amount in the fields. The card leaves, a toast says "Success. Rent marked as paid.", and the focus goes to the next card's button, or to the `h1` when none is left. Pending: "Marking as paid…". An error in a field uses the invalid state (section 9) and keeps the card.
+- **Money out only in the reference.** Whether an income, a move or an interest occurrence is listed, and which label its button takes, is an open point (DECISIONS.md, question 9); the card is the same.
+
+**Item, phone (under 640 px)**
+- A stacked card, `p-4`, 12 px between cards: line 1 the description (medium) and the pill; line 2 the account and the due date (caption muted); then Date and Amount, **full width** and 16 px apart; then "Mark as paid" at **full width, 44 px** high.
+
+### Navigation (proposed)
+
+**Proposed (issue #177). Conflicts with section 6 and with ROADMAP "Phone layout details". Pending owner (DECISIONS.md, open question 9).** Sections 6 and 17 and ROADMAP stay as they are until the owner answers.
+
+**Wide sidebar** (container 900 px and more; 208 px column, items as section 6: 44 px, `px-3`, `gap-2.5`, icon and label, the current one raised on `surface` with `aria-current="page"`). Order:
+
+| Entry | Icon | Note |
+| --- | --- | --- |
+| Overview | `ChartLine` | |
+| Calendar | `CalendarBlank` | |
+| Transactions | `ArrowsDownUp` | |
+| Accounts | `Wallet` | |
+| Imports | `TrayArrowDown` | |
+| Planned | `Repeat` (new, section 7) | The way in of section 17, now also from the sidebar |
+| To pay | `Receipt` (new, section 7) | With a count badge: the number of occurrences in "Due" |
+| To categorize | `Tray` | Kept from section 6, with its count (the issue's list omits it; **proposed** at the end of the queues) |
+
+Settings stays at the foot (`GearSix`).
+
+**Count badge** (section 8, "text on control"; the markup it was missing): `inline-flex items-center justify-center ml-auto min-w-6 rounded-pill bg-control px-2 py-0.5 text-caption font-medium text-text tabular-nums`, a status and not a target (no 44 px). The text is the number; a visually hidden word follows it so that the link reads "To pay, 3 due" (and "To categorize, 4"). The brand board draws a 28 px badge in `text-label`; this one is 13 px, as asked by the issue, and the board is the one to follow when they are unified.
+
+**Phone tab bar**: Overview, Calendar, Accounts, Imports, in the 343 px pill track with 52 px items (section 6), the current one in ink. Their icons are `ChartLine`, `CalendarBlank`, `Wallet`, `TrayArrowDown`. **Transactions** and **To pay** are rows of the "More" list at the end of `/settings`, each with its icon; the "To pay" row carries the count badge. The Settings button of the top bar gets no badge. **Planned** has no tab and no row: the link "Planned items" of the calendar header stays its way in.
+
+What differs from section 6 and ROADMAP: they decide the interim bar (Overview, Transactions, Accounts, Imports) and say that Calendar takes the place of Transactions, and Simulations the place of Imports, when each lands. The four tabs of this proposal are therefore the bar after Calendar lands and before Simulations, so far as section 6 plans it; the sidebar and the phone More list go beyond the text. Section 6 does not say where Transactions goes when it loses its tab, and its More list is Balances, Categories, Rules, Currencies, Backup, Security. This proposal puts Transactions and To pay at the head of that list (To pay with its count badge), leaves Planned out of it, and keeps the due count out of the bar (it is only on the row in More). The ROADMAP line is worded as the interim bar only. The owner decides (open question 9).
+
+### Phone layout
+
+- **Frame:** 375 px, 16 px gutters, 343 px of content, the top bar (logo, "Settings", "Add transaction") above and the floating tab bar below. Content ends 92 px above the bottom (the 64 px bar, its 12 px offset and 16 px of air) so the bar never hides the last card.
+- **Order on a screen:** header, grid or list, details. The details panel follows the grid in the DOM, so one Tab from the grid reaches it.
+- **No horizontal scroll** at 375 px and at 200 % zoom: the grid is seven fixed columns of 49 px, the table is a list, the fields are full width.
+- **Light and dark:** tokens only, no `dark:` class. Every screen is drawn in both on `components.html`; the new pairs are in Checks.
+
+### Measures
+
+| Element | Wide | Phone |
+| --- | --- | --- |
+| Page gutter, content | 32 px, column of the app frame | 16 px, 343 px |
+| Card padding | 24 | 16 (grid card: 12 above and below, 0 on the sides) |
+| Header rows | 16 px apart, `mb-6` and `mb-4` | 12 px apart |
+| Icon button, view link, Select row | 44 px circle, 44 px, 48 px | same |
+| Month title | `text-title`, 160 px minimum | `text-title`, centred |
+| View switch | 88 px items in a pill track | two equal segments, full width |
+| Account selector | 280 px | 343 px |
+| Weekday row | 32 px, `text-label` | 32 px |
+| Day cell | 96 x 104 px at least, `p-2`, `gap-1`, radius 12 | 49 x 56 px, no gap, radius 12 |
+| Marks | dash 12 px, 1.5 px | dot 6 px, ring 6 px (1.5 px), bar 12 x 3 px |
+| Today | 1.5 px `accent` inner ring | same |
+| Focus | 2 px `focus` outline, 2 px offset | same |
+| Day details entry | 56 px at least, five columns | stack, 12 px padding |
+| Table row, action row | 48 px, 44 px buttons | list entry, 12 px padding |
+| Balance column | 144 px | third line |
+| Pill, count badge | 4 px 10 px, 2 px 8 px, 13 px | same |
+| Dialog | 420 px, padding 24 | viewport minus 32 |
+| To pay card | `p-4`, four columns, 12 px apart | stacked, fields and button full width |
+| Sidebar | 208 px, 44 px items | |
+| Tab bar | | 343 px track, 52 px items |
+| Text | `h1` 28, section 20, body 15, caption 13, labels 12 | same |
+
+### Checks
+- **Contrast:** no new colour, but new pairs (cell, hovered cell, selected cell), every one in the table of `components.html`, light and dark. The page computes them live; the values from the tokens:
+
+  | Use | Pair | Needs | Light | Dark |
+  | --- | --- | --- | --- | --- |
+  | Day number, "Today", ring | `accent` on `surface` | 4.5 and 3 | 5.55 | 5.48 |
+  | The same on a hovered cell | `accent` on `surface-sunken` | 4.5 and 3 | 4.87 | 5.16 |
+  | "Below zero", bar | `negative` on `surface` | 4.5 and 3 | 5.49 | 6.78 |
+  | The same on a hovered cell | `negative` on `surface-sunken` | 4.5 | 4.82 | 6.39 |
+  | Unplaced surplus, ceiling line | `warning` on `surface` | 4.5 | 5.61 | 11.19 |
+  | The same on a hovered cell | `warning` on `surface-sunken` | 4.5 | 4.92 | 10.54 |
+  | Overdue pill | `warning` on `warning-tint` | 4.5 | 4.54 | 7.87 |
+  | Planned text, hollow ring, dash | `text-muted` on `surface` | 4.5 and 3 | 6.18 | 7.88 |
+  | Planned row hovered, empty state | `text-muted` on `surface-sunken` | 4.5 | 5.42 | 7.42 |
+  | Dashed row border | `border-control` on `surface` | 3 | 3.79 | 3.76 |
+  | Count badge, neutral pill | `text` on `control` | 4.5 | 17.57 | 15.52 |
+  | Selected cell, every element | `on-primary` on `primary` | 4.5 | 20.03 | 19.91 |
+  | Focus ring next to a selected cell | `focus` on `primary` | 3 | 3.61 | 3.30 |
+
+  The pair counts of section 1 and of DECISIONS.md ("148 pairs") are not recomputed here: they count the pairs of the three pages as they were.
+- **Keyboard:** the grid is one tab stop, then the details panel; every key of the table above works; the month and the view switch are links and buttons; the dialog takes the focus on Cancel and returns it to its trigger; the To pay fields follow section 9 and the buttons come after their fields.
+- **Nothing by colour alone:** the words "Real" and "Planned", the status pill, "Below zero", "Unplaced surplus", "Exceeds the declared ceiling", "Today", the dashed mark, the dot, the ring and the bar (with their legend and their accessible name).
+- **Motion:** none new. The selected segment of the view switch and the dialog follow section 6, and everything is instant under `prefers-reduced-motion`.
+- **Real values only:** no blur, no estimate and no word "average" except the pill of a rolling-average item the user chose (ADR-011).
+
+## 19. Open points
 
 These need action before the related work lands in `src/` (details in DECISIONS.md, "Open questions for the owner"):
+
+- **Calendar:** the owner validates the rendered references of section 18 on `components.html`, and answers open question 9 of DECISIONS.md: the phone tab bar and the More list (the conflict with section 6 and ROADMAP), the compact day cell with its three glyphs, the Overdue pill in amber, the secondary style of "Mark as paid", the grid breakpoint of 720 px, and which occurrences "To pay" lists.
 
 - **Planned items:** the way in on a phone, the fields that cannot change after creation, the limits DOMAIN does not give (months, weeks, window in days), the category of a planned item, and whether a cancelled item can be resumed are listed in DECISIONS.md, "Open questions for the owner", items 4 to 8. The owner also validates the rendered references of section 17 on `components.html`.
 
