@@ -283,3 +283,16 @@ export function firstDayBelowZero(days: readonly DailyBalance[], accountIds: rea
   }
   return null;
 }
+
+/**
+ * The index of the lowest value among the months after `todayIndex`, the earliest one on a tie,
+ * or null when no month is planned. The real months never count, even when they are lower: the
+ * indicator is about what is still ahead.
+ */
+export function lowestPlannedIndex(values: readonly number[], todayIndex: number): number | null {
+  let lowest: number | null = null;
+  for (let index = todayIndex + 1; index < values.length; index += 1) {
+    if (lowest === null || values[index]! < values[lowest]!) lowest = index;
+  }
+  return lowest;
+}
