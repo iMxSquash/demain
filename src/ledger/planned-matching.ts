@@ -1,8 +1,13 @@
 import { and, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 
+import { addDays, daysBetween } from "../domain/calendar-date";
 import { compareDates } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
-import { resolveOccurrences, type OccurrenceLink } from "../domain/occurrence-resolution";
+import {
+  resolveOccurrences,
+  type OccurrenceLink,
+  type OccurrenceStatus,
+} from "../domain/occurrence-resolution";
 import {
   comparePairs,
   decideMatches,
@@ -66,12 +71,13 @@ function writeLink(
   transaction: Transaction,
   item: Pick<PlannedItemRow, "id" | "categoryId">,
   nominalDate: string,
+  inheritCategory = true,
 ): void {
   db.update(transactions)
     .set({
       plannedItemId: item.id,
       occurrenceDate: nominalDate,
-      ...(inheritsCategory(item, transaction)
+      ...(inheritCategory && inheritsCategory(item, transaction)
         ? { categoryId: item.categoryId, categoryFromPlannedItem: true }
         : {}),
     })
@@ -97,9 +103,14 @@ function isOccurrenceTaken(db: Pick<AppDatabase, "select">, pair: MatchPair): bo
  * Links a transaction to the occurrence of a planned item (DOMAIN, invariant 5). The transaction
  * must exist, not be a transfer, not be linked yet and be on the account of the item; a regular
  * occurrence takes one transaction, a provision any number. A transaction without category takes
- * the category of the item, and remembers it came from there.
+ * the category of the item, and remembers it came from there, unless `inheritCategory` is false
+ * (a link made by hand leaves the category alone).
  */
-export function linkTransactionToOccurrence(db: Executor, pair: MatchPair): void {
+export function linkTransactionToOccurrence(
+  db: Executor,
+  pair: MatchPair,
+  { inheritCategory = true }: { inheritCategory?: boolean } = {},
+): void {
   const transaction = db
     .select()
     .from(transactions)
@@ -142,7 +153,7 @@ export function linkTransactionToOccurrence(db: Executor, pair: MatchPair): void
       messageRef("matchOccurrenceTaken"),
     );
   }
-  writeLink(db, transaction, item, pair.nominalDate);
+  writeLink(db, transaction, item, pair.nominalDate, inheritCategory);
 }
 
 /** Clears the link. A category the link gave goes with it; one chosen by hand stays. */
@@ -517,4 +528,107 @@ export function undoMatch(db: AppDatabase, batchId: number, transactionId: numbe
     }
     unlinkTransaction(tx, transactionId);
   });
+}
+
+/** An unsettled occurrence the owner can link a transaction to by hand. */
+export interface LinkCandidate {
+  pair: MatchPair;
+  plannedItemName: string;
+  nominalDate: string;
+  /** The effective date of the occurrence, after overrides and the business-day rule. */
+  date: string;
+  /** Integer minor units: the expected amount, or what a provision still expects. */
+  amount: number;
+  status: Extract<OccurrenceStatus, "planned" | "overdue" | "partial">;
+}
+
+// Only bounds the generation of open-ended recurrences: it is not a matching rule.
+const LINK_CANDIDATE_HORIZON_DAYS = 366;
+
+function candidatesOf(
+  item: PlannedItemWithDetails,
+  links: readonly OccurrenceLink[],
+  transaction: Transaction,
+  today: string,
+): LinkCandidate[] {
+  const lastDate = today > transaction.date ? today : transaction.date;
+  const resolved = resolveOccurrences(
+    {
+      schedule: toPlannedSchedule(item),
+      overrides: item.overrides,
+      matchWindowDays: item.matchWindowDays,
+      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
+    },
+    links,
+    {
+      from: item.startDate,
+      to: addDays(lastDate, LINK_CANDIDATE_HORIZON_DAYS),
+    },
+    today,
+  );
+  const candidates: LinkCandidate[] = [];
+  for (const occurrence of resolved) {
+    const { status } = occurrence;
+    if (status !== "planned" && status !== "overdue" && status !== "partial") continue;
+    const isProvision = occurrence.period !== null;
+    const amount = isProvision ? occurrence.remaining : occurrence.expectedAmount;
+    if (amount === 0 || Math.sign(amount) !== Math.sign(transaction.amount)) continue;
+    candidates.push({
+      pair: {
+        transactionId: transaction.id,
+        plannedItemId: item.id,
+        nominalDate: occurrence.nominalDate,
+      },
+      plannedItemName: item.name,
+      nominalDate: occurrence.nominalDate,
+      date: occurrence.date,
+      amount,
+      status,
+    });
+  }
+  return candidates;
+}
+
+/**
+ * The occurrences a transaction can be linked to by hand: unsettled ones of the planned items of
+ * its account with the sign of its amount, the closest in time first. There is no window and no
+ * tolerance, the owner decides. A transfer or an already linked transaction has none.
+ */
+export function listLinkCandidates(
+  db: Pick<AppDatabase, "select">,
+  transactionId: number,
+  today: string,
+): LinkCandidate[] {
+  const transaction = db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, transactionId))
+    .get();
+  if (transaction === undefined) {
+    throw new PlannedLinkError(
+      `Transaction ${transactionId} does not exist`,
+      messageRef("matchTransactionUnknown"),
+    );
+  }
+  if (transaction.kind === "transfer" || transaction.plannedItemId !== null) return [];
+
+  const items = listPlannedItems(db, {
+    includeCancelled: false,
+    accountIds: [transaction.accountId],
+  });
+  if (items.length === 0) return [];
+  const links = linksOf(
+    db,
+    items.map((item) => item.id),
+  );
+  const distanceOf = (candidate: LinkCandidate) =>
+    Math.abs(daysBetween(transaction.date, candidate.date));
+  return items
+    .flatMap((item) => candidatesOf(item, links.get(item.id) ?? [], transaction, today))
+    .sort(
+      (a, b) =>
+        distanceOf(a) - distanceOf(b) ||
+        compareDates(a.date, b.date) ||
+        a.pair.plannedItemId - b.pair.plannedItemId,
+    );
 }

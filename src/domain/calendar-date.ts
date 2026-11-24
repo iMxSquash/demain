@@ -59,6 +59,15 @@ export function addDays(date: string, days: number): string {
   return candidate.year < MIN_YEAR || candidate.year > MAX_YEAR ? date : format(candidate);
 }
 
+const MS_PER_DAY = 86_400_000;
+
+/** The number of days from `from` to `to`, negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  return Math.round(
+    (toUtc(parseDate(to)).getTime() - toUtc(parseDate(from)).getTime()) / MS_PER_DAY,
+  );
+}
+
 // Past the supported years the date stays where it is, like `addDays`.
 /** The same day some months later (or earlier when negative), clamped to the length of that month. */
 export function addMonths(date: string, months: number): string {
