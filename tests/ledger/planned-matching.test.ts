@@ -569,6 +569,43 @@ describe("linking a transaction to an occurrence by hand", () => {
     expect(summaryOf(third.id)).toEqual([["Fuel", "2026-03-15", -7_000, "partial"]]);
   });
 
+  it("lists an overdue provision whose period has ended with nothing linked", () => {
+    oneOffItem("Fuel", "2026-01-15", { amount: -9_000, acceptsMultipleTransactions: true });
+    const late = enterExpense("2026-03-12", -500, "STATION LATE");
+
+    expect(summaryOf(late.id)).toEqual([["Fuel", "2026-01-15", -9_000, "overdue"]]);
+  });
+
+  it("does not list a provision with links whose period has ended", () => {
+    const provision = oneOffItem("Fuel", "2026-01-15", {
+      amount: -9_000,
+      acceptsMultipleTransactions: true,
+    });
+    const filled = enterExpense("2026-01-10", -2_000, "STATION JANUARY");
+    link({ transactionId: filled.id, plannedItemId: provision.id, nominalDate: "2026-01-15" });
+    const late = enterExpense("2026-03-12", -500, "STATION LATE");
+
+    expect(summaryOf(late.id)).toEqual([]);
+  });
+
+  it("refuses to link by hand a transaction that is already linked", () => {
+    const item = oneOffItem("Rent", "2026-03-10");
+    const other = oneOffItem("Gym", "2026-03-11");
+    const paid = enterExpense("2026-03-10", -1_000, "RENT");
+    link({ transactionId: paid.id, plannedItemId: item.id, nominalDate: "2026-03-10" });
+
+    const error = catchError(() =>
+      linkByHand(
+        db,
+        { transactionId: paid.id, plannedItemId: other.id, nominalDate: "2026-03-11" },
+        TODAY,
+      ),
+    );
+
+    expect(refOf(error)).toBe("matchTransactionAlreadyLinked");
+    expect(getTransaction(db, paid.id).plannedItemId).toBe(item.id);
+  });
+
   it("keeps the category of the transaction when linking by hand", () => {
     const groceries = createCategory(db, { name: "Groceries" });
     const item = oneOffItem("Groceries", "2026-03-10", { categoryId: groceries.id });

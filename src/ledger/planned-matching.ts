@@ -99,6 +99,22 @@ function isOccurrenceTaken(db: Pick<AppDatabase, "select">, pair: MatchPair): bo
   return other !== undefined;
 }
 
+function assertNotTransfer(transaction: Pick<Transaction, "kind">): void {
+  if (transaction.kind !== "transfer") return;
+  throw new PlannedLinkError(
+    "A transfer cannot be linked to a planned item",
+    messageRef("matchTransactionIsTransfer"),
+  );
+}
+
+function assertNotLinked(transaction: Pick<Transaction, "plannedItemId">): void {
+  if (transaction.plannedItemId === null) return;
+  throw new PlannedLinkError(
+    "The transaction is already linked to a planned item",
+    messageRef("matchTransactionAlreadyLinked"),
+  );
+}
+
 function readTransactionOrThrow(db: Pick<AppDatabase, "select">, id: number): Transaction {
   const transaction = db.select().from(transactions).where(eq(transactions.id, id)).get();
   if (transaction === undefined) {
@@ -123,18 +139,8 @@ export function linkTransactionToOccurrence(
   { inheritCategory = true }: { inheritCategory?: boolean } = {},
 ): void {
   const transaction = readTransactionOrThrow(db, pair.transactionId);
-  if (transaction.kind === "transfer") {
-    throw new PlannedLinkError(
-      "A transfer cannot be linked to a planned item",
-      messageRef("matchTransactionIsTransfer"),
-    );
-  }
-  if (transaction.plannedItemId !== null) {
-    throw new PlannedLinkError(
-      "The transaction is already linked to a planned item",
-      messageRef("matchTransactionAlreadyLinked"),
-    );
-  }
+  assertNotTransfer(transaction);
+  assertNotLinked(transaction);
   const item = db.select().from(plannedItems).where(eq(plannedItems.id, pair.plannedItemId)).get();
   if (item === undefined) {
     throw new PlannedLinkError(
@@ -561,8 +567,9 @@ function candidatesOf(
   for (const occurrence of resolved) {
     const { status } = occurrence;
     if (status !== "planned" && status !== "overdue" && status !== "partial") continue;
-    const isProvision = occurrence.period !== null;
-    const amount = isProvision ? occurrence.remaining : occurrence.expectedAmount;
+    // A provision with nothing linked resolves to overdue with nothing remaining, yet nothing
+    // settled it: only a partial one is reduced to what it still expects.
+    const amount = status === "partial" ? occurrence.remaining : occurrence.expectedAmount;
     if (amount === 0 || Math.sign(amount) !== Math.sign(transaction.amount)) continue;
     candidates.push({
       pair: {
@@ -625,12 +632,8 @@ export function listLinkCandidates(
 export function linkByHand(db: AppDatabase, pair: MatchPair, today: string): void {
   db.transaction((tx) => {
     const transaction = readTransactionOrThrow(tx, pair.transactionId);
-    if (transaction.kind === "transfer") {
-      throw new PlannedLinkError(
-        "A transfer cannot be linked to a planned item",
-        messageRef("matchTransactionIsTransfer"),
-      );
-    }
+    assertNotTransfer(transaction);
+    assertNotLinked(transaction);
     getOpenAccount(tx, transaction.accountId);
     const isProposed = listLinkCandidates(tx, pair.transactionId, today).some(
       ({ pair: proposed }) => comparePairs(proposed, pair) === 0,

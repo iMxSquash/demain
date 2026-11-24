@@ -19,7 +19,11 @@ import {
   type Transaction,
 } from "../../../../ledger/transactions";
 import { withDatabase } from "../../../../storage/with-database";
-import { unlinkOccurrenceAction, linkOccurrenceAction, updateTransactionAction } from "../../actions";
+import {
+  linkOccurrenceAction,
+  unlinkOccurrenceAction,
+  updateTransactionAction,
+} from "../../actions";
 import { occurrenceKey } from "../../planned-link-data";
 import { PlannedLinkForm, UnlinkButton } from "../../planned-link-form";
 import { TransactionForm } from "../../transaction-form";
@@ -104,32 +108,30 @@ async function EditTransaction({ params }: { params: Promise<{ id: string }> }) 
       <h1 className="text-heading font-medium">
         {t("editTitle", { label: transaction.label })}
       </h1>
-    <TransactionForm
-      action={updateTransactionAction.bind(null, transaction.id)}
-      initialValues={{
-        accountId: String(transaction.accountId),
-        date: transaction.date,
-        kind: transaction.kind,
-        amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
-        label: transaction.label,
-        description: transaction.description ?? "",
-        paymentMode: transaction.paymentMode ?? "",
-        categoryId:
-          transaction.categoryId === null ? "" : String(transaction.categoryId),
-      }}
-      accounts={accounts}
-      // An archived category the transaction already has stays selectable,
-      // otherwise saving would silently clear it.
-      categories={categories.filter(
-        (category) => !category.archived || category.id === transaction.categoryId,
-      )}
-      submitLabel={common("saveChanges")}
-    />
+      <TransactionForm
+        action={updateTransactionAction.bind(null, transaction.id)}
+        initialValues={{
+          accountId: String(transaction.accountId),
+          date: transaction.date,
+          kind: transaction.kind,
+          amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
+          label: transaction.label,
+          description: transaction.description ?? "",
+          paymentMode: transaction.paymentMode ?? "",
+          categoryId: transaction.categoryId === null ? "" : String(transaction.categoryId),
+        }}
+        accounts={accounts}
+        // An archived category the transaction already has stays selectable,
+        // otherwise saving would silently clear it.
+        categories={categories.filter(
+          (category) => !category.archived || category.id === transaction.categoryId,
+        )}
+        submitLabel={common("saveChanges")}
+      />
       <PlannedLinkSection transaction={transaction} currency={account.currency} />
     </>
   );
 }
-
 
 function PlannedLinkLayout({ heading, children }: { heading: string; children: ReactNode }) {
   return (
@@ -157,13 +159,13 @@ async function PlannedLinkSection({
   ]);
   const heading = t("heading");
 
-  if (transaction.plannedItemId !== null) {
-    // The item and the nominal date are written together, so a linked transaction has both.
-    const nominalDate = transaction.occurrenceDate!;
-    const { name } = withDatabase((db) => getPlannedItem(db, transaction.plannedItemId!));
+  const { plannedItemId, occurrenceDate } = transaction;
+  // The item and the nominal date are written together, so a linked transaction has both.
+  if (plannedItemId !== null && occurrenceDate !== null) {
+    const { name } = withDatabase((db) => getPlannedItem(db, plannedItemId));
     return (
       <PlannedLinkLayout heading={heading}>
-        <p>{t("linked", { name, date: formatCalendarDate(nominalDate, locale) })}</p>
+        <p>{t("linked", { name, date: formatCalendarDate(occurrenceDate, locale) })}</p>
         <form action={unlinkOccurrenceAction.bind(null, transaction.id)}>
           <UnlinkButton />
         </form>
