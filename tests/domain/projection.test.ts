@@ -595,6 +595,37 @@ describe("projectWithRouting", () => {
     expect(() => projectWithRouting(accounts, [], [transfer], TODAY, MARCH)).toThrow(RangeError);
   });
 
+  it("throws a RangeError for a non-integer remaining amount even when the chain is invalid", () => {
+    const accounts = [
+      account(),
+      livretJeune({ openingBalance: 0, overflowAccountId: LIVRET_A }),
+      livretA({ ceiling: 1000, overflowAccountId: LIVRET_JEUNE }),
+    ];
+    const transfer = transferItem(TRANSFER_ITEM, 100, LIVRET_JEUNE, { remaining: 100.5 });
+
+    expect(() => projectWithRouting(accounts, [], [transfer], TODAY, MARCH)).toThrow(RangeError);
+  });
+
+  it("throws a RangeError for a non-integer remaining amount when the destination is unknown", () => {
+    const accounts = [account()];
+    const transfer = transferItem(TRANSFER_ITEM, 100, 99, { remaining: 100.5 });
+
+    expect(() => projectWithRouting(accounts, [], [transfer], TODAY, MARCH)).toThrow(RangeError);
+  });
+
+  it("keeps the whole transfer on the destination when it has room and no overflow account", () => {
+    const accounts = [account(), livretA({ ceiling: 100000 })];
+
+    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, LIVRET_A)], TODAY, MARCH);
+
+    expect(result.transfers[0]?.routing).toEqual({
+      status: "ok",
+      placements: [{ accountId: LIVRET_A, amount: 20000 }],
+      unplaced: 0,
+      stoppedAt: LIVRET_A,
+    });
+  });
+
   it("applies a real deposit of the same day before a planned transfer", () => {
     const accounts = [account(), livretJeune(), livretA()];
     const real = [transactionFlow(1, SATURDAY, 3000, LIVRET_JEUNE)];
@@ -751,24 +782,40 @@ describe("projectWithRouting", () => {
     expect(balanceOn(result.days, SATURDAY, LIVRET_A)).toBe(20000);
   });
 
-  it("keeps the balances cumulative over the days after the transfer", () => {
+  describe("with a transfer between two real flows on the destination", () => {
     const accounts = [account(), livretJeune({ openingBalance: 150000 }), livretA()];
     const real = [transactionFlow(1, "2026-03-05", 3000, LIVRET_JEUNE), transactionFlow(2, "2026-03-20", -1000, LIVRET_JEUNE)];
+    const run = () => projectWithRouting(accounts, real, [transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE)], TODAY, MARCH);
 
-    const result = projectWithRouting(accounts, real, [transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE)], TODAY, MARCH);
+    it("routes the transfer from the running balance of its day", () => {
+      expect(placementsOf(run())).toEqual([
+        { accountId: LIVRET_JEUNE, amount: 7000 },
+        { accountId: LIVRET_A, amount: 3000 },
+      ]);
+    });
 
-    expect(placementsOf(result)).toEqual([
-      { accountId: LIVRET_JEUNE, amount: 7000 },
-      { accountId: LIVRET_A, amount: 3000 },
-    ]);
-    expect(balanceOn(result.days, "2026-03-14", LIVRET_JEUNE)).toBe(153000);
-    expect(balanceOn(result.days, "2026-03-14", LIVRET_A)).toBe(0);
-    expect(balanceOn(result.days, "2026-03-14", CHECKING)).toBe(100000);
-    expect(balanceOn(result.days, SATURDAY, LIVRET_JEUNE)).toBe(160000);
-    expect(balanceOn(result.days, SATURDAY, LIVRET_A)).toBe(3000);
-    expect(balanceOn(result.days, SATURDAY, CHECKING)).toBe(90000);
-    expect(balanceOn(result.days, "2026-03-20", LIVRET_JEUNE)).toBe(159000);
-    expect(balanceOn(result.days, MARCH.to, LIVRET_A)).toBe(3000);
-    expect(balanceOn(result.days, MARCH.to, CHECKING)).toBe(90000);
+    it("leaves the balances untouched by the transfer before its day", () => {
+      const { days } = run();
+
+      expect(balanceOn(days, "2026-03-14", LIVRET_JEUNE)).toBe(153000);
+      expect(balanceOn(days, "2026-03-14", LIVRET_A)).toBe(0);
+      expect(balanceOn(days, "2026-03-14", CHECKING)).toBe(100000);
+    });
+
+    it("applies the transfer on its day", () => {
+      const { days } = run();
+
+      expect(balanceOn(days, SATURDAY, LIVRET_JEUNE)).toBe(160000);
+      expect(balanceOn(days, SATURDAY, LIVRET_A)).toBe(3000);
+      expect(balanceOn(days, SATURDAY, CHECKING)).toBe(90000);
+    });
+
+    it("keeps the balances cumulative over the days after the transfer", () => {
+      const { days } = run();
+
+      expect(balanceOn(days, "2026-03-20", LIVRET_JEUNE)).toBe(159000);
+      expect(balanceOn(days, MARCH.to, LIVRET_A)).toBe(3000);
+      expect(balanceOn(days, MARCH.to, CHECKING)).toBe(90000);
+    });
   });
 });

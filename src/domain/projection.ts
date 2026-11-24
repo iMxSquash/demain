@@ -179,7 +179,7 @@ function buildEvents(
   return [...real, ...planned].sort(compareEvents);
 }
 
-// Flows of an unknown account are ignored, like in projectDailyBalances.
+// An account missing from the list belongs to another currency or scope, so its flows are the caller's concern.
 function addToTotal(totals: Map<number, number>, accountId: number, amount: number): void {
   const total = totals.get(accountId);
   if (total === undefined) return;
@@ -219,6 +219,9 @@ function applyPlanned(
   if (item.kind !== "transfer") {
     addToTotal(totals, item.accountId, occurrence.remaining);
     return null;
+  }
+  if (!Number.isSafeInteger(occurrence.remaining)) {
+    throw new RangeError("The amount of a planned transfer must be an integer");
   }
   const destinationId = transferDestination(item);
   if (!accounts.some((account) => account.id === destinationId)) {
