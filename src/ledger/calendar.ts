@@ -1,7 +1,8 @@
-import { addDays, daysInMonth } from "../domain/calendar-date";
+import { addDays } from "../domain/calendar-date";
 import { convertAmount } from "../domain/exchange-rate";
 import {
   resolveOccurrences,
+  type OccurrenceLink,
   type OccurrenceStatus,
   type ResolvedOccurrence,
 } from "../domain/occurrence-resolution";
@@ -11,6 +12,8 @@ import {
   type DailyBalance,
   type PlannedTransferRouting,
 } from "../domain/projection";
+import type { DateRange } from "../domain/recurrence";
+import { lastDayOfMonth } from "../domain/summary-assertions";
 import type { AppDatabase } from "../storage/database";
 import { listAccounts, type Account } from "./accounts";
 import { listCategories } from "./categories";
@@ -83,17 +86,7 @@ export interface CalendarMonth {
   unconvertedCurrencies: string[];
 }
 
-interface MonthRange {
-  from: string;
-  to: string;
-}
-
-function monthRange(month: string): MonthRange {
-  const [year = 0, monthNumber = 1] = month.split("-").map(Number);
-  return { from: `${month}-01`, to: `${month}-${String(daysInMonth(year, monthNumber)).padStart(2, "0")}` };
-}
-
-function datesOf({ from, to }: MonthRange): string[] {
+function datesOf({ from, to }: DateRange): string[] {
   const dates: string[] = [];
   for (let date = from; date <= to; date = addDays(date, 1)) dates.push(date);
   return dates;
@@ -188,6 +181,61 @@ function buildPlannedEntry(
   };
 }
 
+function realEntries(
+  transactions: readonly Transaction[],
+  accountsById: ReadonlyMap<number, Account>,
+  selected: ReadonlySet<number>,
+  range: DateRange,
+  categoryNames: ReadonlyMap<number, string>,
+): CalendarEntry[] {
+  return transactions.flatMap((transaction) => {
+    const account = accountsById.get(transaction.accountId);
+    const isListed =
+      account !== undefined &&
+      selected.has(account.id) &&
+      transaction.date >= range.from &&
+      transaction.date <= range.to;
+    return isListed ? [buildRealEntry(transaction, account, categoryNames)] : [];
+  });
+}
+
+function plannedEntries(
+  plannedItems: readonly PlannedItemWithDetails[],
+  accountsById: ReadonlyMap<number, Account>,
+  selected: ReadonlySet<number>,
+  links: ReadonlyMap<number, OccurrenceLink[]>,
+  routings: ReadonlyMap<string, PlannedTransferRouting>,
+  range: DateRange,
+  today: string,
+  categoryNames: ReadonlyMap<number, string>,
+): CalendarEntry[] {
+  return plannedItems.flatMap((item) => {
+    const account = accountsById.get(item.accountId);
+    const isSelected =
+      selected.has(item.accountId) ||
+      (item.destinationAccountId !== null && selected.has(item.destinationAccountId));
+    if (account === undefined || !isSelected) return [];
+    // Resolved over the month itself rather than from today, so that a past month still shows
+    // what was overdue or cancelled. A confirmed occurrence is listed through its transaction.
+    return resolveOccurrences(
+      {
+        schedule: toPlannedSchedule(item),
+        overrides: item.overrides,
+        matchWindowDays: item.matchWindowDays,
+        acceptsMultipleTransactions: item.acceptsMultipleTransactions,
+      },
+      links.get(item.id) ?? [],
+      range,
+      today,
+    )
+      .filter(
+        (occurrence) =>
+          occurrence.status !== "confirmed" && occurrence.date >= range.from && occurrence.date <= range.to,
+      )
+      .map((occurrence) => buildPlannedEntry(item, occurrence, account, categoryNames, routings));
+  });
+}
+
 // Real before planned, then by id, so that the order does not depend on the order of the reads.
 function compareEntries(a: CalendarEntry, b: CalendarEntry): number {
   if (a.kind !== b.kind) return a.kind === "real" ? -1 : 1;
@@ -202,7 +250,7 @@ export function getCalendarMonth(
   db: AppDatabase,
   { month, today, accountIds, currency }: CalendarOptions,
 ): CalendarMonth {
-  const range = monthRange(month);
+  const range = { from: `${month}-01`, to: lastDayOfMonth(month) };
   const accounts = listAccounts(db, { includeArchived: true });
   const accountsById = new Map(accounts.map((account) => [account.id, account]));
   const selected = new Set(accountIds);
@@ -236,38 +284,10 @@ export function getCalendarMonth(
   );
   const balances = convertDays(accountsById, projected, accountIds, currency, listExchangeRates(db));
 
-  const entries: CalendarEntry[] = [];
-  for (const transaction of transactions) {
-    const account = accountsById.get(transaction.accountId);
-    if (account === undefined || !selected.has(account.id)) continue;
-    if (transaction.date < range.from || transaction.date > range.to) continue;
-    entries.push(buildRealEntry(transaction, account, categoryNames));
-  }
-  for (const item of plannedItems) {
-    const account = accountsById.get(item.accountId);
-    const isSelected =
-      selected.has(item.accountId) ||
-      (item.destinationAccountId !== null && selected.has(item.destinationAccountId));
-    if (account === undefined || !isSelected) continue;
-    // Resolved over the month itself rather than from today, so that a past month still shows
-    // what was overdue or cancelled. A confirmed occurrence is listed through its transaction.
-    const occurrences = resolveOccurrences(
-      {
-        schedule: toPlannedSchedule(item),
-        overrides: item.overrides,
-        matchWindowDays: item.matchWindowDays,
-        acceptsMultipleTransactions: item.acceptsMultipleTransactions,
-      },
-      links.get(item.id) ?? [],
-      range,
-      today,
-    );
-    for (const occurrence of occurrences) {
-      if (occurrence.status === "confirmed") continue;
-      if (occurrence.date < range.from || occurrence.date > range.to) continue;
-      entries.push(buildPlannedEntry(item, occurrence, account, categoryNames, routings));
-    }
-  }
+  const entries = [
+    ...realEntries(transactions, accountsById, selected, range, categoryNames),
+    ...plannedEntries(plannedItems, accountsById, selected, links, routings, range, today, categoryNames),
+  ];
 
   const entriesByDate = Map.groupBy(entries, (entry) => entry.date);
   const totalByDate = new Map(

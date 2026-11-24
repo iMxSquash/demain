@@ -1,4 +1,4 @@
-import { CaretDown } from "@phosphor-icons/react/ssr";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
@@ -10,6 +10,7 @@ import { EmptyState } from "../../../components/data-display";
 import { Icon } from "../../../components/icon";
 import { SkeletonDataTable, SkeletonRegion } from "../../../components/skeleton";
 import { addMonths } from "../../../domain/calendar-date";
+import { monthOf } from "../../../domain/synthesis";
 import { formatMonth, todayIn } from "../../../i18n/dates";
 import { listAccounts } from "../../../ledger/accounts";
 import { getCalendarMonth } from "../../../ledger/calendar";
@@ -37,7 +38,6 @@ const ROUTE = "/calendar/lines";
 const ACCOUNT_FIELD_ID = "calendar-account";
 const MONTH_HEADING_ID = "calendar-month";
 const SKELETON_ROWS = 6;
-const MONTH_LENGTH = "YYYY-MM".length;
 const NAV_LINK_CLASS =
   "inline-flex size-11 items-center justify-center rounded-pill transition-colors hover:bg-control";
 
@@ -94,6 +94,21 @@ export default async function CalendarLinesPage({ searchParams }: { searchParams
   );
 }
 
+// The skeleton and the table share their headings, so a column is added in one place.
+function columnsText(
+  t: (key: `lines.columns.${keyof CalendarLinesTableText["columns"]}`) => string,
+): CalendarLinesTableText["columns"] {
+  return {
+    date: t("lines.columns.date"),
+    description: t("lines.columns.description"),
+    account: t("lines.columns.account"),
+    kind: t("lines.columns.kind"),
+    status: t("lines.columns.status"),
+    amount: t("lines.columns.amount"),
+    balance: t("lines.columns.balance"),
+  };
+}
+
 function CalendarLoading() {
   const t = useTranslations("calendar");
   const loading = useTranslations("loading");
@@ -104,15 +119,7 @@ function CalendarLoading() {
         caption={t("lines.loadingCaption")}
         head={
           <CalendarLinesHead
-            columns={{
-              date: t("lines.columns.date"),
-              description: t("lines.columns.description"),
-              account: t("lines.columns.account"),
-              kind: t("lines.columns.kind"),
-              status: t("lines.columns.status"),
-              amount: t("lines.columns.amount"),
-              balance: t("lines.columns.balance"),
-            }}
+            columns={columnsText(t)}
           />
         }
         columns={["start", "start", "start", "start", "start", "end", "end"]}
@@ -126,8 +133,7 @@ function hrefOf(month: string, accountKey: string): string {
   return `${ROUTE}?${new URLSearchParams({ month, account: accountKey })}`;
 }
 
-const monthOffset = (month: string, offset: number) =>
-  addMonths(`${month}-01`, offset).slice(0, MONTH_LENGTH);
+const monthOffset = (month: string, offset: number) => monthOf(addMonths(`${month}-01`, offset));
 
 async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
   const [t, locale, timeZone, params] = await Promise.all([
@@ -139,7 +145,7 @@ async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
   ]);
   // Read after the request is known, and outside the cached read: a cached "today" would go stale.
   const today = todayIn(timeZone, new Date());
-  const month = parseMonthParam(params.month, today.slice(0, MONTH_LENGTH));
+  const month = parseMonthParam(params.month, monthOf(today));
   const { calendar, selectable, accountNames, referenceCurrency, selectedKey } = await readCalendar(
     month,
     today,
@@ -151,15 +157,7 @@ async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
 
   const text: CalendarLinesTableText = {
     caption: t("lines.caption", { month: monthName }),
-    columns: {
-      date: t("lines.columns.date"),
-      description: t("lines.columns.description"),
-      account: t("lines.columns.account"),
-      kind: t("lines.columns.kind"),
-      status: t("lines.columns.status"),
-      amount: t("lines.columns.amount"),
-      balance: t("lines.columns.balance"),
-    },
+    columns: columnsText(t),
     kinds: { real: t("lines.kinds.real"), planned: t("lines.kinds.planned") },
     statuses: {
       planned: t("lines.statuses.planned"),
@@ -186,9 +184,7 @@ async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
             aria-label={t("previousMonth", { month: formatMonth(previous, locale) })}
             className={NAV_LINK_CLASS}
           >
-            <span className="rotate-90">
-              <Icon icon={CaretDown} />
-            </span>
+            <Icon icon={CaretLeft} />
           </Link>
           <h2
             id={MONTH_HEADING_ID}
@@ -202,9 +198,7 @@ async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
             aria-label={t("nextMonth", { month: formatMonth(next, locale) })}
             className={NAV_LINK_CLASS}
           >
-            <span className="-rotate-90">
-              <Icon icon={CaretDown} />
-            </span>
+            <Icon icon={CaretRight} />
           </Link>
         </div>
         <form method="get" action={ROUTE} className="flex w-full items-end gap-2 @min-[640px]:ml-auto @min-[640px]:w-auto">
