@@ -63,11 +63,10 @@ export function RealChartView({
 
   const lowestSeries = visibleSeries.find((entry) => entry.id === LOWEST_SERIES_ID);
   const lowestIndex = lowestSeries ? lowestPlannedIndex(lowestSeries.values, todayIndex) : null;
-  const lowestLabel = lowestIndex === null ? undefined : lowestSeries?.valueLabels[lowestIndex];
   const lowest =
-    lowestIndex === null || lowestLabel === undefined
-      ? undefined
-      : { seriesId: LOWEST_SERIES_ID, index: lowestIndex, label: lowestLabel };
+    lowestSeries && lowestIndex !== null
+      ? { seriesId: lowestSeries.id, index: lowestIndex, label: lowestSeries.valueLabels[lowestIndex] ?? "" }
+      : undefined;
   const heading = tableHeading ?? text.caption;
 
   return (
