@@ -5,6 +5,7 @@ import { convertAmount } from "../domain/exchange-rate";
 import { resolveOccurrences, type OccurrenceLink } from "../domain/occurrence-resolution";
 import {
   projectWithRouting,
+  type DailyBalance,
   type PlannedItemOccurrences,
   type ProjectionAccount,
   type ProjectionFlow,
@@ -13,7 +14,7 @@ import { monthOf, type Month } from "../domain/synthesis";
 import type { AppDatabase } from "../storage/database";
 import { transactions } from "../storage/schema";
 import { listAccounts, type Account } from "./accounts";
-import { listExchangeRates } from "./exchange-rates";
+import { listExchangeRates, type StoredExchangeRate } from "./exchange-rates";
 import { listPlannedItems, toPlannedSchedule, type PlannedItemWithDetails } from "./planned-items";
 import { listTransactions } from "./transactions";
 
@@ -114,6 +115,30 @@ function resolveItem(
   };
 }
 
+// Totals are summed per kind in the reference currency; an account whose currency has no rate at
+// the month-end date is left out and reported, rather than counted at a wrong value.
+function monthEndTotals(
+  accounts: readonly Account[],
+  days: readonly DailyBalance[],
+  ends: readonly MonthEndDate[],
+  referenceCurrency: string,
+  rates: readonly StoredExchangeRate[],
+): PlannedMonthEnd[] {
+  const balancesByDate = new Map(days.map((day) => [day.date, day.balances]));
+  return ends.map(({ month, date }) => {
+    const totals = { checking: 0, savings: 0 };
+    const unconverted = new Set<string>();
+    for (const account of accounts) {
+      const balance = balancesByDate.get(date)?.get(account.id);
+      if (balance === undefined || account.kind === "other") continue;
+      const converted = convertAmount(balance, account.currency, referenceCurrency, date, rates);
+      if (converted === null) unconverted.add(account.currency);
+      else totals[account.kind] += converted;
+    }
+    return { month, ...totals, unconvertedCurrencies: [...unconverted].sort() };
+  });
+}
+
 /**
  * Month-end totals of the checking and savings accounts from the start of the current month:
  * the real transactions so far plus the dated planned items still expected (DOMAIN, the real
@@ -147,26 +172,14 @@ export function getPlannedTrajectory(
   // Flows dated before `from` weigh on its first day, so balances at each month end are exact.
   const rates = listExchangeRates(db);
   const range = { from: `${ends[0]!.month}-01`, to: lastEnd.date };
-  const project = (planned: readonly PlannedItemOccurrences[]) => {
-    const balancesByDate = new Map(
-      projectWithRouting(projectionAccounts, realFlows, planned, today, range).days.map((day) => [
-        day.date,
-        day.balances,
-      ]),
+  const project = (planned: readonly PlannedItemOccurrences[]) =>
+    monthEndTotals(
+      accounts,
+      projectWithRouting(projectionAccounts, realFlows, planned, today, range).days,
+      ends,
+      referenceCurrency,
+      rates,
     );
-    return ends.map(({ month, date }) => {
-      const totals = { checking: 0, savings: 0 };
-      const unconverted = new Set<string>();
-      for (const account of accounts) {
-        const balance = balancesByDate.get(date)?.get(account.id);
-        if (balance === undefined || account.kind === "other") continue;
-        const converted = convertAmount(balance, account.currency, referenceCurrency, date, rates);
-        if (converted === null) unconverted.add(account.currency);
-        else totals[account.kind] += converted;
-      }
-      return { month, ...totals, unconvertedCurrencies: [...unconverted].sort() };
-    });
-  };
   const withPlanned = project(items);
   const baseline = project([]);
   const isUnchanged = withPlanned.every(
