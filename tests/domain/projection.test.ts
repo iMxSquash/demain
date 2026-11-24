@@ -5,6 +5,7 @@ import { addDays } from "../../src/domain/calendar-date";
 import type { ResolvedOccurrence } from "../../src/domain/occurrence-resolution";
 import {
   firstDayBelowZero,
+  lowestPlannedIndex,
   plannedFlows,
   projectDailyBalances,
   projectWithRouting,
@@ -817,5 +818,28 @@ describe("projectWithRouting", () => {
       expect(balanceOn(days, MARCH.to, LIVRET_A)).toBe(3000);
       expect(balanceOn(days, MARCH.to, CHECKING)).toBe(90000);
     });
+  });
+});
+
+describe("lowestPlannedIndex", () => {
+  it("ignores the real months and today, even when they are lower", () => {
+    expect(lowestPlannedIndex([-500, 10, 300, 200, 400], 1)).toBe(3);
+  });
+
+  it("returns the earliest index on a tie", () => {
+    expect(lowestPlannedIndex([0, 50, 20, 20, 90], 0)).toBe(2);
+  });
+
+  it("returns null when no month is planned", () => {
+    expect(lowestPlannedIndex([10, 20, 30], 2)).toBeNull();
+    expect(lowestPlannedIndex([], 0)).toBeNull();
+  });
+
+  it("handles negative values", () => {
+    expect(lowestPlannedIndex([100, -20, -300, -150], 0)).toBe(2);
+  });
+
+  it("finds the only planned month", () => {
+    expect(lowestPlannedIndex([5, 7], 0)).toBe(1);
   });
 });
