@@ -201,8 +201,8 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
 - **Navigation, narrow:**
   - the logo and a round "Add transaction" button at the top;
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
-  - **Until Calendar (M2) and Simulations (M3) exist:** the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land.
-  - **The other pages on a phone** (owner, 12 Nov 2026): a 44 px icon button with `GearSix` and the label "Settings" sits in the top bar next to "Add transaction". `/settings` ends with a "More" list of the pages that have no tab: Balances, Categories, Rules, Currencies, Backup, Security, each with its icon.
+  - **Until Simulations (M3) exists:** the tab bar holds Overview, Calendar, Accounts and Imports (owner, 12 Nov 2026; Calendar took the place of Transactions with #173). Simulations takes the place of Imports when it lands.
+  - **The other pages on a phone** (owner, 12 Nov 2026): a 44 px icon button with `GearSix` and the label "Settings" sits in the top bar next to "Add transaction". `/settings` ends with a "More" list of the pages that have no tab: Transactions, Balances, Categories, Rules, Currencies, Backup, Security, each with its icon.
 - **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Both controls live on this page only. Sign out sits at the end of this page, an interim place until the owner decides one.
 
   Use a container query on the app frame, not a media query.
@@ -859,13 +859,13 @@ Example, a negative balance: "21 November, today, end-of-day balance -85.00 EUR,
 | Page Up, Page Down | A month before, after (the day is kept or clamped to the last day of a shorter month); with Shift a year |
 | Enter, Space | Select the day: the details panel shows it, the cell is `aria-selected="true"` and drawn selected |
 
-Moving does not select, and a key that leaves the month changes the month shown (the title is announced, the focus lands on the resulting date). The date arithmetic is `addDays` and `addMonths` of the date picker. There is no Escape: nothing opens.
+Moving does not select, and a key that would leave the month stops on the first or last day of the month shown (the focus is clamped, the month is changed with the arrows of the header; the owner confirms this, the alternative being to change the month shown). The date arithmetic is `addDays` and `addMonths` of the date picker. There is no Escape: nothing opens.
 
 **Day details** (under the grid, `mt-4`)
 - **Card:** `bg-surface rounded-card`, padding 24 (16 on a phone), a `region` named by its heading. Reading order: heading, balance, entries.
 - **Heading:** an `h3` of 20 px (`text-title`) with the date, "Sat 21 Nov 2026", and for today the word "Today" 8 px after it in `text-accent font-medium`. The heading line is a polite live region, so selecting a day is announced.
 - **Balance:** the end-of-day balance first, in `text-amount` (36 px, regular, tabular), the words "End-of-day balance" under it in `text-label` uppercase muted. When below zero, "Below zero" in `text-body font-medium text-negative` follows the figure. An unplaced surplus adds the line "Unplaced surplus: €100.00 stays in Current, Savings B is full." (`text-caption text-warning`, the words of section 10). These lines are on phone and wide alike.
-- **Entries:** an `h4` of 15 px medium holds the counts in words ("2 real, 1 planned"), then a list of entries 16 px under it. A day without entries says "No entries on this day." in muted text.
+- **Entries:** the counts in words ("2 real, 1 planned") are the caption of the entries table (the heading of the list on a phone), so that its region is not named like the card; the entries follow. A day without entries says "No entries on this day." in muted text.
 - **Entry, wide:** a grid of five columns, `grid-cols-[72px_minmax(0,1fr)_96px_112px_auto] gap-4 items-center`, `min-h-14` (56 px), a hairline above (`divider` for a real entry, 1 px `border-dashed border-border-control` for a planned one):
   1. The kind word, "Real" or "Planned" (`text-caption font-medium`, ink or muted);
   2. The description (`text-body font-medium`, ink or muted) over the account (`text-caption text-text-muted`); under them, for a planned income above a ceiling, the ceiling line (below);
@@ -1002,7 +1002,7 @@ Settings stays at the foot (`GearSix`).
 
 **Phone tab bar**: Overview, Calendar, Accounts, Imports, in the 343 px pill track with 52 px items (section 6), the current one in ink. Their icons are `ChartLine`, `CalendarBlank`, `Wallet`, `TrayArrowDown`. **Transactions** and **To pay** are rows of the "More" list at the end of `/settings`, each with its icon; the "To pay" row carries the count badge. The Settings button of the top bar gets no badge, and neither does the tab bar. The due count on a phone is the link "To pay (n)" of the calendar header, next to "Planned items" (owner, 24 Nov 2026): the number is visible, and the name says it in words ("To pay, 3 due"). The row of "To pay" in the More list keeps its count badge. **Planned** has no tab and no row: the link "Planned items" of the calendar header stays its way in (#173 Q1).
 
-What the older texts say. Section 6: "the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land", and the More list is "Balances, Categories, Rules, Currencies, Backup, Security". ROADMAP, "Phone layout details": "a floating tab bar (Overview, Transactions, Accounts, Imports until Calendar and Simulations land) and the other pages in the More list of `/settings`". Both are interim wording: the owner's comments of 19 Nov 2026 on #173 and #178 give the final lists above, with Transactions and To pay in the More list. The two texts are left as they are until #173 lands; nothing here is a second decision.
+What the older texts say. Section 6: "the tab bar holds Overview, Transactions, Accounts and Imports (owner, 12 Nov 2026). Calendar takes the place of Transactions and Simulations the place of Imports when they land", and the More list is "Balances, Categories, Rules, Currencies, Backup, Security". ROADMAP, "Phone layout details": "a floating tab bar (Overview, Transactions, Accounts, Imports until Calendar and Simulations land) and the other pages in the More list of `/settings`". Both are interim wording: the owner's comments of 19 Nov 2026 on #173 and #178 give the final lists above, with Transactions and To pay in the More list. Section 6 and the ROADMAP row were updated when #173 landed; nothing here is a second decision.
 
 ### Phone layout
 

@@ -4,6 +4,7 @@ import {
   formatCalendarDate,
   formatFullCalendarDate,
   formatMonth,
+  formatMonthName,
   formatShortMonth,
   formatWeekday,
   todayIn,
@@ -20,6 +21,13 @@ describe("formatMonth", () => {
   it("writes the month name and the year", () => {
     expect(formatMonth("2026-03", "fr")).toBe("mars 2026");
     expect(formatMonth("2026-03", "en")).toBe("March 2026");
+  });
+});
+
+describe("formatMonthName", () => {
+  it("writes the month name alone, without the year", () => {
+    expect(formatMonthName("2026-11", "fr")).toBe("novembre");
+    expect(formatMonthName("2026-11", "en")).toBe("November");
   });
 });
 

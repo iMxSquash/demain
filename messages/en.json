@@ -70,15 +70,18 @@
       "rules": "Rules",
       "currencies": "Currencies",
       "backup": "Backup",
-      "security": "Security"
+      "security": "Security",
+      "transactions": "Transactions"
     }
   },
   "navigation": {
     "label": "Main",
     "overview": "Overview",
+    "calendar": "Calendar",
     "transactions": "Transactions",
     "accounts": "Accounts",
     "imports": "Imports",
+    "planned": "Planned",
     "toCategorize": "To categorize",
     "queueCount": "{count, plural, one {# transaction} other {# transactions}}",
     "settings": "Settings",
@@ -328,7 +331,13 @@
   "calendar": {
     "metaTitle": "Calendar lines | Demain",
     "metaTitleMonth": "Calendar lines, {month} | Demain",
+    "gridMetaTitle": "Calendar | Demain",
+    "gridMetaTitleMonth": "Calendar, {month} | Demain",
     "title": "Calendar",
+    "plannedLink": "Planned items",
+    "viewLabel": "Calendar view",
+    "viewGrid": "Grid",
+    "viewLines": "Lines",
     "previousMonth": "Previous month, {month}",
     "nextMonth": "Next month, {month}",
     "accountLabel": "Daily balance",
@@ -338,6 +347,26 @@
     "show": "Show",
     "noChecking": "No active checking account. Add one to see its daily balance.",
     "noCheckingAction": "Add an account",
+    "grid": {
+      "loadingLabel": "Loading the calendar",
+      "legend": "Solid dot: real entries. Hollow ring: planned entries. Bar: below zero.",
+      "today": "Today",
+      "belowZero": "Below zero",
+      "unplacedSurplus": "Unplaced surplus",
+      "real": "{count, plural, one {# real} other {# real}}",
+      "planned": "{count, plural, one {# planned} other {# planned}}",
+      "name": {
+        "today": "today",
+        "balance": "end-of-day balance",
+        "noEntries": "no entries",
+        "belowZero": "below zero",
+        "unplacedSurplus": "unplaced surplus"
+      },
+      "details": {
+        "balance": "End-of-day balance",
+        "noEntries": "No entries on this day."
+      }
+    },
     "lines": {
       "caption": "Lines of {month}",
       "loadingCaption": "Lines of the month",

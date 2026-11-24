@@ -114,7 +114,7 @@ describe("settings page", () => {
     ]);
   });
 
-  it("links to the six pages of the More list, each with a name and an icon", async () => {
+  it("links to the seven pages of the More list, each with a name and an icon", async () => {
     openSession(false);
 
     const html = await renderSettings();
@@ -125,6 +125,7 @@ describe("settings page", () => {
       hasIcon: (match[2] ?? "").includes("<svg"),
     }));
     expect(links).toEqual([
+      { href: "/transactions", text: "Transactions", hasIcon: true },
       { href: "/balances", text: "Balances", hasIcon: true },
       { href: "/categories", text: "Categories", hasIcon: true },
       { href: "/rules", text: "Rules", hasIcon: true },

@@ -37,6 +37,13 @@ export function formatMonth(month: string, locale: string): string {
   }).format(new Date(`${month}-01T00:00:00Z`));
 }
 
+/** The month name alone, "November": the day of a cell says its own month. `month` is "YYYY-MM". */
+export function formatMonthName(month: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+}
+
 /** A compact `formatMonth` for an axis label: "Jan 26". `month` is "YYYY-MM". */
 export function formatShortMonth(month: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
