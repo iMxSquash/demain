@@ -168,6 +168,28 @@ describe("monthly line table", () => {
     expect(listOf(html)).toContain("Checking to Savings");
   });
 
+  it("shows the amount of a move between accounts without a sign", () => {
+    const html = render(
+      monthOf({
+        20: {
+          entries: [
+            entry({
+              id: "p2:2026-11-20",
+              kind: "planned",
+              status: "planned",
+              label: "Monthly saving",
+              destinationAccountId: SAVINGS_ID,
+              amount: -30_000,
+            }),
+          ],
+        },
+      }),
+    );
+
+    expect(tableOf(html)).toContain(formatAmount(30_000, "EUR", "en"));
+    expect(tableOf(html)).not.toContain(formatAmount(-30_000, "EUR", "en"));
+  });
+
   describe("balance at the end of the day", () => {
     it("appears on the last row of each day only", () => {
       const html = render(

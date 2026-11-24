@@ -87,7 +87,12 @@ function lineViewOf(
       entry.status === null
         ? null
         : { label: text.statuses[entry.status], tone: entry.status === "overdue" ? "warning" : "neutral" },
-    amount: formatAmount(entry.amount, entry.currency, locale),
+    // A move says "X to Y": a sign would claim a direction for the selected account.
+    amount: formatAmount(
+      entry.destinationAccountId === null ? entry.amount : Math.abs(entry.amount),
+      entry.currency,
+      locale,
+    ),
     notes,
   };
 }
