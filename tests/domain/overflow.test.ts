@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertOverflowTargetAllowed,
+  overflowChainProblem,
   overflowTargetsOf,
   routeAlongOverflowChain,
   type OverflowAccount,
@@ -275,5 +276,67 @@ describe("overflowTargetsOf", () => {
     ];
 
     expect(overflowTargetsOf(accounts).map(({ id }) => id)).toEqual([1]);
+  });
+});
+
+describe("overflowChainProblem", () => {
+  it("returns null for a sound chain", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID }),
+    ];
+
+    expect(overflowChainProblem(LIVRET_JEUNE_ID, accounts)).toBeNull();
+  });
+
+  it("returns null for an account without overflow account", () => {
+    expect(overflowChainProblem(LIVRET_A_ID, [account({ id: LIVRET_A_ID })])).toBeNull();
+  });
+
+  it("returns null for an unknown start account", () => {
+    expect(overflowChainProblem(99, [account({ id: LIVRET_A_ID })])).toBeNull();
+  });
+
+  it("reports a cycle through two accounts", () => {
+    const accounts = [
+      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+    ];
+
+    expect(overflowChainProblem(LIVRET_A_ID, accounts)).toBe("cycle");
+  });
+
+  it("reports an account that overflows to itself", () => {
+    const accounts = [account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_A_ID })];
+
+    expect(overflowChainProblem(LIVRET_A_ID, accounts)).toBe("cycle");
+  });
+
+  it("reports a link to an account of another currency", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID, currency: "USD" }),
+    ];
+
+    expect(overflowChainProblem(LIVRET_JEUNE_ID, accounts)).toBe("currency");
+  });
+
+  it("reports a link to an archived account", () => {
+    const accounts = [
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID, archived: true }),
+    ];
+
+    expect(overflowChainProblem(LIVRET_JEUNE_ID, accounts)).toBe("archived");
+  });
+
+  it("terminates and reports a cycle reachable from a start that is not in the loop", () => {
+    const accounts = [
+      account({ id: CHECKING_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+    ];
+
+    expect(overflowChainProblem(CHECKING_ID, accounts)).toBe("cycle");
   });
 });

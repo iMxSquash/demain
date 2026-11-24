@@ -122,6 +122,33 @@ export function routeAlongOverflowChain<Id extends AccountRef = number>(
   return { status: "ok", placements, unplaced: remaining, stoppedAt };
 }
 
+export type OverflowChainProblem = "cycle" | "currency" | "archived";
+
+/**
+ * What is wrong with the chain that starts at `startId`, if anything. A cycle
+ * wins over the other problems, which are then reported in chain order. The
+ * start itself is not checked for being archived: the caller chose it. Null
+ * when the chain is sound or `startId` is unknown.
+ */
+export function overflowChainProblem<Id extends AccountRef = number>(
+  startId: Id,
+  accounts: readonly Pick<
+    OverflowAccount<Id>,
+    "id" | "currency" | "archived" | "overflowAccountId"
+  >[],
+): OverflowChainProblem | null {
+  const byId = new Map(accounts.map((account) => [account.id, account]));
+  const { accounts: chain, hasLoop } = walkOverflowChain(startId, byId);
+  if (hasLoop) return "cycle";
+
+  for (let index = 1; index < chain.length; index += 1) {
+    const link = chain[index]!;
+    if (link.currency !== chain[index - 1]!.currency) return "currency";
+    if (link.archived) return "archived";
+  }
+  return null;
+}
+
 /** The accounts that may take a surplus: active savings accounts (ADR-013). */
 export function overflowTargetsOf<T extends { kind: string; archived: boolean }>(
   accounts: readonly T[],

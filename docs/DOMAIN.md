@@ -460,12 +460,15 @@ Provisions follow the linking rules of the previous section instead of the windo
 
 ### Daily balance of the real trajectory
 
-The pure projection of the daily balances of each account, shared by the calendar, the monthly line view and the real chart (`src/domain/projection.ts`: `plannedFlows`, `projectDailyBalances`, `firstDayBelowZero`). It holds real transactions and explicitly dated planned occurrences only (invariants 8 and 9, ADR-011). Unplanned spending is never estimated: what was spent per category in the past adds nothing to the future.
+The pure projection of the daily balances of each account, shared by the calendar, the monthly line view and the real chart (`src/domain/projection.ts`: `plannedFlows`, `projectDailyBalances`, `projectWithRouting`, `firstDayBelowZero`; the check of a chain, `overflowChainProblem`, is in `src/domain/overflow.ts`). It holds real transactions and explicitly dated planned occurrences only (invariants 8 and 9, ADR-011). Unplanned spending is never estimated: what was spent per category in the past adds nothing to the future.
 
 - **Real transactions** are flows at their own date, including those dated after today (entered in advance).
 - **Planned occurrences** (`plannedFlows`): only `planned` and `partial` occurrences count, at their `remaining` amount. A `confirmed` occurrence is not counted, since its transactions are already among the real ones and nothing is counted twice. `overdue` and `cancelled` occurrences count for nothing.
 - **Date of a flow.** An occurrence dated on or after today is counted at its date. An occurrence whose date has passed but whose window is still open (`planned`) is counted at today. The remaining amount of a partial provision whose nominal date has passed while its period is still open is counted at today too; the flow keeps `nominalDate` in its source so it can be traced. Once the period is over the remaining amount is 0 (see Provisions) and nothing is counted.
-- **Planned transfer.** It gives two flows: the negative amount on the source account and the opposite amount on the destination. No deposit ceiling and no overflow routing is applied at this stage (planned in a later slice, #170).
+- **Planned transfer.** `plannedFlows` gives two flows: the negative amount on the source account and the opposite amount on the destination, and `projectDailyBalances` adds them as they are: neither applies a deposit ceiling or any routing. `projectWithRouting` does: it splits a planned transfer along the overflow chain of its destination from the running balances of its day, through the same pure routing as manual and imported transfers. The source is debited only by what is placed. The surplus that fits nowhere stays on the source and is reported on the record of the transfer (`PlannedTransferRouting`: `plannedItemId`, `nominalDate`, `date`, `amount`, and `routing` with its `placements`, `unplaced` and `stoppedAt`).
+- **Same-day order.** `projectWithRouting` applies its events in one global order by effective date. On the same day, real transactions come first, then planned occurrences by planned item id, then by nominal date. This holds for every planned occurrence, not only transfers: an expense of a lower id frees room, an income of a lower id uses it up. The order follows the true effective date of each event, not the first day of the displayed range. Real transactions of the same day are not ordered among themselves, since only transfers are routed and sums commute.
+- **Invalid chain.** If the chain from the destination of a planned transfer is corrupted (a cycle, a link to another currency, a link to an archived account, as reported by `overflowChainProblem`), the transfer is reported as invalid with the reason and nothing moves: neither the debit nor the credit. This is the projection's handling, consistent with Defensive evaluation, of a configuration that the saves are meant to prevent.
+- **Unknown destination and unrouted flows.** A transfer whose destination account is not among the given accounts is debited in full on the source and not credited, like any flow of an unknown account. An income or an interest above a ceiling is applied as it is, with no routing. How to signal an income above a ceiling is still an open point and is not specified here.
 - **End-of-day balance** (`projectDailyBalances`) is the opening balance plus every flow of the account up to and including the day (invariant 8). An account has no balance before its opening date.
 - **First day below zero** (`firstDayBelowZero`) is the first day on which the sum of the given accounts is strictly negative, otherwise none.
 - **One currency.** The projection works on accounts of the same currency: converting to the reference currency is the job of the caller.
@@ -476,6 +479,11 @@ Decisions of the owner on the projection, 24 Nov 2026 (open questions of issue #
 - Q1 (b), the remaining amount of a partial provision whose nominal date has passed while its period is still open is counted at today.
 - Q1 (c), an overdue occurrence is not counted. A cancelled or a confirmed occurrence is not counted either.
 - Q2, a real transaction dated after today is counted at its own date.
+
+Decisions of the owner on the routing of planned transfers (issue #170):
+
+- Events of the same day are applied with real transactions first, then planned occurrences by planned item id, then by nominal date.
+- A planned income above a ceiling is flagged in the text like an entered income. The form of the flag is not decided yet.
 
 ## Estimated variable spending
 
