@@ -575,6 +575,23 @@
       "keypad": "Pavé numérique du montant",
       "keypadDecimal": "Séparateur décimal",
       "keypadBackspace": "Effacer"
+    },
+    "plannedLink": {
+      "heading": "Élément prévu",
+      "linked": "Liée à {name}, occurrence du {date}.",
+      "unlink": "Détacher",
+      "unlinkPending": "Détachement...",
+      "selectLabel": "Occurrence à lier",
+      "selectHint": "Occurrences non réglées de ce compte, les plus proches de la transaction en premier. Le lien ne change pas la catégorie.",
+      "option": "{name}, {date}, {amount}, {status}",
+      "status": {
+        "planned": "prévue",
+        "overdue": "en retard",
+        "partial": "partiellement réglée"
+      },
+      "link": "Lier",
+      "linkPending": "Liaison...",
+      "none": "Aucune occurrence prévue non réglée, de même signe que cette transaction, ne peut être liée sur ce compte."
     }
   },
   "categories": {
@@ -1323,7 +1340,9 @@
     "vocabularyWordRemoved": "Mot retiré.",
     "vocabularyWordRestored": "Mot restauré.",
     "vocabularyNotChanged": "Une erreur est survenue, le vocabulaire n'a pas été modifié.",
-    "categoryIconUnknown": "Cette icône n'existe pas"
+    "categoryIconUnknown": "Cette icône n'existe pas",
+    "occurrenceLinked": "Transaction liée à l'élément prévu.",
+    "occurrenceUnlinked": "Transaction détachée de l'élément prévu."
   },
   "auth": {
     "signOut": "Se déconnecter",

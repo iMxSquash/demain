@@ -575,6 +575,23 @@
       "keypad": "Amount keypad",
       "keypadDecimal": "Decimal separator",
       "keypadBackspace": "Backspace"
+    },
+    "plannedLink": {
+      "heading": "Planned item",
+      "linked": "Linked to {name}, occurrence of {date}.",
+      "unlink": "Unlink",
+      "unlinkPending": "Unlinking...",
+      "selectLabel": "Occurrence to link",
+      "selectHint": "Unsettled occurrences of this account, the closest to the transaction first. Linking does not change the category.",
+      "option": "{name}, {date}, {amount}, {status}",
+      "status": {
+        "planned": "planned",
+        "overdue": "overdue",
+        "partial": "partially settled"
+      },
+      "link": "Link",
+      "linkPending": "Linking...",
+      "none": "No unsettled planned occurrence with the sign of this transaction can be linked on this account."
     }
   },
   "categories": {
@@ -1323,7 +1340,9 @@
     "vocabularyWordRemoved": "Word removed.",
     "vocabularyWordRestored": "Word restored.",
     "vocabularyNotChanged": "Something went wrong, the vocabulary was not changed.",
-    "categoryIconUnknown": "This icon does not exist"
+    "categoryIconUnknown": "This icon does not exist",
+    "occurrenceLinked": "Transaction linked to the planned item.",
+    "occurrenceUnlinked": "Transaction unlinked from the planned item."
   },
   "auth": {
     "signOut": "Sign out",
