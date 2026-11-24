@@ -55,7 +55,7 @@ function monthEnds(today: string, count: number): MonthEndDate[] {
   });
 }
 
-function toProjectionAccount(account: Account): ProjectionAccount {
+export function toProjectionAccount(account: Account): ProjectionAccount {
   return {
     id: account.id,
     currency: account.currency,
@@ -69,7 +69,7 @@ function toProjectionAccount(account: Account): ProjectionAccount {
 
 // The links of the planned items, read apart from the matching module so that the projection
 // does not depend on its internals: a settled occurrence must not be counted a second time.
-function linksByItem(db: AppDatabase, itemIds: number[]): Map<number, OccurrenceLink[]> {
+export function linksByItem(db: AppDatabase, itemIds: number[]): Map<number, OccurrenceLink[]> {
   if (itemIds.length === 0) return new Map();
   const rows = db
     .select({
@@ -89,7 +89,7 @@ function linksByItem(db: AppDatabase, itemIds: number[]): Map<number, Occurrence
   );
 }
 
-function resolveItem(
+export function resolveItem(
   item: PlannedItemWithDetails,
   links: readonly OccurrenceLink[],
   today: string,
