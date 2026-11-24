@@ -7,7 +7,13 @@ import { useFormStatus } from "react-dom";
 import { Button } from "../../components/button";
 import { Select } from "../../components/select";
 import { FormField } from "../form-field";
-import { OCCURRENCE_FIELD } from "./planned-link-data";
+import { OCCURRENCE_FIELD, PLANNED_LINK_HEADING_ID } from "./planned-link-data";
+
+// The button that was activated is unmounted once the section shows its new state, which would
+// drop the focus on the body (WCAG 2.4.3): it moves to the heading of the section instead.
+function focusSectionHeading(): void {
+  document.getElementById(PLANNED_LINK_HEADING_ID)?.focus();
+}
 
 interface PlannedLinkFormProps {
   action: (formData: FormData) => Promise<void>;
@@ -20,11 +26,12 @@ export function PlannedLinkForm({ action, options }: PlannedLinkFormProps) {
   // The outcome is a toast: the state only exists to know when the call is pending.
   const [, formAction, isPending] = useActionState(async (_previous: null, formData: FormData) => {
     await action(formData);
+    focusSectionHeading();
     return null;
   }, null);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex max-w-md flex-col gap-4">
       <FormField id="planned-link-occurrence" label={t("selectLabel")} hint={t("selectHint")}>
         <Select id="planned-link-occurrence" name={OCCURRENCE_FIELD} defaultValue={options[0]?.key}>
           {options.map((option) => (
@@ -46,8 +53,20 @@ export function PlannedLinkForm({ action, options }: PlannedLinkFormProps) {
   );
 }
 
-/** The submit button of the unlink form, which the server page renders. */
-export function UnlinkButton() {
+export function UnlinkForm({ action }: { action: () => Promise<void> }) {
+  return (
+    <form
+      action={async () => {
+        await action();
+        focusSectionHeading();
+      }}
+    >
+      <UnlinkButton />
+    </form>
+  );
+}
+
+function UnlinkButton() {
   const t = useTranslations("transactions.plannedLink");
   const { pending } = useFormStatus();
 

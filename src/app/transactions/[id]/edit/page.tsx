@@ -24,8 +24,8 @@ import {
   unlinkOccurrenceAction,
   updateTransactionAction,
 } from "../../actions";
-import { occurrenceKey } from "../../planned-link-data";
-import { PlannedLinkForm, UnlinkButton } from "../../planned-link-form";
+import { occurrenceKey, PLANNED_LINK_HEADING_ID } from "../../planned-link-data";
+import { PlannedLinkForm, UnlinkForm } from "../../planned-link-form";
 import { TransactionForm } from "../../transaction-form";
 import { requireSession } from "../../../auth/session";
 
@@ -135,8 +135,8 @@ async function EditTransaction({ params }: { params: Promise<{ id: string }> }) 
 
 function PlannedLinkLayout({ heading, children }: { heading: string; children: ReactNode }) {
   return (
-    <section aria-labelledby="planned-link-heading" className="flex flex-col gap-4">
-      <h2 id="planned-link-heading" className="text-title font-medium">
+    <section aria-labelledby={PLANNED_LINK_HEADING_ID} className="flex flex-col gap-4">
+      <h2 id={PLANNED_LINK_HEADING_ID} tabIndex={-1} className="text-title font-medium">
         {heading}
       </h2>
       {children}
@@ -166,9 +166,7 @@ async function PlannedLinkSection({
     return (
       <PlannedLinkLayout heading={heading}>
         <p>{t("linked", { name, date: formatCalendarDate(occurrenceDate, locale) })}</p>
-        <form action={unlinkOccurrenceAction.bind(null, transaction.id)}>
-          <UnlinkButton />
-        </form>
+        <UnlinkForm action={unlinkOccurrenceAction.bind(null, transaction.id)} />
       </PlannedLinkLayout>
     );
   }
