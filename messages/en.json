@@ -325,6 +325,51 @@
     "categoryArchived": "{name} (archived)",
     "saveDetails": "Save details"
   },
+  "calendar": {
+    "metaTitle": "Calendar lines | Demain",
+    "metaTitleMonth": "Calendar lines, {month} | Demain",
+    "title": "Calendar",
+    "previousMonth": "Previous month, {month}",
+    "nextMonth": "Next month, {month}",
+    "accountLabel": "Daily balance",
+    "accountHint": "Real transactions and dated planned items only.",
+    "checkingOption": "Checking accounts, {currency}",
+    "accountOption": "{name}, {currency}",
+    "show": "Show",
+    "noChecking": "No active checking account. Add one to see its daily balance.",
+    "noCheckingAction": "Add an account",
+    "lines": {
+      "caption": "Lines of {month}",
+      "loadingCaption": "Lines of the month",
+      "columns": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Account",
+        "kind": "Kind",
+        "status": "Status",
+        "amount": "Amount",
+        "balance": "Balance at end of day"
+      },
+      "kinds": {
+        "real": "Real",
+        "planned": "Planned, dated"
+      },
+      "statuses": {
+        "planned": "Planned",
+        "partial": "Partial",
+        "confirmed": "Confirmed",
+        "overdue": "Overdue",
+        "cancelled": "Cancelled"
+      },
+      "belowZero": "Below zero",
+      "belowZeroFrom": "Below zero from {date}",
+      "unplacedSurplus": "Unplaced surplus: {amount} stays in {account}.",
+      "routingInvalid": "The overflow chain of this transfer is invalid.",
+      "transferTo": "{from} to {to}",
+      "empty": "No entry this month.",
+      "unconverted": "No exchange rate for {currencies}: these accounts are left out of the balance."
+    }
+  },
   "balances": {
     "metaTitle": "Balance assertions | Demain",
     "title": "Balance assertions: {name}",

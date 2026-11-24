@@ -56,3 +56,13 @@ export function todayIn(timeZone: string, now: Date): string {
     day: "2-digit",
   }).format(now);
 }
+
+/** A compact day with its weekday, "Sat, Nov 21": a row of a list that is read day by day. */
+export function formatWeekdayDate(date: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
