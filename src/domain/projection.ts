@@ -78,16 +78,20 @@ export function projectDailyBalances(
   range: DateRange,
 ): DailyBalance[] {
   const totals = new Map<number, number>(accounts.map((account) => [account.id, 0]));
-  // One sort, then a running total per account: each flow is applied once whatever the range length.
-  const sortedFlows = flows
-    .filter((flow) => totals.has(flow.accountId))
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  // Flows dated before the range still weigh on its first day, so they are bucketed there.
+  // Each flow is then applied once, whatever the range length.
+  const flowsByDay = new Map<string, ProjectionFlow[]>();
+  for (const flow of flows) {
+    if (!totals.has(flow.accountId)) continue;
+    const day = flow.date < range.from ? range.from : flow.date;
+    const bucket = flowsByDay.get(day) ?? [];
+    bucket.push(flow);
+    flowsByDay.set(day, bucket);
+  }
 
   const days: DailyBalance[] = [];
-  let next = 0;
   for (let date = range.from; date <= range.to; date = addDays(date, 1)) {
-    for (; next < sortedFlows.length && sortedFlows[next]!.date <= date; next++) {
-      const flow = sortedFlows[next]!;
+    for (const flow of flowsByDay.get(date) ?? []) {
       totals.set(flow.accountId, (totals.get(flow.accountId) ?? 0) + flow.amount);
     }
     const balances = new Map<number, number>();
