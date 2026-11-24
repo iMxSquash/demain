@@ -136,6 +136,16 @@ describe("plannedFlows", () => {
     expect(flows).toContainEqual({ accountId: SAVINGS, date: "2026-03-15", amount: 20000, source });
   });
 
+  it("refuses a planned transfer without a destination account", () => {
+    const transfer = item([occurrence({ remaining: -20000 })], {
+      plannedItemId: TRANSFER_ITEM,
+      kind: "transfer",
+      destinationAccountId: null,
+    });
+
+    expect(() => plannedFlows([transfer], TODAY)).toThrow(`Planned transfer ${TRANSFER_ITEM} has no destination account`);
+  });
+
   it("moves a transfer by its absolute amount whatever the sign it carries", () => {
     const transfer = item([occurrence({ remaining: 20000 })], {
       plannedItemId: TRANSFER_ITEM,
