@@ -2,9 +2,11 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import {
   ArrowsDownUp,
+  CalendarBlank,
   ChartLine,
   GearSix,
   Plus,
+  Repeat,
   Tray,
   TrayArrowDown,
   Wallet,
@@ -17,13 +19,17 @@ import { Logo } from "../../components/logo";
 import styles from "./app-shell.module.css";
 import { NavLink } from "./nav-link";
 
-// The interim tab bar (DESIGN section 6): Calendar replaces Transactions in M2, Simulations
-// replaces Imports in M3. The sidebar shows the same four, then the queue and Settings.
+// One list for both layouts (DESIGN section 18, "Navigation"). The phone tab bar holds the items
+// that are not `wideOnly`: Overview, Calendar, Accounts and Imports (Simulations replaces Imports
+// in M3). The sidebar shows all of them, then the queue and Settings. On a phone, Transactions is
+// a row of the More list of /settings and Planned is reached from the calendar header.
 const TABS = [
   { href: "/", key: "overview", icon: ChartLine },
-  { href: "/transactions", key: "transactions", icon: ArrowsDownUp },
+  { href: "/calendar", key: "calendar", icon: CalendarBlank },
+  { href: "/transactions", key: "transactions", icon: ArrowsDownUp, wideOnly: true },
   { href: "/accounts", key: "accounts", icon: Wallet },
   { href: "/imports", key: "imports", icon: TrayArrowDown },
+  { href: "/planned", key: "planned", icon: Repeat, wideOnly: true },
 ] as const;
 
 const QUEUE_HREF = "/categories";
@@ -75,11 +81,11 @@ export async function AppShell({ toCategorizeCount, children }: AppShellProps) {
           </header>
           <nav aria-label={t("label")} className={styles.nav}>
             <ul className={styles.tabs}>
-              {TABS.map(({ href, key, icon }) => (
-                <li key={href}>
-                  <NavLink href={href} className={styles.item}>
-                    <Icon icon={icon} />
-                    {t(key)}
+              {TABS.map((tab) => (
+                <li key={tab.href} className={"wideOnly" in tab ? styles.wideOnly : undefined}>
+                  <NavLink href={tab.href} className={styles.item}>
+                    <Icon icon={tab.icon} />
+                    {t(tab.key)}
                   </NavLink>
                 </li>
               ))}

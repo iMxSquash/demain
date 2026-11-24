@@ -70,15 +70,18 @@
       "rules": "Règles",
       "currencies": "Devises",
       "backup": "Sauvegarde",
-      "security": "Sécurité"
+      "security": "Sécurité",
+      "transactions": "Transactions"
     }
   },
   "navigation": {
     "label": "Principale",
     "overview": "Aperçu",
+    "calendar": "Calendrier",
     "transactions": "Transactions",
     "accounts": "Comptes",
     "imports": "Imports",
+    "planned": "Prévu",
     "toCategorize": "À catégoriser",
     "queueCount": "{count, plural, one {# transaction} other {# transactions}}",
     "settings": "Réglages",
@@ -328,7 +331,13 @@
   "calendar": {
     "metaTitle": "Lignes du calendrier | Demain",
     "metaTitleMonth": "Lignes du calendrier, {month} | Demain",
+    "gridMetaTitle": "Calendrier | Demain",
+    "gridMetaTitleMonth": "Calendrier, {month} | Demain",
     "title": "Calendrier",
+    "plannedLink": "Éléments planifiés",
+    "viewLabel": "Vue du calendrier",
+    "viewGrid": "Grille",
+    "viewLines": "Lignes",
     "previousMonth": "Mois précédent, {month}",
     "nextMonth": "Mois suivant, {month}",
     "accountLabel": "Solde quotidien",
@@ -338,6 +347,26 @@
     "show": "Afficher",
     "noChecking": "Aucun compte courant actif. Ajoutez-en un pour voir son solde quotidien.",
     "noCheckingAction": "Ajouter un compte",
+    "grid": {
+      "loadingLabel": "Chargement du calendrier",
+      "legend": "Point plein : écritures réelles. Anneau creux : écritures prévues. Barre : sous zéro.",
+      "today": "Aujourd'hui",
+      "belowZero": "Sous zéro",
+      "unplacedSurplus": "Excédent non placé",
+      "real": "{count, plural, one {# réelle} other {# réelles}}",
+      "planned": "{count, plural, one {# prévue} other {# prévues}}",
+      "name": {
+        "today": "aujourd'hui",
+        "balance": "solde de fin de journée",
+        "noEntries": "aucune écriture",
+        "belowZero": "sous zéro",
+        "unplacedSurplus": "excédent non placé"
+      },
+      "details": {
+        "balance": "Solde de fin de journée",
+        "noEntries": "Aucune écriture ce jour-là."
+      }
+    },
     "lines": {
       "caption": "Lignes de {month}",
       "loadingCaption": "Lignes du mois",

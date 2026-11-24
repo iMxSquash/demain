@@ -5,15 +5,22 @@
 
 import { messageRef, type MessageRef } from "./message";
 
+/** How the currency is written: "€1,143.88" (symbol) or "EUR 1,143.88" (code, which a screen reader spells out). */
+type CurrencyDisplay = "symbol" | "code";
+
 const formatters = new Map<string, Intl.NumberFormat>();
 
 // Building an Intl.NumberFormat is far more expensive than using it, and imports
 // format or parse thousands of amounts with the same few currencies.
-function getCurrencyFormatter(locale: string, currency: string): Intl.NumberFormat {
-  const key = `${locale}|${currency}`;
+function getCurrencyFormatter(
+  locale: string,
+  currency: string,
+  currencyDisplay: CurrencyDisplay = "symbol",
+): Intl.NumberFormat {
+  const key = `${locale}|${currency}|${currencyDisplay}`;
   let formatter = formatters.get(key);
   if (formatter === undefined) {
-    formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
+    formatter = new Intl.NumberFormat(locale, { style: "currency", currency, currencyDisplay });
     formatters.set(key, formatter);
   }
   return formatter;
@@ -298,6 +305,7 @@ export function formatAmount(
   minorUnits: number,
   currency: string,
   locale: string,
+  currencyDisplay: CurrencyDisplay = "symbol",
 ): string {
   if (!Number.isSafeInteger(minorUnits)) {
     throw new RangeError(`formatAmount expects a safe integer, got ${minorUnits}`);
@@ -307,7 +315,7 @@ export function formatAmount(
   // the decimal point instead of us dividing or slicing digits.
   const exactDecimal = `${minorUnits}E-${currencyDecimals(currency)}` as `${number}`;
 
-  return getCurrencyFormatter(locale, currency).format(exactDecimal);
+  return getCurrencyFormatter(locale, currency, currencyDisplay).format(exactDecimal);
 }
 
 /**

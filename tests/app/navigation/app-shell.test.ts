@@ -41,6 +41,15 @@ function linksOf(html: string): { href: string; text: string; isCurrent: boolean
   });
 }
 
+const navOf = (html: string) => /<nav [^>]*aria-label="Main"[^>]*>(.*?)<\/nav>/.exec(html)?.[1] ?? "";
+
+/** The navigation without what only the wide sidebar shows (an element with a `wideOnly` class). */
+function phoneNavOf(html: string): string {
+  return navOf(html)
+    .replace(/<ul [^>]*class="[^"]*wideOnly[^"]*"[^>]*>.*?<\/ul>/g, "")
+    .replace(/<li [^>]*class="[^"]*wideOnly[^"]*"[^>]*>.*?<\/li>/g, "");
+}
+
 describe("app shell navigation", () => {
   it("marks only the current page with aria-current", async () => {
     const html = await renderShell("/accounts");
@@ -63,18 +72,49 @@ describe("app shell navigation", () => {
     expect(current.map((link) => link.href)).toEqual(["/settings", "/settings"]);
   });
 
-  it("lists the four tabs, then the queue with its count in words", async () => {
+  // Contract: the phone tab bar and the wide sidebar share one list. An item that only the sidebar
+  // shows (Transactions, Planned, To categorize, Settings) sits in an element whose class
+  // contains `wideOnly` (its `li`, or the `ul` of the foot); the CSS module hides it under 900 px.
+  // The tab bar is therefore the links of the navigation that are not inside a `wideOnly` element.
+  it("lists Overview, Calendar, Accounts and Imports in the phone tab bar", async () => {
     const html = await renderShell("/", 3);
 
-    const nav = /<nav [^>]*aria-label="Main"[^>]*>(.*?)<\/nav>/.exec(html)?.[1] ?? "";
-    expect(linksOf(nav).map(({ href, text }) => [href, text])).toEqual([
+    expect(linksOf(phoneNavOf(html)).map(({ href, text }) => [href, text])).toEqual([
       ["/", "Overview"],
+      ["/calendar", "Calendar"],
+      ["/accounts", "Accounts"],
+      ["/imports", "Imports"],
+    ]);
+  });
+
+  it("keeps Transactions out of the phone tab bar and in the wide sidebar", async () => {
+    const html = await renderShell("/", 3);
+
+    expect(linksOf(phoneNavOf(html)).map((link) => link.href)).not.toContain("/transactions");
+    expect(linksOf(navOf(html)).map((link) => link.href)).toContain("/transactions");
+  });
+
+  it("lists the wide sidebar in order, then the queue with its count in words and Settings", async () => {
+    const html = await renderShell("/", 3);
+
+    expect(linksOf(navOf(html)).map(({ href, text }) => [href, text])).toEqual([
+      ["/", "Overview"],
+      ["/calendar", "Calendar"],
       ["/transactions", "Transactions"],
       ["/accounts", "Accounts"],
       ["/imports", "Imports"],
+      ["/planned", "Planned"],
       ["/categories", "To categorize3, 3 transactions"],
       ["/settings", "Settings"],
     ]);
+  });
+
+  it.each(["/calendar", "/calendar/lines"])("marks Calendar as the current page on %s", async (path) => {
+    const html = await renderShell(path);
+
+    const current = linksOf(phoneNavOf(html)).filter((link) => link.isCurrent);
+    expect(current.map((link) => link.href)).toEqual(["/calendar"]);
+    expect(linksOf(navOf(html)).filter((link) => link.isCurrent).map((link) => link.href)).toEqual(["/calendar"]);
   });
 
   it("hides the badge digits from assistive technology and names the count in words", async () => {

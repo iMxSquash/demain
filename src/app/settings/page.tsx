@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import {
   Archive,
+  ArrowsDownUp,
   CurrencyEur,
   Funnel,
   Scales,
@@ -19,6 +20,7 @@ import { LocaleSwitcher } from "../locale/locale-switcher";
 import { ThemeSwitcher } from "../theme/theme-switcher";
 
 const MORE_LINKS = [
+  { href: "/transactions", key: "transactions", icon: ArrowsDownUp },
   { href: "/balances", key: "balances", icon: Scales },
   { href: "/categories", key: "categories", icon: Tag },
   { href: "/rules", key: "rules", icon: Funnel },
