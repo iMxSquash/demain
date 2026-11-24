@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
-import { formatEditableAmount } from "../../../../domain/money";
+import { formatAmount, formatEditableAmount } from "../../../../domain/money";
+import { formatCalendarDate, todayIn } from "../../../../i18n/dates";
 import { getAccount, listAccounts } from "../../../../ledger/accounts";
 import { listCategories } from "../../../../ledger/categories";
+import { listLinkCandidates } from "../../../../ledger/planned-matching";
+import { getPlannedItem } from "../../../../ledger/planned-items";
 import {
   getTransaction,
   TransactionNotFoundError,
+  type Transaction,
 } from "../../../../ledger/transactions";
 import { withDatabase } from "../../../../storage/with-database";
-import { updateTransactionAction } from "../../actions";
+import {
+  linkOccurrenceAction,
+  unlinkOccurrenceAction,
+  updateTransactionAction,
+} from "../../actions";
+import { occurrenceKey, PLANNED_LINK_HEADING_ID } from "../../planned-link-data";
+import { PlannedLinkForm, UnlinkForm } from "../../planned-link-form";
 import { TransactionForm } from "../../transaction-form";
 import { requireSession } from "../../../auth/session";
 
@@ -98,27 +108,93 @@ async function EditTransaction({ params }: { params: Promise<{ id: string }> }) 
       <h1 className="text-heading font-medium">
         {t("editTitle", { label: transaction.label })}
       </h1>
-    <TransactionForm
-      action={updateTransactionAction.bind(null, transaction.id)}
-      initialValues={{
-        accountId: String(transaction.accountId),
-        date: transaction.date,
-        kind: transaction.kind,
-        amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
-        label: transaction.label,
-        description: transaction.description ?? "",
-        paymentMode: transaction.paymentMode ?? "",
-        categoryId:
-          transaction.categoryId === null ? "" : String(transaction.categoryId),
-      }}
-      accounts={accounts}
-      // An archived category the transaction already has stays selectable,
-      // otherwise saving would silently clear it.
-      categories={categories.filter(
-        (category) => !category.archived || category.id === transaction.categoryId,
-      )}
-      submitLabel={common("saveChanges")}
-    />
+      <TransactionForm
+        action={updateTransactionAction.bind(null, transaction.id)}
+        initialValues={{
+          accountId: String(transaction.accountId),
+          date: transaction.date,
+          kind: transaction.kind,
+          amount: formatEditableAmount(Math.abs(transaction.amount), account.currency),
+          label: transaction.label,
+          description: transaction.description ?? "",
+          paymentMode: transaction.paymentMode ?? "",
+          categoryId: transaction.categoryId === null ? "" : String(transaction.categoryId),
+        }}
+        accounts={accounts}
+        // An archived category the transaction already has stays selectable,
+        // otherwise saving would silently clear it.
+        categories={categories.filter(
+          (category) => !category.archived || category.id === transaction.categoryId,
+        )}
+        submitLabel={common("saveChanges")}
+      />
+      <PlannedLinkSection transaction={transaction} currency={account.currency} />
     </>
+  );
+}
+
+function PlannedLinkLayout({ heading, children }: { heading: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby={PLANNED_LINK_HEADING_ID} className="flex flex-col gap-4">
+      <h2 id={PLANNED_LINK_HEADING_ID} tabIndex={-1} className="text-title font-medium">
+        {heading}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** Shows the occurrence the transaction settles, or lets the owner choose one to link it to. */
+async function PlannedLinkSection({
+  transaction,
+  currency,
+}: {
+  transaction: Transaction;
+  currency: string;
+}) {
+  const [t, locale, timeZone] = await Promise.all([
+    getTranslations("transactions.plannedLink"),
+    getLocale(),
+    getTimeZone(),
+  ]);
+  const heading = t("heading");
+
+  const { plannedItemId, occurrenceDate } = transaction;
+  // The item and the nominal date are written together, so a linked transaction has both.
+  if (plannedItemId !== null && occurrenceDate !== null) {
+    const { name } = withDatabase((db) => getPlannedItem(db, plannedItemId));
+    return (
+      <PlannedLinkLayout heading={heading}>
+        <p>{t("linked", { name, date: formatCalendarDate(occurrenceDate, locale) })}</p>
+        <UnlinkForm action={unlinkOccurrenceAction.bind(null, transaction.id)} />
+      </PlannedLinkLayout>
+    );
+  }
+
+  const candidates = withDatabase((db) =>
+    listLinkCandidates(db, transaction.id, todayIn(timeZone, new Date())),
+  );
+  if (candidates.length === 0) {
+    return (
+      <PlannedLinkLayout heading={heading}>
+        <p>{t("none")}</p>
+      </PlannedLinkLayout>
+    );
+  }
+  return (
+    <PlannedLinkLayout heading={heading}>
+      <PlannedLinkForm
+        action={linkOccurrenceAction.bind(null, transaction.id)}
+        options={candidates.map((candidate) => ({
+          key: occurrenceKey(candidate.pair.plannedItemId, candidate.nominalDate),
+          text: t("option", {
+            name: candidate.plannedItemName,
+            date: formatCalendarDate(candidate.date, locale),
+            amount: formatAmount(candidate.amount, currency, locale),
+            status: t(`status.${candidate.status}`),
+          }),
+        }))}
+      />
+    </PlannedLinkLayout>
   );
 }

@@ -1,10 +1,12 @@
 "use server";
 
-import { getLocale } from "next-intl/server";
+import { getLocale, getTimeZone } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
+import { todayIn } from "../../i18n/dates";
 import {
   TransactionValidationError,
   type CeilingWarning,
@@ -13,6 +15,7 @@ import {
 } from "../../domain/transaction";
 import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
 import { CategoryNotFoundError } from "../../ledger/categories";
+import { linkByHand, PlannedLinkError, unlinkByHand } from "../../ledger/planned-matching";
 import {
   createTransaction,
   deleteTransaction,
@@ -42,6 +45,7 @@ import {
   type TransferFormState,
   type TransferFormValues,
 } from "./transaction-form-data";
+import { OCCURRENCE_FIELD, parseOccurrenceKey } from "./planned-link-data";
 import { TRANSFER_DECISION } from "./transfer-decision";
 
 const TRANSACTIONS_PATH = "/transactions";
@@ -312,4 +316,52 @@ export async function createTransferAction(
   }
   if (outcome.isRecorded) await flashSuccess("transferRecorded");
   return outcome.state;
+}
+
+const transactionIdSchema = z.number().int().min(1);
+
+function describeLinkFailure(error: unknown): MessageRef {
+  if (error instanceof PlannedLinkError || error instanceof TransactionValidationError) {
+    return error.ref;
+  }
+  console.error("Planned link action failed", error);
+  return messageRef("nothingSaved");
+}
+
+/** Links a transaction to the occurrence chosen by hand. The category is never changed. */
+export async function linkOccurrenceAction(
+  transactionId: number,
+  formData: FormData,
+): Promise<void> {
+  await requireSession();
+  const timeZone = await getTimeZone();
+  // Never trust the browser: the ledger checks the choice again against its candidates.
+  const id = transactionIdSchema.safeParse(transactionId);
+  const chosen = parseOccurrenceKey(formData.get(OCCURRENCE_FIELD));
+  if (!id.success || chosen === null) {
+    await flashError(messageRef("matchNotProposed"));
+    return;
+  }
+  const today = todayIn(timeZone, new Date());
+
+  await runWithNotice(
+    () => withDatabase((db) => linkByHand(db, { transactionId: id.data, ...chosen }, today)),
+    { success: "occurrenceLinked", describeFailure: describeLinkFailure },
+  );
+  refreshData();
+}
+
+/** Clears the link of a transaction. */
+export async function unlinkOccurrenceAction(transactionId: number): Promise<void> {
+  await requireSession();
+  const id = transactionIdSchema.safeParse(transactionId);
+  if (!id.success) {
+    await flashError(messageRef("transactionGone"));
+    return;
+  }
+  await runWithNotice(() => withDatabase((db) => unlinkByHand(db, id.data)), {
+    success: "occurrenceUnlinked",
+    describeFailure: describeLinkFailure,
+  });
+  refreshData();
 }

@@ -450,6 +450,12 @@ Decisions of the owner on matching, 19 Nov 2026:
 - Q2, a transaction that is a candidate for a provision and for a regular occurrence goes to the proposed group. Nothing is applied silently.
 - Q3, a transaction that fits two provisions goes to the proposed group.
 
+**Linking by hand.** The user can link an unmatched transaction to an occurrence, and unlink a transaction, from the edit page of the transaction (`listLinkCandidates`, `linkByHand` and `unlinkByHand` in `src/ledger/planned-matching.ts`, which wrap `linkTransactionToOccurrence` and `unlinkTransaction`). This is the usual way to settle a transaction entered by hand, since matching runs after imports only. The buttons of the line view and of the calendar come later (#178).
+
+- The candidates of a manual link are every occurrence of a non-cancelled planned item on the same account as the transaction, of the same sign, that is neither settled nor cancelled, sorted by the distance between the occurrence date and the transaction date (ties: the earlier date, then the planned item). No window and no amount tolerance apply: the owner knows better. A provision is unsettled while it is still planned, partial, or overdue with nothing linked; a provision with linked transactions whose period has ended is settled, its leftover dropped. A transfer and an already linked transaction have no candidate (decision Q2 of issue #168, 19 Nov 2026).
+- A manual link never changes the category of the transaction (unlike an automatic match, which gives the category of the item to a transaction without one) and never changes the planned item (invariant 6). A regular occurrence refuses a second transaction (invariant 5), checked on the server at each write.
+- Unlinking a manual link leaves the category alone, since it was not inherited. Unlinking an automatic match clears the category only when it came from the match, as described above.
+
 Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones. A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers are ignored here (#175).
 
 ## Estimated variable spending

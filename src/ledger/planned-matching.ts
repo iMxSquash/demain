@@ -1,8 +1,13 @@
 import { and, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 
+import { addDays, daysBetween } from "../domain/calendar-date";
 import { compareDates } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
-import { resolveOccurrences, type OccurrenceLink } from "../domain/occurrence-resolution";
+import {
+  resolveOccurrences,
+  type OccurrenceLink,
+  type OccurrenceStatus,
+} from "../domain/occurrence-resolution";
 import {
   comparePairs,
   decideMatches,
@@ -17,7 +22,7 @@ import type { AppDatabase } from "../storage/database";
 import { plannedItems, transactions } from "../storage/schema";
 import { getImportBatch } from "./import-batch-lookup";
 import { listPlannedItems, toPlannedSchedule, type PlannedItemWithDetails } from "./planned-items";
-import type { Transaction } from "./transactions";
+import { getOpenAccount, type Transaction } from "./transactions";
 
 type Executor = Pick<AppDatabase, "select" | "update">;
 
@@ -66,12 +71,13 @@ function writeLink(
   transaction: Transaction,
   item: Pick<PlannedItemRow, "id" | "categoryId">,
   nominalDate: string,
+  inheritCategory = true,
 ): void {
   db.update(transactions)
     .set({
       plannedItemId: item.id,
       occurrenceDate: nominalDate,
-      ...(inheritsCategory(item, transaction)
+      ...(inheritCategory && inheritsCategory(item, transaction)
         ? { categoryId: item.categoryId, categoryFromPlannedItem: true }
         : {}),
     })
@@ -93,36 +99,48 @@ function isOccurrenceTaken(db: Pick<AppDatabase, "select">, pair: MatchPair): bo
   return other !== undefined;
 }
 
+function assertNotTransfer(transaction: Pick<Transaction, "kind">): void {
+  if (transaction.kind !== "transfer") return;
+  throw new PlannedLinkError(
+    "A transfer cannot be linked to a planned item",
+    messageRef("matchTransactionIsTransfer"),
+  );
+}
+
+function assertNotLinked(transaction: Pick<Transaction, "plannedItemId">): void {
+  if (transaction.plannedItemId === null) return;
+  throw new PlannedLinkError(
+    "The transaction is already linked to a planned item",
+    messageRef("matchTransactionAlreadyLinked"),
+  );
+}
+
+function readTransactionOrThrow(db: Pick<AppDatabase, "select">, id: number): Transaction {
+  const transaction = db.select().from(transactions).where(eq(transactions.id, id)).get();
+  if (transaction === undefined) {
+    throw new PlannedLinkError(
+      `Transaction ${id} does not exist`,
+      messageRef("matchTransactionUnknown"),
+    );
+  }
+  return transaction;
+}
+
 /**
  * Links a transaction to the occurrence of a planned item (DOMAIN, invariant 5). The transaction
  * must exist, not be a transfer, not be linked yet and be on the account of the item; a regular
  * occurrence takes one transaction, a provision any number. A transaction without category takes
- * the category of the item, and remembers it came from there.
+ * the category of the item, and remembers it came from there, unless `inheritCategory` is false
+ * (a link made by hand leaves the category alone).
  */
-export function linkTransactionToOccurrence(db: Executor, pair: MatchPair): void {
-  const transaction = db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.id, pair.transactionId))
-    .get();
-  if (transaction === undefined) {
-    throw new PlannedLinkError(
-      `Transaction ${pair.transactionId} does not exist`,
-      messageRef("matchTransactionUnknown"),
-    );
-  }
-  if (transaction.kind === "transfer") {
-    throw new PlannedLinkError(
-      "A transfer cannot be linked to a planned item",
-      messageRef("matchTransactionIsTransfer"),
-    );
-  }
-  if (transaction.plannedItemId !== null) {
-    throw new PlannedLinkError(
-      "The transaction is already linked to a planned item",
-      messageRef("matchTransactionAlreadyLinked"),
-    );
-  }
+export function linkTransactionToOccurrence(
+  db: Executor,
+  pair: MatchPair,
+  { inheritCategory = true }: { inheritCategory?: boolean } = {},
+): void {
+  const transaction = readTransactionOrThrow(db, pair.transactionId);
+  assertNotTransfer(transaction);
+  assertNotLinked(transaction);
   const item = db.select().from(plannedItems).where(eq(plannedItems.id, pair.plannedItemId)).get();
   if (item === undefined) {
     throw new PlannedLinkError(
@@ -142,22 +160,12 @@ export function linkTransactionToOccurrence(db: Executor, pair: MatchPair): void
       messageRef("matchOccurrenceTaken"),
     );
   }
-  writeLink(db, transaction, item, pair.nominalDate);
+  writeLink(db, transaction, item, pair.nominalDate, inheritCategory);
 }
 
 /** Clears the link. A category the link gave goes with it; one chosen by hand stays. */
 export function unlinkTransaction(db: Executor, transactionId: number): void {
-  const transaction = db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.id, transactionId))
-    .get();
-  if (transaction === undefined) {
-    throw new PlannedLinkError(
-      `Transaction ${transactionId} does not exist`,
-      messageRef("matchTransactionUnknown"),
-    );
-  }
+  const transaction = readTransactionOrThrow(db, transactionId);
   db.update(transactions)
     .set({
       plannedItemId: null,
@@ -515,6 +523,135 @@ export function undoMatch(db: AppDatabase, batchId: number, transactionId: numbe
         messageRef("matchNotInBatch"),
       );
     }
+    unlinkTransaction(tx, transactionId);
+  });
+}
+
+/** An unsettled occurrence the owner can link a transaction to by hand. */
+export interface LinkCandidate {
+  pair: MatchPair;
+  plannedItemName: string;
+  nominalDate: string;
+  /** The effective date of the occurrence, after overrides and the business-day rule. */
+  date: string;
+  /** Integer minor units: the expected amount, or what a provision still expects. */
+  amount: number;
+  status: Extract<OccurrenceStatus, "planned" | "overdue" | "partial">;
+}
+
+// Only bounds the generation of open-ended recurrences: it is not a matching rule.
+const LINK_CANDIDATE_HORIZON_DAYS = 366;
+
+function candidatesOf(
+  item: PlannedItemWithDetails,
+  links: readonly OccurrenceLink[],
+  transaction: Transaction,
+  today: string,
+): LinkCandidate[] {
+  const lastDate = today > transaction.date ? today : transaction.date;
+  const resolved = resolveOccurrences(
+    {
+      schedule: toPlannedSchedule(item),
+      overrides: item.overrides,
+      matchWindowDays: item.matchWindowDays,
+      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
+    },
+    links,
+    {
+      from: item.startDate,
+      to: addDays(lastDate, LINK_CANDIDATE_HORIZON_DAYS),
+    },
+    today,
+  );
+  const candidates: LinkCandidate[] = [];
+  for (const occurrence of resolved) {
+    const { status } = occurrence;
+    if (status !== "planned" && status !== "overdue" && status !== "partial") continue;
+    // A provision with nothing linked resolves to overdue with nothing remaining, yet nothing
+    // settled it: only a partial one is reduced to what it still expects.
+    const amount = status === "partial" ? occurrence.remaining : occurrence.expectedAmount;
+    if (amount === 0 || Math.sign(amount) !== Math.sign(transaction.amount)) continue;
+    candidates.push({
+      pair: {
+        transactionId: transaction.id,
+        plannedItemId: item.id,
+        nominalDate: occurrence.nominalDate,
+      },
+      plannedItemName: item.name,
+      nominalDate: occurrence.nominalDate,
+      date: occurrence.date,
+      amount,
+      status,
+    });
+  }
+  return candidates;
+}
+
+/**
+ * The occurrences a transaction can be linked to by hand: unsettled ones of the planned items of
+ * its account with the sign of its amount, the closest in time first. There is no window and no
+ * tolerance, the owner decides. A transfer or an already linked transaction has none.
+ */
+export function listLinkCandidates(
+  db: Pick<AppDatabase, "select">,
+  transactionId: number,
+  today: string,
+): LinkCandidate[] {
+  const transaction = readTransactionOrThrow(db, transactionId);
+  if (transaction.kind === "transfer" || transaction.plannedItemId !== null) return [];
+
+  const items = listPlannedItems(db, {
+    includeCancelled: false,
+    accountIds: [transaction.accountId],
+  });
+  if (items.length === 0) return [];
+  const links = linksOf(
+    db,
+    items.map((item) => item.id),
+  );
+  return items
+    .flatMap((item) => candidatesOf(item, links.get(item.id) ?? [], transaction, today))
+    .map((candidate) => ({
+      candidate,
+      distance: Math.abs(daysBetween(transaction.date, candidate.date)),
+    }))
+    .sort(
+      (a, b) =>
+        a.distance - b.distance ||
+        compareDates(a.candidate.date, b.candidate.date) ||
+        a.candidate.pair.plannedItemId - b.candidate.pair.plannedItemId,
+    )
+    .map(({ candidate }) => candidate);
+}
+
+/**
+ * Links a transaction to an occurrence chosen by hand. The pair must be one of the candidates of
+ * the ledger, whatever the browser sent. A transfer is never linked and an archived account keeps
+ * its history untouched. The category of the transaction is left alone.
+ */
+export function linkByHand(db: AppDatabase, pair: MatchPair, today: string): void {
+  db.transaction((tx) => {
+    const transaction = readTransactionOrThrow(tx, pair.transactionId);
+    assertNotTransfer(transaction);
+    assertNotLinked(transaction);
+    getOpenAccount(tx, transaction.accountId);
+    const isProposed = listLinkCandidates(tx, pair.transactionId, today).some(
+      ({ pair: proposed }) => comparePairs(proposed, pair) === 0,
+    );
+    if (!isProposed) {
+      throw new PlannedLinkError(
+        "The occurrence is not a candidate for this transaction",
+        messageRef("matchNotProposed"),
+      );
+    }
+    linkTransactionToOccurrence(tx, pair, { inheritCategory: false });
+  });
+}
+
+/** Clears the link of a transaction by hand, unless its account is archived. */
+export function unlinkByHand(db: AppDatabase, transactionId: number): void {
+  db.transaction((tx) => {
+    getOpenAccount(tx, readTransactionOrThrow(tx, transactionId).accountId);
     unlinkTransaction(tx, transactionId);
   });
 }
