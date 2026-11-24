@@ -458,6 +458,25 @@ Decisions of the owner on matching, 19 Nov 2026:
 
 Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones. A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers are ignored here (#175).
 
+### Daily balance of the real trajectory
+
+The pure projection of the daily balances of each account, shared by the calendar, the monthly line view and the real chart (`src/domain/projection.ts`: `plannedFlows`, `projectDailyBalances`, `firstDayBelowZero`). It holds real transactions and explicitly dated planned occurrences only (invariants 8 and 9, ADR-011). Unplanned spending is never estimated: what was spent per category in the past adds nothing to the future.
+
+- **Real transactions** are flows at their own date, including those dated after today (entered in advance).
+- **Planned occurrences** (`plannedFlows`): only `planned` and `partial` occurrences count, at their `remaining` amount. A `confirmed` occurrence is not counted, since its transactions are already among the real ones and nothing is counted twice. `overdue` and `cancelled` occurrences count for nothing.
+- **Date of a flow.** An occurrence dated on or after today is counted at its date. An occurrence whose date has passed but whose window is still open (`planned`) is counted at today. The remaining amount of a partial provision whose nominal date has passed while its period is still open is counted at today too; the flow keeps `nominalDate` in its source so it can be traced. Once the period is over the remaining amount is 0 (see Provisions) and nothing is counted.
+- **Planned transfer.** It gives two flows: the negative amount on the source account and the opposite amount on the destination. No deposit ceiling and no overflow routing is applied at this stage (planned in a later slice, #170).
+- **End-of-day balance** (`projectDailyBalances`) is the opening balance plus every flow of the account up to and including the day (invariant 8). An account has no balance before its opening date.
+- **First day below zero** (`firstDayBelowZero`) is the first day on which the sum of the given accounts is strictly negative, otherwise none.
+- **One currency.** The projection works on accounts of the same currency: converting to the reference currency is the job of the caller.
+
+Decisions of the owner on the projection, 24 Nov 2026 (open questions of issue #169):
+
+- Q1 (a), a planned occurrence whose date has passed but whose window is still open is counted at today.
+- Q1 (b), the remaining amount of a partial provision whose nominal date has passed while its period is still open is counted at today.
+- Q1 (c), an overdue occurrence is not counted. A cancelled or a confirmed occurrence is not counted either.
+- Q2, a real transaction dated after today is counted at its own date.
+
 ## Estimated variable spending
 
 This applies **only to simulations**. The real trajectory and the calendar never use it.
