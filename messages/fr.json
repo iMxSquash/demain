@@ -325,6 +325,51 @@
     "categoryArchived": "{name} (archivée)",
     "saveDetails": "Enregistrer les détails"
   },
+  "calendar": {
+    "metaTitle": "Lignes du calendrier | Demain",
+    "metaTitleMonth": "Lignes du calendrier, {month} | Demain",
+    "title": "Calendrier",
+    "previousMonth": "Mois précédent, {month}",
+    "nextMonth": "Mois suivant, {month}",
+    "accountLabel": "Solde quotidien",
+    "accountHint": "Uniquement les transactions réelles et les éléments planifiés datés.",
+    "checkingOption": "Comptes courants, {currency}",
+    "accountOption": "{name}, {currency}",
+    "show": "Afficher",
+    "noChecking": "Aucun compte courant actif. Ajoutez-en un pour voir son solde quotidien.",
+    "noCheckingAction": "Ajouter un compte",
+    "lines": {
+      "caption": "Lignes de {month}",
+      "loadingCaption": "Lignes du mois",
+      "columns": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Compte",
+        "kind": "Nature",
+        "status": "Statut",
+        "amount": "Montant",
+        "balance": "Solde en fin de journée"
+      },
+      "kinds": {
+        "real": "Réel",
+        "planned": "Prévu, daté"
+      },
+      "statuses": {
+        "planned": "Prévu",
+        "partial": "Partiel",
+        "confirmed": "Confirmé",
+        "overdue": "En retard",
+        "cancelled": "Annulé"
+      },
+      "belowZero": "Sous zéro",
+      "belowZeroFrom": "Sous zéro à partir du {date}",
+      "unplacedSurplus": "Excédent non placé : {amount} reste sur {account}.",
+      "routingInvalid": "La chaîne de débordement de ce virement est invalide.",
+      "transferTo": "{from} vers {to}",
+      "empty": "Aucune ligne ce mois-ci.",
+      "unconverted": "Pas de taux de change pour {currencies} : ces comptes sont exclus du solde."
+    }
+  },
   "balances": {
     "metaTitle": "Soldes constatés | Demain",
     "title": "Soldes constatés : {name}",
