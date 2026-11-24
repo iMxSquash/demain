@@ -77,8 +77,23 @@ const props: MonthGridProps = {
 };
 
 const attributeOf = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
-const textOfId = (html: string, id: string) =>
-  new RegExp(`id="${id}"[^>]*>(.*?)</h\\d>`, "s").exec(html)?.[1]?.replace(/<[^>]*>/g, "").trim();
+
+// Walks the characters instead of a tag-stripping regex, which CodeQL flags as incomplete sanitization.
+function textOfMarkup(markup: string): string {
+  let text = "";
+  let isInTag = false;
+  for (const character of markup) {
+    if (character === "<") isInTag = true;
+    else if (character === ">") isInTag = false;
+    else if (!isInTag) text += character;
+  }
+  return text;
+}
+
+const textOfId = (html: string, id: string) => {
+  const heading = new RegExp(`id="${id}"[^>]*>(.*?)</h\\d>`, "s").exec(html)?.[1];
+  return heading === undefined ? undefined : textOfMarkup(heading).trim();
+};
 
 // Landmarks here: a `<section>` or an element with `role="region"`, named by `aria-label` or `aria-labelledby`.
 function landmarkNamesOf(html: string): string[] {
