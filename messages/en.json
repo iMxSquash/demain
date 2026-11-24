@@ -100,7 +100,7 @@
   },
   "realChart": {
     "heading": "Month-end balances",
-    "intro": "Checking and savings totals at the end of each complete month, in {currency}. Real values only: nothing is estimated.",
+    "intro": "Checking and savings totals at the end of each month, in {currency}: real values up to the last complete month, then the dated planned items (dashed). Nothing else is estimated.",
     "chartLabel": "Month-end balances of the checking and savings accounts",
     "hint": "Focus the chart, then use the left and right arrow keys to read a month, Home and End to jump to the first or the last one, Escape to hide the reading.",
     "empty": "No complete month to show yet. The chart appears once an account has history up to the end of a month.",
@@ -110,6 +110,12 @@
     "columns": {
       "month": "Month",
       "kind": "Kind"
+    },
+    "horizon": {
+      "legend": "Months ahead",
+      "months3": "3 months",
+      "months6": "6 months",
+      "months12": "12 months"
     },
     "upToToday": "Up to today",
     "plannedAhead": "Planned ahead",

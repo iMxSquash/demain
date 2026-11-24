@@ -353,7 +353,14 @@ The main diagram of the app, and the one the sheet already had: for each month e
 - **Checking**: total of the checking accounts at the end of the month.
 - **Savings**: total of the savings accounts at the end of the month.
 
-Both are in the reference currency and are computed from real transactions only, from the first month to the last complete month. Beyond today, the chart continues with explicitly dated planned items, drawn dashed and with a distinct marker so that real and planned values are never confused (not by color alone). No estimation is ever drawn. Every chart has an equivalent data table.
+Both are in the reference currency and are computed from real transactions only, from the first month to the last complete month. Beyond that, the chart continues with explicitly dated planned items (the projection of [Daily balance of the real trajectory](#daily-balance-of-the-real-trajectory), read at each month end), drawn dashed and with a distinct marker so that real and planned values are never confused (not by color alone). No estimation is ever drawn. Every chart has an equivalent data table.
+
+Decisions of the owner on the planned part, numbered as in issue #171:
+
+- Q1, the current month: it is the first planned month, drawn dashed. The last real point stays the last complete month. The end of the current month is the real balance so far plus what is still planned, so nothing is estimated.
+- Horizon: chosen in the browser among 3, 6 and 12 months counted from the current month. The server reads 12 months once and the browser slices them, so changing the horizon costs no request. The chart and its data table always show the same months.
+- Lowest planned balance: the lowest planned month end of the checking series, over the planned months only. A lower real month never counts, since the indicator is about what is still ahead.
+- Hidden when empty: the planned part is not drawn when no planned item changes any month end of the checking or savings series compared with the real trajectory without planned items.
 
 ## Planned items and recurrence
 
