@@ -22,7 +22,7 @@ import type { AppDatabase } from "../storage/database";
 import { plannedItems, transactions } from "../storage/schema";
 import { getImportBatch } from "./import-batch-lookup";
 import { listPlannedItems, toPlannedSchedule, type PlannedItemWithDetails } from "./planned-items";
-import type { Transaction } from "./transactions";
+import { getOpenAccount, type Transaction } from "./transactions";
 
 type Executor = Pick<AppDatabase, "select" | "update">;
 
@@ -99,6 +99,17 @@ function isOccurrenceTaken(db: Pick<AppDatabase, "select">, pair: MatchPair): bo
   return other !== undefined;
 }
 
+function readTransactionOrThrow(db: Pick<AppDatabase, "select">, id: number): Transaction {
+  const transaction = db.select().from(transactions).where(eq(transactions.id, id)).get();
+  if (transaction === undefined) {
+    throw new PlannedLinkError(
+      `Transaction ${id} does not exist`,
+      messageRef("matchTransactionUnknown"),
+    );
+  }
+  return transaction;
+}
+
 /**
  * Links a transaction to the occurrence of a planned item (DOMAIN, invariant 5). The transaction
  * must exist, not be a transfer, not be linked yet and be on the account of the item; a regular
@@ -111,17 +122,7 @@ export function linkTransactionToOccurrence(
   pair: MatchPair,
   { inheritCategory = true }: { inheritCategory?: boolean } = {},
 ): void {
-  const transaction = db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.id, pair.transactionId))
-    .get();
-  if (transaction === undefined) {
-    throw new PlannedLinkError(
-      `Transaction ${pair.transactionId} does not exist`,
-      messageRef("matchTransactionUnknown"),
-    );
-  }
+  const transaction = readTransactionOrThrow(db, pair.transactionId);
   if (transaction.kind === "transfer") {
     throw new PlannedLinkError(
       "A transfer cannot be linked to a planned item",
@@ -158,17 +159,7 @@ export function linkTransactionToOccurrence(
 
 /** Clears the link. A category the link gave goes with it; one chosen by hand stays. */
 export function unlinkTransaction(db: Executor, transactionId: number): void {
-  const transaction = db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.id, transactionId))
-    .get();
-  if (transaction === undefined) {
-    throw new PlannedLinkError(
-      `Transaction ${transactionId} does not exist`,
-      messageRef("matchTransactionUnknown"),
-    );
-  }
+  const transaction = readTransactionOrThrow(db, transactionId);
   db.update(transactions)
     .set({
       plannedItemId: null,
@@ -599,17 +590,7 @@ export function listLinkCandidates(
   transactionId: number,
   today: string,
 ): LinkCandidate[] {
-  const transaction = db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.id, transactionId))
-    .get();
-  if (transaction === undefined) {
-    throw new PlannedLinkError(
-      `Transaction ${transactionId} does not exist`,
-      messageRef("matchTransactionUnknown"),
-    );
-  }
+  const transaction = readTransactionOrThrow(db, transactionId);
   if (transaction.kind === "transfer" || transaction.plannedItemId !== null) return [];
 
   const items = listPlannedItems(db, {
@@ -621,14 +602,53 @@ export function listLinkCandidates(
     db,
     items.map((item) => item.id),
   );
-  const distanceOf = (candidate: LinkCandidate) =>
-    Math.abs(daysBetween(transaction.date, candidate.date));
   return items
     .flatMap((item) => candidatesOf(item, links.get(item.id) ?? [], transaction, today))
+    .map((candidate) => ({
+      candidate,
+      distance: Math.abs(daysBetween(transaction.date, candidate.date)),
+    }))
     .sort(
       (a, b) =>
-        distanceOf(a) - distanceOf(b) ||
-        compareDates(a.date, b.date) ||
-        a.pair.plannedItemId - b.pair.plannedItemId,
+        a.distance - b.distance ||
+        compareDates(a.candidate.date, b.candidate.date) ||
+        a.candidate.pair.plannedItemId - b.candidate.pair.plannedItemId,
+    )
+    .map(({ candidate }) => candidate);
+}
+
+/**
+ * Links a transaction to an occurrence chosen by hand. The pair must be one of the candidates of
+ * the ledger, whatever the browser sent. A transfer is never linked and an archived account keeps
+ * its history untouched. The category of the transaction is left alone.
+ */
+export function linkByHand(db: AppDatabase, pair: MatchPair, today: string): void {
+  db.transaction((tx) => {
+    const transaction = readTransactionOrThrow(tx, pair.transactionId);
+    if (transaction.kind === "transfer") {
+      throw new PlannedLinkError(
+        "A transfer cannot be linked to a planned item",
+        messageRef("matchTransactionIsTransfer"),
+      );
+    }
+    getOpenAccount(tx, transaction.accountId);
+    const isProposed = listLinkCandidates(tx, pair.transactionId, today).some(
+      ({ pair: proposed }) => comparePairs(proposed, pair) === 0,
     );
+    if (!isProposed) {
+      throw new PlannedLinkError(
+        "The occurrence is not a candidate for this transaction",
+        messageRef("matchNotProposed"),
+      );
+    }
+    linkTransactionToOccurrence(tx, pair, { inheritCategory: false });
+  });
+}
+
+/** Clears the link of a transaction by hand, unless its account is archived. */
+export function unlinkByHand(db: AppDatabase, transactionId: number): void {
+  db.transaction((tx) => {
+    getOpenAccount(tx, readTransactionOrThrow(tx, transactionId).accountId);
+    unlinkTransaction(tx, transactionId);
+  });
 }

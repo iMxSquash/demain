@@ -4,26 +4,24 @@ import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
-import { Button } from "../../../../components/button";
 import { formatAmount, formatEditableAmount } from "../../../../domain/money";
 import { formatCalendarDate, todayIn } from "../../../../i18n/dates";
 import { getAccount, listAccounts } from "../../../../ledger/accounts";
 import { listCategories } from "../../../../ledger/categories";
-import { listLinkCandidates, type LinkCandidate } from "../../../../ledger/planned-matching";
+import { listLinkCandidates } from "../../../../ledger/planned-matching";
 import { getPlannedItem } from "../../../../ledger/planned-items";
 import {
   getTransaction,
   TransactionNotFoundError,
   type Transaction,
 } from "../../../../ledger/transactions";
-import type { AppDatabase } from "../../../../storage/database";
 import { withDatabase } from "../../../../storage/with-database";
 import { unlinkOccurrenceAction, linkOccurrenceAction, updateTransactionAction } from "../../actions";
 import { occurrenceKey } from "../../planned-link-data";
-import { PlannedLinkForm } from "../../planned-link-form";
+import { PlannedLinkForm, UnlinkButton } from "../../planned-link-form";
 import { TransactionForm } from "../../transaction-form";
 import { requireSession } from "../../../auth/session";
 
@@ -74,27 +72,23 @@ async function EditTransaction({ params }: { params: Promise<{ id: string }> }) 
   if (!Number.isSafeInteger(id)) notFound();
   // The page reads the database: it must run per request, never at build time.
   await connection();
-  const [t, common, locale, timeZone] = await Promise.all([
+  const [t, common] = await Promise.all([
     getTranslations("transactions"),
     getTranslations("common"),
-    getLocale(),
-    getTimeZone(),
   ]);
 
   let transaction;
   let account;
   let accounts;
   let categories;
-  let plannedLink;
   try {
-    ({ transaction, account, accounts, categories, plannedLink } = withDatabase((db) => {
+    ({ transaction, account, accounts, categories } = withDatabase((db) => {
       const found = getTransaction(db, id);
       return {
         transaction: found,
         account: getAccount(db, found.accountId),
         accounts: listAccounts(db),
         categories: listCategories(db, { includeArchived: true }),
-        plannedLink: readPlannedLink(db, found, todayIn(timeZone, new Date())),
       };
     }));
   } catch (error) {
@@ -131,60 +125,76 @@ async function EditTransaction({ params }: { params: Promise<{ id: string }> }) 
       )}
       submitLabel={common("saveChanges")}
     />
-      <section aria-labelledby="planned-link-heading" className="flex flex-col gap-4">
-        <h2 id="planned-link-heading" className="text-title font-medium">
-          {t("plannedLink.heading")}
-        </h2>
-        {plannedLink.kind === "linked" ? (
-          <>
-            <p>
-              {t("plannedLink.linked", {
-                name: plannedLink.name,
-                date: formatCalendarDate(plannedLink.nominalDate, locale),
-              })}
-            </p>
-            <form action={unlinkOccurrenceAction.bind(null, transaction.id)}>
-              <Button type="submit" variant="secondary">
-                {t("plannedLink.unlink")}
-              </Button>
-            </form>
-          </>
-        ) : plannedLink.candidates.length > 0 ? (
-          <PlannedLinkForm
-            action={linkOccurrenceAction.bind(null, transaction.id)}
-            options={plannedLink.candidates.map((candidate) => ({
-              key: occurrenceKey(candidate.pair.plannedItemId, candidate.nominalDate),
-              text: t("plannedLink.option", {
-                name: candidate.plannedItemName,
-                date: formatCalendarDate(candidate.date, locale),
-                amount: formatAmount(candidate.amount, account.currency, locale),
-                status: t(`plannedLink.status.${candidate.status}`),
-              }),
-            }))}
-          />
-        ) : (
-          <p>{t("plannedLink.none")}</p>
-        )}
-      </section>
+      <PlannedLinkSection transaction={transaction} currency={account.currency} />
     </>
   );
 }
 
-type PlannedLinkState =
-  | { kind: "linked"; name: string; nominalDate: string }
-  | { kind: "open"; candidates: LinkCandidate[] };
 
-function readPlannedLink(
-  db: AppDatabase,
-  transaction: Transaction,
-  today: string,
-): PlannedLinkState {
-  if (transaction.plannedItemId !== null && transaction.occurrenceDate !== null) {
-    return {
-      kind: "linked",
-      name: getPlannedItem(db, transaction.plannedItemId).name,
-      nominalDate: transaction.occurrenceDate,
-    };
+function PlannedLinkLayout({ heading, children }: { heading: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby="planned-link-heading" className="flex flex-col gap-4">
+      <h2 id="planned-link-heading" className="text-title font-medium">
+        {heading}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+/** Shows the occurrence the transaction settles, or lets the owner choose one to link it to. */
+async function PlannedLinkSection({
+  transaction,
+  currency,
+}: {
+  transaction: Transaction;
+  currency: string;
+}) {
+  const [t, locale, timeZone] = await Promise.all([
+    getTranslations("transactions.plannedLink"),
+    getLocale(),
+    getTimeZone(),
+  ]);
+  const heading = t("heading");
+
+  if (transaction.plannedItemId !== null) {
+    // The item and the nominal date are written together, so a linked transaction has both.
+    const nominalDate = transaction.occurrenceDate!;
+    const { name } = withDatabase((db) => getPlannedItem(db, transaction.plannedItemId!));
+    return (
+      <PlannedLinkLayout heading={heading}>
+        <p>{t("linked", { name, date: formatCalendarDate(nominalDate, locale) })}</p>
+        <form action={unlinkOccurrenceAction.bind(null, transaction.id)}>
+          <UnlinkButton />
+        </form>
+      </PlannedLinkLayout>
+    );
   }
-  return { kind: "open", candidates: listLinkCandidates(db, transaction.id, today) };
+
+  const candidates = withDatabase((db) =>
+    listLinkCandidates(db, transaction.id, todayIn(timeZone, new Date())),
+  );
+  if (candidates.length === 0) {
+    return (
+      <PlannedLinkLayout heading={heading}>
+        <p>{t("none")}</p>
+      </PlannedLinkLayout>
+    );
+  }
+  return (
+    <PlannedLinkLayout heading={heading}>
+      <PlannedLinkForm
+        action={linkOccurrenceAction.bind(null, transaction.id)}
+        options={candidates.map((candidate) => ({
+          key: occurrenceKey(candidate.pair.plannedItemId, candidate.nominalDate),
+          text: t("option", {
+            name: candidate.plannedItemName,
+            date: formatCalendarDate(candidate.date, locale),
+            amount: formatAmount(candidate.amount, currency, locale),
+            status: t(`status.${candidate.status}`),
+          }),
+        }))}
+      />
+    </PlannedLinkLayout>
+  );
 }

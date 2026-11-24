@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
 import { Button } from "../../components/button";
 import { Select } from "../../components/select";
@@ -42,5 +43,17 @@ export function PlannedLinkForm({ action, options }: PlannedLinkFormProps) {
         {t("link")}
       </Button>
     </form>
+  );
+}
+
+/** The submit button of the unlink form, which the server page renders. */
+export function UnlinkButton() {
+  const t = useTranslations("transactions.plannedLink");
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" variant="secondary" pending={pending} pendingLabel={t("unlinkPending")}>
+      {t("unlink")}
+    </Button>
   );
 }

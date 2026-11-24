@@ -20,11 +20,13 @@ import {
 } from "../../src/ledger/planned-items";
 import {
   confirmMatch,
+  linkByHand,
   linkTransactionToOccurrence,
   listBatchMatches,
   listLinkCandidates,
   PlannedLinkError,
   undoMatch,
+  unlinkByHand,
   unlinkTransaction,
 } from "../../src/ledger/planned-matching";
 import {
@@ -632,5 +634,84 @@ describe("linking a transaction to an occurrence by hand", () => {
     const error = catchError(() => listLinkCandidates(db, 9_999, TODAY));
 
     expect(refOf(error)).toBe("matchTransactionUnknown");
+  });
+
+  it("links by hand a proposed pair and leaves the category alone", () => {
+    const groceries = createCategory(db, { name: "Groceries" });
+    const item = oneOffItem("Groceries", "2026-03-10", { categoryId: groceries.id });
+    const shop = enterExpense("2026-03-12", -1_000, "SHOP");
+
+    linkByHand(
+      db,
+      { transactionId: shop.id, plannedItemId: item.id, nominalDate: "2026-03-10" },
+      TODAY,
+    );
+
+    expect(getTransaction(db, shop.id)).toMatchObject({
+      plannedItemId: item.id,
+      occurrenceDate: "2026-03-10",
+      categoryId: null,
+      categoryFromPlannedItem: false,
+    });
+  });
+
+  it("refuses to link by hand a pair that is not a candidate", () => {
+    const item = oneOffItem("Rent", "2026-03-10");
+    const shop = enterExpense("2026-03-12", -1_000, "SHOP");
+
+    const error = catchError(() =>
+      linkByHand(
+        db,
+        { transactionId: shop.id, plannedItemId: item.id, nominalDate: "2026-03-11" },
+        TODAY,
+      ),
+    );
+
+    expect(refOf(error)).toBe("matchNotProposed");
+    expect(getTransaction(db, shop.id)).toMatchObject(NO_LINK);
+  });
+
+  it("refuses to link by hand a transfer, an unknown transaction or an archived account", () => {
+    const item = oneOffItem("Rent", "2026-03-10");
+    const [leg] = createTransfer(db, {
+      sourceId: checkingId,
+      destinationId: jointId,
+      amount: 1_000,
+      date: "2026-03-12",
+      label: "MOVE",
+    });
+    const shop = enterExpense("2026-03-12", -1_000, "SHOP");
+    const pairOf = (transactionId: number) => ({
+      transactionId,
+      plannedItemId: item.id,
+      nominalDate: "2026-03-10",
+    });
+
+    expect(refOf(catchError(() => linkByHand(db, pairOf(leg!.id), TODAY)))).toBe(
+      "matchTransactionIsTransfer",
+    );
+    expect(refOf(catchError(() => linkByHand(db, pairOf(9_999), TODAY)))).toBe(
+      "matchTransactionUnknown",
+    );
+    db.$client.exec(`UPDATE accounts SET archived = 1 WHERE id = ${checkingId}`);
+    const archivedError = catchError(() => linkByHand(db, pairOf(shop.id), TODAY));
+    expect(archivedError).toMatchObject({ ref: { key: "transactionOnArchivedAccount" } });
+    expect(getTransaction(db, shop.id)).toMatchObject(NO_LINK);
+  });
+
+  it("unlinks by hand, and refuses a transaction of an archived account", () => {
+    const item = oneOffItem("Rent", "2026-03-10");
+    const paid = enterExpense("2026-03-10", -1_000, "RENT");
+    link({ transactionId: paid.id, plannedItemId: item.id, nominalDate: "2026-03-10" });
+    db.$client.exec(`UPDATE accounts SET archived = 1 WHERE id = ${checkingId}`);
+
+    const error = catchError(() => unlinkByHand(db, paid.id));
+    expect(error).toMatchObject({ ref: { key: "transactionOnArchivedAccount" } });
+    expect(getTransaction(db, paid.id).plannedItemId).toBe(item.id);
+
+    db.$client.exec(`UPDATE accounts SET archived = 0 WHERE id = ${checkingId}`);
+    unlinkByHand(db, paid.id);
+    expect(getTransaction(db, paid.id)).toMatchObject(NO_LINK);
+    expect(refOf(catchError(() => unlinkByHand(db, 9_999)))).toBe("matchTransactionUnknown");
   });
 });

@@ -52,7 +52,7 @@ export class AccountNotEmptyError extends Error {
   }
 }
 
-export function getAccount(db: AppDatabase, id: number): Account {
+export function getAccount(db: Pick<AppDatabase, "select">, id: number): Account {
   const account = db.select().from(accounts).where(eq(accounts.id, id)).get();
   if (account === undefined) {
     throw new AccountNotFoundError(id);

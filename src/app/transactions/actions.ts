@@ -15,17 +15,10 @@ import {
 } from "../../domain/transaction";
 import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
 import { CategoryNotFoundError } from "../../ledger/categories";
-import {
-  linkTransactionToOccurrence,
-  listLinkCandidates,
-  PlannedLinkError,
-  unlinkTransaction,
-} from "../../ledger/planned-matching";
+import { linkByHand, PlannedLinkError, unlinkByHand } from "../../ledger/planned-matching";
 import {
   createTransaction,
   deleteTransaction,
-  getOpenAccount,
-  getTransaction,
   previewCeilingWarning,
   previewManualTransfer,
   recordManualTransfer,
@@ -331,21 +324,8 @@ function describeLinkFailure(error: unknown): MessageRef {
   if (error instanceof PlannedLinkError || error instanceof TransactionValidationError) {
     return error.ref;
   }
-  if (error instanceof TransactionNotFoundError) return messageRef("transactionGone");
   console.error("Planned link action failed", error);
   return messageRef("nothingSaved");
-}
-
-// A transfer is never linked, and an archived account keeps its history untouched.
-function assertLinkable(db: AppDatabase, transactionId: number): void {
-  const transaction = getTransaction(db, transactionId);
-  if (transaction.kind === "transfer") {
-    throw new PlannedLinkError(
-      "A transfer cannot be linked to a planned item",
-      messageRef("matchTransactionIsTransfer"),
-    );
-  }
-  getOpenAccount(db, transaction.accountId);
 }
 
 /** Links a transaction to the occurrence chosen by hand. The category is never changed. */
@@ -355,7 +335,7 @@ export async function linkOccurrenceAction(
 ): Promise<void> {
   await requireSession();
   const timeZone = await getTimeZone();
-  // Never trust the browser: the choice is checked again against the candidates of the ledger.
+  // Never trust the browser: the ledger checks the choice again against its candidates.
   const id = transactionIdSchema.safeParse(transactionId);
   const chosen = parseOccurrenceKey(formData.get(OCCURRENCE_FIELD));
   if (!id.success || chosen === null) {
@@ -364,50 +344,24 @@ export async function linkOccurrenceAction(
   }
   const today = todayIn(timeZone, new Date());
 
-  try {
-    withDatabase((db) => {
-      assertLinkable(db, id.data);
-      db.transaction((tx) => {
-        const isProposed = listLinkCandidates(tx, id.data, today).some(
-          ({ pair }) =>
-            pair.plannedItemId === chosen.plannedItemId && pair.nominalDate === chosen.nominalDate,
-        );
-        if (!isProposed) {
-          throw new PlannedLinkError(
-            "The occurrence is not a candidate for this transaction",
-            messageRef("matchNotProposed"),
-          );
-        }
-        linkTransactionToOccurrence(
-          tx,
-          { transactionId: id.data, ...chosen },
-          { inheritCategory: false },
-        );
-      });
-    });
-  } catch (error) {
-    await flashError(describeLinkFailure(error));
-    return;
-  }
+  await runWithNotice(
+    () => withDatabase((db) => linkByHand(db, { transactionId: id.data, ...chosen }, today)),
+    { success: "occurrenceLinked", describeFailure: describeLinkFailure },
+  );
   refreshData();
-  await flashSuccess("occurrenceLinked");
 }
 
 /** Clears the link of a transaction. */
 export async function unlinkOccurrenceAction(transactionId: number): Promise<void> {
   await requireSession();
-  const parsed = transactionIdSchema.safeParse(transactionId);
-  if (!parsed.success) {
+  const id = transactionIdSchema.safeParse(transactionId);
+  if (!id.success) {
     await flashError(messageRef("transactionGone"));
     return;
   }
-  await runWithNotice(
-    () =>
-      withDatabase((db) => {
-        assertLinkable(db, parsed.data);
-        unlinkTransaction(db, parsed.data);
-      }),
-    { success: "occurrenceUnlinked", describeFailure: describeLinkFailure },
-  );
+  await runWithNotice(() => withDatabase((db) => unlinkByHand(db, id.data)), {
+    success: "occurrenceUnlinked",
+    describeFailure: describeLinkFailure,
+  });
   refreshData();
 }
