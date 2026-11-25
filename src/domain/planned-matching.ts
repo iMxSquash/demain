@@ -97,12 +97,34 @@ function toPair(transaction: MatchTransaction, plannedItemId: number, nominalDat
   return { transactionId: transaction.id, plannedItemId, nominalDate };
 }
 
+/**
+ * The dates of the transactions that can settle an occurrence: its matching window around its
+ * effective date, or the period of a provision.
+ */
+export function matchingWindow(occurrence: { date: string; period: DateRange | null }, windowDays: number): DateRange {
+  if (occurrence.period !== null) return occurrence.period;
+  return { from: addDays(occurrence.date, -windowDays), to: addDays(occurrence.date, windowDays) };
+}
+
+/**
+ * What a transaction recorded or linked by hand would settle on an open occurrence: what a partial
+ * provision still expects, else the expected amount. A provision with nothing linked resolves to
+ * overdue with nothing remaining once its period is over, yet nothing settled it.
+ */
+export function amountToSettle(occurrence: {
+  status: OccurrenceStatus;
+  expectedAmount: number;
+  remaining: number;
+}): number {
+  return occurrence.status === "partial" ? occurrence.remaining : occurrence.expectedAmount;
+}
+
 function isRegularCandidate(transaction: MatchTransaction, occurrence: MatchOccurrence): boolean {
   if ((transaction.kind === "transfer") !== occurrence.isTransfer) return false;
   if (!MATCHABLE_STATUSES.includes(occurrence.status)) return false;
   if (transaction.accountId !== occurrence.accountId) return false;
-  if (transaction.date < addDays(occurrence.date, -occurrence.windowDays)) return false;
-  if (transaction.date > addDays(occurrence.date, occurrence.windowDays)) return false;
+  const window = matchingWindow({ date: occurrence.date, period: null }, occurrence.windowDays);
+  if (transaction.date < window.from || transaction.date > window.to) return false;
   return isWithinTolerance(occurrence.expectedAmount, transaction.amount, occurrence.toleranceBasisPoints);
 }
 
@@ -213,4 +235,46 @@ export function decideMatches(
     .sort((a, b) => a - b);
 
   return { confirmed, proposed: groupAmbiguous(ambiguous), unmatched };
+}
+
+/** How far ahead the "To pay" page looks after the due occurrences (owner, 25 Nov 2026). */
+export const DUE_SOON_DAYS = 7;
+
+const OPEN_STATUSES: readonly OccurrenceStatus[] = ["planned", "partial", "overdue"];
+
+/** What the due lists need to know of an occurrence. */
+export interface DueCandidate {
+  plannedItemId: number;
+  nominalDate: string;
+  /** The effective date, after overrides and the business-day rule. */
+  date: string;
+  status: OccurrenceStatus;
+}
+
+export interface DueOccurrences<T> {
+  /** Open occurrences whose effective date is today or earlier, oldest first. */
+  due: T[];
+  /** Open occurrences of the next `soonDays` days after today, in date order. */
+  soon: T[];
+}
+
+function compareDue(a: DueCandidate, b: DueCandidate): number {
+  return compareDates(a.date, b.date) || a.plannedItemId - b.plannedItemId || compareDates(a.nominalDate, b.nominalDate);
+}
+
+/**
+ * The occurrences still waiting for a transaction (planned, partial or overdue), split into those
+ * that are due and those due within `soonDays` days. Confirmed and cancelled ones are never due.
+ */
+export function dueOccurrences<T extends DueCandidate>(
+  occurrences: readonly T[],
+  today: string,
+  soonDays: number,
+): DueOccurrences<T> {
+  const lastSoonDate = addDays(today, soonDays);
+  const open = occurrences.filter((occurrence) => OPEN_STATUSES.includes(occurrence.status)).sort(compareDue);
+  return {
+    due: open.filter((occurrence) => occurrence.date <= today),
+    soon: open.filter((occurrence) => occurrence.date > today && occurrence.date <= lastSoonDate),
+  };
 }

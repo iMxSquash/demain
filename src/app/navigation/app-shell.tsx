@@ -6,6 +6,7 @@ import {
   ChartLine,
   GearSix,
   Plus,
+  Receipt,
   Repeat,
   Tray,
   TrayArrowDown,
@@ -16,13 +17,14 @@ import type { ReactNode } from "react";
 import { CountBadge } from "../../components/data-display";
 import { Icon } from "../../components/icon";
 import { Logo } from "../../components/logo";
+import { TO_PAY_ROUTE } from "../planned/routes";
 import styles from "./app-shell.module.css";
 import { NavLink } from "./nav-link";
 
 // One list for both layouts (DESIGN section 18, "Navigation"). The phone tab bar holds the items
 // that are not `wideOnly`: Overview, Calendar, Accounts and Imports (Simulations replaces Imports
 // in M3). The sidebar shows all of them, then the queue and Settings. On a phone, Transactions is
-// a row of the More list of /settings and Planned is reached from the calendar header.
+// a row of the More list of /settings, To pay too, and Planned is reached from the calendar header.
 const TABS = [
   { href: "/", key: "overview", icon: ChartLine },
   { href: "/calendar", key: "calendar", icon: CalendarBlank },
@@ -42,6 +44,8 @@ const ICON_BUTTON =
 type AppShellProps = {
   /** Size of the to-categorize queue, shown next to its item on wide containers. */
   toCategorizeCount: number;
+  /** Occurrences in the "Due" section of To pay, shown next to its item on wide containers. */
+  toPayCount: number;
   children: ReactNode;
 };
 
@@ -50,7 +54,7 @@ type AppShellProps = {
  * container query on the frame turns them into a sidebar (900 px and more) or into a top
  * bar and a floating tab bar. Only Settings has two links, one for each width.
  */
-export async function AppShell({ toCategorizeCount, children }: AppShellProps) {
+export async function AppShell({ toCategorizeCount, toPayCount, children }: AppShellProps) {
   const [t, common] = await Promise.all([
     getTranslations("navigation"),
     getTranslations("common"),
@@ -89,6 +93,14 @@ export async function AppShell({ toCategorizeCount, children }: AppShellProps) {
                   </NavLink>
                 </li>
               ))}
+              <li className={styles.wideOnly}>
+                <NavLink href={TO_PAY_ROUTE} className={styles.item}>
+                  <Icon icon={Receipt} />
+                  {t("toPay")}
+                  <CountBadge decorative count={toPayCount} className="ml-auto" />
+                  <span className="sr-only">, {t("dueCount", { count: toPayCount })}</span>
+                </NavLink>
+              </li>
               <li className={styles.wideOnly}>
                 <NavLink href={QUEUE_HREF} className={styles.item}>
                   <Icon icon={Tray} />

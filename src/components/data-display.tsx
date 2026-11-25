@@ -20,6 +20,8 @@ interface DataTableProps {
   caption: string;
   /** A shorter name for the scroll region, for a caption that reads as a full sentence. */
   regionLabel?: string;
+  /** Keeps the caption for assistive technology only, when a heading above already says it. */
+  hideCaption?: boolean;
   children: ReactNode;
 }
 
@@ -27,7 +29,7 @@ interface DataTableProps {
  * A table in its card. The card scrolls sideways when the table is wider than a phone, so
  * the page never does. The region is focusable and named: keyboard users must reach it.
  */
-export function DataTable({ caption, regionLabel = caption, children }: DataTableProps) {
+export function DataTable({ caption, regionLabel = caption, hideCaption = false, children }: DataTableProps) {
   return (
     <div className="rounded-card bg-surface p-4 @3xl:p-6">
       {/* `relative`: the sr-only text of the cells is absolutely positioned and must be clipped here. */}
@@ -38,7 +40,7 @@ export function DataTable({ caption, regionLabel = caption, children }: DataTabl
         className="relative overflow-x-auto"
       >
         <table className={TABLE_CLASS}>
-          <caption>{caption}</caption>
+          <caption className={hideCaption ? "sr-only" : undefined}>{caption}</caption>
           {children}
         </table>
       </div>
@@ -97,7 +99,8 @@ interface EmptyStateProps {
   action?: { href: string; label: string };
 }
 
-const ACTION_CLASS =
+/** A link drawn as the secondary button, for server markup (the button module is client code). */
+export const SECONDARY_LINK_CLASS =
   "inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill bg-control px-4 font-medium text-text transition-colors hover:bg-control-hover";
 
 export function EmptyState({ children, action }: EmptyStateProps) {
@@ -105,7 +108,7 @@ export function EmptyState({ children, action }: EmptyStateProps) {
     <div className="flex flex-col items-center gap-4 rounded-control bg-surface-sunken px-4 py-8 text-center text-text-muted">
       <p className="max-w-[36ch]">{children}</p>
       {action === undefined ? null : (
-        <Link href={action.href} className={ACTION_CLASS}>
+        <Link href={action.href} className={SECONDARY_LINK_CLASS}>
           {action.label}
         </Link>
       )}

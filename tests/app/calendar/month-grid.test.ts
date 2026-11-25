@@ -90,6 +90,8 @@ function entry(overrides: Partial<CalendarEntry> = {}): CalendarEntry {
     routingInvalid: false,
     override: null,
     isEditable: false,
+    plannedKind: null,
+    canSettle: false,
     ...overrides,
   };
 }

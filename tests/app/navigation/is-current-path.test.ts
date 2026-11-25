@@ -21,3 +21,15 @@ describe("isCurrentPath", () => {
     expect(isCurrentPath("/settings", "/transactions")).toBe(false);
   });
 });
+
+describe("isCurrentPath, pages that belong to another entry", () => {
+  it("marks To pay and not Planned on the To pay page", () => {
+    expect(isCurrentPath("/planned/due", "/planned/due")).toBe(true);
+    expect(isCurrentPath("/planned/due", "/planned")).toBe(false);
+  });
+
+  it("marks Calendar and not Planned on the Link a transaction page", () => {
+    expect(isCurrentPath("/planned/link", "/calendar")).toBe(true);
+    expect(isCurrentPath("/planned/link", "/planned")).toBe(false);
+  });
+});

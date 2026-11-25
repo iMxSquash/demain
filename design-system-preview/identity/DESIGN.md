@@ -768,7 +768,7 @@ A column of cards at most 720 px wide, 16 px apart, padding 24 (16 on a phone). 
 
 ## 18. Calendar
 
-The month grid, the monthly line view, the actions on one occurrence, the "To pay" page, the "Link a transaction" page, the navigation entries they need, and the phone layout of all of them (issue #177, DOMAIN "Occurrence status", "Occurrence override", "The real chart", "Deposit ceiling and overflow"). They are drawn on `components.html`, in the section "Calendar", one card per screen, wide and on a 375 px phone, light and dark. DECISIONS.md, "Calendar", records who decided each point. The owner approved the rendered references on `components.html` on 24 Nov 2026: every value that DECISIONS.md still marks "Proposed" is accepted as rendered (approved as rendered on 24 Nov 2026). The "Link a transaction" page was designed after that approval and waits for it.
+The month grid, the monthly line view, the actions on one occurrence, the "To pay" page, the "Link a transaction" page, the navigation entries they need, and the phone layout of all of them (issue #177, DOMAIN "Occurrence status", "Occurrence override", "The real chart", "Deposit ceiling and overflow"). They are drawn on `components.html`, in the section "Calendar", one card per screen, wide and on a 375 px phone, light and dark. DECISIONS.md, "Calendar", records who decided each point. The owner approved the rendered references on `components.html` on 24 Nov 2026: every value that DECISIONS.md still marks "Proposed" is accepted as rendered (approved as rendered on 24 Nov 2026). The "Link a transaction" page was designed after that approval and approved as drawn on 25 Nov 2026, with the scope and filters below (issue #178).
 
 **Rules for every screen**
 - **Built from what exists.** Select, the date picker field and its grid pattern, the exact-syntax amount field, Table, Pill, buttons, the native dialog, the segmented control and the count badge (sections 8 and 9). The new compositions are the day cell, its compact phone form, the view switch (two links in the track of a segmented control), the stacked line list, the card of the "To pay" page, the markup of the count badge, and the list and filters of the "Link a transaction" page. No new token.
@@ -929,8 +929,8 @@ The same header, then one card (`bg-surface rounded-card p-6`, `p-4` on a phone)
 
 ### To pay page
 
-**Page.** `h1` "To pay" (`text-heading`). Under it one line (`text-body text-text-muted`, 8 px below): "Occurrences that are due. Check the date and the amount, then mark each one as paid, received or transferred." Then sections 32 px apart, each an `h2` of 20 px (`text-title`):
-- **"Due"**: overdue occurrences and those due today, oldest first.
+**Page** (`/planned/due`). `h1` "To pay" (`text-heading`). Under it one line (`text-body text-text-muted`, 8 px below): "Occurrences that are due. Check the date and the amount, then mark each one as paid, received or transferred." Then sections 32 px apart, each an `h2` of 20 px (`text-title`):
+- **"Due"**: the unsettled, non-cancelled occurrences whose effective date is today or earlier (planned ones still in their matching window, partial ones and overdue ones), oldest first (owner, 25 Nov 2026).
 - **"Due in the next 7 days"**: the following ones, in date order.
 
 A section with nothing in it is not drawn. When both are empty, the inner-surface block of section 8 (`bg-surface-sunken rounded-control`, centred, padding 32 x 16, muted) says "Nothing to pay." and has no action.
@@ -950,32 +950,31 @@ A section with nothing in it is not drawn. When both are empty, the inner-surfac
 
 ### Link a transaction page
 
-Opened by the button "Link a transaction" of an occurrence (owner, 24 Nov 2026: a page of its own, not a dialog). Drawn on `components.html`, section "Calendar: link a transaction", wide and phone, light and dark, plus the empty state on a phone. **Proposed**: the page was designed after the owner approved the other references, and waits for its own validation. The route is to be confirmed by the implementing issue.
+Opened by the button "Link a transaction" of an occurrence (owner, 24 Nov 2026: a page of its own, not a dialog), on `/planned/link?item=<id>&date=<nominal date>` with `back=grid` or `back=lines` for the way back. Drawn on `components.html`, section "Calendar: link a transaction", wide and phone, light and dark, plus the empty state on a phone. **Approved** as drawn by the owner on 25 Nov 2026 (issue #178), without the account select: the list is limited to the occurrence's own account. A planned transfer has no "Link a transaction" button, since a transfer is never linked by hand.
 
-**Rules.** Only unlinked transactions are listed, since a transaction settles at most one occurrence (DOMAIN invariant 5). The account select holds the accounts of the occurrence's currency and defaults to the occurrence's own account, since a transaction takes its account's currency (DOMAIN invariant 2). Built from the existing Select, the date picker field, Table, Pill and the secondary button. No new token.
+**Rules.** Only unlinked transactions are listed, since a transaction settles at most one occurrence (DOMAIN invariant 5), and only those of the occurrence's own account with the sign of what it expects; the server refuses any other account (owner, 25 Nov 2026). Built from the existing Select, the date picker field, Table, Pill and the secondary button. No new token.
 
 **Page**, top to bottom (the page column is `cl-main`, as the other pages):
-1. **Back link**: "Back to the calendar", a `btn link` of 44 px with the caret of the date picker turned 90 degrees, `aria-hidden`. It comes first in the reading order, so that a keyboard or touch user does not cross a long list to leave.
+1. **Back link**: "Back to the calendar" (the grid or the line view the user came from, in the month of the occurrence), a `btn link` of 44 px with the caret of the date picker turned 90 degrees, `aria-hidden`. It comes first in the reading order, so that a keyboard or touch user does not cross a long list to leave.
 2. **`h1`** "Link a transaction" (`text-heading`).
 3. **The occurrence** (`mt-4`): a box `bg-surface rounded-card p-4` with a 1 px dashed `border-control` border, the mark of a planned thing (section 18, rules). Left: the description (`text-body font-medium`) with its status pill beside it (Planned, Partial or Overdue), and under it `text-caption text-text-muted` the account and "Planned for Fri 20 Nov 2026". Right, muted and tabular: the word "Planned" (`text-caption font-medium`) and the planned amount, signed ("-€29.90"; the remaining amount for a Partial one). It wraps under the left part on a phone.
-4. **Filters** (`mt-6`, a `form` with `role="search"` named "Filter the transactions"): four labelled fields, 48 px, each with its visible label.
+4. **Filters** (`mt-6`, a GET `form` with `role="search"` named "Filter the transactions"): three labelled fields, 48 px, each with its visible label, and a secondary "Show" button that applies them.
 
    | Field | Control | Default |
    | --- | --- | --- |
    | Search | The text field of section 9, placeholder "Description" | Empty |
-   | Account | The Select of section 9 | The occurrence's account, "Current, EUR" |
-   | From | The date picker field | Empty |
-   | To | The date picker field | Empty |
+   | From | The date picker field | The start of the matching window of the item around the occurrence (the start of the period of a provision) |
+   | To | The date picker field | The end of that window (the end of the period) |
 
-   Wide from 768 px of page column: one row, `grid-cols-[minmax(0,1fr)_240px_176px_176px] gap-4 items-end`. Under 768 px: one column, every field at full width, 16 px apart. The default date range is not decided (open point): the fields are empty.
+   The user can widen the range, or clear a bound to list everything on that side (owner, 25 Nov 2026). Wide from 768 px of page column: one row, `grid-cols-[minmax(0,1fr)_176px_176px_auto] gap-4 items-end`. Under 768 px: one column, every field and the button at full width, 16 px apart.
 5. **Count line** (`mt-6 mb-3`, `text-caption text-text-muted`, `role="status"` so a change is announced): "12 transactions" ("1 transaction", "0 transactions").
-6. **The list**, in a card (`bg-surface rounded-card`, `p-6`, `p-4` on a phone). From 640 px of page column a Table (section 8) with a visually hidden caption "Unlinked transactions of Current, in euros": Date ("21 Nov 2026"), Description, Account, Amount (signed, right-aligned, tabular) and a last column whose header is the visually hidden word "Action", holding the secondary button "Link" (44 px). Rows are 48 px at least, `divider` hairlines, hover `bg-surface-sunken`. These are real transactions: ink text, no dashed mark.
+6. **The list**, in a card (`bg-surface rounded-card`, `p-6`, `p-4` on a phone). From 640 px of page column a Table (section 8) with a visually hidden caption "Unlinked transactions of Current, in EUR" (the currency code): Date ("21 Nov 2026"), Description, Account, Amount (signed, right-aligned, tabular) and a last column whose header is the visually hidden word "Action", holding the secondary button "Link" (44 px). Rows are 48 px at least, `divider` hairlines, hover `bg-surface-sunken`. These are real transactions: ink text, no dashed mark.
    Under 640 px a stacked list: line 1 the date (`text-caption text-text-muted`, 72 px) the description (medium) and the amount on the right; line 2 the account (`text-caption text-text-muted`); line 3 the "Link" button at full width, 44 px. 12 px between entries, a `divider` hairline above each.
 7. **Empty state**: when nothing matches, the count line says "0 transactions" and the inner-surface block of section 8 (`bg-surface-sunken rounded-control`, centred, padding 32 x 16, muted) says "No unlinked transaction matches." and has no action.
 
 **Names.** The button reads "Link" and is named `aria-label="Link, Pharmacy, 21 Nov 2026, -€18.50, to Internet due 20 Nov 2026"` (it starts with its visible word). The page `<title>` is "Link a transaction".
 
-**After a click** (proposed): pending "Linking…" with `aria-busy="true"`; the link is recorded, the user returns to the calendar and a toast (section 8) says "Success. Pharmacy linked to Internet." and the occurrence is Confirmed. A failure is one line above the list, `role="alert"`: "Error: the transaction could not be linked. Try again."
+**After a click**: pending "Linking…" with `aria-busy="true"`; the link is recorded, the user returns to the calendar and a toast (section 8) says "Success. Pharmacy linked to Internet." and the occurrence is Confirmed. A failure is one line above the list, `role="alert"`: "Error: the transaction could not be linked. Try again."
 
 **Focus and keyboard.** Reading order is back link, `h1`, occurrence, filters, count, list. Every control takes the base 2 px `focus` outline with a 2 px offset. The filters follow section 9 (Select and date picker keyboard models). The count line is announced when a filter changes the list.
 

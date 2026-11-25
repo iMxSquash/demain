@@ -67,6 +67,7 @@ async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
           accounts={accountNames}
           locale={locale}
           text={{ ...linesTextOf(t), caption: t("lines.caption", { month: formatMonth(month, locale) }) }}
+          backView="lines"
         />
       )}
     </section>
