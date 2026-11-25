@@ -1,12 +1,13 @@
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { PlannedItemValidationError, type PlannedItemField } from "../../domain/planned-item";
-import { PlannedItemNotFoundError } from "../../ledger/planned-items";
+import { PlannedItemHasTransactionsError, PlannedItemNotFoundError } from "../../ledger/planned-items";
 import { flashError } from "../feedback/flash";
 
 // Not a "use server" file: its exports would become endpoints callable from the browser.
 
 export function describeFailure(error: unknown): MessageRef {
   if (error instanceof PlannedItemNotFoundError) return messageRef("plannedItemGone");
+  if (error instanceof PlannedItemHasTransactionsError) return messageRef("plannedItemHasTransactions");
   // Unexpected failures are logged with their detail, the user sees a generic message.
   console.error("Planned item action failed", error);
   return messageRef("plannedItemNotSaved");

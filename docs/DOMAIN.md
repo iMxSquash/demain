@@ -133,7 +133,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | provision_label_filter | Optional text for a provision: only transactions whose label contains it are linked automatically (for example `carburant`). |
 | match_window_days | Default 5. |
 | match_amount_tolerance_bp | Tolerance of the amount when matching, stored in basis points so that no percentage is ever a float: 500 is 5% (the default), from 0 to 10000. |
-| cancelled | A cancelled planned item produces no future occurrence. Only cancelling is possible: deleting an item that no transaction settles is tracked in issue #180. |
+| cancelled | A cancelled planned item produces no future occurrence. An item that no transaction references (no transaction has its `planned_item_id`, with or without an occurrence date) can instead be deleted, active or cancelled: its overrides, its versions and the item go in one database transaction, and the check runs inside it. An item that a transaction references is kept for the history (invariant 5) and can only be cancelled. |
 | source_scenario_id | Set when the item was created by validating a scenario. |
 
 A planned item has one or more **versions**. A version applies from its `effective_from` date until the next version:

@@ -16,6 +16,7 @@ import { listAccounts } from "../../../../ledger/accounts";
 import { listCategories } from "../../../../ledger/categories";
 import {
   getPlannedItem,
+  hasLinkedTransactions,
   PlannedItemNotFoundError,
   toPlannedSchedule,
 } from "../../../../ledger/planned-items";
@@ -25,6 +26,7 @@ import { ConfirmActionButton } from "../../../confirm-action-button";
 import {
   addPlannedItemVersionAction,
   cancelPlannedItemAction,
+  deletePlannedItemAction,
   setPlannedItemEndAction,
   updatePlannedItemAction,
 } from "../../actions";
@@ -98,6 +100,7 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
   try {
     data = withDatabase((db) => ({
       item: getPlannedItem(db, id),
+      isLinked: hasLinkedTransactions(db, id),
       accounts: listAccounts(db, { includeArchived: true }),
       categories: listCategories(db, { includeArchived: true }),
     }));
@@ -105,7 +108,7 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
     if (error instanceof PlannedItemNotFoundError) notFound();
     throw error;
   }
-  const { item, accounts, categories } = data;
+  const { item, isLinked, accounts, categories } = data;
 
   const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
   const currency = accounts.find((account) => account.id === item.accountId)?.currency ?? "";
@@ -246,6 +249,23 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
           />
         </PageSection>
       )}
+
+      <PageSection id="delete-heading" heading={t("delete.heading")}>
+        {isLinked ? (
+          <p>{t(item.cancelled ? "delete.blockedCancelled" : "delete.blocked")}</p>
+        ) : (
+          <ConfirmActionButton
+            action={deletePlannedItemAction.bind(null, item.id)}
+            label={t("delete.label")}
+            subject={item.name}
+            title={t("delete.title", { name: item.name })}
+            message={t("delete.message")}
+            confirmLabel={t("delete.confirm")}
+            variant="destructive"
+            className="self-start"
+          />
+        )}
+      </PageSection>
     </>
   );
 }

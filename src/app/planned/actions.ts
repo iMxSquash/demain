@@ -22,6 +22,7 @@ import {
   addPlannedItemVersion,
   cancelPlannedItem,
   createPlannedItem,
+  deletePlannedItem,
   getPlannedItem,
   PlannedItemNotFoundError,
   setPlannedItemEnd,
@@ -210,6 +211,22 @@ export async function cancelPlannedItemAction(itemId: number): Promise<void> {
     { success: "plannedItemCancelled", describeFailure },
   );
   refreshData();
+}
+
+export async function deletePlannedItemAction(itemId: number): Promise<void> {
+  await requireSession();
+  try {
+    withDatabase((db) => deletePlannedItem(db, itemId));
+  } catch (error) {
+    // The item stays, so the user stays on its page and reads why.
+    await flashError(describeFailure(error));
+    return;
+  }
+
+  refreshData();
+  await flashSuccess("plannedItemDeleted");
+  // redirect throws, so it stays outside the try block.
+  redirect(PLANNED_PATH);
 }
 
 // A refusal on the date or the amount sits on its field; any other one is told in a toast.
