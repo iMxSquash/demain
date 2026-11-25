@@ -85,7 +85,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | kind | `expense`, `income`, `interest` or `transfer`. |
 | label | Raw label from the bank export, kept unchanged for rules and deduplication. |
 | description | Optional user note. |
-| payment_mode | Optional: card, transfer, direct debit (kept from the sheet and from imports when available). Both legs of a transfer always carry `transfer`, whether entered in the add-transaction form or created by an import. |
+| payment_mode | Optional: card, transfer, direct debit (kept from the sheet and from imports when available). Both legs of a transfer always carry `transfer`, whether entered in the add-transaction form or created by an import. The add-transaction form preselects the `default_payment_mode` setting (card when it is unset or unreadable), chosen on the Settings page. |
 | category_id | Nullable. Null means the transaction is in the **to categorize** queue. Transfers have no category. |
 | transfer_counterpart_id | For a transfer leg, the other leg. Null otherwise. |
 | planned_item_id, occurrence_date | Set when the transaction settles an occurrence of a planned item (nominal date of that occurrence). Null otherwise: both are null or both are set. They are not part of the import digest, since a link moves no balance and the undo deletes it with the row. |

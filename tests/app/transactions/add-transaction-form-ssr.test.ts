@@ -22,6 +22,7 @@ describe("AddTransactionForm before hydration", () => {
     today: "2026-03-15",
     accountIds: [1, 2],
     lastAccountId: null,
+    defaultPaymentMode: "direct_debit",
   });
   const markup = render(
     createElement(AddTransactionForm, {
@@ -54,6 +55,14 @@ describe("AddTransactionForm before hydration", () => {
     expect(markup).toContain("What for?");
     expect(markup).toContain("Date and account");
     expect(markup).not.toContain("Check and save");
+  });
+
+  it("preselects the payment mode of the setting", () => {
+    const checkedModes = [...markup.matchAll(/<input[^>]*name="paymentMode"[^>]*>/g)]
+      .filter(([input]) => input.includes('checked=""'))
+      .map(([input]) => /value="([^"]*)"/.exec(input)?.[1]);
+
+    expect(checkedModes).toEqual(["direct_debit"]);
   });
 
   it("writes no style attribute, which the CSP refuses", () => {

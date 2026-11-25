@@ -15,6 +15,7 @@ import {
 } from "../../domain/transaction";
 import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
 import { CategoryNotFoundError } from "../../ledger/categories";
+import { getDefaultPaymentMode } from "../../ledger/default-payment-mode";
 import { linkByHand, PlannedLinkError, unlinkByHand } from "../../ledger/planned-matching";
 import {
   createTransaction,
@@ -142,26 +143,28 @@ export async function createTransactionAction(
   const parsed = parseTransactionForm(formData, currencies, translate);
   if (!parsed.ok) return parsed.error;
 
-  let warning;
+  let saved;
   try {
-    warning = withDatabase((db) => {
+    saved = withDatabase((db) => {
       const found = previewCeilingWarning(db, parsed.input);
       createTransaction(db, parsed.input);
-      return found;
+      return { warning: found, defaultPaymentMode: getDefaultPaymentMode(db) };
     });
   } catch (error) {
     return await transactionFailure(error, formData, translate);
   }
 
+  const { warning, defaultPaymentMode } = saved;
   refreshData();
   await flashSuccess("transactionRecorded");
-  // Keep account and date for the next entry, clear what is specific to this one.
+  // Keep account and date for the next entry, clear what is specific to this one: the payment
+  // mode goes back to the default, as on a fresh form.
   const values = {
     ...readTransactionValues(formData),
     amount: "",
     label: "",
     description: "",
-    paymentMode: "",
+    paymentMode: defaultPaymentMode,
   };
   const notice = ceilingNotice(currencies, parsed.input.accountId, warning, translate, locale);
   return notice === null

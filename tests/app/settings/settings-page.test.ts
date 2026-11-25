@@ -1,14 +1,16 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
 
-import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createTranslator } from "next-intl";
+import { createTranslator, NextIntlClientProvider } from "next-intl";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DefaultPaymentModeForm } from "../../../src/app/settings/default-payment-mode-form";
 import { createSession } from "../../../src/auth/sessions";
 import { Select } from "../../../src/components/select";
 import { loadMessages } from "../../../src/i18n/message-files";
+import { setDefaultPaymentMode } from "../../../src/ledger/default-payment-mode";
 import { DATABASE_FILE_NAME, migrateDatabase, openDatabase } from "../../../src/storage/database";
 
 // Synthetic data only: the directory holds an empty database made by this test.
@@ -26,7 +28,12 @@ vi.mock("next/navigation", () => ({
     throw new Error(`redirect:${location}`);
   },
 }));
-vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+vi.mock("next/cache", () => ({
+  revalidatePath: () => undefined,
+  cacheTag: () => undefined,
+  cacheLife: () => undefined,
+  updateTag: () => undefined,
+}));
 vi.mock("next/server", () => ({ connection: async () => undefined }));
 vi.mock("next-intl/server", () => ({
   getLocale: async () => LOCALE,
@@ -37,7 +44,7 @@ vi.mock("next-intl/server", () => ({
 type AnyComponent = (props: Record<string, unknown>) => ReactNode | Promise<ReactNode>;
 
 // A client component with hooks cannot be called as a function by `resolve`: React renders it.
-const RENDERED_BY_REACT: readonly unknown[] = [Select];
+const RENDERED_BY_REACT: readonly unknown[] = [Select, DefaultPaymentModeForm];
 
 /** Server components are async: resolve them down to plain elements before rendering to a string. */
 async function resolve(node: ReactNode): Promise<ReactNode> {
@@ -54,7 +61,14 @@ async function resolve(node: ReactNode): Promise<ReactNode> {
 
 async function renderSettings(): Promise<string> {
   const { default: SettingsPage } = await import("../../../src/app/settings/page");
-  return renderToStaticMarkup((await resolve(await SettingsPage())) as ReactElement);
+  const page = (await resolve(await SettingsPage())) as ReactElement;
+  return renderToStaticMarkup(
+    createElement(
+      NextIntlClientProvider,
+      { locale: LOCALE, messages: loadMessages(LOCALE) } as ComponentProps<typeof NextIntlClientProvider>,
+      page,
+    ),
+  );
 }
 
 function openSession(mfaPending: boolean): void {
@@ -99,7 +113,7 @@ describe("settings page", () => {
     await expect(renderSettings()).rejects.toThrow("redirect:/login");
   });
 
-  it("has one h1 and the headings Appearance, Language and More in order", async () => {
+  it("has one h1 and the headings Appearance, Language, Default payment mode and More in order", async () => {
     openSession(false);
 
     const html = await renderSettings();
@@ -110,6 +124,7 @@ describe("settings page", () => {
       ["1", "Settings"],
       ["2", "Appearance"],
       ["2", "Language"],
+      ["2", "Default payment mode"],
       ["2", "More"],
     ]);
   });
@@ -142,5 +157,29 @@ describe("settings page", () => {
 
     expect(html).toContain('name="theme"');
     expect(html).toContain('name="locale"');
+  });
+
+  it("shows the stored default payment mode as the chosen chip", async () => {
+    openSession(false);
+    const db = openDatabase(DATA_DIR);
+    try {
+      setDefaultPaymentMode(db, "direct_debit");
+    } finally {
+      db.$client.close();
+    }
+
+    const html = await renderSettings();
+
+    const radios = [...html.matchAll(/<input[^>]*name="paymentMode"[^>]*>/g)].map(([tag]) => ({
+      value: /value="([^"]+)"/.exec(tag)?.[1],
+      checked: tag.includes('checked=""'),
+    }));
+    expect(radios).toEqual([
+      { value: "card", checked: false },
+      { value: "transfer", checked: false },
+      { value: "direct_debit", checked: true },
+    ]);
+    expect(html).toContain("Direct debit");
+    expect(html).toContain("Apply payment mode");
   });
 });

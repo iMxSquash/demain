@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Suspense } from "react";
+import { connection } from "next/server";
+import { cache, Suspense } from "react";
 import {
   Archive,
   ArrowsDownUp,
@@ -14,10 +15,15 @@ import {
 
 import { Button } from "../../components/button";
 import { Icon } from "../../components/icon";
+import { SkeletonFields, SkeletonRegion } from "../../components/skeleton";
+import { getDefaultPaymentMode } from "../../ledger/default-payment-mode";
+import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
+import { tagDataRead } from "../data-cache";
 import { logoutAction } from "../login/actions";
 import { LocaleSwitcher } from "../locale/locale-switcher";
 import { ThemeSwitcher } from "../theme/theme-switcher";
+import { DefaultPaymentModeForm } from "./default-payment-mode-form";
 
 const MORE_LINKS = [
   { href: "/transactions", key: "transactions", icon: ArrowsDownUp },
@@ -34,15 +40,40 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-// The page shows no data, so nothing waits for the session: the check renders nothing in its own
-// `Suspense` and still sends an anonymous visitor to the login page if the proxy ever let one through.
-async function SessionCheck() {
+// One read for the whole request: the session check and the section below share it.
+const readStoredPaymentMode = cache(async () => {
+  // Inside a `Suspense`, so the page itself joins the prefetched App Shell (ADR-023).
   await requireSession();
+  // The page reads the database: it must run per request, never at build time.
+  await connection();
+  return readDefaultPaymentModeFromDatabase();
+});
+
+async function readDefaultPaymentModeFromDatabase() {
+  "use cache";
+  tagDataRead();
+  return withDatabase(getDefaultPaymentMode);
+}
+
+// Sends an anonymous visitor the proxy let through to the login page while the page itself awaits
+// nothing (ADR-023). The read is shared with the payment mode section, so it costs no second query.
+async function SessionCheck() {
+  await readStoredPaymentMode();
   return null;
 }
 
+async function DefaultPaymentMode() {
+  const stored = await readStoredPaymentMode();
+
+  return <DefaultPaymentModeForm key={stored} stored={stored} />;
+}
+
 export default async function SettingsPage() {
-  const [t, tAuth] = await Promise.all([getTranslations("settings"), getTranslations("auth")]);
+  const [t, tAuth, loading] = await Promise.all([
+    getTranslations("settings"),
+    getTranslations("auth"),
+    getTranslations("loading"),
+  ]);
 
   return (
     <main className="flex max-w-2xl flex-col gap-8 p-8">
@@ -61,6 +92,20 @@ export default async function SettingsPage() {
           {t("language")}
         </h2>
         <LocaleSwitcher />
+      </section>
+      <section aria-labelledby="payment-mode-heading" className="flex flex-col gap-4">
+        <h2 id="payment-mode-heading" className="text-title font-medium">
+          {t("defaultPaymentMode")}
+        </h2>
+        <Suspense
+          fallback={
+            <SkeletonRegion label={loading("form")}>
+              <SkeletonFields count={1} />
+            </SkeletonRegion>
+          }
+        >
+          <DefaultPaymentMode />
+        </Suspense>
       </section>
       <section aria-labelledby="more-heading" className="flex flex-col gap-4">
         <h2 id="more-heading" className="text-title font-medium">

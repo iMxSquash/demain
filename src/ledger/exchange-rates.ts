@@ -7,7 +7,8 @@ import {
   type ExchangeRateInput,
 } from "../domain/exchange-rate";
 import type { AppDatabase } from "../storage/database";
-import { exchangeRates, settings } from "../storage/schema";
+import { exchangeRates } from "../storage/schema";
+import { readSetting, writeSetting } from "./settings";
 
 export type StoredExchangeRate = typeof exchangeRates.$inferSelect;
 
@@ -17,17 +18,6 @@ const ECB_FETCH_ENABLED_KEY = "ecb_fetch_enabled";
 const ECB_FEED_URL =
   "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
 const ECB_TIMEOUT_MS = 10_000;
-
-function readSetting(db: AppDatabase, key: string): string | undefined {
-  return db.select().from(settings).where(eq(settings.key, key)).get()?.value;
-}
-
-function writeSetting(db: AppDatabase, key: string, value: string): void {
-  db.insert(settings)
-    .values({ key, value })
-    .onConflictDoUpdate({ target: settings.key, set: { value } })
-    .run();
-}
 
 export function getReferenceCurrency(db: AppDatabase): string {
   return readSetting(db, REFERENCE_CURRENCY_KEY) ?? DEFAULT_REFERENCE_CURRENCY;
