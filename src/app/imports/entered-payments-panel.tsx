@@ -33,7 +33,7 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose }: EnteredR
   const date = (value: string) => formatCalendarDate(value, locale);
   const amount = (value: number) => formatAmount(value, currency, locale);
   const reading = readImportDraft(row.draft, currency);
-  const [only] = match.candidates;
+  const single = match.candidates.length === 1 ? match.candidates[0] : undefined;
   const describe = (entry: EnteredPaymentEntry) => ({
     name: entry.plannedItemName,
     nominalDate: date(entry.nominalDate),
@@ -67,12 +67,12 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose }: EnteredR
         })}
       </legend>
       <p id={textId}>
-        {match.candidates.length === 1 && only !== undefined
-          ? t("one", describe(only))
+        {single !== undefined
+          ? t("one", describe(single))
           : t("several", { count: match.candidates.length })}
       </p>
-      {match.candidates.length === 1 && only !== undefined
-        ? option(String(only.id), t("replace"), only.id)
+      {single !== undefined
+        ? option(String(single.id), t("replace"), single.id)
         : match.candidates.map((entry) => option(String(entry.id), t("replaceThis", describe(entry)), entry.id))}
       {option(KEEP_BOTH, t("keepBoth"), null)}
     </fieldset>

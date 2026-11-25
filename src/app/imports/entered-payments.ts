@@ -1,4 +1,6 @@
-import { readImportDraft, type ImportDraft, type RowDetails, type RowProblem } from "../../domain/import-draft";
+import type { FileContext } from "../../domain/import-assertions";
+import { readImportDraft, type RowProblem } from "../../domain/import-draft";
+import type { ReviewedRow } from "../../domain/import-review";
 import {
   findEnteredPayments,
   type EnteredPaymentMatch,
@@ -12,13 +14,6 @@ export type EnteredMatch = EnteredPaymentMatch<EnteredPaymentEntry>;
 /** What the owner chose for a flagged row, by its position: the entry to replace, or null to keep both. */
 export type EnteredChoices = ReadonlyMap<number, number | null>;
 
-interface ReviewedRow {
-  draft: ImportDraft;
-  details: RowDetails;
-  isDuplicate: boolean;
-  problem: RowProblem | null;
-}
-
 /**
  * The rows of a file under review that may be an entry marked as paid, read as the import
  * records them (the shown amount follows the type). Duplicates, rows with a problem and savings
@@ -26,11 +21,13 @@ interface ReviewedRow {
  * file imported earlier in the review already replaced.
  */
 export function enteredMatchesOf(
-  rows: readonly ReviewedRow[],
-  { accountId, currency }: { accountId: number; currency: string },
+  rows: readonly (ReviewedRow & { problem: RowProblem | null })[],
+  { accountId, currency }: FileContext,
   entered: readonly EnteredPaymentEntry[],
   replacedIds: ReadonlySet<number> = new Set(),
 ): EnteredMatch[] {
+  const available = entered.filter((entry) => entry.accountId === accountId && !replacedIds.has(entry.id));
+  if (available.length === 0) return [];
   const candidates = rows.flatMap((row, index): MatchTransaction[] => {
     const { type } = row.details;
     if (row.isDuplicate || row.problem !== null || type === "savings") return [];
@@ -39,11 +36,7 @@ export function enteredMatchesOf(
     const { date, label, amount } = reading.row;
     return [{ id: index, accountId, categoryId: row.details.categoryId, date, label, amount, kind: type }];
   });
-  if (candidates.length === 0) return [];
-  return findEnteredPayments(
-    candidates,
-    entered.filter((entry) => !replacedIds.has(entry.id)),
-  );
+  return findEnteredPayments(candidates, available);
 }
 
 export interface SettledEnteredChoices {

@@ -497,12 +497,12 @@ function checkReplacements(
       candidates.get(index)?.has(entryId) === true &&
       !usedRows.has(index) &&
       !usedEntries.has(entryId);
-    usedRows.add(index);
-    usedEntries.add(entryId);
     if (!holds) {
       issues.push({ kind: "replacementRefused", index });
       continue;
     }
+    usedRows.add(index);
+    usedEntries.add(entryId);
     checked.push({ fingerprint: row.fingerprint, entryId });
   }
   return { checked, issues };

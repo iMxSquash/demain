@@ -208,9 +208,8 @@ export function FileCard({
     () => settleEnteredChoices(enteredMatches, enteredChoices),
     [enteredMatches, enteredChoices],
   );
-  const chooseEntered = useCallback((rowId: number, entryId: number | null) => {
+  const chooseEntered = (rowId: number, entryId: number | null) =>
     setEnteredChoices((previous) => new Map(previous).set(rowId, entryId));
-  }, []);
   const enteredHint =
     settled.unsettledCount > 0
       ? t("entered.chooseFirst", { count: settled.unsettledCount })

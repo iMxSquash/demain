@@ -366,7 +366,6 @@ function batchCandidatesOf(
   db: Pick<AppDatabase, "select">,
   batchId: number,
   rows: readonly TransferRow[],
-  { unlinkedOnly }: { unlinkedOnly: boolean },
 ): BatchCandidates {
   const nonTransfers = db
     .select()
@@ -375,13 +374,11 @@ function batchCandidatesOf(
       and(
         eq(transactions.importBatchId, batchId),
         ne(transactions.kind, "transfer"),
-        unlinkedOnly ? isNull(transactions.plannedItemId) : undefined,
+        isNull(transactions.plannedItemId),
       ),
     )
     .all();
-  const candidateRows = rows.filter(
-    ({ representative }) => !unlinkedOnly || representative.plannedItemId === null,
-  );
+  const candidateRows = rows.filter(({ representative }) => representative.plannedItemId === null);
   return {
     transactions: [...nonTransfers, ...candidateRows.map((row) => row.representative)],
     legIdsOf: new Map(candidateRows.map(({ representative, legIds }) => [representative.id, legIds])),
@@ -478,7 +475,7 @@ export function applyImportMatches(
   const rows = transferRowsOf(db, batchId);
   const result = decideBatchMatches(
     db,
-    batchCandidatesOf(db, batchId, rows, { unlinkedOnly: true }),
+    batchCandidatesOf(db, batchId, rows),
     today,
   );
   if (result === null) return NO_MATCHES;
@@ -536,7 +533,7 @@ function proposedGroupsOf(
 ): BatchLookups & { groups: MatchPair[][] } {
   const result = decideBatchMatches(
     db,
-    batchCandidatesOf(db, batchId, rows, { unlinkedOnly: true }),
+    batchCandidatesOf(db, batchId, rows),
     today,
   );
   if (result === null) return { groups: [], ...NO_LOOKUPS };
@@ -897,10 +894,10 @@ export function replaceEnteredPayment(
   }
   db.delete(transactions).where(eq(transactions.id, entryId)).run();
   const taken = {
-    ...(bankRow.categoryId === null
+    ...(bankRow.categoryId === null && entry.categoryId !== null
       ? { categoryId: entry.categoryId, categoryFromPlannedItem: entry.categoryFromPlannedItem }
       : {}),
-    ...(bankRow.description === null ? { description: entry.description } : {}),
+    ...(bankRow.description === null && entry.description !== null ? { description: entry.description } : {}),
   };
   if (Object.keys(taken).length > 0) {
     db.update(transactions).set(taken).where(eq(transactions.id, bankRowId)).run();
