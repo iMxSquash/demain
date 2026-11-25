@@ -10,7 +10,7 @@ import { CONTROL_CLASS, FormField } from "../form-field";
 import { Modal } from "../modal";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { deleteOccurrenceOverrideAction, saveOccurrenceOverrideAction } from "./actions";
-import { DAY_HEADING_SELECTOR } from "./month-grid-client";
+import { DAY_HEADING_SELECTOR } from "./focus-targets";
 import {
   SAVE_INTENT,
   SKIP_INTENT,
@@ -128,6 +128,10 @@ function OccurrenceChangeForms({
     },
     null,
   );
+  // Either form running holds every submit button; only the button that was clicked says so.
+  const isBusy = isPending || isRestoring;
+  const [submittedIntent, setSubmittedIntent] = useState<typeof SAVE_INTENT | typeof SKIP_INTENT>(SAVE_INTENT);
+  const pendingLabelWhile = (isRunning: boolean) => (isRunning ? common("pending") : undefined);
   const formRef = useFocusFirstError(state);
   const values = state?.values ?? initialValues;
   const idOf = (field: OccurrenceOverrideFormField) => `${baseId}-${field}`;
@@ -179,10 +183,25 @@ function OccurrenceChangeForms({
 
         {/* Save comes first: Enter in a field submits with the first button, never with Skip. */}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" name="intent" value={SAVE_INTENT} pending={isPending} pendingLabel={common("pending")}>
+          <Button
+            type="submit"
+            name="intent"
+            value={SAVE_INTENT}
+            pending={isBusy}
+            pendingLabel={pendingLabelWhile(isPending && submittedIntent === SAVE_INTENT)}
+            onClick={() => setSubmittedIntent(SAVE_INTENT)}
+          >
             {t("save")}
           </Button>
-          <Button type="submit" name="intent" value={SKIP_INTENT} variant="secondary" pending={isPending}>
+          <Button
+            type="submit"
+            name="intent"
+            value={SKIP_INTENT}
+            variant="secondary"
+            pending={isBusy}
+            pendingLabel={pendingLabelWhile(isPending && submittedIntent === SKIP_INTENT)}
+            onClick={() => setSubmittedIntent(SKIP_INTENT)}
+          >
             {t("skip")}
           </Button>
           <Button type="button" variant="link" onClick={onClose}>
@@ -202,8 +221,8 @@ function OccurrenceChangeForms({
           <Button
             type="submit"
             variant="secondary"
-            pending={isRestoring}
-            pendingLabel={common("pending")}
+            pending={isBusy}
+            pendingLabel={pendingLabelWhile(isRestoring)}
             className="self-start"
           >
             {t("restore")}
