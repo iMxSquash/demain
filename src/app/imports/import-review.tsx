@@ -9,6 +9,7 @@ import {
   type OverflowTarget,
 } from "../../domain/import-overflow";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
+import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 import { failedStagedFile, type ColumnChoiceFields, type ImportView } from "./import-form-data";
 import { useReviewSession } from "./review-session";
 import { StagedImportReview } from "./staged-import-review";
@@ -22,7 +23,8 @@ export function ImportReview({
   categories,
   overflowAccounts,
   assertionSnapshot,
-}: ImportView & { assertionSnapshot: AssertionLinkSnapshot }) {
+  enteredPayments,
+}: ImportView & { assertionSnapshot: AssertionLinkSnapshot; enteredPayments: EnteredPaymentEntry[] }) {
   const t = useTranslations("imports");
   const router = useRouter();
   const { review, setReview } = useReviewSession();
@@ -55,6 +57,7 @@ export function ImportReview({
             overflowAccounts,
             storedOverflowAccounts: overflowAccounts,
             assertionSnapshot,
+            enteredPayments,
             // The balances are back to the stored ones: the choices go with them.
             overflowChoices: [],
             batch: current.batch + 1,
@@ -109,6 +112,7 @@ export function ImportReview({
       overflowAccounts={review.overflowAccounts}
       storedOverflowAccounts={review.storedOverflowAccounts}
       assertionSnapshot={review.assertionSnapshot}
+      enteredPayments={review.enteredPayments}
       overflowChoices={review.overflowChoices}
       readingText={staging === null ? null : t("staged.reading", { ...staging })}
       onAccountChange={changeReviewAccount}

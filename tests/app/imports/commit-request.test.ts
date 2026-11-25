@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAX_CELL_LENGTH,
+  MAX_ROWS,
   commitRequestSchema,
 } from "../../../src/app/imports/commit-request";
 
@@ -47,6 +48,30 @@ describe("commitRequestSchema", () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.overflowChoices).toEqual([]);
+  });
+
+  it("defaults the replacements to an empty list and keeps those given", () => {
+    expect(parse(request()).data?.replacements).toEqual([]);
+    expect(parse(request({ replacements: [{ index: 0, entryId: 9 }] })).data?.replacements).toEqual([
+      { index: 0, entryId: 9 },
+    ]);
+  });
+
+  it.each([
+    ["a negative row index", { index: -1, entryId: 9 }],
+    ["a fractional row index", { index: 0.5, entryId: 9 }],
+    ["a row index beyond the rows a file may have", { index: MAX_ROWS, entryId: 9 }],
+    ["an entry id of zero", { index: 0, entryId: 0 }],
+    ["an entry id given as text", { index: 0, entryId: "9" }],
+    ["a field a replacement does not have", { index: 0, entryId: 9, keepBoth: true }],
+  ])("refuses a replacement with %s", (_name, replacement) => {
+    expect(parse(request({ replacements: [replacement] })).success).toBe(false);
+  });
+
+  it("refuses more replacements than a file may have rows", () => {
+    const replacements = Array.from({ length: MAX_ROWS + 1 }, (_, index) => ({ index: 0, entryId: index + 1 }));
+
+    expect(parse(request({ replacements })).success).toBe(false);
   });
 
   it("accepts drafts with no details, and no savings account", () => {

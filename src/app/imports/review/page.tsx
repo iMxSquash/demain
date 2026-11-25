@@ -46,7 +46,7 @@ async function ReviewSection() {
   await requireSession();
   // The page reads the database: it must run per request, never at build time.
   await connection();
-  const { view, assertionSnapshot } = await readImportContext();
+  const { view, assertionSnapshot, enteredPayments } = await readImportContext();
 
-  return <ImportReview {...view} assertionSnapshot={assertionSnapshot} />;
+  return <ImportReview {...view} assertionSnapshot={assertionSnapshot} enteredPayments={enteredPayments} />;
 }

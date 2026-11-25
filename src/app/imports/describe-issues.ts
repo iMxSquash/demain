@@ -69,6 +69,8 @@ export function describeImportIssue(
       return ofRow(say, issue.index, t(`rowProblem.${issue.problem}`));
     case "rowInvalid":
       return ofRow(say, issue.index, say.translate(issue.ref));
+    case "replacementRefused":
+      return ofRow(say, issue.index, t("replacementRefused"));
     default:
       return assertNever(issue);
   }

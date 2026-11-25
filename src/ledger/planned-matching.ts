@@ -21,6 +21,7 @@ import {
   matchingRange,
   matchingWindow,
   type DueOccurrences,
+  type EnteredPayment,
   type MatchDecisions,
   type MatchOccurrence,
   type MatchPair,
@@ -365,7 +366,6 @@ function batchCandidatesOf(
   db: Pick<AppDatabase, "select">,
   batchId: number,
   rows: readonly TransferRow[],
-  { unlinkedOnly }: { unlinkedOnly: boolean },
 ): BatchCandidates {
   const nonTransfers = db
     .select()
@@ -374,13 +374,11 @@ function batchCandidatesOf(
       and(
         eq(transactions.importBatchId, batchId),
         ne(transactions.kind, "transfer"),
-        unlinkedOnly ? isNull(transactions.plannedItemId) : undefined,
+        isNull(transactions.plannedItemId),
       ),
     )
     .all();
-  const candidateRows = rows.filter(
-    ({ representative }) => !unlinkedOnly || representative.plannedItemId === null,
-  );
+  const candidateRows = rows.filter(({ representative }) => representative.plannedItemId === null);
   return {
     transactions: [...nonTransfers, ...candidateRows.map((row) => row.representative)],
     legIdsOf: new Map(candidateRows.map(({ representative, legIds }) => [representative.id, legIds])),
@@ -468,6 +466,7 @@ function writeDecidedLink(
  * Links the transactions of an imported batch to the occurrences they settle (DOMAIN, "Matching
  * planned vs actual"). Only unambiguous pairs are written, fill-ups of a provision included; the
  * ambiguous ones are counted and left alone. Run it in the transaction that records the batch.
+ * A row already linked (it replaced an entry) keeps its link.
  */
 export function applyImportMatches(
   db: Executor,
@@ -476,7 +475,7 @@ export function applyImportMatches(
   const rows = transferRowsOf(db, batchId);
   const result = decideBatchMatches(
     db,
-    batchCandidatesOf(db, batchId, rows, { unlinkedOnly: false }),
+    batchCandidatesOf(db, batchId, rows),
     today,
   );
   if (result === null) return NO_MATCHES;
@@ -534,7 +533,7 @@ function proposedGroupsOf(
 ): BatchLookups & { groups: MatchPair[][] } {
   const result = decideBatchMatches(
     db,
-    batchCandidatesOf(db, batchId, rows, { unlinkedOnly: true }),
+    batchCandidatesOf(db, batchId, rows),
     today,
   );
   if (result === null) return { groups: [], ...NO_LOOKUPS };
@@ -827,6 +826,93 @@ export function unlinkByHand(db: AppDatabase, transactionId: number): void {
     getOpenAccount(tx, transaction.accountId);
     unlinkTransaction(tx, transactionId);
   });
+}
+
+/** An entry an import review may offer to replace, with the name the review shows. */
+export interface EnteredPaymentEntry extends EnteredPayment {
+  plannedItemName: string;
+}
+
+/**
+ * The transactions entered by hand (no import batch) that settle a regular occurrence of an
+ * expense or an income: what a bank row of a file may replace (DOMAIN, "Importing files").
+ * Provisions, planned transfers and archived accounts are left out. In id order.
+ */
+export function listEnteredPayments(
+  db: Pick<AppDatabase, "select">,
+  accountIds?: readonly number[],
+): EnteredPaymentEntry[] {
+  const rows = db
+    .select({
+      id: transactions.id,
+      accountId: transactions.accountId,
+      categoryId: transactions.categoryId,
+      date: transactions.date,
+      label: transactions.label,
+      kind: transactions.kind,
+      amount: transactions.amount,
+      plannedItemId: plannedItems.id,
+      plannedItemName: plannedItems.name,
+      nominalDate: transactions.occurrenceDate,
+      windowDays: plannedItems.matchWindowDays,
+      toleranceBasisPoints: plannedItems.matchAmountToleranceBp,
+    })
+    .from(transactions)
+    // An entry moved to another account than its item could not take the link back.
+    .innerJoin(
+      plannedItems,
+      and(eq(plannedItems.id, transactions.plannedItemId), eq(plannedItems.accountId, transactions.accountId)),
+    )
+    .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+    .where(
+      and(
+        isNull(transactions.importBatchId),
+        ne(transactions.kind, "transfer"),
+        isNotNull(transactions.occurrenceDate),
+        eq(plannedItems.acceptsMultipleTransactions, false),
+        ne(plannedItems.kind, "transfer"),
+        eq(accounts.archived, false),
+        accountIds === undefined ? undefined : inArray(transactions.accountId, [...accountIds]),
+      ),
+    )
+    .orderBy(asc(transactions.id))
+    .all();
+  // The where clause keeps linked transactions only, so the occurrence date is set.
+  return rows.map(({ nominalDate, ...row }) => ({ ...row, nominalDate: nominalDate! }));
+}
+
+/**
+ * Replaces an entry by the bank row of an import that records the same movement, in the
+ * transaction of the import (owner answers on #179): the entry is deleted, and the bank row takes
+ * its occurrence, its category when the row has none, and its description when the row has none.
+ * The caller checked that the entry is a candidate of the row (`findEnteredPayments`).
+ */
+export function replaceEnteredPayment(
+  db: Pick<AppDatabase, "select" | "update" | "delete">,
+  { bankRowId, entryId }: { bankRowId: number; entryId: number },
+): void {
+  const entry = readTransactionOrThrow(db, entryId);
+  const bankRow = readTransactionOrThrow(db, bankRowId);
+  if (entry.plannedItemId === null || entry.occurrenceDate === null || entry.importBatchId !== null) {
+    throw new Error(`Transaction ${entryId} is not an entered payment`);
+  }
+  assertNotTransfer(entry);
+  getOpenAccount(db, entry.accountId);
+  db.delete(transactions).where(eq(transactions.id, entryId)).run();
+  const taken = {
+    ...(bankRow.categoryId === null && entry.categoryId !== null
+      ? { categoryId: entry.categoryId, categoryFromPlannedItem: entry.categoryFromPlannedItem }
+      : {}),
+    ...(bankRow.description === null && entry.description !== null ? { description: entry.description } : {}),
+  };
+  if (Object.keys(taken).length > 0) {
+    db.update(transactions).set(taken).where(eq(transactions.id, bankRowId)).run();
+  }
+  linkTransactionToOccurrence(
+    db,
+    { transactionId: bankRowId, plannedItemId: entry.plannedItemId, nominalDate: entry.occurrenceDate },
+    { inheritCategory: false },
+  );
 }
 
 /** An occurrence still waiting for a transaction, as the "To pay" and "Link a transaction" pages show it. */

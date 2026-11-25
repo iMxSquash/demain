@@ -237,6 +237,58 @@ export function decideMatches(
   return { confirmed, proposed: groupAmbiguous(ambiguous), unmatched };
 }
 
+/**
+ * A transaction entered by hand (no import batch) that settles a regular occurrence, with the
+ * window and tolerance of its planned item: a bank row may turn out to be the same movement.
+ */
+export type EnteredPayment = MatchTransaction &
+  Pick<MatchOccurrence, "plannedItemId" | "nominalDate" | "windowDays" | "toleranceBasisPoints">;
+
+/** The entries a row of a file under review may replace. */
+export interface EnteredPaymentMatch<T extends EnteredPayment> {
+  /** The id of the row, as given: its position in the file. */
+  rowId: number;
+  /** In date order, then by id. */
+  candidates: T[];
+  /** The entry replaced unless the owner says otherwise; null when the owner must choose. */
+  proposed: T | null;
+}
+
+// Centered on the entry rather than on its occurrence: the entry already says when and how much
+// was paid, and the bank row is the same movement.
+function isEnteredCandidate(row: MatchTransaction, entry: EnteredPayment): boolean {
+  if (row.kind === "transfer" || entry.kind === "transfer") return false;
+  if (row.accountId !== entry.accountId) return false;
+  const window = matchingWindow({ date: entry.date, period: null }, entry.windowDays);
+  if (row.date < window.from || row.date > window.to) return false;
+  return isWithinTolerance(entry.amount, row.amount, entry.toleranceBasisPoints);
+}
+
+/**
+ * For each row of a file under review, the entries it may replace (DOMAIN, "Importing files").
+ * An entry is proposed for replacement only when it is the sole candidate of a row that is its
+ * sole row; anything else is left to the owner. Rows without a candidate are left out.
+ */
+export function findEnteredPayments<T extends EnteredPayment>(
+  rows: readonly MatchTransaction[],
+  entered: readonly T[],
+): EnteredPaymentMatch<T>[] {
+  const byDate = [...entered].sort((a, b) => compareDates(a.date, b.date) || a.id - b.id);
+  const matches = [...rows]
+    .sort((a, b) => a.id - b.id)
+    .map((row) => ({ rowId: row.id, candidates: byDate.filter((entry) => isEnteredCandidate(row, entry)) }))
+    .filter(({ candidates }) => candidates.length > 0);
+  const rowsPerEntry = Map.groupBy(
+    matches.flatMap(({ candidates }) => candidates),
+    (entry) => entry.id,
+  );
+  return matches.map(({ rowId, candidates }) => {
+    const [only] = candidates;
+    const isSole = candidates.length === 1 && rowsPerEntry.get(only!.id)?.length === 1;
+    return { rowId, candidates, proposed: isSole ? only! : null };
+  });
+}
+
 /** How far ahead the "To pay" page looks after the due occurrences (owner, 25 Nov 2026). */
 export const DUE_SOON_DAYS = 7;
 

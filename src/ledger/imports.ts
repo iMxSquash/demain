@@ -34,6 +34,7 @@ import {
 } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
 import type { OverflowAccount } from "../domain/overflow";
+import { findEnteredPayments, type MatchTransaction } from "../domain/planned-matching";
 import {
   buildTransferLegs,
   ceilingWarningFor,
@@ -53,7 +54,12 @@ import {
 } from "./accounts";
 import { CategoryNotFoundError, getCategory } from "./categories";
 import { listApplicableRules } from "./categorization-rules";
-import { applyImportMatches, NO_MATCHES } from "./planned-matching";
+import {
+  applyImportMatches,
+  listEnteredPayments,
+  NO_MATCHES,
+  replaceEnteredPayment,
+} from "./planned-matching";
 import { insertTransferLegs, type LegImportColumns } from "./transactions";
 
 export type ImportBatch = typeof importBatches.$inferSelect;
@@ -99,7 +105,9 @@ export type ImportIssue =
   /** The details contradict the amount, or a savings row names no savings account. */
   | { kind: "rowProblem"; index: number; problem: DetailsProblem }
   /** The ledger refuses the row. */
-  | { kind: "rowInvalid"; index: number; ref: MessageRef };
+  | { kind: "rowInvalid"; index: number; ref: MessageRef }
+  /** The entry chosen for replacement is not one the row can replace (any more), or is chosen twice. */
+  | { kind: "replacementRefused"; index: number };
 
 export class ImportBlockedError extends Error {
   constructor(readonly issues: readonly ImportIssue[]) {
@@ -120,11 +128,19 @@ export interface ImportPreview {
   issues: ImportIssue[];
 }
 
+/** The review chose to replace an entry marked as paid by the row at `index`. */
+export interface EntryReplacement {
+  index: number;
+  entryId: number;
+}
+
 export interface ImportRequest {
   accountId: number;
   rows: readonly ImportRow[];
   /** The savings account of the savings rows that name none. */
   savingsAccountId?: number;
+  /** Checked again against the ledger: a choice that no longer holds blocks the file. */
+  replacements?: readonly EntryReplacement[];
 }
 
 export interface CommitImportRequest extends ImportRequest {
@@ -144,6 +160,8 @@ export interface ImportResult extends ImportPreview {
   matchedCount: number;
   /** Groups of ambiguous matches left to the owner, nothing is linked for them. */
   proposedCount: number;
+  /** Entries marked as paid that a row of the file replaced. */
+  replacedCount: number;
 }
 
 interface ImportKeys {
@@ -152,6 +170,8 @@ interface ImportKeys {
 }
 
 interface FreshRow extends ImportKeys {
+  /** Position in the rows of the request. */
+  index: number;
   input: ValidTransactionInput;
 }
 
@@ -167,6 +187,8 @@ interface ImportPlan {
   /** The rows to record, validated once, with their fingerprint. */
   fresh: FreshRow[];
   pairs: FreshTransfer[];
+  /** The replacements checked, each with the fingerprint of its row. */
+  replacements: { fingerprint: string; entryId: number }[];
 }
 
 interface KnownKeys {
@@ -372,6 +394,7 @@ function planRow(
     const categoryId = categoryOf(db, request.accountId, row, kind, details, rules);
     const input = toTransactionInput(request.accountId, row, categoryId, kind, details);
     outcome.fresh.push({
+      index,
       input,
       fingerprint: row.fingerprint,
       contentKey: row.contentKey,
@@ -444,6 +467,53 @@ function buildSavingsPairs(
   return { pairs, issues };
 }
 
+/**
+ * The replacements that hold: the row is new, not a transfer, and the entry is still one it can
+ * replace (`findEnteredPayments`); an entry or a row chosen twice is refused at its second use.
+ */
+function checkReplacements(
+  db: AppDatabase,
+  accountId: number,
+  fresh: readonly FreshRow[],
+  replacements: readonly EntryReplacement[],
+): { checked: ImportPlan["replacements"]; issues: ImportIssue[]; removedAmount: number } {
+  if (replacements.length === 0) return { checked: [], issues: [], removedAmount: 0 };
+  const freshByIndex = new Map(fresh.map((row) => [row.index, row]));
+  const rows: MatchTransaction[] = fresh.map(({ index, input }) => ({ ...input, id: index }));
+  const entered = listEnteredPayments(db, [accountId]);
+  const enteredById = new Map(entered.map((entry) => [entry.id, entry]));
+  const candidates = new Map(
+    findEnteredPayments(rows, entered).map(({ rowId, candidates }) => [
+      rowId,
+      new Set(candidates.map((entry) => entry.id)),
+    ]),
+  );
+  const usedRows = new Set<number>();
+  const usedEntries = new Set<number>();
+  const checked: ImportPlan["replacements"] = [];
+  const issues: ImportIssue[] = [];
+  // The deleted entries leave the balance: the ceiling must not count the movement twice.
+  let removedAmount = 0;
+  for (const { index, entryId } of replacements) {
+    const row = freshByIndex.get(index);
+    const holds =
+      row !== undefined &&
+      candidates.get(index)?.has(entryId) === true &&
+      !usedRows.has(index) &&
+      !usedEntries.has(entryId);
+    if (!holds) {
+      issues.push({ kind: "replacementRefused", index });
+      continue;
+    }
+    usedRows.add(index);
+    usedEntries.add(entryId);
+    checked.push({ fingerprint: row.fingerprint, entryId });
+    // A candidate of the row, so the entry was listed.
+    removedAmount += enteredById.get(entryId)!.amount;
+  }
+  return { checked, issues, removedAmount };
+}
+
 function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const account = getAccount(db, request.accountId);
   const flagged = fingerprintWithDuplicateFlags(db, request);
@@ -467,7 +537,8 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
 
   let transfers: SavingsTransfer[] = [];
   let pairs: FreshTransfer[] = [];
-  const issues = [...outcome.issues];
+  const replacements = checkReplacements(db, account.id, outcome.fresh, request.replacements ?? []);
+  const issues = [...outcome.issues, ...replacements.issues];
   if (outcome.movements.length > 0) {
     const accounts = listOverflowAccounts(db);
     const plan = planSavingsTransfers(outcome.movements, accounts);
@@ -480,12 +551,13 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   return {
     fresh: outcome.fresh,
     pairs,
+    replacements: replacements.checked,
     preview: {
       newCount,
       duplicateCount: flagged.length - newCount,
       ceilingWarnings: findCeilingExcesses(
         outcome.flows,
-        getAccountBalance(db, account.id),
+        getAccountBalance(db, account.id) - replacements.removedAmount,
         account.depositCeiling,
       ),
       accountArchived: account.archived,
@@ -535,9 +607,9 @@ export function commitImport(
   db: AppDatabase,
   request: CommitImportRequest,
 ): ImportResult {
-  const { fresh, pairs, preview } = planImport(db, request);
+  const { fresh, pairs, replacements, preview } = planImport(db, request);
   if (preview.issues.length > 0) throw new ImportBlockedError(preview.issues);
-  if (preview.newCount === 0) return { ...preview, batchId: null, ...NO_MATCHES };
+  if (preview.newCount === 0) return { ...preview, batchId: null, ...NO_MATCHES, replacedCount: 0 };
 
   // The unique fingerprint index backs the plan: an identical import running
   // at the same time fails here and rolls back instead of duplicating.
@@ -573,6 +645,18 @@ export function commitImport(
       insertTransferLegs(tx, pair.legs, legColumns(pair, batch.id));
     }
 
+    // Before the matching, which leaves the linked rows alone, and before the digest, which must
+    // hash what the bank rows took from the entries they replace.
+    for (const { fingerprint, entryId } of replacements) {
+      const bankRow = tx
+        .select({ id: transactions.id })
+        .from(transactions)
+        .where(and(eq(transactions.importBatchId, batch.id), eq(transactions.importFingerprint, fingerprint)))
+        .get();
+      if (bankRow === undefined) throw new Error(`No row of batch ${batch.id} has fingerprint ${fingerprint}`);
+      replaceEnteredPayment(tx, { bankRowId: bankRow.id, entryId });
+    }
+
     // Before the digest: a category inherited from a planned item is part of what the undo checks.
     const matches = applyImportMatches(tx, { batchId: batch.id, today: request.today });
 
@@ -588,7 +672,14 @@ export function commitImport(
       .set({ contentDigest })
       .where(eq(importBatches.id, batch.id))
       .run();
-    return { ...preview, batchId: batch.id, ...matches };
+    // A replaced entry leaves its occurrence settled by the bank row: it counts as matched.
+    return {
+      ...preview,
+      batchId: batch.id,
+      ...matches,
+      matchedCount: matches.matchedCount + replacements.length,
+      replacedCount: replacements.length,
+    };
   });
 }
 

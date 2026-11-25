@@ -169,6 +169,8 @@ export interface CommitStagedState {
   batchId: number | null;
   /** The date the file ends on (its last movement), YYYY-MM-DD; null exactly when `batchId` is. */
   endDate: string | null;
+  /** Entries marked as paid that rows of the file replaced: the undo does not bring them back. */
+  replacedCount: number;
 }
 
 export interface BalanceCheckState {

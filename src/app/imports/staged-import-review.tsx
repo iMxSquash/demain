@@ -38,6 +38,15 @@ import type {
   ImportCategoryOption,
   StagedFile,
 } from "./import-form-data";
+import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
+import {
+  choiceKey,
+  enteredMatchesOf,
+  NO_ENTERED_CHOICES,
+  settleEnteredChoices,
+  type EnteredChoices,
+  type EnteredMatch,
+} from "./entered-payments";
 import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
@@ -58,6 +67,8 @@ interface ReviewBodyProps {
   storedOverflowAccounts: OverflowAccount<AccountRef>[];
   /** The assertions and movements as they were when the files were read: what each file is compared with. */
   assertionSnapshot: AssertionLinkSnapshot;
+  /** The entries marked as paid when the files were read: a bank row may replace one. */
+  enteredPayments: readonly EnteredPaymentEntry[];
   isReading: boolean;
   accountSelectRef: RefObject<SelectHandle | null>;
   onAccountChange: (accountId: number) => void;
@@ -80,6 +91,7 @@ function ReviewBody({
   overflowAccounts,
   storedOverflowAccounts,
   assertionSnapshot,
+  enteredPayments,
   isReading,
   accountSelectRef,
   onAccountChange,
@@ -104,8 +116,14 @@ function ReviewBody({
   );
   // All the files were read again (another account): what the user corrected follows its line.
   const [seenBatch, setSeenBatch] = useState(batch);
+  // The replacement choices of each file, by its position, and the entries each recorded file
+  // replaced: the snapshot still holds them until the files are read again.
+  const [enteredChoices, setEnteredChoices] = useState<ReadonlyMap<number, EnteredChoices>>(new Map());
+  const [replacedByFile, setReplacedByFile] = useState<ReadonlyMap<number, readonly number[]>>(new Map());
   if (seenBatch !== batch) {
     setSeenBatch(batch);
+    setEnteredChoices(new Map());
+    setReplacedByFile(new Map());
     dispatch({
       type: "replaceAll",
       staged: files,
@@ -145,11 +163,46 @@ function ReviewBody({
       }),
     [state.files, currency, savingsAccountId, overflowAccounts],
   );
-  // Computed from the plans of the review, so that the figures agree with what the import records.
-  const assertionLinks = useMemo(
-    () => linkReviewAssertions(state.files, plans, assertionSnapshot, { accountId, currency }),
-    [state.files, plans, assertionSnapshot, accountId, currency],
+  // A file never offers an entry another file of the review replaced; its own stay, so that a
+  // recorded file keeps counting them out of the balances.
+  const enteredMatches = useMemo(
+    () =>
+      state.files.map((file, index) => {
+        const replacedElsewhere = new Set(
+          [...replacedByFile].flatMap(([position, ids]) => (position === index ? [] : ids)),
+        );
+        return enteredMatchesOf(file.rows, { accountId, currency }, enteredPayments, replacedElsewhere);
+      }),
+    [state.files, accountId, currency, enteredPayments, replacedByFile],
   );
+  const settledEntered = useMemo(
+    () =>
+      state.files.map((file, index) =>
+        settleEnteredChoices(
+          enteredMatches[index] ?? [],
+          enteredChoices.get(index) ?? new Map(),
+          (rowId) => file.rows[rowId]?.line ?? -1,
+        ),
+      ),
+    [state.files, enteredMatches, enteredChoices],
+  );
+  function chooseEntered(fileIndex: number, match: EnteredMatch, entryId: number | null) {
+    const line = state.files[fileIndex]?.rows[match.rowId]?.line ?? -1;
+    setEnteredChoices((previous) =>
+      new Map(previous).set(fileIndex, new Map(previous.get(fileIndex)).set(choiceKey(line, match), entryId)),
+    );
+  }
+  // Computed from the plans of the review, so that the figures agree with what the import records.
+  const assertionLinks = useMemo(() => {
+    const entriesById = new Map(enteredPayments.map((entry) => [entry.id, entry]));
+    const replacedByEachFile = settledEntered.map(({ replacements }) =>
+      replacements.flatMap(({ entryId }) => {
+        const entry = entriesById.get(entryId);
+        return entry === undefined ? [] : [{ accountId: entry.accountId, date: entry.date, amount: entry.amount }];
+      }),
+    );
+    return linkReviewAssertions(state.files, plans, assertionSnapshot, { accountId, currency }, replacedByEachFile);
+  }, [state.files, plans, assertionSnapshot, accountId, currency, enteredPayments, settledEntered]);
   const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
   // Read on the stored balances: a choice already made would hide the need it answers.
   // Without a choice the stored balances are the shown ones, so the plan is reused.
@@ -301,6 +354,10 @@ function ReviewBody({
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
             overflowChoices={choicesForShortfalls(overflowChoices, storedPlans[index]?.shortfalls ?? [])}
+            enteredMatches={enteredMatches[index] ?? []}
+            enteredSettled={settledEntered[index] ?? NO_ENTERED_CHOICES}
+            onChooseEntered={(match, entryId) => chooseEntered(index, match, entryId)}
+            onEntriesReplaced={(entryIds) => setReplacedByFile((previous) => new Map(previous).set(index, entryIds))}
             lookups={lookups}
             isReading={isBusy}
             onChangeColumns={(choices) => restageFile(index, choices)}

@@ -50,8 +50,8 @@ async function ImportSection() {
   // The page reads the database: it must run per request, never at build time.
   await connection();
   const t = await getTranslations("imports");
-  const { view, assertionSnapshot } = await readImportContext();
+  const { view, assertionSnapshot, enteredPayments } = await readImportContext();
 
   if (view.accounts.length === 0) return <p>{t("noAccount")}</p>;
-  return <ImportForm {...view} assertionSnapshot={assertionSnapshot} />;
+  return <ImportForm {...view} assertionSnapshot={assertionSnapshot} enteredPayments={enteredPayments} />;
 }

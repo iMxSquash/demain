@@ -57,6 +57,8 @@ export interface Outcome {
   batchId: number | null;
   /** The date the file ends on, YYYY-MM-DD, shown before the balance is typed; null when no batch. */
   endDate: string | null;
+  /** Entries marked as paid that the file replaced: the undo says it does not bring them back. */
+  replacedCount: number;
 }
 
 export interface ReviewFile extends Omit<StagedFile, "rows"> {

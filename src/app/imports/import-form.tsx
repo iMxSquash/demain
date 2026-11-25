@@ -10,6 +10,7 @@ import { Checkbox } from "../../components/checkbox";
 import { FileInput } from "../../components/file-input";
 import { Notice } from "../../components/notice";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
+import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 import { CSV_DATE_FORMATS, CSV_DELIMITERS } from "../../domain/import-csv";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { importAction } from "./actions";
@@ -191,8 +192,10 @@ export function ImportForm({
   accounts,
   overflowAccounts,
   assertionSnapshot,
+  enteredPayments,
 }: Pick<ImportView, "accounts" | "overflowAccounts"> & {
   assertionSnapshot: AssertionLinkSnapshot;
+  enteredPayments: EnteredPaymentEntry[];
 }) {
   const t = useTranslations("imports");
   const common = useTranslations("common");
@@ -220,6 +223,7 @@ export function ImportForm({
       overflowAccounts,
       storedOverflowAccounts: overflowAccounts,
       assertionSnapshot,
+      enteredPayments,
       overflowChoices: [],
       columnChoices: {},
       batch: 1,
