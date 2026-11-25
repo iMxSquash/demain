@@ -39,6 +39,12 @@ const overflowChoiceSchema = z.strictObject({
   ]),
 });
 
+const replacementSchema = z.strictObject({
+  /** Position of the row in `drafts`. */
+  index: z.number().int().min(0).max(MAX_ROWS - 1),
+  entryId: id,
+});
+
 export const commitRequestSchema = z.strictObject({
   accountId: id,
   fileName: z.string().max(MAX_FILE_NAME_LENGTH),
@@ -49,6 +55,8 @@ export const commitRequestSchema = z.strictObject({
   drafts: z.array(draftSchema).max(MAX_ROWS),
   /** The overflow accounts chosen in the review: saved with the file, or not at all. */
   overflowChoices: z.array(overflowChoiceSchema).max(MAX_OVERFLOW_CHOICES).default([]),
+  /** The entries marked as paid that rows replace; the ledger checks each one again. */
+  replacements: z.array(replacementSchema).max(MAX_ROWS).default([]),
 });
 
 export type CommitStagedRequest = z.input<typeof commitRequestSchema>;

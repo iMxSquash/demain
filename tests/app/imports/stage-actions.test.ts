@@ -18,6 +18,8 @@ import {
 } from "../../../src/ledger/accounts";
 import { createCategory } from "../../../src/ledger/categories";
 import { commitImport, listImportBatches } from "../../../src/ledger/imports";
+import { createPlannedItem } from "../../../src/ledger/planned-items";
+import { markOccurrencePaid } from "../../../src/ledger/planned-matching";
 import { listTransactions } from "../../../src/ledger/transactions";
 import { removeVocabularyWord, setVocabularyWord } from "../../../src/ledger/type-vocabulary";
 import {
@@ -222,6 +224,42 @@ describe("commitStagedFileAction", () => {
       problems: [{ index: 1, problem: "dateInvalid" }],
     });
     expect(listTransactions(db)).toEqual([]);
+  });
+
+  describe("an entry marked as paid", () => {
+    function markRentPaid(): number {
+      const item = createPlannedItem(db, {
+        name: "Rent",
+        kind: "expense",
+        accountId: CHECKING_ID,
+        startDate: "2026-03-02",
+        repetition: null,
+        amount: -1_250,
+      });
+      markOccurrencePaid(db, { plannedItemId: item.id, nominalDate: "2026-03-02", date: "2026-03-02", amount: 1_250 }, "2026-03-02");
+      return listTransactions(db)[0]!.id;
+    }
+
+    it("is replaced by the row the review chose, and the state counts it", async () => {
+      const entryId = markRentPaid();
+
+      const state = await commit([draft({ details: EXPENSE_DETAILS })], { replacements: [{ index: 0, entryId }] });
+
+      expect(state).toMatchObject({ status: "done", replacedCount: 1 });
+      expect(listTransactions(db)).toEqual([expect.objectContaining({ label: "CARD SHOP", occurrenceDate: "2026-03-02" })]);
+    });
+
+    it("blocks the file when the entry is not one the row can replace", async () => {
+      const entryId = markRentPaid();
+
+      const state = await commit([draft({ amount: "-99,00", details: EXPENSE_DETAILS })], {
+        replacements: [{ index: 0, entryId }],
+      });
+
+      expect(state.status).toBe("blocked");
+      expect(state.issues[0]?.message).toContain("replacementRefused");
+      expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entryId })]);
+    });
   });
 
   describe("when the ledger blocks the file", () => {

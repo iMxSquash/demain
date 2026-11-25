@@ -176,6 +176,7 @@ export async function commitStagedFileAction(
     issues: [],
     batchId: null,
     endDate: null,
+    replacedCount: 0,
   });
 
   const parsed = commitRequestSchema.safeParse(request);
@@ -211,6 +212,7 @@ export async function commitStagedFileAction(
         issues: [],
         batchId: null,
         endDate: null,
+        replacedCount: 0,
       };
     }
 
@@ -230,6 +232,7 @@ export async function commitStagedFileAction(
         issues: outcome.issues.map((issue) => describeImportIssue(issue, say)),
         batchId: null,
         endDate: null,
+        replacedCount: 0,
       };
     }
 
@@ -264,6 +267,7 @@ export async function commitStagedFileAction(
       issues: [],
       batchId: outcome.batchId,
       endDate,
+      replacedCount: outcome.replacedCount,
     };
   } catch (error) {
     if (error instanceof AccountNotFoundError) {
