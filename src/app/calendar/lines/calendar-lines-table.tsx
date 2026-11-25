@@ -1,8 +1,14 @@
+import Link from "next/link";
+
+import { buttonClass } from "../../../components/button";
 import { DataTable, EmptyState, Pill } from "../../../components/data-display";
 import { formatAmount, formatEditableAmount } from "../../../domain/money";
 import { formatCalendarDate, formatWeekdayDate } from "../../../i18n/dates";
 import type { CalendarEntry, CalendarMonth } from "../../../ledger/calendar";
+import { linkHref, type CalendarBackView } from "../../planned/link-params";
+import { markPaidKindOf, type MarkPaidKind } from "../../planned/mark-paid-kind";
 import { OccurrenceChangeButton } from "../occurrence-change-button";
+import { OccurrenceMarkPaidButton } from "../occurrence-mark-paid-button";
 
 export interface CalendarLinesTableText {
   caption: string;
@@ -14,7 +20,6 @@ export interface CalendarLinesTableText {
     status: string;
     amount: string;
     balance: string;
-    actions: string;
   };
   kinds: { real: string; planned: string };
   statuses: Record<"planned" | "partial" | "confirmed" | "overdue" | "cancelled", string>;
@@ -28,6 +33,8 @@ export interface CalendarLinesTableText {
   /** The button that skips, moves or restores one planned occurrence, and the title of its dialog. */
   change: string;
   changeTitle: (name: string, date: string) => string;
+  /** The button of each type, its pending label, and the way to the "Link a transaction" page. */
+  actions: Record<MarkPaidKind | `${MarkPaidKind}Pending` | "link", string>;
 }
 
 export interface CalendarLinesTableProps {
@@ -35,6 +42,8 @@ export interface CalendarLinesTableProps {
   accounts: { id: number; name: string }[];
   locale: string;
   text: CalendarLinesTableText;
+  /** The view the "Link a transaction" page goes back to. */
+  backView: CalendarBackView;
 }
 
 // The 880 px threshold of DESIGN section 18 is written here once: the table and the list swap at it.
@@ -157,14 +166,68 @@ function ChangeOccurrence({ entry, locale, text }: { entry: CalendarEntry; local
   );
 }
 
+type ActionsProps = { entry: CalendarEntry } & Pick<CalendarLinesTableProps, "locale" | "text" | "backView">;
+
+// A settled occurrence has no action, a cancelled one only its change (DESIGN section 18).
+function hasActions(entry: CalendarEntry): boolean {
+  return entry.canSettle || entry.isEditable;
+}
+
+/**
+ * The button of the type, "Link a transaction" and "Change" of one occurrence. The button records
+ * the planned date and amount at once (owner, 25 Nov 2026): the "To pay" page is where they are
+ * corrected first. A planned transfer is never linked by hand, so it has no link.
+ */
+function OccurrenceActions({ entry, locale, text, backView }: ActionsProps) {
+  const { plannedItemId, nominalDate, plannedKind } = entry;
+  if (plannedItemId === null || nominalDate === null) return null;
+  const subject = `${entry.label}, ${formatCalendarDate(nominalDate, locale)}`;
+  const kind = plannedKind === null ? null : markPaidKindOf(plannedKind);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {entry.canSettle && kind !== null ? (
+        <>
+          <OccurrenceMarkPaidButton
+            itemId={plannedItemId}
+            nominalDate={nominalDate}
+            text={{
+              label: text.actions[kind],
+              ariaLabel: `${text.actions[kind]}, ${subject}`,
+              pendingLabel: text.actions[`${kind}Pending`],
+            }}
+            // Unsigned: the type of the item gives the direction.
+            values={{ date: entry.date, amount: formatEditableAmount(Math.abs(entry.amount), entry.currency) }}
+          />
+          {kind === "transfer" ? null : (
+            <Link
+              href={linkHref({ plannedItemId, nominalDate }, backView)}
+              aria-label={`${text.actions.link}, ${subject}`}
+              className={buttonClass("secondary")}
+            >
+              {text.actions.link}
+            </Link>
+          )}
+        </>
+      ) : null}
+      <ChangeOccurrence entry={entry} locale={locale} text={text} />
+    </div>
+  );
+}
+
 function BelowZero({ text }: { text: CalendarLinesTableText }) {
   return <span className="block text-caption font-medium text-negative">{text.belowZero}</span>;
 }
 
-function TableRow({ line, locale, text }: { line: Line; locale: string; text: CalendarLinesTableText }) {
+type RowProps = { line: Line } & Pick<CalendarLinesTableProps, "locale" | "text" | "backView">;
+
+const TABLE_COLUMN_COUNT = 7;
+
+function TableRow({ line, locale, text, backView }: RowProps) {
   const { entry, view, balance } = line;
 
   return (
+    <>
     <tr
       className={`${view.isPlanned ? PLANNED_ROW_CLASS : REAL_ROW_CLASS} ${view.isCancelled ? "text-text-muted" : ""}`}
     >
@@ -187,10 +250,18 @@ function TableRow({ line, locale, text }: { line: Line; locale: string; text: Ca
           </>
         )}
       </td>
-      <td>
-        <ChangeOccurrence entry={entry} locale={locale} text={text} />
-      </td>
     </tr>
+    {/* Seven columns have no room for three buttons: they get a row of their own (DESIGN section 18). */}
+    {hasActions(entry) ? (
+      <tr className="border-t-0! hover:bg-transparent!">
+        <td colSpan={TABLE_COLUMN_COUNT} className="h-auto! pb-3">
+          <div className="flex justify-end">
+            <OccurrenceActions entry={entry} locale={locale} text={text} backView={backView} />
+          </div>
+        </td>
+      </tr>
+    ) : null}
+    </>
   );
 }
 
@@ -206,13 +277,14 @@ export function CalendarLinesHead({ columns }: { columns: CalendarLinesTableText
         <th scope="col" className="align-bottom">{columns.status}</th>
         <th scope="col" className="align-bottom text-right">{columns.amount}</th>
         <th scope="col" className="align-bottom text-right">{columns.balance}</th>
-        <th scope="col" className="align-bottom">{columns.actions}</th>
       </tr>
     </thead>
   );
 }
 
-function LinesTable({ lines, locale, text }: { lines: Line[]; locale: string; text: CalendarLinesTableText }) {
+type LinesProps = { lines: Line[] } & Pick<CalendarLinesTableProps, "locale" | "text" | "backView">;
+
+function LinesTable({ lines, locale, text, backView }: LinesProps) {
   return (
     <div className={TABLE_CLASS}>
       <DataTable caption={text.caption}>
@@ -224,12 +296,11 @@ function LinesTable({ lines, locale, text }: { lines: Line[]; locale: string; te
           <col className="w-26" />
           <col className="w-26" />
           <col className="w-36" />
-          <col className="w-24" />
         </colgroup>
         <CalendarLinesHead columns={text.columns} />
         <tbody>
           {lines.map((line) => (
-            <TableRow key={line.entry.id} line={line} locale={locale} text={text} />
+            <TableRow key={line.entry.id} line={line} locale={locale} text={text} backView={backView} />
           ))}
         </tbody>
       </DataTable>
@@ -237,7 +308,7 @@ function LinesTable({ lines, locale, text }: { lines: Line[]; locale: string; te
   );
 }
 
-function ListEntry({ line, locale, text }: { line: Line; locale: string; text: CalendarLinesTableText }) {
+function ListEntry({ line, locale, text, backView }: RowProps) {
   const { entry, view, balance } = line;
   const textClass = view.isPlanned || view.isCancelled ? "text-text-muted" : "text-text";
 
@@ -254,10 +325,7 @@ function ListEntry({ line, locale, text }: { line: Line; locale: string; text: C
         <StatusPill status={view.status} />
         <span className="ml-auto tabular-nums">{view.amount}</span>
       </div>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
-        <p className="text-caption text-text-muted">{view.account}</p>
-        <ChangeOccurrence entry={entry} locale={locale} text={text} />
-      </div>
+      <p className="mt-1 text-caption text-text-muted">{view.account}</p>
       <Notes notes={view.notes} />
       {balance === null ? null : (
         <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-caption text-text-muted">
@@ -266,17 +334,22 @@ function ListEntry({ line, locale, text }: { line: Line; locale: string; text: C
           {balance.isBelowZero ? <BelowZero text={text} /> : null}
         </p>
       )}
+      {hasActions(entry) ? (
+        <div className="mt-3">
+          <OccurrenceActions entry={entry} locale={locale} text={text} backView={backView} />
+        </div>
+      ) : null}
     </li>
   );
 }
 
-function LinesList({ lines, locale, text }: { lines: Line[]; locale: string; text: CalendarLinesTableText }) {
+function LinesList({ lines, locale, text, backView }: LinesProps) {
   return (
     <div className={`rounded-card bg-surface p-4 ${LIST_CLASS}`}>
       <h2 className="pb-3 font-medium">{text.caption}</h2>
       <ul>
         {lines.map((line) => (
-          <ListEntry key={line.entry.id} line={line} locale={locale} text={text} />
+          <ListEntry key={line.entry.id} line={line} locale={locale} text={text} backView={backView} />
         ))}
       </ul>
     </div>
@@ -289,7 +362,7 @@ function LinesList({ lines, locale, text }: { lines: Line[]; locale: string; tex
  * shows one.
  */
 export function CalendarLinesTable(props: CalendarLinesTableProps) {
-  const { month, locale, text } = props;
+  const { month, locale, text, backView } = props;
   const lines = linesOf(props);
 
   return (
@@ -306,8 +379,8 @@ export function CalendarLinesTable(props: CalendarLinesTableProps) {
         <EmptyState>{text.empty}</EmptyState>
       ) : (
         <>
-          <LinesTable lines={lines} locale={locale} text={text} />
-          <LinesList lines={lines} locale={locale} text={text} />
+          <LinesTable lines={lines} locale={locale} text={text} backView={backView} />
+          <LinesList lines={lines} locale={locale} text={text} backView={backView} />
         </>
       )}
     </div>

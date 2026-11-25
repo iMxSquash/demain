@@ -334,7 +334,7 @@
     "categoryArchived": "{name} (archived)",
     "saveDetails": "Save details",
     "due": {
-      "metaTitle": "To pay",
+      "metaTitle": "To pay | Demain",
       "title": "To pay",
       "intro": "Occurrences that are due. Check the date and the amount, then mark each one as paid, received or transferred.",
       "dueHeading": "Due",
@@ -350,7 +350,7 @@
       "fieldSubject": "of {name}, due {date}"
     },
     "link": {
-      "metaTitle": "Link a transaction",
+      "metaTitle": "Link a transaction | Demain",
       "title": "Link a transaction",
       "back": "Back to the calendar",
       "plannedFor": "Planned for {date}",
@@ -428,8 +428,7 @@
         "kind": "Kind",
         "status": "Status",
         "amount": "Amount",
-        "balance": "Balance at end of day",
-        "actions": "Actions"
+        "balance": "Balance at end of day"
       },
       "kinds": {
         "real": "Real",

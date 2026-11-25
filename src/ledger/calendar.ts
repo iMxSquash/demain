@@ -13,6 +13,7 @@ import {
   type DailyBalance,
   type PlannedTransferRouting,
 } from "../domain/projection";
+import type { PlannedItemKind } from "../domain/planned-item";
 import type { DateRange } from "../domain/recurrence";
 import { lastDayOfMonth } from "../domain/summary-assertions";
 import type { AppDatabase } from "../storage/database";
@@ -75,6 +76,13 @@ export interface CalendarEntry {
    * checks. False for a real transaction.
    */
   isEditable: boolean;
+  /** The kind of the planned item, which names the button that settles it. Null for a real transaction. */
+  plannedKind: PlannedItemKind | null;
+  /**
+   * A planned occurrence still waiting for a transaction (planned, partial or overdue) whose accounts
+   * are open: it can be marked as paid or linked, as the server checks. False for a real transaction.
+   */
+  canSettle: boolean;
 }
 
 export interface CalendarDay {
@@ -160,6 +168,8 @@ function buildRealEntry(
     routingInvalid: false,
     override: null,
     isEditable: false,
+    plannedKind: null,
+    canSettle: false,
   };
 }
 
@@ -168,9 +178,11 @@ function buildPlannedEntry(
   occurrence: ResolvedOccurrence,
   override: OccurrenceOverride | undefined,
   account: Account,
+  isDestinationArchived: boolean,
   categoryNames: ReadonlyMap<number, string>,
   transfers: ReadonlyMap<string, PlannedTransferRouting>,
 ): CalendarEntry {
+  const isOpen = occurrence.status === "planned" || occurrence.status === "partial" || occurrence.status === "overdue";
   // The projection only applies a pending occurrence, so the routing means nothing for the others.
   const isPending = occurrence.status === "planned" || occurrence.status === "partial";
   const routing = isPending ? transfers.get(routingKey(item.id, occurrence.nominalDate))?.routing : undefined;
@@ -195,6 +207,8 @@ function buildPlannedEntry(
     routingInvalid: routing?.status === "invalid",
     override: override ?? null,
     isEditable: occurrence.links.length === 0 && !account.archived,
+    plannedKind: item.kind,
+    canSettle: isOpen && !account.archived && !isDestinationArchived,
   };
 }
 
@@ -262,6 +276,7 @@ function plannedEntries(
           occurrence,
           overrides.get(occurrence.nominalDate),
           account,
+          item.destinationAccountId !== null && (accountsById.get(item.destinationAccountId)?.archived ?? false),
           categoryNames,
           routings,
         ),

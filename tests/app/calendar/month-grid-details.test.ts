@@ -30,6 +30,8 @@ const surplusEntry: CalendarEntry = {
   routingInvalid: false,
   override: null,
   isEditable: false,
+  plannedKind: null,
+  canSettle: false,
 };
 
 function monthWith(unconvertedCurrencies: string[]): CalendarMonth {
@@ -68,7 +70,7 @@ function propsOf(month: CalendarMonth): MonthGridProps {
       ],
       text: { balance: "End-of-day balance", noEntries: "No entries on this day." },
       lines: {
-        columns: { date: "Date", description: "Description", account: "Account", kind: "Kind", status: "Status", amount: "Amount", balance: "Balance", actions: "Actions" },
+        columns: { date: "Date", description: "Description", account: "Account", kind: "Kind", status: "Status", amount: "Amount", balance: "Balance" },
         kinds: { real: "Real", planned: "Planned" },
         statuses: { planned: "Planned", partial: "Partial", confirmed: "Confirmed", overdue: "Overdue", cancelled: "Cancelled" },
         belowZero: "Below zero",
@@ -80,6 +82,15 @@ function propsOf(month: CalendarMonth): MonthGridProps {
         unconverted: (currencies) => `No exchange rate for ${currencies}`,
         change: "Change",
         changeTitle: (name, date) => `Change ${name}, ${date}`,
+        actions: {
+          expense: "Mark as paid",
+          income: "Mark as received",
+          transfer: "Mark as transferred",
+          expensePending: "Marking as paid…",
+          incomePending: "Marking as received…",
+          transferPending: "Marking as transferred…",
+          link: "Link a transaction",
+        },
       },
     },
   };

@@ -24,7 +24,6 @@ const TEXT: CalendarLinesTableText = {
     status: "Status",
     amount: "Amount",
     balance: "Balance at end of day",
-    actions: "Actions",
   },
   kinds: { real: "Real", planned: "Planned, dated" },
   statuses: {
@@ -43,6 +42,15 @@ const TEXT: CalendarLinesTableText = {
   unconverted: (currencies) => `Left out, no rate: ${currencies}`,
   change: "Change",
   changeTitle: (name, date) => `Change ${name}, ${date}`,
+  actions: {
+    expense: "Mark as paid",
+    income: "Mark as received",
+    transfer: "Mark as transferred",
+    expensePending: "Marking as paid…",
+    incomePending: "Marking as received…",
+    transferPending: "Marking as transferred…",
+    link: "Link a transaction",
+  },
 };
 
 const ACCOUNTS = [
@@ -70,6 +78,8 @@ function entry(overrides: Partial<CalendarEntry> = {}): CalendarEntry {
     routingInvalid: false,
     override: null,
     isEditable: false,
+    plannedKind: null,
+    canSettle: false,
     ...overrides,
   };
 }
@@ -94,7 +104,7 @@ function monthOf(contents: Record<number, DayContent> = {}, overrides: Partial<C
 }
 
 function render(month: CalendarMonth): string {
-  const props: CalendarLinesTableProps = { month, accounts: ACCOUNTS, locale: LOCALE, text: TEXT };
+  const props: CalendarLinesTableProps = { month, accounts: ACCOUNTS, locale: LOCALE, text: TEXT, backView: "lines" };
   return renderToString(createElement(CalendarLinesTable, props));
 }
 
@@ -347,6 +357,89 @@ describe("monthly line table", () => {
     expect(html).not.toContain("> Groceries,");
     expect(html).not.toContain("> Subscription,");
     expect(countOf(html, ">Change<")).toBe(2);
+  });
+
+  describe("settling an occurrence", () => {
+    const open = {
+      kind: "planned" as const,
+      status: "planned" as const,
+      plannedItemId: 4,
+      nominalDate: "2026-11-15",
+      date: "2026-11-15",
+      label: "Rent",
+      amount: -65_000,
+      plannedKind: "expense" as const,
+      canSettle: true,
+    };
+
+    it("offers the button of its type and Link a transaction, named by the occurrence, in both layouts", () => {
+      const html = render(monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15" })] } }));
+
+      for (const layout of [tableOf(html), listOf(html)]) {
+        expect(layout).toMatch(/<button[^>]*aria-label="Mark as paid, Rent, Nov 15, 2026"[^>]*>Mark as paid<\/button>/);
+        expect(layout).toMatch(
+          /<a[^>]*href="\/planned\/link\?item=4&amp;date=2026-11-15&amp;back=lines"[^>]*aria-label="Link a transaction, Rent, Nov 15, 2026"[^>]*>Link a transaction<\/a>|<a[^>]*aria-label="Link a transaction, Rent, Nov 15, 2026"[^>]*href="\/planned\/link\?item=4&amp;date=2026-11-15&amp;back=lines"[^>]*>Link a transaction<\/a>/,
+        );
+      }
+    });
+
+    it("records the planned date and the unsigned amount, with no form to fill", () => {
+      const html = render(monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15", date: "2026-11-16" })] } }));
+
+      expect(tableOf(html)).toContain('<input type="hidden" name="date" value="2026-11-16"/>');
+      expect(tableOf(html)).toContain('<input type="hidden" name="amount" value="650.00"/>');
+    });
+
+    it("puts the actions of a table row in a row of their own, under it, across the seven columns", () => {
+      const html = render(monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15" })] } }));
+
+      const rows = tableOf(html).match(/<tbody[\s\S]*<\/tbody>/)?.[0].split("<tr").slice(1) ?? [];
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).not.toContain("<button");
+      expect(rows[1]).toMatch(/<td colSpan="7"/);
+      expect(tableOf(html).match(/<th scope="col"/g)).toHaveLength(7);
+    });
+
+    it("names the button of an income and of a transfer by their type, and a transfer has no Link", () => {
+      const html = render(
+        monthOf({
+          15: {
+            entries: [
+              entry({ ...open, id: "p4:2026-11-15", label: "Salary", amount: 245_000, plannedKind: "income" }),
+              entry({
+                ...open,
+                id: "p5:2026-11-15",
+                plannedItemId: 5,
+                label: "Savings transfer",
+                plannedKind: "transfer",
+                destinationAccountId: SAVINGS_ID,
+              }),
+            ],
+          },
+        }),
+      );
+
+      expect(countOf(tableOf(html), ">Mark as received<")).toBe(1);
+      expect(countOf(tableOf(html), ">Mark as transferred<")).toBe(1);
+      expect(countOf(tableOf(html), ">Link a transaction<")).toBe(1);
+    });
+
+    it("offers nothing to settle on a real transaction, a cancelled occurrence or one that cannot be settled", () => {
+      const html = render(
+        monthOf({
+          15: {
+            entries: [
+              entry(),
+              entry({ ...open, id: "p4:2026-11-15", status: "cancelled", canSettle: false }),
+              entry({ ...open, id: "p6:2026-11-15", plannedItemId: 6, status: "overdue", canSettle: false }),
+            ],
+          },
+        }),
+      );
+
+      expect(html).not.toContain("Mark as");
+      expect(html).not.toContain("Link a transaction");
+    });
   });
 
   it("says that the month is empty, with no row and no entry", () => {

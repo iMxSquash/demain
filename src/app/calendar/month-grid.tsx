@@ -238,6 +238,7 @@ function DayDetails({ view, props, details }: { view: DayView; props: MonthGridP
           accounts={details.accounts}
           locale={locale}
           text={{ ...details.lines, caption: counts }}
+          backView="grid"
         />
       )}
     </section>

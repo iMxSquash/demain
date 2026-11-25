@@ -27,6 +27,8 @@ const entry: CalendarEntry = {
   routingInvalid: false,
   override: null,
   isEditable: false,
+  plannedKind: null,
+  canSettle: false,
 };
 
 const month: CalendarMonth = {
@@ -64,7 +66,7 @@ const props: MonthGridProps = {
     accounts: [{ id: 1, name: "Courant" }],
     text: { balance: "Solde de fin de journée", noEntries: "Aucune écriture ce jour." },
     lines: {
-      columns: { date: "Date", description: "Libellé", account: "Compte", kind: "Type", status: "Statut", amount: "Montant", balance: "Solde", actions: "Actions" },
+      columns: { date: "Date", description: "Libellé", account: "Compte", kind: "Type", status: "Statut", amount: "Montant", balance: "Solde" },
       kinds: { real: "Réelle", planned: "Prévue" },
       statuses: { planned: "À venir", partial: "Partielle", confirmed: "Confirmée", overdue: "En retard", cancelled: "Annulée" },
       belowZero: "Sous zéro",
@@ -76,6 +78,15 @@ const props: MonthGridProps = {
       unconverted: (currencies) => `Exclu : ${currencies}`,
       change: "Modifier",
       changeTitle: (name, date) => `Modifier ${name}, ${date}`,
+      actions: {
+        expense: "Mark as paid",
+        income: "Mark as received",
+        transfer: "Mark as transferred",
+        expensePending: "Marking as paid…",
+        incomePending: "Marking as received…",
+        transferPending: "Marking as transferred…",
+        link: "Link a transaction",
+      },
     },
   },
 };

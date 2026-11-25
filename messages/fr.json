@@ -334,7 +334,7 @@
     "categoryArchived": "{name} (archivée)",
     "saveDetails": "Enregistrer les détails",
     "due": {
-      "metaTitle": "À régler",
+      "metaTitle": "À régler | Demain",
       "title": "À régler",
       "intro": "Les occurrences arrivées à échéance. Vérifiez la date et le montant, puis marquez chacune comme payée, reçue ou virée.",
       "dueHeading": "À échéance",
@@ -350,7 +350,7 @@
       "fieldSubject": "de {name}, échéance le {date}"
     },
     "link": {
-      "metaTitle": "Lier une transaction",
+      "metaTitle": "Lier une transaction | Demain",
       "title": "Lier une transaction",
       "back": "Retour au calendrier",
       "plannedFor": "Prévu le {date}",
@@ -428,8 +428,7 @@
         "kind": "Nature",
         "status": "Statut",
         "amount": "Montant",
-        "balance": "Solde en fin de journée",
-        "actions": "Actions"
+        "balance": "Solde en fin de journée"
       },
       "kinds": {
         "real": "Réel",

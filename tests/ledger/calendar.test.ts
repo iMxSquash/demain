@@ -114,6 +114,8 @@ describe("monthly line view of real and planned movements", () => {
         routingInvalid: false,
         override: null,
         isEditable: false,
+        plannedKind: null,
+        canSettle: false,
       },
     ]);
     expect(dayOf(result, 15).entries).toEqual([
@@ -136,6 +138,8 @@ describe("monthly line view of real and planned movements", () => {
         routingInvalid: false,
         override: null,
         isEditable: true,
+        plannedKind: "expense",
+        canSettle: true,
       },
     ]);
   });
@@ -292,14 +296,17 @@ describe("monthly line view of real and planned movements", () => {
 
     const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
 
-    expect(entries.map(({ id, status, isEditable }) => ({ id, status, isEditable }))).toEqual([
-      { id: `t${shopping.id}`, status: "confirmed", isEditable: false },
-      { id: `p${rent.id}:2026-11-15`, status: "planned", isEditable: true },
-      { id: `p${groceries.id}:2026-11-30`, status: "partial", isEditable: false },
+    expect(
+      entries.map(({ id, status, isEditable, canSettle }) => ({ id, status, isEditable, canSettle })),
+    ).toEqual([
+      { id: `t${shopping.id}`, status: "confirmed", isEditable: false, canSettle: false },
+      { id: `p${rent.id}:2026-11-15`, status: "planned", isEditable: true, canSettle: true },
+      // A partial provision cannot be changed, but it still takes one more payment.
+      { id: `p${groceries.id}:2026-11-30`, status: "partial", isEditable: false, canSettle: true },
     ]);
   });
 
-  it("an occurrence of an item whose account is archived cannot be changed", () => {
+  it("an occurrence of an item whose account is archived cannot be changed nor settled", () => {
     const cardId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Old card", kind: "checking", openingBalance: 0 }).id;
     const subscription = createPlannedItem(db, {
       name: "Subscription",
@@ -315,9 +322,9 @@ describe("monthly line view of real and planned movements", () => {
 
     const entries = month(NOVEMBER, { accountIds: [checkingId, cardId] }).days.flatMap((day) => day.entries);
 
-    expect(entries.map(({ id, isEditable }) => ({ id, isEditable }))).toEqual([
-      { id: `p${subscription.id}:2026-11-05`, isEditable: false },
-      { id: `p${rent.id}:2026-11-15`, isEditable: true },
+    expect(entries.map(({ id, isEditable, canSettle }) => ({ id, isEditable, canSettle }))).toEqual([
+      { id: `p${subscription.id}:2026-11-05`, isEditable: false, canSettle: false },
+      { id: `p${rent.id}:2026-11-15`, isEditable: true, canSettle: true },
     ]);
   });
 

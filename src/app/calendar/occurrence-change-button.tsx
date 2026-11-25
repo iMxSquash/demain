@@ -10,16 +10,13 @@ import { CONTROL_CLASS, FormField } from "../form-field";
 import { Modal } from "../modal";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { deleteOccurrenceOverrideAction, saveOccurrenceOverrideAction } from "./actions";
-import { DAY_HEADING_SELECTOR } from "./focus-targets";
+import { focusFallbackIfLost } from "./focus-targets";
 import {
   SAVE_INTENT,
   SKIP_INTENT,
   type OccurrenceOverrideFormField,
   type OccurrenceOverrideFormValues,
 } from "./occurrence-override-form-data";
-
-/** Where the focus goes when the row of a changed occurrence leaves the page (DESIGN section 6). */
-const FOCUS_FALLBACK_SELECTORS = [DAY_HEADING_SELECTOR, "[data-focus-fallback]"];
 
 export interface OccurrenceChangeButtonProps {
   itemId: number;
@@ -36,23 +33,6 @@ export interface OccurrenceChangeButtonProps {
   isSkipped: boolean;
   /** What the override already stores, so that saving again keeps it; blank keeps the computed value. */
   initialValues: OccurrenceOverrideFormValues;
-}
-
-// The dialog closes on the server's answer, which can also take the row away (a move to another
-// day or month): the native dialog then has no trigger to give the focus back to, and it would land
-// on the body. It goes to the nearest heading instead.
-function focusFallbackIfLost(): void {
-  requestAnimationFrame(() => {
-    const active = document.activeElement;
-    if (active !== null && active !== document.body) return;
-    for (const selector of FOCUS_FALLBACK_SELECTORS) {
-      const target = document.querySelector<HTMLElement>(selector);
-      if (target !== null) {
-        target.focus();
-        return;
-      }
-    }
-  });
 }
 
 /** The "Change" button of one planned occurrence, and the dialog that skips, moves or restores it. */
@@ -73,7 +53,7 @@ export function OccurrenceChangeButton(props: OccurrenceChangeButtonProps) {
     <>
       <Button
         type="button"
-        variant="link"
+        variant="secondary"
         onClick={() => {
           isEngagedRef.current = true;
           setIsOpen(true);
