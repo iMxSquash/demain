@@ -331,6 +331,16 @@
       "message": "Its future occurrences will disappear. The past ones stay.",
       "confirm": "Cancel the planned item"
     },
+    "delete": {
+      "heading": "Delete",
+      "description": "Deletes the planned item, its versions and the occurrences changed one by one. No transaction changes.",
+      "label": "Delete",
+      "title": "Delete {name}?",
+      "message": "This cannot be undone: the item, its versions and the occurrences changed one by one are erased.",
+      "confirm": "Delete the planned item",
+      "blocked": "A transaction is linked to this item, so it cannot be deleted. Cancel it instead.",
+      "blockedCancelled": "A transaction is linked to this item, so it cannot be deleted. It stays cancelled, with its past occurrences."
+    },
     "categoryArchived": "{name} (archived)",
     "saveDetails": "Save details",
     "due": {
@@ -1470,6 +1480,8 @@
     "plannedItemEndDateSaved": "End date saved.",
     "plannedItemEndDateCleared": "End date removed.",
     "plannedItemCancelled": "Planned item cancelled.",
+    "plannedItemDeleted": "Planned item deleted.",
+    "plannedItemHasTransactions": "A transaction is linked to this planned item: it cannot be deleted, only cancelled.",
     "plannedItemOccurrenceOnCancelled": "The occurrences of a cancelled planned item cannot change.",
     "plannedItemOccurrenceAccountArchived": "The occurrences of a planned item on an archived account cannot change.",
     "plannedItemOccurrenceNotProduced": "This planned item has no occurrence on {date}.",

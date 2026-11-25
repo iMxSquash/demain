@@ -331,6 +331,16 @@
       "message": "Ses occurrences à venir disparaîtront. Les occurrences passées restent.",
       "confirm": "Annuler l'élément planifié"
     },
+    "delete": {
+      "heading": "Suppression",
+      "description": "Supprime l'élément planifié, ses versions et les occurrences modifiées une à une. Aucune transaction ne change.",
+      "label": "Supprimer",
+      "title": "Supprimer {name} ?",
+      "message": "Cette suppression est définitive : l'élément, ses versions et les occurrences modifiées une à une sont effacés.",
+      "confirm": "Supprimer l'élément planifié",
+      "blocked": "Une transaction est liée à cet élément : il ne peut pas être supprimé. Annulez-le à la place.",
+      "blockedCancelled": "Une transaction est liée à cet élément : il ne peut pas être supprimé. Il reste annulé, avec ses occurrences passées."
+    },
     "categoryArchived": "{name} (archivée)",
     "saveDetails": "Enregistrer les détails",
     "due": {
@@ -1470,6 +1480,8 @@
     "plannedItemEndDateSaved": "Date de fin enregistrée.",
     "plannedItemEndDateCleared": "Date de fin supprimée.",
     "plannedItemCancelled": "Élément planifié annulé.",
+    "plannedItemDeleted": "Élément planifié supprimé.",
+    "plannedItemHasTransactions": "Une transaction est liée à cet élément planifié : il ne peut pas être supprimé, seulement annulé.",
     "plannedItemOccurrenceOnCancelled": "Les occurrences d'un élément planifié annulé ne peuvent pas changer.",
     "plannedItemOccurrenceAccountArchived": "Les occurrences d'un élément planifié sur un compte archivé ne peuvent pas changer.",
     "plannedItemOccurrenceNotProduced": "Cet élément planifié n'a pas d'occurrence le {date}.",

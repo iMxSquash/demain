@@ -22,6 +22,7 @@ import {
   addPlannedItemVersion,
   cancelPlannedItem,
   createPlannedItem,
+  deletePlannedItem,
   getPlannedItem,
   PlannedItemNotFoundError,
   setPlannedItemEnd,
@@ -210,6 +211,25 @@ export async function cancelPlannedItemAction(itemId: number): Promise<void> {
     { success: "plannedItemCancelled", describeFailure },
   );
   refreshData();
+}
+
+export async function deletePlannedItemAction(itemId: number): Promise<void> {
+  await requireSession();
+  try {
+    // The id is bound by the page, but the endpoint can be called with any value.
+    if (!Number.isSafeInteger(itemId) || itemId < 1) throw new PlannedItemNotFoundError(itemId);
+    withDatabase((db) => deletePlannedItem(db, itemId));
+  } catch (error) {
+    await flashError(describeFailure(error));
+    // An item that is still there keeps its page, where the user reads why; a gone one has none.
+    if (error instanceof PlannedItemNotFoundError) redirect(PLANNED_PATH);
+    return;
+  }
+
+  refreshData();
+  await flashSuccess("plannedItemDeleted");
+  // redirect throws, so it stays outside the try block.
+  redirect(PLANNED_PATH);
 }
 
 // A refusal on the date or the amount sits on its field; any other one is told in a toast.
