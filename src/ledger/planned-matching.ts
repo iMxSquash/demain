@@ -1056,8 +1056,8 @@ export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: strin
 }
 
 export interface LinkFilters {
-  /** Defaults to the window of the occurrence. */
-  range?: DateRange;
+  /** A bound left out takes the one of the window of the occurrence. */
+  range?: Partial<DateRange>;
   /** Part of the label, whatever its case. */
   search?: string;
 }
@@ -1083,7 +1083,7 @@ export function listOccurrenceLinkCandidates(
 ): OccurrenceLinkCandidates {
   const { item, occurrence } = readOpenOccurrence(db, ref, today);
   assertNotTransfer(item);
-  const listed = range ?? occurrence.window;
+  const listed = { from: range?.from ?? occurrence.window.from, to: range?.to ?? occurrence.window.to };
   const rows = db
     .select()
     .from(transactions)

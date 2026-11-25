@@ -1,9 +1,22 @@
 "use server";
 
+import { getLocale, getTimeZone } from "next-intl/server";
 import { redirect } from "next/navigation";
 
-import type { PlannedItemField } from "../../domain/planned-item";
-import { getAccount, listAccounts } from "../../ledger/accounts";
+import { messageRef, type MessageRef, type Translate } from "../../domain/message";
+import { formatAmount } from "../../domain/money";
+import type { PlannedItemField, PlannedItemKind } from "../../domain/planned-item";
+import { TransactionValidationError } from "../../domain/transaction";
+import { todayIn } from "../../i18n/dates";
+import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
+import { linkByHand, markOccurrencePaid, PlannedLinkError } from "../../ledger/planned-matching";
+import {
+  getTransaction,
+  SurplusDecisionRequiredError,
+  type SurplusDecision,
+  type TransferRequest,
+} from "../../ledger/transactions";
+import type { AppDatabase } from "../../storage/database";
 import {
   addPlannedItemVersion,
   cancelPlannedItem,
@@ -15,9 +28,21 @@ import {
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
-import { flashSuccess, runWithNotice } from "../feedback/flash";
+import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
+import { readOccurrenceTarget } from "../calendar/occurrence-override-form-data";
+import { parseMonthParam } from "../calendar/lines/calendar-lines-params";
 import { getTranslator } from "../translator";
-import type { CurrencyByAccount } from "../transactions/transaction-form-data";
+import { readDecision, type CurrencyByAccount } from "../transactions/transaction-form-data";
+import { TRANSFER_DECISION } from "../transactions/transfer-decision";
+import { calendarHref, parseBackView } from "./link-params";
+import {
+  parseMarkPaidForm,
+  readSubmittedMarkPaid,
+  type MarkPaidFormState,
+  type MarkPaidFormValues,
+  type MarkPaidSurplusStep,
+} from "./mark-paid-form-data";
+import { MARKED_FEEDBACK, markPaidKindOf } from "./mark-paid-kind";
 import { describeFailure, toFailureState } from "./planned-item-failure";
 import {
   formFieldOf,
@@ -29,6 +54,7 @@ import {
   readSubmittedEndDate,
   readSubmittedValues,
   readSubmittedVersion,
+  readText,
   type PlannedItemDetailsFormState,
   type PlannedItemEndDateFormState,
   type PlannedItemFormState,
@@ -180,4 +206,198 @@ export async function cancelPlannedItemAction(itemId: number): Promise<void> {
     { success: "plannedItemCancelled", describeFailure },
   );
   refreshData();
+}
+
+// A refusal on the date or the amount sits on its field; any other one is told in a toast.
+function describeMarkPaidFailure(error: unknown): { field?: "date" | "amount"; ref: MessageRef } {
+  if (error instanceof TransactionValidationError) {
+    const field = error.field === "date" || error.field === "amount" ? error.field : undefined;
+    return { ...(field === undefined ? {} : { field }), ref: error.ref };
+  }
+  if (error instanceof PlannedLinkError) return { ref: error.ref };
+  if (error instanceof AccountNotFoundError) return { ref: messageRef("accountGone") };
+  console.error("Mark as paid failed", error);
+  return { ref: messageRef("nothingSaved") };
+}
+
+async function markPaidFailure(
+  error: unknown,
+  values: MarkPaidFormValues,
+  translate: Translate,
+): Promise<MarkPaidFormState> {
+  const { field, ref } = describeMarkPaidFailure(error);
+  if (field === undefined) await flashError(ref);
+  return { status: "error", ...(field === undefined ? {} : { field }), message: translate(ref), values };
+}
+
+// The split is the server's computation: the step only shows it and posts the decision.
+function surplusStepOf(
+  db: AppDatabase,
+  request: TransferRequest,
+  error: SurplusDecisionRequiredError,
+  locale: string,
+): MarkPaidSurplusStep {
+  const source = getAccount(db, request.sourceId);
+  const destination = getAccount(db, request.destinationId);
+  const format = (minorUnits: number) => formatAmount(minorUnits, source.currency, locale);
+  const { split } = error;
+  return {
+    choice: {
+      depositedText: format(split.deposited),
+      surplusText: format(split.surplus),
+      suggestedAccountId: split.suggestedOverflowAccountId === null ? "" : String(split.suggestedOverflowAccountId),
+    },
+    sourceName: source.name,
+    destinationName: destination.name,
+    // A transfer cannot cross currencies, so only the accounts of the same currency can take the rest.
+    targets: listAccounts(db)
+      .filter(({ id, currency }) => id !== source.id && id !== destination.id && currency === source.currency)
+      .map(({ id, name }) => ({ id, name })),
+  };
+}
+
+type Feedback = { key: Parameters<typeof flashSuccess>[0]; values: Record<string, string> };
+
+type MarkPaidOutcome = { state: MarkPaidFormState } | { feedback: Feedback };
+
+interface MarkPaidContext {
+  itemId: number;
+  nominalDate: string;
+  values: MarkPaidFormValues;
+  today: string;
+  locale: string;
+  translate: Translate;
+}
+
+// The toast says what was recorded; a surplus left in the source carries a figure, so it is told instead.
+function feedbackOf(
+  db: AppDatabase,
+  item: { kind: PlannedItemKind; name: string; accountId: number; destinationAccountId: number | null },
+  unplaced: number,
+  decision: SurplusDecision | null,
+  locale: string,
+): Feedback {
+  if (unplaced === 0 || item.destinationAccountId === null) {
+    return { key: MARKED_FEEDBACK[markPaidKindOf(item.kind)], values: { name: item.name } };
+  }
+  const source = getAccount(db, item.accountId);
+  const full = decision?.kind === "send-surplus" ? decision.accountId : item.destinationAccountId;
+  return {
+    key: "transferUnplaced",
+    values: {
+      amount: formatAmount(unplaced, source.currency, locale),
+      source: source.name,
+      full: getAccount(db, full).name,
+    },
+  };
+}
+
+function markInDatabase(db: AppDatabase, formData: FormData, context: MarkPaidContext): MarkPaidOutcome {
+  const { itemId, nominalDate, values, today, locale, translate } = context;
+  // The kind gives the sign and the account the minor units: neither comes from the form.
+  const item = getPlannedItem(db, itemId);
+  const parsed = parseMarkPaidForm(values, getAccount(db, item.accountId).currency, translate);
+  if (!parsed.ok) return { state: parsed.error };
+  const currencies: CurrencyByAccount = new Map(listAccounts(db).map(({ id, currency }) => [id, currency]));
+  const decision = readDecision(formData, currencies, translate);
+  if ("message" in decision) {
+    return { state: { status: "error", field: "surplusAccountId", message: decision.message, values } };
+  }
+  const request = { plannedItemId: item.id, nominalDate, ...parsed.input };
+  try {
+    const { unplaced } = markOccurrencePaid(db, request, today, decision.value);
+    return { feedback: feedbackOf(db, item, unplaced, decision.value, locale) };
+  } catch (error) {
+    if (!(error instanceof SurplusDecisionRequiredError) || item.destinationAccountId === null) throw error;
+    const transfer: TransferRequest = {
+      sourceId: item.accountId,
+      destinationId: item.destinationAccountId,
+      amount: request.amount,
+      date: request.date,
+      label: item.name,
+    };
+    return { state: { status: "surplus", step: surplusStepOf(db, transfer, error, locale), values } };
+  }
+}
+
+/**
+ * Records the real transaction of a due occurrence and links it (DOMAIN, "Matching planned vs
+ * actual"). The card of the "To pay" page posts the date and the amount it shows; the one-click
+ * buttons of the calendar post the planned ones. A planned transfer above a ceiling answers with
+ * the surplus step and records nothing until the user decides. A null state means recorded.
+ */
+export async function markOccurrencePaidAction(
+  _previous: MarkPaidFormState | null,
+  formData: FormData,
+): Promise<MarkPaidFormState | null> {
+  await requireSession();
+  const [translate, locale, timeZone] = await Promise.all([getTranslator(), getLocale(), getTimeZone()]);
+  const values = readSubmittedMarkPaid(formData);
+  if (formData.get("decision") === TRANSFER_DECISION.cancel) return { status: "cancelled", values };
+  const read = readOccurrenceTarget(formData);
+  if (!read.ok) return markPaidFailure(new PlannedLinkError("Malformed occurrence", read.ref), values, translate);
+
+  let outcome: MarkPaidOutcome;
+  try {
+    outcome = withDatabase((db) =>
+      markInDatabase(db, formData, {
+        ...read.target,
+        values,
+        today: todayIn(timeZone, new Date()),
+        locale,
+        translate,
+      }),
+    );
+  } catch (error) {
+    return markPaidFailure(error, values, translate);
+  }
+  if ("state" in outcome) return outcome.state;
+
+  refreshData();
+  await flashSuccess(outcome.feedback.key, outcome.feedback.values);
+  return null;
+}
+
+const transactionIdOf = (value: FormDataEntryValue | null): number | null => {
+  const id = typeof value === "string" && /^[1-9]\d{0,14}$/.test(value) ? Number(value) : null;
+  return id !== null && Number.isSafeInteger(id) ? id : null;
+};
+
+/**
+ * Links a transaction chosen on the "Link a transaction" page to its occurrence, then goes back to
+ * the calendar. The ledger checks the pair again: same account, same sign, open occurrence. The
+ * category is never changed. A refusal is a message above the list.
+ */
+export async function linkTransactionToOccurrenceAction(
+  _previous: string | null,
+  formData: FormData,
+): Promise<string | null> {
+  await requireSession();
+  const [translate, timeZone] = await Promise.all([getTranslator(), getTimeZone()]);
+  const read = readOccurrenceTarget(formData);
+  const transactionId = transactionIdOf(formData.get("transactionId"));
+  if (!read.ok || transactionId === null) return translate(messageRef("occurrenceLinkFailed"));
+  const { itemId, nominalDate } = read.target;
+  const month = parseMonthParam(readText(formData, "month"), nominalDate.slice(0, 7));
+  const back = calendarHref(parseBackView(formData.get("back")), month);
+  const today = todayIn(timeZone, new Date());
+
+  let names: { transaction: string; name: string };
+  try {
+    names = withDatabase((db) => {
+      linkByHand(db, { transactionId, plannedItemId: itemId, nominalDate }, today);
+      return { transaction: getTransaction(db, transactionId).label, name: getPlannedItem(db, itemId).name };
+    });
+  } catch (error) {
+    if (error instanceof PlannedLinkError || error instanceof TransactionValidationError) {
+      return translate(error.ref);
+    }
+    console.error("Link by hand failed", error);
+    return translate(messageRef("occurrenceLinkFailed"));
+  }
+
+  refreshData();
+  await flashSuccess("occurrenceLinkedTo", names);
+  // redirect throws, so it stays outside the try block.
+  redirect(back);
 }
