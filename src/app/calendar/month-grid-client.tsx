@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 
+import { DAY_HEADING_SELECTOR } from "./focus-targets";
 import { reduceGridKey } from "./month-grid-keyboard";
 
 interface MonthGridClientProps {
@@ -17,7 +18,6 @@ interface MonthGridClientProps {
 }
 
 const DAY_LINK_SELECTOR = "a[data-date]";
-const HEADING_SELECTOR = "[data-day-heading]";
 const ACTIVATION_KEYS = new Set(["Enter", " "]);
 
 function dayLinkOf(target: EventTarget): HTMLAnchorElement | null {
@@ -62,7 +62,7 @@ export function MonthGridClient({ month, weekStart, entryDate, details, children
         delete cell.dataset.selected;
       }
     }
-    if (opened !== null) root.querySelector<HTMLElement>(HEADING_SELECTOR)?.focus();
+    if (opened !== null) root.querySelector<HTMLElement>(DAY_HEADING_SELECTOR)?.focus();
   }, [opened]);
 
   function focusDay(date: string): void {

@@ -1,5 +1,6 @@
 import { addDays } from "../domain/calendar-date";
 import { convertAmount } from "../domain/exchange-rate";
+import type { OccurrenceOverride } from "../domain/occurrences";
 import {
   resolveOccurrences,
   type OccurrenceLink,
@@ -63,6 +64,17 @@ export interface CalendarEntry {
   unplacedSurplus: { amount: number; accountId: number } | null;
   /** A planned transfer whose overflow chain is invalid. */
   routingInvalid: boolean;
+  /**
+   * The override of a planned occurrence skipped, moved or with a changed amount; its date and
+   * signed amount are null when it keeps the computed ones. Null for a real transaction.
+   */
+  override: OccurrenceOverride | null;
+  /**
+   * A planned occurrence that can be changed or restored: none of its transactions is linked (a
+   * partial provision is unlinked first) and the account of its item is not archived, as the server
+   * checks. False for a real transaction.
+   */
+  isEditable: boolean;
 }
 
 export interface CalendarDay {
@@ -146,12 +158,15 @@ function buildRealEntry(
     nominalDate: transaction.occurrenceDate,
     unplacedSurplus: null,
     routingInvalid: false,
+    override: null,
+    isEditable: false,
   };
 }
 
 function buildPlannedEntry(
   item: PlannedItemWithDetails,
   occurrence: ResolvedOccurrence,
+  override: OccurrenceOverride | undefined,
   account: Account,
   categoryNames: ReadonlyMap<number, string>,
   transfers: ReadonlyMap<string, PlannedTransferRouting>,
@@ -178,6 +193,8 @@ function buildPlannedEntry(
     unplacedSurplus: unplaced > 0 ? { amount: unplaced, accountId: item.accountId } : null,
     // An invalid chain is reported on the row, never thrown (ADR-013).
     routingInvalid: routing?.status === "invalid",
+    override: override ?? null,
+    isEditable: occurrence.links.length === 0 && !account.archived,
   };
 }
 
@@ -215,6 +232,13 @@ function plannedEntries(
       selected.has(item.accountId) ||
       (item.destinationAccountId !== null && selected.has(item.destinationAccountId));
     if (account === undefined || !isSelected) return [];
+    // Only the fields of the domain: the row ids of the store stay on the server.
+    const overrides = new Map(
+      item.overrides.map(({ nominalDate, status, overrideDate, overrideAmount }): [string, OccurrenceOverride] => [
+        nominalDate,
+        { nominalDate, status, overrideDate, overrideAmount },
+      ]),
+    );
     // Resolved over the month itself rather than from today, so that a past month still shows
     // what was overdue or cancelled. A confirmed occurrence is listed through its transaction.
     return resolveOccurrences(
@@ -232,7 +256,16 @@ function plannedEntries(
         (occurrence) =>
           occurrence.status !== "confirmed" && occurrence.date >= range.from && occurrence.date <= range.to,
       )
-      .map((occurrence) => buildPlannedEntry(item, occurrence, account, categoryNames, routings));
+      .map((occurrence) =>
+        buildPlannedEntry(
+          item,
+          occurrence,
+          overrides.get(occurrence.nominalDate),
+          account,
+          categoryNames,
+          routings,
+        ),
+      );
   });
 }
 

@@ -7,21 +7,26 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { resolveOccurrences } from "../../src/domain/occurrence-resolution";
 import { generateOccurrences } from "../../src/domain/occurrences";
 import {
   PlannedItemValidationError,
+  type OccurrenceOverrideInput,
   type PlannedItemInput,
   type PlannedItemVersionInput,
 } from "../../src/domain/planned-item";
 import { createAccount } from "../../src/ledger/accounts";
+import { getCalendarMonth } from "../../src/ledger/calendar";
 import type { PlannedItemWithDetails } from "../../src/ledger/planned-items";
 import {
   addPlannedItemVersion,
   cancelPlannedItem,
   createPlannedItem,
+  deleteOccurrenceOverride,
   getPlannedItem,
   listPlannedItems,
   PlannedItemNotFoundError,
+  saveOccurrenceOverride,
   setPlannedItemEnd,
   toPlannedSchedule,
   updatePlannedItemDetails,
@@ -508,6 +513,66 @@ describe("planned items", () => {
       expect(getPlannedItem(db, oneOff.id).endDate).toBeNull();
     });
 
+    it.each([
+      ["a skipped occurrence", (itemId: number) => override(itemId, "2026-03-05")],
+      [
+        "a moved occurrence",
+        (itemId: number) =>
+          saveOccurrenceOverride(db, itemId, {
+            nominalDate: "2026-03-05",
+            status: "modified",
+            overrideDate: "2026-03-12",
+            overrideAmount: null,
+          }),
+      ],
+      ["an occurrence linked to a transaction", (itemId: number) => settle(itemId, "2026-03-05")],
+    ])("refuses an end date before %s and names its nominal date", (_label, change) => {
+      const item = createPlannedItem(db, rent);
+      change(item.id);
+
+      const error = refusalOf(() => setPlannedItemEnd(db, item.id, "2026-02-28"));
+
+      expect(error.field).toBe("endDate");
+      expect(error.ref.key).toBe("plannedItemEndBeforeChangedOccurrence");
+      expect(error.ref.values).toEqual({ date: "2026-03-05" });
+      expect(getPlannedItem(db, item.id).endDate).toBeNull();
+    });
+
+    it("accepts an end date on the nominal date of the last changed occurrence, and after it", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-02-05");
+      override(item.id, "2026-03-05");
+
+      expect(setPlannedItemEnd(db, item.id, "2026-03-05").endDate).toBe("2026-03-05");
+      expect(setPlannedItemEnd(db, item.id, "2026-04-30").endDate).toBe("2026-04-30");
+    });
+
+    it("clears the end date of an item whose occurrences are changed", () => {
+      const item = createPlannedItem(db, { ...rent, endDate: "2026-03-31" });
+      override(item.id, "2026-03-05");
+
+      expect(setPlannedItemEnd(db, item.id, null).endDate).toBeNull();
+    });
+
+    it("keeps an occurrence moved past the end date when its nominal date is before it", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, {
+        nominalDate: "2026-03-05",
+        status: "modified",
+        overrideDate: "2026-04-10",
+        overrideAmount: null,
+      });
+
+      const bounded = setPlannedItemEnd(db, item.id, "2026-03-31");
+
+      expect(bounded.endDate).toBe("2026-03-31");
+      expect(occurrencesOf(bounded).map(([date]) => date)).toEqual([
+        "2026-01-05",
+        "2026-02-05",
+        "2026-04-10",
+      ]);
+    });
+
     it("cancels an item so that nothing remains after today", () => {
       const item = createPlannedItem(db, rent);
       const today = "2026-03-10";
@@ -673,6 +738,266 @@ describe("planned items", () => {
         amountMode: "rolling_average",
         averageWindow: 6,
       });
+    });
+  });
+
+  describe("occurrence overrides", () => {
+    const TODAY = "2026-01-01";
+    const MARCH = { from: "2026-03-01", to: "2026-03-31" };
+
+    const move = (nominalDate: string, overrideDate: string): OccurrenceOverrideInput => ({
+      nominalDate,
+      status: "modified",
+      overrideDate,
+      overrideAmount: null,
+    });
+    const changeAmount = (nominalDate: string, overrideAmount: number): OccurrenceOverrideInput => ({
+      nominalDate,
+      status: "modified",
+      overrideDate: null,
+      overrideAmount,
+    });
+    const skip = (nominalDate: string): OccurrenceOverrideInput => ({
+      nominalDate,
+      status: "cancelled",
+      overrideDate: null,
+      overrideAmount: null,
+    });
+
+    function occurrencesOf(item: PlannedItemWithDetails, range = { from: "2026-01-01", to: "2026-04-30" }) {
+      return generateOccurrences(toPlannedSchedule(item), item.overrides, range, TODAY).map(
+        ({ nominalDate, date, amount, isCancelled }) => ({ nominalDate, date, amount, isCancelled }),
+      );
+    }
+
+    function overrideRows() {
+      return db.select().from(occurrenceOverrides).all();
+    }
+
+    function refusalOf(action: () => unknown): PlannedItemValidationError {
+      const before = overrideRows();
+      try {
+        action();
+      } catch (error) {
+        if (error instanceof PlannedItemValidationError) {
+          expect(overrideRows()).toEqual(before);
+          return error;
+        }
+        throw error;
+      }
+      throw new Error("The action was accepted");
+    }
+
+    function link(itemId: number, nominalDate: string): void {
+      const transaction = createTransaction(db, {
+        accountId,
+        date: nominalDate,
+        amount: -30_000,
+        kind: "expense",
+        label: "Rent",
+      });
+      db.update(transactions)
+        .set({ plannedItemId: itemId, occurrenceDate: nominalDate })
+        .where(eq(transactions.id, transaction.id))
+        .run();
+    }
+
+    function plannedDatesIn(month: string, itemId: number): string[] {
+      return getCalendarMonth(db, { month, today: TODAY, accountIds: [accountId], currency: "EUR" })
+        .days.flatMap(({ entries }) => entries)
+        .filter((entry) => entry.kind === "planned" && entry.plannedItemId === itemId)
+        .map((entry) => `${entry.nominalDate}>${entry.date}`);
+    }
+
+    it("moves the second of three occurrences and leaves the first and the third unchanged", () => {
+      const item = createPlannedItem(db, rent);
+
+      const moved = saveOccurrenceOverride(db, item.id, move("2026-02-05", "2026-02-12"));
+
+      expect(occurrencesOf(moved, { from: "2026-01-01", to: "2026-03-31" })).toEqual([
+        { nominalDate: "2026-01-05", date: "2026-01-05", amount: -80_000, isCancelled: false },
+        { nominalDate: "2026-02-05", date: "2026-02-12", amount: -80_000, isCancelled: false },
+        { nominalDate: "2026-03-05", date: "2026-03-05", amount: -80_000, isCancelled: false },
+      ]);
+    });
+
+    it("changes the amount of one occurrence and leaves the others unchanged", () => {
+      const item = createPlannedItem(db, rent);
+
+      const changed = saveOccurrenceOverride(db, item.id, changeAmount("2026-02-05", -95_000));
+
+      expect(occurrencesOf(changed, { from: "2026-01-01", to: "2026-03-31" }).map(({ amount }) => amount)).toEqual([
+        -80_000, -95_000, -80_000,
+      ]);
+    });
+
+    it("skips an occurrence and still produces the others", () => {
+      const item = createPlannedItem(db, rent);
+
+      const skipped = saveOccurrenceOverride(db, item.id, skip("2026-02-05"));
+
+      expect(occurrencesOf(skipped, { from: "2026-01-01", to: "2026-03-31" }).map(({ isCancelled }) => isCancelled)).toEqual([
+        false, true, false,
+      ]);
+      expect(skipped.overrides).toEqual([
+        expect.objectContaining({ nominalDate: "2026-02-05", status: "cancelled" }),
+      ]);
+    });
+
+    it("restores an occurrence by deleting its override", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, move("2026-02-05", "2026-02-12"));
+
+      const restored = deleteOccurrenceOverride(db, item.id, "2026-02-05");
+
+      expect(restored.overrides).toEqual([]);
+      expect(occurrencesOf(restored)[1]).toMatchObject({ nominalDate: "2026-02-05", date: "2026-02-05" });
+    });
+
+    it("treats the deletion of an override that does not exist as done", () => {
+      const item = createPlannedItem(db, rent);
+
+      expect(deleteOccurrenceOverride(db, item.id, "2026-02-05")).toEqual(getPlannedItem(db, item.id));
+    });
+
+    it("replaces the first override saved on the same nominal date", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, { ...move("2026-02-05", "2026-02-12"), overrideAmount: -95_000 });
+
+      const replaced = saveOccurrenceOverride(db, item.id, skip("2026-02-05"));
+
+      expect(replaced.overrides).toEqual([
+        expect.objectContaining({
+          nominalDate: "2026-02-05",
+          status: "cancelled",
+          overrideDate: null,
+          overrideAmount: null,
+        }),
+      ]);
+      expect(overrideRows()).toHaveLength(1);
+    });
+
+    it("refuses a nominal date the schedule does not produce", () => {
+      const item = createPlannedItem(db, rent);
+
+      const error = refusalOf(() => saveOccurrenceOverride(db, item.id, skip("2026-02-06")));
+
+      expect(error.field).toBe("nominalDate");
+      expect(error.ref.key).toBe("plannedItemOccurrenceNotProduced");
+    });
+
+    it("accepts a nominal date on a weekend that the business-day rule moves", () => {
+      // 2026-04-05 is a Sunday: the occurrence is shown on Friday 3 April.
+      const item = createPlannedItem(db, { ...rent, businessDayRule: "previous" });
+
+      const moved = saveOccurrenceOverride(db, item.id, move("2026-04-05", "2026-04-08"));
+
+      expect(occurrencesOf(moved, { from: "2026-04-01", to: "2026-04-30" })).toEqual([
+        { nominalDate: "2026-04-05", date: "2026-04-08", amount: -80_000, isCancelled: false },
+      ]);
+    });
+
+    it.each([
+      ["a zero amount", changeAmount("2026-02-05", 0), "amount", "transactionAmountNonZero"],
+      ["a positive amount on an expense", changeAmount("2026-02-05", 5_000), "amount", "expenseMustBeNegative"],
+      ["an invalid override date", move("2026-02-05", "2026-02-30"), "overrideDate", "plannedItemDateInvalid"],
+      ["an empty nominal date", skip(""), "nominalDate", "plannedItemDateInvalid"],
+      ["a garbage nominal date", skip("next month"), "nominalDate", "plannedItemDateInvalid"],
+    ] as const)("refuses %s", (_label, input, field, key) => {
+      const item = createPlannedItem(db, rent);
+
+      const error = refusalOf(() => saveOccurrenceOverride(db, item.id, input));
+
+      expect(error.field).toBe(field);
+      expect(error.ref.key).toBe(key);
+    });
+
+    it("refuses a modified occurrence with neither date nor amount", () => {
+      const item = createPlannedItem(db, rent);
+
+      const error = refusalOf(() =>
+        saveOccurrenceOverride(db, item.id, { ...skip("2026-02-05"), status: "modified" }),
+      );
+
+      expect(error.ref.key).toBe("plannedItemOverrideEmpty");
+    });
+
+    it("refuses to change or restore a linked occurrence", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, changeAmount("2026-02-05", -30_000));
+      link(item.id, "2026-02-05");
+
+      expect(refusalOf(() => saveOccurrenceOverride(db, item.id, skip("2026-02-05"))).ref.key).toBe(
+        "plannedItemOccurrenceLinked",
+      );
+      expect(refusalOf(() => deleteOccurrenceOverride(db, item.id, "2026-02-05")).ref.key).toBe(
+        "plannedItemOccurrenceLinked",
+      );
+    });
+
+    it("refuses to change or restore an occurrence of a cancelled item", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, skip("2026-02-05"));
+      db.update(plannedItems).set({ cancelled: true }).where(eq(plannedItems.id, item.id)).run();
+
+      expect(refusalOf(() => saveOccurrenceOverride(db, item.id, skip("2026-03-05"))).ref.key).toBe(
+        "plannedItemOccurrenceOnCancelled",
+      );
+      expect(refusalOf(() => deleteOccurrenceOverride(db, item.id, "2026-02-05")).ref.key).toBe(
+        "plannedItemOccurrenceOnCancelled",
+      );
+    });
+
+    it("refuses to change or restore an occurrence when the account is archived", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, skip("2026-02-05"));
+      db.update(accounts).set({ archived: true }).where(eq(accounts.id, accountId)).run();
+
+      expect(refusalOf(() => saveOccurrenceOverride(db, item.id, skip("2026-03-05"))).ref.key).toBe(
+        "plannedItemOccurrenceAccountArchived",
+      );
+      expect(refusalOf(() => deleteOccurrenceOverride(db, item.id, "2026-02-05")).ref.key).toBe(
+        "plannedItemOccurrenceAccountArchived",
+      );
+    });
+
+    it("throws for a missing item", () => {
+      expect(() => saveOccurrenceOverride(db, 999, skip("2026-02-05"))).toThrow(PlannedItemNotFoundError);
+      expect(() => deleteOccurrenceOverride(db, 999, "2026-02-05")).toThrow(PlannedItemNotFoundError);
+    });
+
+    it("shows an occurrence moved into the next month in that month", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, move("2026-03-05", "2026-04-02"));
+
+      expect(plannedDatesIn("2026-03", item.id)).toEqual([]);
+      expect(plannedDatesIn("2026-04", item.id)).toEqual(["2026-03-05>2026-04-02", "2026-04-05>2026-04-05"]);
+    });
+
+    it("shows an occurrence moved past the end date of the item", () => {
+      const item = createPlannedItem(db, { ...rent, endDate: "2026-03-31" });
+      saveOccurrenceOverride(db, item.id, move("2026-03-05", "2026-04-10"));
+
+      expect(plannedDatesIn("2026-04", item.id)).toEqual(["2026-03-05>2026-04-10"]);
+    });
+
+    it("does not feed an override amount into the rolling average of the next occurrence", () => {
+      const item = createPlannedItem(db, { ...rent, amountMode: "rolling_average", averageWindow: 3 });
+
+      const changed = saveOccurrenceOverride(db, item.id, changeAmount("2026-02-05", -200_000));
+
+      const [march] = resolveOccurrences(
+        {
+          schedule: toPlannedSchedule(changed),
+          overrides: changed.overrides,
+          matchWindowDays: changed.matchWindowDays,
+          acceptsMultipleTransactions: false,
+        },
+        [],
+        MARCH,
+        TODAY,
+      );
+      expect(march?.expectedAmount).toBe(-80_000);
     });
   });
 

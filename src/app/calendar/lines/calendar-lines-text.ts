@@ -16,6 +16,7 @@ export function columnsText(
     status: t("lines.columns.status"),
     amount: t("lines.columns.amount"),
     balance: t("lines.columns.balance"),
+    actions: t("lines.columns.actions"),
   };
 }
 
@@ -38,5 +39,7 @@ export function linesTextOf(t: CalendarTranslator): Omit<CalendarLinesTableText,
     transferTo: (from, to) => t("lines.transferTo", { from, to }),
     empty: t("lines.empty"),
     unconverted: (currencies) => t("lines.unconverted", { currencies }),
+    change: t("occurrenceForm.change"),
+    changeTitle: (name, date) => t("occurrenceForm.title", { name, date }),
   };
 }

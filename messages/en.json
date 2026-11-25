@@ -377,7 +377,8 @@
         "kind": "Kind",
         "status": "Status",
         "amount": "Amount",
-        "balance": "Balance at end of day"
+        "balance": "Balance at end of day",
+        "actions": "Actions"
       },
       "kinds": {
         "real": "Real",
@@ -397,6 +398,19 @@
       "transferTo": "{from} to {to}",
       "empty": "No entry this month.",
       "unconverted": "No exchange rate for {currencies}: these accounts are left out of the balance."
+    },
+    "occurrenceForm": {
+      "change": "Change",
+      "title": "Change {name}, {date}",
+      "onlyThis": "Only this occurrence changes. The other occurrences stay as planned.",
+      "skipped": "This occurrence is skipped. Restore it, or save a new date or amount to bring it back.",
+      "newDate": "New date",
+      "newDateHint": "Leave empty to keep the scheduled date.",
+      "newAmount": "New amount",
+      "newAmountHint": "Without a sign: the type sets the direction. Leave empty to keep the planned amount.",
+      "save": "Save",
+      "skip": "Skip this occurrence",
+      "restore": "Restore as planned"
     }
   },
   "balances": {
@@ -1372,11 +1386,17 @@
     "plannedItemVersionAfterEnd": "A change cannot take effect after the end date, {date}.",
     "plannedItemVersionRepeatsOneOff": "A one-off event cannot repeat.",
     "plannedItemVersionTooEarly": "An occurrence from this date on is already settled or modified: the earliest date allowed is {date}.",
+    "plannedItemEndBeforeChangedOccurrence": "An occurrence after this date is already settled or modified: the earliest end date allowed is {date}.",
     "plannedItemVersionSaved": "Change saved.",
     "plannedItemVersionReplaced": "Change saved. It replaced the one already effective on {date}.",
     "plannedItemEndDateSaved": "End date saved.",
     "plannedItemEndDateCleared": "End date removed.",
     "plannedItemCancelled": "Planned item cancelled.",
+    "plannedItemOccurrenceOnCancelled": "The occurrences of a cancelled planned item cannot change.",
+    "plannedItemOccurrenceAccountArchived": "The occurrences of a planned item on an archived account cannot change.",
+    "plannedItemOccurrenceNotProduced": "This planned item has no occurrence on {date}.",
+    "plannedItemOccurrenceLinked": "This occurrence is linked to a transaction: unlink the transaction first.",
+    "plannedItemOverrideEmpty": "Enter a new date or a new amount.",
     "matchTransactionUnknown": "This transaction no longer exists.",
     "matchTransactionIsTransfer": "A transfer cannot be linked to a planned item.",
     "matchTransactionAlreadyLinked": "This transaction is already linked to a planned item.",
@@ -1422,7 +1442,10 @@
     "vocabularyNotChanged": "Something went wrong, the vocabulary was not changed.",
     "categoryIconUnknown": "This icon does not exist",
     "occurrenceLinked": "Transaction linked to the planned item.",
-    "occurrenceUnlinked": "Transaction unlinked from the planned item."
+    "occurrenceUnlinked": "Transaction unlinked from the planned item.",
+    "occurrenceOverrideSaved": "Occurrence changed.",
+    "occurrenceSkipped": "Occurrence skipped.",
+    "occurrenceRestored": "Occurrence restored as planned."
   },
   "auth": {
     "signOut": "Sign out",

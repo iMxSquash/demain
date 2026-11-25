@@ -4,11 +4,11 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createAccount } from "../../src/ledger/accounts";
+import { archiveAccount, createAccount } from "../../src/ledger/accounts";
 import { type CalendarMonth, getCalendarMonth } from "../../src/ledger/calendar";
 import { createCategory } from "../../src/ledger/categories";
 import { saveExchangeRate } from "../../src/ledger/exchange-rates";
-import { createPlannedItem } from "../../src/ledger/planned-items";
+import { createPlannedItem, saveOccurrenceOverride } from "../../src/ledger/planned-items";
 import { linkTransactionToOccurrence } from "../../src/ledger/planned-matching";
 import { createTransaction } from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
@@ -112,6 +112,8 @@ describe("monthly line view of real and planned movements", () => {
         nominalDate: null,
         unplacedSurplus: null,
         routingInvalid: false,
+        override: null,
+        isEditable: false,
       },
     ]);
     expect(dayOf(result, 15).entries).toEqual([
@@ -132,6 +134,8 @@ describe("monthly line view of real and planned movements", () => {
         nominalDate: "2026-11-15",
         unplacedSurplus: null,
         routingInvalid: false,
+        override: null,
+        isEditable: true,
       },
     ]);
   });
@@ -206,6 +210,115 @@ describe("monthly line view of real and planned movements", () => {
       }),
     ]);
     expect(balancesOf(result)).toEqual(Array(30).fill(OPENING_BALANCE));
+  });
+
+  it("flags the occurrences that have an override, moved or skipped", () => {
+    const rent = planExpense("Rent", -60_000, 15);
+    const gym = planExpense("Gym", -3_000, 20);
+    saveOccurrenceOverride(db, rent.id, {
+      nominalDate: "2026-11-15",
+      status: "modified",
+      overrideDate: "2026-11-18",
+      overrideAmount: null,
+    });
+    saveOccurrenceOverride(db, gym.id, {
+      nominalDate: "2026-11-20",
+      status: "cancelled",
+      overrideDate: null,
+      overrideAmount: null,
+    });
+    const groceries = spend("2026-11-03", -4_000);
+
+    const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, date, override }) => ({ id, date, status: override?.status ?? null }))).toEqual([
+      { id: `t${groceries.id}`, date: "2026-11-03", status: null },
+      { id: `p${rent.id}:2026-11-15`, date: "2026-11-18", status: "modified" },
+      { id: `p${gym.id}:2026-11-20`, date: "2026-11-20", status: "cancelled" },
+    ]);
+  });
+
+  it("gives the stored override values, so that a form shows only what was changed", () => {
+    const rent = planExpense("Rent", -60_000, 15);
+    const gym = planExpense("Gym", -3_000, 20);
+    saveOccurrenceOverride(db, rent.id, {
+      nominalDate: "2026-11-15",
+      status: "modified",
+      overrideDate: null,
+      overrideAmount: -62_000,
+    });
+    saveOccurrenceOverride(db, gym.id, {
+      nominalDate: "2026-11-20",
+      status: "modified",
+      overrideDate: "2026-11-22",
+      overrideAmount: null,
+    });
+    const groceries = spend("2026-11-03", -4_000);
+
+    const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, override }) => ({ id, override }))).toEqual([
+      { id: `t${groceries.id}`, override: null },
+      {
+        id: `p${rent.id}:2026-11-15`,
+        override: { nominalDate: "2026-11-15", status: "modified", overrideDate: null, overrideAmount: -62_000 },
+      },
+      {
+        id: `p${gym.id}:2026-11-20`,
+        override: { nominalDate: "2026-11-20", status: "modified", overrideDate: "2026-11-22", overrideAmount: null },
+      },
+    ]);
+  });
+
+  it("a partly settled provision cannot be changed until it is unlinked", () => {
+    const groceries = createPlannedItem(db, {
+      name: "Groceries",
+      kind: "expense",
+      accountId: checkingId,
+      startDate: "2026-10-30",
+      repetition: { kind: "monthly_on_day", day: 30 },
+      amount: -40_000,
+      acceptsMultipleTransactions: true,
+    });
+    const rent = planExpense("Rent", -60_000, 15);
+    const shopping = spend("2026-11-08", -10_000, "SUPERMARKET");
+    db.transaction((tx) =>
+      linkTransactionToOccurrence(tx, {
+        transactionId: shopping.id,
+        plannedItemId: groceries.id,
+        nominalDate: "2026-11-30",
+      }),
+    );
+
+    const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, status, isEditable }) => ({ id, status, isEditable }))).toEqual([
+      { id: `t${shopping.id}`, status: "confirmed", isEditable: false },
+      { id: `p${rent.id}:2026-11-15`, status: "planned", isEditable: true },
+      { id: `p${groceries.id}:2026-11-30`, status: "partial", isEditable: false },
+    ]);
+  });
+
+  it("an occurrence of an item whose account is archived cannot be changed", () => {
+    const cardId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Old card", kind: "checking", openingBalance: 0 }).id;
+    const subscription = createPlannedItem(db, {
+      name: "Subscription",
+      kind: "expense",
+      accountId: cardId,
+      startDate: "2026-11-05",
+      endDate: "2026-11-05",
+      repetition: { kind: "monthly_on_day", day: 5 },
+      amount: -1_000,
+    });
+    const rent = planExpense("Rent", -60_000, 15);
+    archiveAccount(db, cardId, TODAY);
+
+    const entries = month(NOVEMBER, { accountIds: [checkingId, cardId] }).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, isEditable }) => ({ id, isEditable }))).toEqual([
+      { id: `p${subscription.id}:2026-11-05`, isEditable: false },
+      { id: `p${rent.id}:2026-11-15`, isEditable: true },
+    ]);
   });
 
   it("the balance of each day comes from real transactions and planned occurrences only", () => {

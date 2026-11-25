@@ -8,8 +8,10 @@ import { addDays } from "./calendar-date";
 import { messageRef, type MessageRef } from "./message";
 import {
   generateOccurrences,
+  isNominalDate,
   type AmountMode,
   type OccurrenceOverride,
+  type OverrideStatus,
   type PlannedSchedule,
   type PlannedVersion,
 } from "./occurrences";
@@ -94,6 +96,8 @@ export type PlannedItemField =
   | "repetition"
   | "amount"
   | "amountMode"
+  | "nominalDate"
+  | "overrideDate"
   | "averageWindow";
 
 export class PlannedItemValidationError extends Error {
@@ -516,12 +520,9 @@ export interface PlannedItemVersionInput {
   averageWindow?: number;
 }
 
-interface VersionChangeContext {
+interface VersionChangeContext extends BlockingOccurrences {
   item: PlannedSchedule & { kind: PlannedItemKind };
   accountArchived: boolean;
-  /** Nominal dates of the occurrences settled by a transaction. */
-  settledNominalDates: readonly string[];
-  overrides: readonly OccurrenceOverride[];
 }
 
 interface ValidVersionInput {
@@ -549,7 +550,10 @@ export function isOneOff(versions: readonly PlannedVersion[]): boolean {
   return versions.every((version) => version.repetition === null);
 }
 
-function assertCalendarDate(field: "startDate" | "endDate" | "effectiveFrom", date: string): void {
+function assertCalendarDate(
+  field: "startDate" | "endDate" | "effectiveFrom" | "nominalDate" | "overrideDate",
+  date: string,
+): void {
   if (isCalendarDate(date)) return;
   refuse(
     field,
@@ -575,19 +579,39 @@ function assertVersionDateInRange(effectiveFrom: string, item: VersionChangeCont
   }
 }
 
-// A settled or overridden occurrence keeps the date, amount and link it was given: a version that
-// would reach back over one is refused, so that history is never rewritten.
+interface BlockingOccurrences {
+  /** Nominal dates of the occurrences settled by a transaction, partial provisions included. */
+  settledNominalDates: readonly string[];
+  overrides: readonly OccurrenceOverride[];
+}
+
+// A settled or overridden occurrence keeps the date, amount and link it was given: a change that
+// would reach back over one, or stop the schedule before it, is refused so that history is never
+// rewritten or hidden.
+function latestBlockingNominalDate(context: BlockingOccurrences): string | null {
+  return [...context.settledNominalDates, ...context.overrides.map((override) => override.nominalDate)].sort().at(-1) ?? null;
+}
+
 function assertNoBlockingDateFrom(effectiveFrom: string, context: VersionChangeContext): void {
-  const blockingDates = [
-    ...context.settledNominalDates,
-    ...context.overrides.map((override) => override.nominalDate),
-  ].filter((date) => date >= effectiveFrom);
-  if (blockingDates.length === 0) return;
-  const earliestAllowed = addDays(blockingDates.reduce((latest, date) => (date > latest ? date : latest)), 1);
+  const latestBlocking = latestBlockingNominalDate(context);
+  if (latestBlocking === null || latestBlocking < effectiveFrom) return;
+  const earliestAllowed = addDays(latestBlocking, 1);
   refuse(
     "effectiveFrom",
     `An occurrence from this date on is already settled or modified: the earliest date allowed is ${earliestAllowed}`,
     messageRef("plannedItemVersionTooEarly", { date: earliestAllowed }),
+  );
+}
+
+// The end date is inclusive and an occurrence is identified by its nominal date: ending on that date
+// keeps it, whatever date an override moved it to (owner, Q2 of #174 and #204).
+function assertNoBlockingDateAfter(endDate: string, context: BlockingOccurrences): void {
+  const latestBlocking = latestBlockingNominalDate(context);
+  if (latestBlocking === null || latestBlocking <= endDate) return;
+  refuse(
+    "endDate",
+    `An occurrence after this date is already settled or modified: the earliest end date allowed is ${latestBlocking}`,
+    messageRef("plannedItemEndBeforeChangedOccurrence", { date: latestBlocking }),
   );
 }
 
@@ -643,11 +667,13 @@ export function validatePlannedItemVersion(
   };
 }
 
-export function validatePlannedItemEndDate(
-  endDate: string | null,
-  item: { startDate: string; versions: readonly PlannedVersion[] },
-): string | null {
+interface EndDateChangeContext extends BlockingOccurrences {
+  item: { startDate: string; versions: readonly PlannedVersion[] };
+}
+
+export function validatePlannedItemEndDate(endDate: string | null, context: EndDateChangeContext): string | null {
   if (endDate === null) return null;
+  const { item } = context;
   assertCalendarDate("endDate", endDate);
   if (endDate < item.startDate) {
     refuse(
@@ -659,5 +685,84 @@ export function validatePlannedItemEndDate(
   if (isOneOff(item.versions)) {
     refuse("endDate", "A one-off event has no end date", messageRef("plannedItemOneOffHasNoEndDate"));
   }
+  assertNoBlockingDateAfter(endDate, context);
   return endDate;
+}
+
+export interface OccurrenceOverrideInput {
+  nominalDate: string;
+  status: OverrideStatus;
+  overrideDate: string | null;
+  overrideAmount: number | null;
+}
+
+export interface OccurrenceOverrideContext {
+  item: PlannedSchedule & { kind: PlannedItemKind };
+  accountArchived: boolean;
+  /** Nominal dates of the occurrences linked to a transaction, partial provisions included. */
+  settledNominalDates: readonly string[];
+}
+
+// A linked occurrence keeps what its transaction settled: it is unlinked first (owner, Q1 of #174),
+// whether it is fully settled or a partial provision.
+function assertOccurrenceEditable(nominalDate: string, context: OccurrenceOverrideContext): void {
+  if (context.item.cancelled) {
+    refuse(
+      "nominalDate",
+      "The occurrences of a cancelled planned item cannot change",
+      messageRef("plannedItemOccurrenceOnCancelled"),
+    );
+  }
+  if (context.accountArchived) {
+    refuse(
+      "nominalDate",
+      "The occurrences of a planned item whose account is archived cannot change",
+      messageRef("plannedItemOccurrenceAccountArchived"),
+    );
+  }
+  if (context.settledNominalDates.includes(nominalDate)) {
+    refuse(
+      "nominalDate",
+      "This occurrence is linked to a transaction: unlink it first",
+      messageRef("plannedItemOccurrenceLinked"),
+    );
+  }
+}
+
+/**
+ * Validates the skip, move or amount change of one occurrence, identified by its nominal date. The
+ * new date may fall outside the span of its version or after the end date (owner, Q2 of #174).
+ */
+export function validateOccurrenceOverride(
+  input: OccurrenceOverrideInput,
+  context: OccurrenceOverrideContext,
+): OccurrenceOverride {
+  assertOccurrenceEditable(input.nominalDate, context);
+  assertCalendarDate("nominalDate", input.nominalDate);
+  if (!isNominalDate(context.item, input.nominalDate)) {
+    refuse(
+      "nominalDate",
+      `The schedule has no occurrence on ${input.nominalDate}`,
+      messageRef("plannedItemOccurrenceNotProduced", { date: input.nominalDate }),
+    );
+  }
+  if (input.status === "cancelled") return { ...input, overrideDate: null, overrideAmount: null };
+  if (input.overrideDate === null && input.overrideAmount === null) {
+    refuse(
+      "overrideDate",
+      "A modified occurrence needs a new date or a new amount",
+      messageRef("plannedItemOverrideEmpty"),
+    );
+  }
+  if (input.overrideDate !== null) assertCalendarDate("overrideDate", input.overrideDate);
+  if (input.overrideAmount !== null) assertAmount(context.item.kind, input.overrideAmount);
+  return input;
+}
+
+/** Validates giving an occurrence back its computed date and amount. */
+export function validateOccurrenceOverrideRemoval(
+  nominalDate: string,
+  context: OccurrenceOverrideContext,
+): void {
+  assertOccurrenceEditable(nominalDate, context);
 }

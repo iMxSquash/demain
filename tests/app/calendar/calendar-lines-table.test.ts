@@ -24,6 +24,7 @@ const TEXT: CalendarLinesTableText = {
     status: "Status",
     amount: "Amount",
     balance: "Balance at end of day",
+    actions: "Actions",
   },
   kinds: { real: "Real", planned: "Planned, dated" },
   statuses: {
@@ -40,6 +41,8 @@ const TEXT: CalendarLinesTableText = {
   transferTo: (from, to) => `${from} to ${to}`,
   empty: "Nothing this month",
   unconverted: (currencies) => `Left out, no rate: ${currencies}`,
+  change: "Change",
+  changeTitle: (name, date) => `Change ${name}, ${date}`,
 };
 
 const ACCOUNTS = [
@@ -65,6 +68,8 @@ function entry(overrides: Partial<CalendarEntry> = {}): CalendarEntry {
     nominalDate: null,
     unplacedSurplus: null,
     routingInvalid: false,
+    override: null,
+    isEditable: false,
     ...overrides,
   };
 }
@@ -297,6 +302,51 @@ describe("monthly line table", () => {
     const html = render(monthOf({ 3: { entries: [entry()] } }, { unconvertedCurrencies: ["GBP", "USD"] }));
 
     expect(html).toContain("Left out, no rate: GBP, USD");
+  });
+
+  it("offers to change a planned occurrence, named by its item and its nominal date", () => {
+    const rent = entry({
+      id: "p4:2026-11-15",
+      date: "2026-11-18",
+      kind: "planned",
+      status: "planned",
+      label: "Rent",
+      plannedItemId: 4,
+      nominalDate: "2026-11-15",
+      isEditable: true,
+    });
+    const html = render(monthOf({ 18: { entries: [rent] } }));
+
+    for (const layout of [tableOf(html), listOf(html)]) {
+      expect(layout).toMatch(/<button[^>]*>Change<span class="sr-only"> Rent, Nov 15, 2026<\/span><\/button>/);
+    }
+  });
+
+  it("offers to restore a skipped occurrence, but no change of one that is not editable or of a real transaction", () => {
+    const planned = { kind: "planned" as const, plannedItemId: 4, nominalDate: "2026-11-15", isEditable: true };
+    const html = render(
+      monthOf({
+        3: { entries: [entry()] },
+        15: {
+          entries: [
+            entry({
+              ...planned,
+              id: "p4:2026-11-15",
+              status: "cancelled",
+              label: "Rent",
+              override: { nominalDate: "2026-11-15", status: "cancelled", overrideDate: null, overrideAmount: null },
+            }),
+            entry({ ...planned, id: "p5:2026-11-15", status: "partial", label: "Groceries", plannedItemId: 5, isEditable: false }),
+            entry({ ...planned, id: "p6:2026-11-15", status: "overdue", label: "Subscription", plannedItemId: 6, isEditable: false }),
+          ],
+        },
+      }),
+    );
+
+    expect(countOf(html, "> Rent, Nov 15, 2026<")).toBe(2);
+    expect(html).not.toContain("> Groceries,");
+    expect(html).not.toContain("> Subscription,");
+    expect(countOf(html, ">Change<")).toBe(2);
   });
 
   it("says that the month is empty, with no row and no entry", () => {

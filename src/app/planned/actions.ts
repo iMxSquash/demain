@@ -2,24 +2,23 @@
 
 import { redirect } from "next/navigation";
 
-import { messageRef, type MessageRef, type Translate } from "../../domain/message";
-import { PlannedItemValidationError, type PlannedItemField } from "../../domain/planned-item";
+import type { PlannedItemField } from "../../domain/planned-item";
 import { getAccount, listAccounts } from "../../ledger/accounts";
 import {
   addPlannedItemVersion,
   cancelPlannedItem,
   createPlannedItem,
   getPlannedItem,
-  PlannedItemNotFoundError,
   setPlannedItemEnd,
   updatePlannedItemDetails,
 } from "../../ledger/planned-items";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
-import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
+import { flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import type { CurrencyByAccount } from "../transactions/transaction-form-data";
+import { describeFailure, toFailureState } from "./planned-item-failure";
 import {
   formFieldOf,
   parsePlannedItemDetailsForm,
@@ -45,36 +44,10 @@ const DETAILS_FIELDS = [
   "matchTolerancePercent",
 ] as const;
 
-function describeFailure(error: unknown): MessageRef {
-  if (error instanceof PlannedItemNotFoundError) return messageRef("plannedItemGone");
-  // Unexpected failures are logged with their detail, the user sees a generic message.
-  console.error("Planned item action failed", error);
-  return messageRef("plannedItemNotSaved");
-}
-
 function loadCurrencies(): CurrencyByAccount {
   return withDatabase(
     (db) => new Map(listAccounts(db).map((account) => [account.id, account.currency])),
   );
-}
-
-/**
- * A refusal of the domain is shown on its field, when the form has a control for it. A failure that
- * no field explains is told in a toast. The typed values come back with both.
- */
-async function toFailureState<Field extends string, Values>(
-  error: unknown,
-  values: Values,
-  translate: Translate,
-  controlOf: (field: PlannedItemField) => Field | undefined,
-): Promise<{ field?: Field; message: string; values: Values }> {
-  if (error instanceof PlannedItemValidationError) {
-    const field = controlOf(error.field);
-    return { ...(field === undefined ? {} : { field }), message: translate(error.ref), values };
-  }
-  const ref = describeFailure(error);
-  await flashError(ref);
-  return { message: translate(ref), values };
 }
 
 // A refusal on a field the edit form has no control for is shown as a message.
@@ -100,7 +73,7 @@ export async function createPlannedItemAction(
   try {
     withDatabase((db) => createPlannedItem(db, parsed.input));
   } catch (error) {
-    return await toFailureState(error, readSubmittedValues(formData), translate, formFieldOf);
+    return { ...(await toFailureState(error, translate, formFieldOf)), values: readSubmittedValues(formData) };
   }
 
   refreshData();
@@ -123,7 +96,7 @@ export async function updatePlannedItemAction(
     // The domain refuses a label filter on an item that is not a provision.
     withDatabase((db) => updatePlannedItemDetails(db, id, parsed.details));
   } catch (error) {
-    return await toFailureState(error, readSubmittedDetails(formData), translate, detailsControlOf);
+    return { ...(await toFailureState(error, translate, detailsControlOf)), values: readSubmittedDetails(formData) };
   }
 
   refreshData();
@@ -156,7 +129,7 @@ export async function addPlannedItemVersionAction(
       return { replaced, effectiveFrom: parsed.input.effectiveFrom };
     });
   } catch (error) {
-    return await toFailureState(error, readSubmittedVersion(formData), translate, versionControlOf);
+    return { ...(await toFailureState(error, translate, versionControlOf)), values: readSubmittedVersion(formData) };
   }
   if ("rejected" in outcome) return outcome.rejected;
 
@@ -189,7 +162,7 @@ export async function setPlannedItemEndAction(
       return { endDate: parsed.endDate };
     });
   } catch (error) {
-    return await toFailureState(error, readSubmittedEndDate(formData), translate, endDateControlOf);
+    return { ...(await toFailureState(error, translate, endDateControlOf)), values: readSubmittedEndDate(formData) };
   }
   if ("rejected" in outcome) return outcome.rejected;
 
