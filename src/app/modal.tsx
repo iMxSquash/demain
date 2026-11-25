@@ -43,7 +43,8 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         onClose();
       }}
       onClose={onClose}
-      className={`${styles.dialog} m-auto w-[calc(100%-2rem)] max-w-105 overflow-visible bg-transparent p-0 text-text backdrop:bg-backdrop`}
+      // The dialog may be mounted inside a table cell: it resets the text layout it would inherit.
+      className={`${styles.dialog} m-auto w-[calc(100%-2rem)] max-w-105 overflow-visible bg-transparent p-0 text-left font-regular whitespace-normal text-text backdrop:bg-backdrop`}
     >
       <AnimatePresence onExitComplete={() => dialogRef.current?.close()}>
         {isOpen ? (
