@@ -1010,6 +1010,8 @@
     "fileTooLarge": "This file is larger than {max} MB.",
     "fileEmpty": "The file is empty.",
     "mappingNeeded": "The columns could not be guessed. Fill in the CSV columns below, then preview again.",
+    "mappingIncomplete": "Give each of the date, the label and the amount its own column number, then preview again.",
+    "mappingUnreadable": "No row of the file can be read with these columns. Check them, then preview again.",
     "imported": "Transactions imported: {imported}. Matched to planned items: {matched}. Duplicates ignored: {duplicates}.",
     "nothingToImport": "Nothing to import: every row is already in this account.",
     "problemAtLine": "Line {line}: {message}",

@@ -191,6 +191,8 @@ export function ImportForm({
       fallback();
       return;
     }
+    // `/imports` stays mounted while hidden: back from the review, it must not show this file's mapping.
+    setState(null);
     setReview({
       accountId: Number(accountText),
       sources: files,
@@ -218,11 +220,16 @@ export function ImportForm({
     const accountText = String(formData.get("accountId") ?? "");
     const showMappingForm = () =>
       startTransition(async () => {
-        setState(await readMappingAction(state, formData));
+        setState(await readMappingAction(formData));
       });
     // Every file opens the review, a mapped one too: nothing is recorded before it (ADR-016).
     if (files.length > 0 && accountText !== "") {
       const mapping = readMappingFields(formData);
+      // Nothing to read the file with: said at once, and the fields stay as typed.
+      if (state !== null && state.mapping !== null && mapping === null) {
+        setState({ ...state, status: "error", message: t("mappingIncomplete") });
+        return;
+      }
       // The mapping form stays in view while its file is read.
       if (mapping === null) setState(null);
       void stageThenReview(files, accountText, mapping, showMappingForm);
@@ -245,7 +252,6 @@ export function ImportForm({
         <Select
           id="accountId"
           name="accountId"
-          defaultValue={state?.accountId ?? ""}
           onChange={discardMapping}
         >
           <option value="">{t("chooseAccount")}</option>

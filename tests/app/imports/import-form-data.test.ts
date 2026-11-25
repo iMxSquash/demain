@@ -82,6 +82,14 @@ describe("readMappingFields", () => {
     expect(readMappingFields(formOf({ ...FORM_FIELDS, labelColumn: "a" }))).toBeNull();
   });
 
+  it("returns null when two roles share a column", () => {
+    expect(readMappingFields(formOf({ ...FORM_FIELDS, labelColumn: "1" }))).toBeNull();
+    expect(readMappingFields(formOf({ ...FORM_FIELDS, creditColumn: "3" }))).toBeNull();
+    expect(
+      readMappingFields(formOf({ ...FORM_FIELDS, amountKind: "single", amountColumn: "2" })),
+    ).toBeNull();
+  });
+
   it("returns null for an unknown delimiter or date format", () => {
     expect(readMappingFields(formOf({ ...FORM_FIELDS, delimiter: "|" }))).toBeNull();
     expect(readMappingFields(formOf({ ...FORM_FIELDS, dateFormat: "x" }))).toBeNull();

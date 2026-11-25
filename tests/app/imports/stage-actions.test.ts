@@ -720,6 +720,15 @@ VERSION:102
         expect(file).toMatchObject({ status: "ready", mapping: HAND_MAPPING, needsMapping: false });
       });
 
+      it("asks for the mapping again when it reads no row of the file", async () => {
+        const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, {
+          ...MAPPING_FIELDS,
+          dateFormat: "ymd",
+        });
+
+        expect(file).toMatchObject({ status: "failed", needsMapping: true });
+      });
+
       it("still asks for the mapping when the fields are incoherent", async () => {
         const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, {
           ...MAPPING_FIELDS,

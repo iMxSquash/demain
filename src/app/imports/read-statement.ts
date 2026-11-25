@@ -64,7 +64,9 @@ export function readCsv(
   const parsed = parseCsv(text, delimiter);
   const rawRows = parsed.slice(0, RAW_ROW_COUNT);
 
-  const saved = withDatabase((db) => getLastCsvMapping(db, accountId));
+  const saved = submitted
+    ? null
+    : withDatabase((db) => getLastCsvMapping(db, accountId));
   const candidates = submitted
     ? [submitted]
     : [

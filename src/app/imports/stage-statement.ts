@@ -61,13 +61,16 @@ function stageOfx(text: string, currency: string): StagedStatement {
 
 // For a file the analysis cannot read: the mapping set by hand, otherwise the
 // one of the last import or the guess on the header row, so that a mapping
-// fixed by hand is not lost.
+// fixed by hand is not lost. A mapping that reads no row is not the file's:
+// the review would have nothing to fix it with, so the mapping is asked for.
 function stageWithMapping(
   text: string,
   { accountId, currency, mapping = null }: StatementContext,
 ): StagedStatement {
   const reading = readCsv(text, mapping, accountId, currency);
-  if (reading.used === null) return { status: "mappingNeeded" };
+  if (reading.used === null || reading.rows.length === 0) {
+    return { status: "mappingNeeded" };
+  }
   return {
     status: "ready",
     format: "csv",

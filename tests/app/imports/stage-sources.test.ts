@@ -4,7 +4,8 @@ import type {
   ColumnChoiceFields,
   StagedFile,
 } from "../../../src/app/imports/import-form-data";
-import { stageSources } from "../../../src/app/imports/stage-sources";
+import { stageSources, stagingForm } from "../../../src/app/imports/stage-sources";
+import { readMappingFields } from "../../../src/app/imports/import-form-data";
 import type { CsvMapping } from "../../../src/domain/import-csv";
 
 const HAND_MAPPING: CsvMapping = {
@@ -47,6 +48,23 @@ function staged(fileName: string): StagedFile {
     rows: [],
   };
 }
+
+describe("stagingForm", () => {
+  it("sends the account, the file, the column choices and the mapping set by hand", () => {
+    const file = source("a.csv");
+
+    const form = stagingForm(file, "1", { columns: TYPE_ON_FOURTH, mapping: HAND_MAPPING });
+
+    expect(form.get("accountId")).toBe("1");
+    expect(form.get("file")).toBe(file);
+    expect(form.get("typeColumn")).toBe("3");
+    expect(readMappingFields(form)).toEqual(HAND_MAPPING);
+  });
+
+  it("sends no mapping for a file the user mapped nothing for", () => {
+    expect(readMappingFields(stagingForm(source("a.csv"), "1", {}))).toBeNull();
+  });
+});
 
 describe("stageSources", () => {
   it("reads each file with its own column choices", async () => {

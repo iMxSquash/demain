@@ -1,5 +1,5 @@
 import type { CsvMapping } from "../../domain/import-csv";
-import type { ColumnChoiceFields, StagedFile } from "./import-form-data";
+import { mappingToFormFields, type ColumnChoiceFields, type StagedFile } from "./import-form-data";
 
 /** The columns the user chose, by position of the file among those chosen. */
 export type ColumnChoicesBySource = Readonly<Record<number, ColumnChoiceFields>>;
@@ -17,6 +17,20 @@ export interface ChoicesBySource {
 export interface SourceChoices {
   columns?: ColumnChoiceFields;
   mapping?: CsvMapping;
+}
+
+/** The request that reads one file with what the user chose for it. */
+export function stagingForm(
+  file: File,
+  accountText: string,
+  { columns, mapping }: SourceChoices,
+): FormData {
+  const formData = new FormData();
+  formData.set("accountId", accountText);
+  formData.set("file", file);
+  const fields = { ...columns, ...(mapping === undefined ? {} : mappingToFormFields(mapping)) };
+  for (const [name, value] of Object.entries(fields)) formData.set(name, value);
+  return formData;
 }
 
 /**

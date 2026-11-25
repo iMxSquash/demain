@@ -13,6 +13,7 @@ import {
   decodeImportFile,
   detectImportFormat,
   MAX_IMPORT_FILE_BYTES,
+  readMappingFields,
   type ImportFormState,
 } from "./import-form-data";
 import { readCsv } from "./read-statement";
@@ -25,7 +26,6 @@ const BYTES_PER_MEGABYTE = 1024 * 1024;
  * the file is read again and goes through the review like any other (ADR-016).
  */
 export async function readMappingAction(
-  _previous: ImportFormState | null,
   formData: FormData,
 ): Promise<ImportFormState> {
   await requireSession();
@@ -37,7 +37,6 @@ export async function readMappingAction(
   const fail = (message: string): ImportFormState => ({
     status: "error",
     message,
-    accountId: accountText,
     mapping: null,
     rawRows: [],
   });
@@ -63,11 +62,12 @@ export async function readMappingAction(
     if (detectImportFormat(text) === "ofx") {
       return fail(translate(messageRef("importFailed")));
     }
-    const { mapping, rawRows } = readCsv(text, null, accountId, account.currency);
+    // A mapping sent back read no row: it is shown again as typed, with the rows its separator gives.
+    const submitted = readMappingFields(formData);
+    const { mapping, rawRows } = readCsv(text, submitted, accountId, account.currency);
     return {
-      status: "mapping",
-      message: t("mappingNeeded"),
-      accountId: accountText,
+      status: submitted === null ? "mapping" : "error",
+      message: submitted === null ? t("mappingNeeded") : t("mappingUnreadable"),
       mapping,
       rawRows,
     };

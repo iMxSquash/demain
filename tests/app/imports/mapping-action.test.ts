@@ -18,17 +18,11 @@ import { translateKey } from "../translate-key";
 const holder = vi.hoisted(() => ({ db: null as unknown }));
 
 vi.mock("next-intl/server", () => ({
-  getLocale: async () => "en",
-  getTimeZone: async () => "UTC",
   getTranslations: async () => (key: string) => key,
 }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
 vi.mock("../../../src/app/translator", () => ({ getTranslator: async () => translateKey }));
-vi.mock("../../../src/app/data-cache", () => ({ refreshData: () => undefined }));
-vi.mock("../../../src/app/feedback/flash", () => ({
-  flashSuccess: async () => undefined,
-  flashError: async () => undefined,
-}));
+vi.mock("../../../src/app/feedback/flash", () => ({ flashError: async () => undefined }));
 vi.mock("../../../src/storage/with-database", () => ({
   withDatabase: <T>(work: (db: AppDatabase) => T): T => work(holder.db as AppDatabase),
 }));
@@ -68,12 +62,11 @@ describe("readMappingAction", () => {
   });
 
   it("gives the first rows and the mapping fields of a CSV whose columns are not found", async () => {
-    const state = await readMappingAction(null, mappingForm());
+    const state = await readMappingAction(mappingForm());
 
     expect(state).toMatchObject({
       status: "mapping",
       message: "mappingNeeded",
-      accountId: "1",
       rawRows: [
         ["02/03/2026", "SHOP", "-12,50"],
         ["05/03/2026", "SALARY", "1500,00"],
@@ -82,9 +75,28 @@ describe("readMappingAction", () => {
     expect(state.mapping).toMatchObject({ delimiter: ";" });
   });
 
+  it("keeps the mapping the user set when it reads no row, and says so", async () => {
+    const state = await readMappingAction(
+      mappingForm({
+        mappingPresent: "1",
+        delimiter: ";",
+        dateColumn: "1",
+        dateFormat: "ymd",
+        labelColumn: "2",
+        amountKind: "single",
+        amountColumn: "3",
+      }),
+    );
+
+    expect(state).toMatchObject({
+      status: "error",
+      message: "mappingUnreadable",
+      mapping: { dateColumn: "1", dateFormat: "ymd", labelColumn: "2", amountColumn: "3", hasHeader: false },
+    });
+  });
+
   it("records nothing, even with a mapping and a request to import (ADR-016)", async () => {
     await readMappingAction(
-      null,
       mappingForm({
         intent: "import",
         mappingPresent: "1",
