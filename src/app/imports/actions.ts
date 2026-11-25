@@ -1,71 +1,46 @@
 "use server";
 
-import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ImportParseError } from "../../domain/import-row";
 import { messageRef } from "../../domain/message";
-import { formatAmount } from "../../domain/money";
-import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount } from "../../ledger/accounts";
-import {
-  commitImport,
-  previewImport,
-  type ImportFormat,
-} from "../../ledger/imports";
-import { NO_MATCHES } from "../../ledger/planned-matching";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
-import { refreshData } from "../data-cache";
-import { flashError, flashSuccess } from "../feedback/flash";
+import { flashError } from "../feedback/flash";
 import { getTranslator } from "../translator";
 import {
   decodeImportFile,
   detectImportFormat,
   MAX_IMPORT_FILE_BYTES,
-  readMappingFields,
   type ImportFormState,
 } from "./import-form-data";
-import { readCsv, readOfx } from "./read-statement";
+import { readCsv } from "./read-statement";
 
-const IMPORT_INTENT = "import";
-const SAMPLE_ROW_COUNT = 5;
-const PROBLEM_COUNT = 10;
-const WARNING_COUNT = 20;
-const MAX_FILE_NAME_LENGTH = 255;
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 
-export async function importAction(
+/**
+ * Reads a lone CSV file whose columns were not found, for the mapping form:
+ * its first rows and the fields to start from. Records nothing: once mapped,
+ * the file is read again and goes through the review like any other (ADR-016).
+ */
+export async function readMappingAction(
   _previous: ImportFormState | null,
   formData: FormData,
 ): Promise<ImportFormState> {
   await requireSession();
-  const [t, translate, locale, timeZone] = await Promise.all([
+  const [t, translate] = await Promise.all([
     getTranslations("imports"),
     getTranslator(),
-    getLocale(),
-    getTimeZone(),
   ]);
   const accountText = String(formData.get("accountId") ?? "");
-  const base: ImportFormState = {
+  const fail = (message: string): ImportFormState => ({
     status: "error",
-    message: "",
+    message,
     accountId: accountText,
-    format: null,
     mapping: null,
     rawRows: [],
-    sampleRows: [],
-    problems: [],
-    warnings: [],
-    canImport: false,
-  };
-  const fail = (message: string): ImportFormState => ({ ...base, message });
-  // The line comes from the error, not from its text: every cause reads the same way.
-  const describe = (error: ImportParseError): string => {
-    const message = translate(error.ref);
-    return error.line === null
-      ? message
-      : t("problemAtLine", { line: error.line, message });
-  };
+  });
 
   const accountId = Number(accountText);
   if (!Number.isInteger(accountId) || accountId < 1) {
@@ -84,108 +59,31 @@ export async function importAction(
   try {
     const account = withDatabase((db) => getAccount(db, accountId));
     const text = decodeImportFile(await file.arrayBuffer());
-    const format: ImportFormat = detectImportFormat(text);
-
-    const { rows, errors, mapping, rawRows, used } =
-      format === "ofx"
-        ? readOfx(text, account.currency)
-        : readCsv(
-            text,
-            readMappingFields(formData),
-            accountId,
-            account.currency,
-          );
-
-    const problems = errors.slice(0, PROBLEM_COUNT).map(describe);
-    if (errors.length > PROBLEM_COUNT) {
-      problems.push(
-        t("moreProblems", { count: errors.length - PROBLEM_COUNT }),
-      );
+    // An OFX statement has no columns to map: the review reads it.
+    if (detectImportFormat(text) === "ofx") {
+      return fail(translate(messageRef("importFailed")));
     }
-    const sampleRows = rows.slice(0, SAMPLE_ROW_COUNT).map((row) => ({
-      date: formatCalendarDate(row.date, locale),
-      label: row.label,
-      amount: formatAmount(row.amount, account.currency, locale),
-    }));
-    const shown: ImportFormState = {
-      ...base,
-      status: "preview",
-      format,
+    const { mapping, rawRows } = readCsv(text, null, accountId, account.currency);
+    return {
+      status: "mapping",
+      message: t("mappingNeeded"),
+      accountId: accountText,
       mapping,
       rawRows,
-      sampleRows,
-      problems,
-    };
-
-    // Nothing is imported while a row is unreadable: skipping it would lose a movement silently.
-    if (format === "csv" && used === null) {
-      return { ...shown, message: t("mappingNeeded") };
-    }
-    if (errors.length > 0) return { ...shown, message: t("fixProblems") };
-
-    const isImport = formData.get("intent") === IMPORT_INTENT;
-    const now = new Date();
-    const outcome = withDatabase((db) =>
-      isImport
-        ? commitImport(db, {
-            accountId,
-            format,
-            fileName: file.name.slice(0, MAX_FILE_NAME_LENGTH),
-            mapping: used,
-            rows,
-            now,
-            today: todayIn(timeZone, now),
-          })
-        : { ...previewImport(db, { accountId, rows }), ...NO_MATCHES },
-    );
-    const warnings = outcome.ceilingWarnings
-      .slice(0, WARNING_COUNT)
-      .map((warning) =>
-        t("ceilingWarning", {
-          label: warning.label,
-          date: formatCalendarDate(warning.date, locale),
-          excess: formatAmount(warning.excess, account.currency, locale),
-        }),
-      );
-    if (outcome.accountArchived) warnings.push(t("archivedWarning"));
-
-    const canImport = outcome.newCount > 0;
-    if (!canImport)
-      return { ...shown, warnings, message: t("nothingToImport") };
-    if (!isImport) {
-      return {
-        ...shown,
-        warnings,
-        canImport,
-        message: t("previewSummary", {
-          newCount: outcome.newCount,
-          duplicateCount: outcome.duplicateCount,
-        }),
-      };
-    }
-
-    refreshData();
-    await flashSuccess("importDone", {
-      imported: outcome.newCount,
-      matched: outcome.matchedCount,
-      duplicates: outcome.duplicateCount,
-    });
-    return {
-      ...shown,
-      status: "done",
-      warnings,
-      message: t("imported", {
-        imported: outcome.newCount,
-        matched: outcome.matchedCount,
-        duplicates: outcome.duplicateCount,
-      }),
     };
   } catch (error) {
-    if (error instanceof ImportParseError) return fail(describe(error));
+    if (error instanceof ImportParseError) {
+      const message = translate(error.ref);
+      return fail(
+        error.line === null
+          ? message
+          : t("problemAtLine", { line: error.line, message }),
+      );
+    }
     if (error instanceof AccountNotFoundError)
       return fail(translate({ key: "accountGone" }));
     // Unexpected failures are logged with their detail, the user sees a generic message.
-    console.error("Import action failed", error);
+    console.error("Reading the file for its mapping failed", error);
     const ref = messageRef("importFailed");
     await flashError(ref);
     return fail(translate(ref));

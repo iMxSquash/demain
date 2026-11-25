@@ -5,6 +5,16 @@ import type {
   StagedFile,
 } from "../../../src/app/imports/import-form-data";
 import { stageSources } from "../../../src/app/imports/stage-sources";
+import type { CsvMapping } from "../../../src/domain/import-csv";
+
+const HAND_MAPPING: CsvMapping = {
+  delimiter: ";",
+  hasHeader: false,
+  dateColumn: 0,
+  dateFormat: "dmy",
+  labelColumn: 1,
+  amount: { kind: "single", column: 2 },
+};
 
 const TYPE_ON_FOURTH: ColumnChoiceFields = {
   typeColumn: "3",
@@ -44,8 +54,8 @@ describe("stageSources", () => {
 
     const files = await stageSources(
       [source("a.csv"), source("b.csv")],
-      { 0: TYPE_ON_FOURTH, 1: NO_CATEGORY },
-      async (file, columns) => {
+      { columns: { 0: TYPE_ON_FOURTH, 1: NO_CATEGORY }, mappings: {} },
+      async (file, { columns }) => {
         calls.push([file.name, columns]);
         return staged(file.name);
       },
@@ -63,8 +73,8 @@ describe("stageSources", () => {
 
     await stageSources(
       [source("a.csv"), source("b.csv")],
-      { 1: NO_CATEGORY },
-      async (file, columns) => {
+      { columns: { 1: NO_CATEGORY }, mappings: {} },
+      async (file, { columns }) => {
         calls.push([file.name, columns]);
         return staged(file.name);
       },
@@ -76,6 +86,24 @@ describe("stageSources", () => {
     ]);
   });
 
+  it("reads a file mapped by hand with its own mapping, and the others without", async () => {
+    const calls: [string, CsvMapping | undefined][] = [];
+
+    await stageSources(
+      [source("a.csv"), source("b.csv")],
+      { columns: { 1: NO_CATEGORY }, mappings: { 1: HAND_MAPPING } },
+      async (file, { mapping }) => {
+        calls.push([file.name, mapping]);
+        return staged(file.name);
+      },
+    );
+
+    expect(calls).toEqual([
+      ["a.csv", undefined],
+      ["b.csv", HAND_MAPPING],
+    ]);
+  });
+
   it("reads the files one after the other and reports the progress", async () => {
     const progress: [number, string][] = [];
     let running = 0;
@@ -83,7 +111,7 @@ describe("stageSources", () => {
 
     await stageSources(
       [source("a.csv"), source("b.csv")],
-      {},
+      { columns: {}, mappings: {} },
       async (file) => {
         running += 1;
         maxRunning = Math.max(maxRunning, running);

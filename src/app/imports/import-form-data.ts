@@ -37,29 +37,18 @@ export interface MappingFields {
   creditColumn: string;
 }
 
-export interface SampleRow {
-  date: string;
-  label: string;
-  amount: string;
-}
-
+/** What the mapping form shows of a lone CSV file whose columns were not found. */
 export interface ImportFormState {
-  status: "error" | "preview" | "done";
-  /** Translated headline: the error, or what the preview and the import found. */
+  /** "mapping": the columns are asked for. */
+  status: "error" | "mapping";
+  /** Translated headline: the error, or why the columns are asked for. */
   message: string;
   /** What was selected, sent back because React resets the form after an action. */
   accountId: string;
-  format: ImportFormat | null;
-  /** Null for an OFX file; for a CSV file, what the mapping fields start from. */
+  /** What the mapping fields start from; null on an error. */
   mapping: MappingFields | null;
-  /** First rows of a CSV as they are, to read the column numbers from. */
+  /** First rows of the file as they are, to read the column numbers from. */
   rawRows: string[][];
-  sampleRows: SampleRow[];
-  /** Translated, one per rejected row (the first ones). */
-  problems: string[];
-  /** Translated, for the ceiling and for an archived account. */
-  warnings: string[];
-  canImport: boolean;
 }
 
 /** An active account as the import page offers it: enough to choose it and to choose a savings account. */

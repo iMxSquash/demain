@@ -12,6 +12,9 @@ const AUTH_ACTIONS = new Set([
   "src/app/setup/actions.ts",
 ]);
 
+/** Actions that only read the database and never write, so there is nothing to refresh. */
+const READ_ONLY_ACTIONS = new Set(["src/app/imports/actions.ts"]);
+
 // Comments are left out, so a mention of a call in prose never satisfies a guard.
 const FILES = readSourceFiles("src/app").map(({ relative, text, codeLines }) => ({
   relative,
@@ -38,6 +41,7 @@ describe("data cache guards", () => {
     const missing = SERVER_ACTION_MODULES.filter(
       ({ relative, code }) =>
         !AUTH_ACTIONS.has(relative) &&
+        !READ_ONLY_ACTIONS.has(relative) &&
         calls(code, /\bwithDatabase(Async)?\(/) &&
         !calls(code, /\brefreshData\(\)/),
     ).map(({ relative }) => relative);

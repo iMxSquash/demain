@@ -3,9 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { failedStagedFile, type ColumnChoiceFields, type StagedFile } from "./import-form-data";
+import { failedStagedFile, mappingToFormFields, type StagedFile } from "./import-form-data";
 import { stageFileAction } from "./stage-actions";
-import { stageSources, type ColumnChoicesBySource } from "./stage-sources";
+import { stageSources, type ChoicesBySource, type SourceChoices } from "./stage-sources";
 
 export interface Staging {
   current: number;
@@ -21,12 +21,13 @@ export function useStaging() {
   async function stageOne(
     file: File,
     accountText: string,
-    columns: ColumnChoiceFields | undefined,
+    { columns, mapping }: SourceChoices,
   ): Promise<StagedFile> {
     const formData = new FormData();
     formData.set("accountId", accountText);
     formData.set("file", file);
-    for (const [name, value] of Object.entries(columns ?? {})) formData.set(name, value);
+    const fields = { ...columns, ...(mapping === undefined ? {} : mappingToFormFields(mapping)) };
+    for (const [name, value] of Object.entries(fields)) formData.set(name, value);
     try {
       return await stageFileAction(formData);
     } catch (error) {
@@ -39,12 +40,12 @@ export function useStaging() {
   async function stageFiles(
     files: File[],
     accountText: string,
-    choices: ColumnChoicesBySource,
+    choices: ChoicesBySource,
   ) {
     const staged = await stageSources(
       files,
       choices,
-      (file, columns) => stageOne(file, accountText, columns),
+      (file, chosen) => stageOne(file, accountText, chosen),
       (current, file) =>
         setStaging({ current, total: files.length, name: file.name }),
     );

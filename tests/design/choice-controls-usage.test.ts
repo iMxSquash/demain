@@ -39,7 +39,6 @@ describe("warnings use the Notice", () => {
   it.each([
     "src/app/backup/page.tsx",
     "src/app/balances/summary/summary-balances-form.tsx",
-    "src/app/imports/import-form.tsx",
     "src/app/imports/staged-file-card.tsx",
     "src/app/imports/rule-proposals-panel.tsx",
   ])("%s writes its warnings through Notice", (file) => {

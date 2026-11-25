@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { importAction } from "../../../src/app/imports/actions";
+import { readMappingAction } from "../../../src/app/imports/actions";
 import { MAX_IMPORT_FILE_BYTES } from "../../../src/app/imports/import-form-data";
 import { translateKey } from "../translate-key";
 
@@ -25,7 +25,7 @@ describe("import upload limit", () => {
     const file = new File([new Uint8Array(MAX_IMPORT_FILE_BYTES + 1)], "statement.csv");
     const read = vi.spyOn(file, "arrayBuffer");
 
-    const state = await importAction(null, importForm(file));
+    const state = await readMappingAction(null, importForm(file));
 
     expect(state.status).toBe("error");
     expect(state.message).toBe("fileTooLarge");
@@ -33,7 +33,7 @@ describe("import upload limit", () => {
   });
 
   it("refuses an empty file", async () => {
-    const state = await importAction(null, importForm(new File([], "statement.csv")));
+    const state = await readMappingAction(null, importForm(new File([], "statement.csv")));
 
     expect(state.message).toBe("fileEmpty");
   });
