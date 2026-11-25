@@ -14,7 +14,7 @@ import type { PendingOverflow } from "../../domain/import-overflow";
 import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 import type { AccountRef, OverflowAccount } from "../../domain/overflow";
 import type { StagedFile } from "./import-form-data";
-import type { ColumnChoicesBySource } from "./stage-sources";
+import type { ColumnChoicesBySource, MappingsBySource } from "./stage-sources";
 
 export interface Review {
   accountId: number;
@@ -33,6 +33,8 @@ export interface Review {
   overflowChoices: PendingOverflow[];
   /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */
   columnChoices: ColumnChoicesBySource;
+  /** The mappings set by hand, by position in `sources`: a file mapped by hand is read again with its own. */
+  mappings: MappingsBySource;
   /** Counts the readings of the files: what was edited belongs to one of them. */
   batch: number;
 }

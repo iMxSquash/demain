@@ -4,6 +4,7 @@ import {
   decodeImportFile,
   detectImportFormat,
   mappingToFields,
+  mappingToFormFields,
   readColumnChoices,
   readMappingFields,
   toImportView,
@@ -81,6 +82,14 @@ describe("readMappingFields", () => {
     expect(readMappingFields(formOf({ ...FORM_FIELDS, labelColumn: "a" }))).toBeNull();
   });
 
+  it("returns null when two roles share a column", () => {
+    expect(readMappingFields(formOf({ ...FORM_FIELDS, labelColumn: "1" }))).toBeNull();
+    expect(readMappingFields(formOf({ ...FORM_FIELDS, creditColumn: "3" }))).toBeNull();
+    expect(
+      readMappingFields(formOf({ ...FORM_FIELDS, amountKind: "single", amountColumn: "2" })),
+    ).toBeNull();
+  });
+
   it("returns null for an unknown delimiter or date format", () => {
     expect(readMappingFields(formOf({ ...FORM_FIELDS, delimiter: "|" }))).toBeNull();
     expect(readMappingFields(formOf({ ...FORM_FIELDS, dateFormat: "x" }))).toBeNull();
@@ -94,6 +103,18 @@ describe("readMappingFields", () => {
       hasHeader: false,
       amount: { kind: "single", column: 2 },
     });
+  });
+});
+
+describe("mappingToFormFields", () => {
+  it.each<[string, CsvMapping]>([
+    ["split amounts with a header", MAPPING],
+    [
+      "a single amount without a header",
+      { ...MAPPING, hasHeader: false, amount: { kind: "single", column: 2 } },
+    ],
+  ])("is read back as the same mapping, %s", (_, mapping) => {
+    expect(readMappingFields(formOf(mappingToFormFields(mapping)))).toEqual(mapping);
   });
 });
 

@@ -44,9 +44,9 @@ export function ImportReview({
   // The duplicates and the currency depend on the account: the files are read again for the new one.
   async function changeReviewAccount(accountId: number) {
     if (review === null) return;
-    const { sources, columnChoices } = review;
+    const { sources, columnChoices, mappings } = review;
     setReview({ ...review, accountId });
-    const files = await stageFiles(sources, String(accountId), columnChoices);
+    const files = await stageFiles(sources, String(accountId), { columns: columnChoices, mappings });
     // Left while the files were read: it stays dropped.
     setReview((current) =>
       current === null
@@ -85,7 +85,10 @@ export function ImportReview({
     if (review === null || source === undefined) {
       return failedStagedFile("", t("staged.readFailed"));
     }
-    const staged = await stageOne(source, String(review.accountId), choices);
+    const staged = await stageOne(source, String(review.accountId), {
+      columns: choices,
+      mapping: review.mappings[sourceIndex],
+    });
     // Remembered only when the reading worked: a failed one leaves the earlier choices in force.
     if (staged.status !== "failed") {
       setReview((current) =>

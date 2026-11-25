@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { StagedFile } from "../../../src/app/imports/import-form-data";
 import { ImportReview } from "../../../src/app/imports/import-review";
+import type { EnteredPaymentEntry } from "../../../src/ledger/planned-matching";
 import { ReviewHeading } from "../../../src/app/imports/review/review-heading";
 import {
   ReviewSessionProvider,
@@ -53,6 +54,31 @@ const FILE: StagedFile = {
   ],
 };
 
+const PAID_ENTRY: EnteredPaymentEntry = {
+  id: 9,
+  accountId: 1,
+  categoryId: null,
+  date: "2026-03-02",
+  label: "Synthetic shop",
+  kind: "expense",
+  amount: -1_250,
+  plannedItemId: 4,
+  plannedItemName: "Synthetic shop",
+  nominalDate: "2026-03-01",
+  windowDays: 5,
+  toleranceBasisPoints: 500,
+};
+
+// The mapping of a headerless file, set by hand in the mapping form.
+const HAND_MAPPING = {
+  delimiter: ";",
+  hasHeader: false,
+  dateColumn: 0,
+  dateFormat: "dmy",
+  labelColumn: 1,
+  amount: { kind: "single", column: 2 },
+} as const;
+
 const ACCOUNTS = [
   { id: 1, name: "Synthetic current", kind: "checking" as const, archived: false, currency: "EUR", overflowAccountId: null },
 ];
@@ -67,6 +93,7 @@ const REVIEW: Review = {
   enteredPayments: [],
   overflowChoices: [],
   columnChoices: {},
+  mappings: {},
   batch: 1,
 };
 
@@ -111,22 +138,7 @@ describe("ImportReview", () => {
   it("flags a row that matches an entry marked as paid, with Replace chosen in advance", () => {
     const markup = render({
       ...REVIEW,
-      enteredPayments: [
-        {
-          id: 9,
-          accountId: 1,
-          categoryId: null,
-          date: "2026-03-02",
-          label: "Synthetic shop",
-          kind: "expense",
-          amount: -1_250,
-          plannedItemId: 4,
-          plannedItemName: "Synthetic shop",
-          nominalDate: "2026-03-01",
-          windowDays: 5,
-          toleranceBasisPoints: 500,
-        },
-      ],
+      enteredPayments: [PAID_ENTRY],
     });
 
     expect(markup).toContain("Entries already marked as paid");
@@ -134,6 +146,18 @@ describe("ImportReview", () => {
     expect(markup).toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/);
     expect(markup).toContain("Keep both");
     expect(markup).toContain("a replaced entry does not come back");
+  });
+
+  it("flags such a row in a file whose columns were mapped by hand", () => {
+    const markup = render({
+      ...REVIEW,
+      files: [{ ...FILE, mapping: HAND_MAPPING, columns: null }],
+      mappings: { 0: HAND_MAPPING },
+      enteredPayments: [PAID_ENTRY],
+    });
+
+    expect(markup).toContain("You marked Synthetic shop of");
+    expect(markup).toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/);
   });
 
   it("renders no dialog", () => {

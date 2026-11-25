@@ -1,17 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { importAction } from "../../../src/app/imports/actions";
+import { readMappingAction } from "../../../src/app/imports/actions";
 import { MAX_IMPORT_FILE_BYTES } from "../../../src/app/imports/import-form-data";
 import { translateKey } from "../translate-key";
 
 vi.mock("next-intl/server", () => ({
-  getLocale: async () => "en",
-  getTimeZone: async () => "UTC",
   getTranslations: async () => (key: string) => key,
 }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
 vi.mock("../../../src/app/translator", () => ({ getTranslator: async () => translateKey }));
-vi.mock("../../../src/app/data-cache", () => ({ refreshData: () => undefined }));
 
 function importForm(file: File): FormData {
   const form = new FormData();
@@ -25,7 +22,7 @@ describe("import upload limit", () => {
     const file = new File([new Uint8Array(MAX_IMPORT_FILE_BYTES + 1)], "statement.csv");
     const read = vi.spyOn(file, "arrayBuffer");
 
-    const state = await importAction(null, importForm(file));
+    const state = await readMappingAction(importForm(file));
 
     expect(state.status).toBe("error");
     expect(state.message).toBe("fileTooLarge");
@@ -33,7 +30,7 @@ describe("import upload limit", () => {
   });
 
   it("refuses an empty file", async () => {
-    const state = await importAction(null, importForm(new File([], "statement.csv")));
+    const state = await readMappingAction(importForm(new File([], "statement.csv")));
 
     expect(state.message).toBe("fileEmpty");
   });
