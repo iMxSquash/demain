@@ -137,7 +137,8 @@ describe("settings page", () => {
 
     const links = [...html.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/g)].map((match) => ({
       href: match[1],
-      text: (match[2] ?? "").replace(/<svg.*?<\/svg>/g, "").replace(/<[^>]+>/g, ""),
+      // Joins the text nodes instead of stripping tags with a regex, which CodeQL flags as incomplete sanitization.
+      text: [...`>${match[2] ?? ""}<`.matchAll(/>([^<]+)</g)].map((node) => node[1]).join(""),
       hasIcon: (match[2] ?? "").includes("<svg"),
     }));
     expect(links).toEqual([
