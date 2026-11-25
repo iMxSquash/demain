@@ -1386,6 +1386,7 @@
     "plannedItemVersionAfterEnd": "Un changement ne peut pas prendre effet après la date de fin, {date}.",
     "plannedItemVersionRepeatsOneOff": "Un événement unique ne peut pas se répéter.",
     "plannedItemVersionTooEarly": "Une occurrence à partir de cette date est déjà réglée ou modifiée : la première date possible est le {date}.",
+    "plannedItemEndBeforeChangedOccurrence": "Une occurrence après cette date est déjà réglée ou modifiée : la première date de fin possible est le {date}.",
     "plannedItemVersionSaved": "Changement enregistré.",
     "plannedItemVersionReplaced": "Changement enregistré. Il remplace celui déjà en vigueur le {date}.",
     "plannedItemEndDateSaved": "Date de fin enregistrée.",

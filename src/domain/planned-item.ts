@@ -520,12 +520,9 @@ export interface PlannedItemVersionInput {
   averageWindow?: number;
 }
 
-interface VersionChangeContext {
+interface VersionChangeContext extends BlockingOccurrences {
   item: PlannedSchedule & { kind: PlannedItemKind };
   accountArchived: boolean;
-  /** Nominal dates of the occurrences settled by a transaction. */
-  settledNominalDates: readonly string[];
-  overrides: readonly OccurrenceOverride[];
 }
 
 interface ValidVersionInput {
@@ -582,19 +579,39 @@ function assertVersionDateInRange(effectiveFrom: string, item: VersionChangeCont
   }
 }
 
-// A settled or overridden occurrence keeps the date, amount and link it was given: a version that
-// would reach back over one is refused, so that history is never rewritten.
+interface BlockingOccurrences {
+  /** Nominal dates of the occurrences settled by a transaction, partial provisions included. */
+  settledNominalDates: readonly string[];
+  overrides: readonly OccurrenceOverride[];
+}
+
+// A settled or overridden occurrence keeps the date, amount and link it was given: a change that
+// would reach back over one, or stop the schedule before it, is refused so that history is never
+// rewritten or hidden.
+function latestBlockingNominalDate(context: BlockingOccurrences): string | null {
+  return [...context.settledNominalDates, ...context.overrides.map((override) => override.nominalDate)].sort().at(-1) ?? null;
+}
+
 function assertNoBlockingDateFrom(effectiveFrom: string, context: VersionChangeContext): void {
-  const blockingDates = [
-    ...context.settledNominalDates,
-    ...context.overrides.map((override) => override.nominalDate),
-  ].filter((date) => date >= effectiveFrom);
-  if (blockingDates.length === 0) return;
-  const earliestAllowed = addDays(blockingDates.reduce((latest, date) => (date > latest ? date : latest)), 1);
+  const latestBlocking = latestBlockingNominalDate(context);
+  if (latestBlocking === null || latestBlocking < effectiveFrom) return;
+  const earliestAllowed = addDays(latestBlocking, 1);
   refuse(
     "effectiveFrom",
     `An occurrence from this date on is already settled or modified: the earliest date allowed is ${earliestAllowed}`,
     messageRef("plannedItemVersionTooEarly", { date: earliestAllowed }),
+  );
+}
+
+// The end date is inclusive and an occurrence is identified by its nominal date: ending on that date
+// keeps it, whatever date an override moved it to (owner, Q2 of #174 and #204).
+function assertNoBlockingDateAfter(endDate: string, context: BlockingOccurrences): void {
+  const latestBlocking = latestBlockingNominalDate(context);
+  if (latestBlocking === null || latestBlocking <= endDate) return;
+  refuse(
+    "endDate",
+    `An occurrence after this date is already settled or modified: the earliest end date allowed is ${latestBlocking}`,
+    messageRef("plannedItemEndBeforeChangedOccurrence", { date: latestBlocking }),
   );
 }
 
@@ -650,11 +667,13 @@ export function validatePlannedItemVersion(
   };
 }
 
-export function validatePlannedItemEndDate(
-  endDate: string | null,
-  item: { startDate: string; versions: readonly PlannedVersion[] },
-): string | null {
+interface EndDateChangeContext extends BlockingOccurrences {
+  item: { startDate: string; versions: readonly PlannedVersion[] };
+}
+
+export function validatePlannedItemEndDate(endDate: string | null, context: EndDateChangeContext): string | null {
   if (endDate === null) return null;
+  const { item } = context;
   assertCalendarDate("endDate", endDate);
   if (endDate < item.startDate) {
     refuse(
@@ -666,6 +685,7 @@ export function validatePlannedItemEndDate(
   if (isOneOff(item.versions)) {
     refuse("endDate", "A one-off event has no end date", messageRef("plannedItemOneOffHasNoEndDate"));
   }
+  assertNoBlockingDateAfter(endDate, context);
   return endDate;
 }
 

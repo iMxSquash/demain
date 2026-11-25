@@ -160,7 +160,7 @@ Rules of a new version, as implemented (`validatePlannedItemVersion` in `src/dom
 - A repetition cannot be added to a one-off item: its versions all stay one-off events.
 - A new version inherits the amount mode and the average window of the version in effect on its effective date (the last version whose date is on or before it, else the first). The business-day rule is inherited the same way when the form does not give one.
 - A cancelled item takes no new version, nor does an item whose account is archived.
-- The end date can be set or cleared on a repeating item (the "End date" section of the edit page), and not before the start date. A one-off item has no end date.
+- The end date can be set or cleared on a repeating item (the "End date" section of the edit page), and not before the start date. A one-off item has no end date. It is inclusive and cannot be earlier than the nominal date of the last occurrence that is skipped, modified or linked to a transaction (#204, see Occurrence override): the message gives that nominal date as the earliest end date allowed. Clearing the end date is always allowed.
 - Cancelling an item (the "Cancel" section) stops all its occurrences after today. It is idempotent and nothing is written when a validation refuses.
 
 Decisions of the owner on versions, 19 Nov 2026, issue #161 (numbered as in that issue, not as in #157):
@@ -195,6 +195,8 @@ Decisions of the owner on occurrence overrides (`src/domain/planned-item.ts`), 1
 - Q1, refused: an occurrence settled by a transaction has no "Change" button and cannot be changed, moved, skipped or restored. It is unlinked first (#168).
   - Confirmed by the owner on 25 Nov 2026: an occurrence counts as settled as soon as at least one transaction is linked on its nominal date, a partial provision included, the same notion a new version uses (see Planned item and versions).
 - Q2, allowed: the override date may fall outside the span of its version or after the end date of the item.
+
+Decision of the owner on the end date, 25 Nov 2026, issue #204 (option A): an end date earlier than the nominal date of the last occurrence that has an override (skipped or modified) or a linked transaction is refused, since the schedule would stop producing that occurrence and its override or link would no longer show. An end date on that nominal date is accepted, the end date being inclusive. Only the nominal date counts: an occurrence moved after the end date does not block it (Q2 above). To end earlier, the user restores or unlinks that occurrence first. Clearing the end date and cancelling the whole item are not affected. The check is in `validatePlannedItemEndDate` (`src/domain/planned-item.ts`), which receives the linked nominal dates and the overrides, read by `setPlannedItemEnd` inside its transaction.
 
 ### Occurrence status
 

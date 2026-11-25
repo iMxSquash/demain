@@ -513,6 +513,66 @@ describe("planned items", () => {
       expect(getPlannedItem(db, oneOff.id).endDate).toBeNull();
     });
 
+    it.each([
+      ["a skipped occurrence", (itemId: number) => override(itemId, "2026-03-05")],
+      [
+        "a moved occurrence",
+        (itemId: number) =>
+          saveOccurrenceOverride(db, itemId, {
+            nominalDate: "2026-03-05",
+            status: "modified",
+            overrideDate: "2026-03-12",
+            overrideAmount: null,
+          }),
+      ],
+      ["an occurrence linked to a transaction", (itemId: number) => settle(itemId, "2026-03-05")],
+    ])("refuses an end date before %s and names its nominal date", (_label, change) => {
+      const item = createPlannedItem(db, rent);
+      change(item.id);
+
+      const error = refusalOf(() => setPlannedItemEnd(db, item.id, "2026-02-28"));
+
+      expect(error.field).toBe("endDate");
+      expect(error.ref.key).toBe("plannedItemEndBeforeChangedOccurrence");
+      expect(error.ref.values).toEqual({ date: "2026-03-05" });
+      expect(getPlannedItem(db, item.id).endDate).toBeNull();
+    });
+
+    it("accepts an end date on the nominal date of the last changed occurrence, and after it", () => {
+      const item = createPlannedItem(db, rent);
+      settle(item.id, "2026-02-05");
+      override(item.id, "2026-03-05");
+
+      expect(setPlannedItemEnd(db, item.id, "2026-03-05").endDate).toBe("2026-03-05");
+      expect(setPlannedItemEnd(db, item.id, "2026-04-30").endDate).toBe("2026-04-30");
+    });
+
+    it("clears the end date of an item whose occurrences are changed", () => {
+      const item = createPlannedItem(db, { ...rent, endDate: "2026-03-31" });
+      override(item.id, "2026-03-05");
+
+      expect(setPlannedItemEnd(db, item.id, null).endDate).toBeNull();
+    });
+
+    it("keeps an occurrence moved past the end date when its nominal date is before it", () => {
+      const item = createPlannedItem(db, rent);
+      saveOccurrenceOverride(db, item.id, {
+        nominalDate: "2026-03-05",
+        status: "modified",
+        overrideDate: "2026-04-10",
+        overrideAmount: null,
+      });
+
+      const bounded = setPlannedItemEnd(db, item.id, "2026-03-31");
+
+      expect(bounded.endDate).toBe("2026-03-31");
+      expect(occurrencesOf(bounded).map(([date]) => date)).toEqual([
+        "2026-01-05",
+        "2026-02-05",
+        "2026-04-10",
+      ]);
+    });
+
     it("cancels an item so that nothing remains after today", () => {
       const item = createPlannedItem(db, rent);
       const today = "2026-03-10";

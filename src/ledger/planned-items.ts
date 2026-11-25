@@ -242,7 +242,11 @@ export function setPlannedItemEnd(
 ): PlannedItemWithDetails {
   return db.transaction((tx) => {
     const item = getPlannedItem(tx, itemId);
-    const valid = validatePlannedItemEndDate(endDate, toPlannedSchedule(item));
+    const valid = validatePlannedItemEndDate(endDate, {
+      item: toPlannedSchedule(item),
+      settledNominalDates: readSettledNominalDates(tx, itemId),
+      overrides: item.overrides,
+    });
     tx.update(plannedItems).set({ endDate: valid }).where(eq(plannedItems.id, itemId)).run();
     return getPlannedItem(tx, itemId);
   });

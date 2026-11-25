@@ -1386,6 +1386,7 @@
     "plannedItemVersionAfterEnd": "A change cannot take effect after the end date, {date}.",
     "plannedItemVersionRepeatsOneOff": "A one-off event cannot repeat.",
     "plannedItemVersionTooEarly": "An occurrence from this date on is already settled or modified: the earliest date allowed is {date}.",
+    "plannedItemEndBeforeChangedOccurrence": "An occurrence after this date is already settled or modified: the earliest end date allowed is {date}.",
     "plannedItemVersionSaved": "Change saved.",
     "plannedItemVersionReplaced": "Change saved. It replaced the one already effective on {date}.",
     "plannedItemEndDateSaved": "End date saved.",
