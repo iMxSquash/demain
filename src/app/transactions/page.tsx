@@ -256,12 +256,11 @@ function TransactionFormsLoading() {
 }
 
 async function TransactionForms() {
-  const [t, timeZone, data] = await Promise.all([
-    getTranslations("transactions"),
-    getTimeZone(),
-    readTransactions(),
-  ]);
-  const { accounts, categories, labelSuggestions, lastAccountId, defaultPaymentMode } = data;
+  const [
+    t,
+    timeZone,
+    { accounts, categories, labelSuggestions, lastAccountId, defaultPaymentMode },
+  ] = await Promise.all([getTranslations("transactions"), getTimeZone(), readTransactions()]);
   const active = accounts.filter((account) => !account.archived);
   const today = todayIn(timeZone, new Date());
 

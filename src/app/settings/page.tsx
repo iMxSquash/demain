@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import {
   Archive,
   ArrowsDownUp,
@@ -40,25 +40,30 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-// The page itself waits for no data: the check renders nothing in its own `Suspense` and still
-// sends an anonymous visitor to the login page if the proxy ever let one through.
-async function SessionCheck() {
+// One read for the whole request: the session check and the section below share it.
+const readSettings = cache(async () => {
+  // Inside a `Suspense`, so the page itself joins the prefetched App Shell (ADR-023).
   await requireSession();
-  return null;
-}
+  // The page reads the database: it must run per request, never at build time.
+  await connection();
+  return readDefaultPaymentModeFromDatabase();
+});
 
-async function readDefaultPaymentMode() {
+async function readDefaultPaymentModeFromDatabase() {
   "use cache";
   tagDataRead();
   return withDatabase(getDefaultPaymentMode);
 }
 
-// Inside its `Suspense`, so the page itself joins the prefetched App Shell (ADR-023).
+// The page itself waits for no data: the check renders nothing in its own `Suspense` and still
+// sends an anonymous visitor to the login page if the proxy ever let one through.
+async function SessionCheck() {
+  await readSettings();
+  return null;
+}
+
 async function DefaultPaymentMode() {
-  await requireSession();
-  // The section reads the database: it must run per request, never at build time.
-  await connection();
-  const stored = await readDefaultPaymentMode();
+  const stored = await readSettings();
 
   return <DefaultPaymentModeForm key={stored} stored={stored} />;
 }
