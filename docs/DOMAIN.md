@@ -129,7 +129,7 @@ An account that is no longer used is archived, not deleted, so that its history 
 | kind | `expense`, `income`, `interest` or `transfer` (a planned savings transfer also names the destination account). |
 | start_date | Lower bound of the nominal dates: the first occurrence is the first date of the rule on or after it. For a one-off item, its only date. |
 | end_date | Optional last date for a recurrence. |
-| accepts_multiple_transactions | True for a provision (several transactions settle one occurrence). Default false. A provision needs a repetition: it is refused on a one-off event. |
+| accepts_multiple_transactions | True for a provision (several transactions settle one occurrence). Default false. A provision needs a repetition: it is refused on a one-off event, and on a transfer. |
 | provision_label_filter | Optional text for a provision: only transactions whose label contains it are linked automatically (for example `carburant`). |
 | match_window_days | Default 5. |
 | match_amount_tolerance_bp | Tolerance of the amount when matching, stored in basis points so that no percentage is ever a float: 500 is 5% (the default), from 0 to 10000. |

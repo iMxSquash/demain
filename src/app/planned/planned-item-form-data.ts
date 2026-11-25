@@ -358,6 +358,9 @@ export function parsePlannedItemForm(
   if ("ref" in match) return fail(match.field, match.ref);
 
   const endDate = values.endDate.trim();
+  // A transfer is never a provision: a box checked before switching to it is dropped, with its
+  // filter.
+  const isTransfer = kind === TRANSFER_KIND;
   return {
     ok: true,
     input: {
@@ -374,9 +377,10 @@ export function parsePlannedItemForm(
       amount: signedAmountOf(kind, amount.value),
       amountMode: mode.amountMode,
       averageWindow: mode.averageWindow,
-      acceptsMultipleTransactions: values.acceptsMultipleTransactions === PROVISION_CHECKED,
+      acceptsMultipleTransactions:
+        !isTransfer && values.acceptsMultipleTransactions === PROVISION_CHECKED,
       // The domain refuses a filter without the provision box.
-      provisionLabelFilter: values.provisionLabelFilter,
+      provisionLabelFilter: isTransfer ? "" : values.provisionLabelFilter,
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,
     },
