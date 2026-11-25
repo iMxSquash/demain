@@ -4,6 +4,7 @@ import {
   decodeImportFile,
   detectImportFormat,
   mappingToFields,
+  mappingToFormFields,
   readColumnChoices,
   readMappingFields,
   toImportView,
@@ -94,6 +95,18 @@ describe("readMappingFields", () => {
       hasHeader: false,
       amount: { kind: "single", column: 2 },
     });
+  });
+});
+
+describe("mappingToFormFields", () => {
+  it.each<[string, CsvMapping]>([
+    ["split amounts with a header", MAPPING],
+    [
+      "a single amount without a header",
+      { ...MAPPING, hasHeader: false, amount: { kind: "single", column: 2 } },
+    ],
+  ])("is read back as the same mapping, %s", (_, mapping) => {
+    expect(readMappingFields(formOf(mappingToFormFields(mapping)))).toEqual(mapping);
   });
 });
 

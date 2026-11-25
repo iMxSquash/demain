@@ -661,6 +661,93 @@ VERSION:102
         ["SALARY", "income", null],
       ]);
     });
+
+    describe("once the user has mapped the columns by hand", () => {
+      const HAND_MAPPING = {
+        delimiter: ";",
+        hasHeader: false,
+        dateColumn: 0,
+        dateFormat: "dmy",
+        labelColumn: 1,
+        amount: { kind: "single", column: 2 },
+      } as const;
+      const MAPPING_FIELDS = {
+        mappingPresent: "1",
+        delimiter: ";",
+        dateColumn: "1",
+        dateFormat: "dmy",
+        labelColumn: "2",
+        amountKind: "single",
+        amountColumn: "3",
+      };
+
+      it("reads the file with that mapping, typing the rows by their sign", async () => {
+        const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, MAPPING_FIELDS);
+
+        expect(file).toMatchObject({ status: "ready", mapping: HAND_MAPPING, columns: null });
+        expect(file.rows.map((row) => [row.draft.label, row.draft.amount, row.details.type])).toEqual([
+          ["SHOP", "-12.50", "expense"],
+          ["SALARY", "1500.00", "income"],
+        ]);
+      });
+
+      it("prefers that mapping to the one of the last import", async () => {
+        commitImport(db, {
+          accountId: CHECKING_ID,
+          format: "csv",
+          fileName: "earlier.csv",
+          mapping: { ...HAND_MAPPING, labelColumn: 2, amount: { kind: "single", column: 1 } },
+          rows: [{ date: "2026-01-02", label: "OLD", amount: -100, externalId: null }],
+          now: new Date("2026-03-20T10:00:00Z"),
+          today: "2026-03-20",
+        });
+
+        const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, MAPPING_FIELDS);
+
+        expect(file.mapping).toEqual(HAND_MAPPING);
+        expect(file.rows.map((row) => row.draft.label)).toEqual(["SHOP", "SALARY"]);
+      });
+
+      it("keeps the mapping when the file is read again with column choices", async () => {
+        const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, {
+          ...MAPPING_FIELDS,
+          typeColumn: "none",
+          paymentModeColumn: "none",
+          categoryColumn: "none",
+          descriptionColumn: "none",
+        });
+
+        expect(file).toMatchObject({ status: "ready", mapping: HAND_MAPPING, needsMapping: false });
+      });
+
+      it("still asks for the mapping when the fields are incoherent", async () => {
+        const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, {
+          ...MAPPING_FIELDS,
+          dateColumn: "",
+        });
+
+        expect(file).toMatchObject({ status: "failed", needsMapping: true });
+      });
+
+      it("records nothing until the file is imported from the review, then remembers the mapping", async () => {
+        const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, MAPPING_FIELDS);
+
+        expect(listImportBatches(db, CHECKING_ID)).toEqual([]);
+        expect(listTransactions(db)).toEqual([]);
+
+        const state = await commitStagedFileAction({
+          accountId: CHECKING_ID,
+          fileName: file.fileName,
+          format: "csv",
+          mapping: file.mapping,
+          drafts: file.rows.map(({ draft, details }) => ({ ...draft, details })),
+        });
+        const next = await stage(HEADERLESS, "2026-04.csv");
+
+        expect(state.status).toBe("done");
+        expect(next).toMatchObject({ status: "ready", mapping: HAND_MAPPING });
+      });
+    });
   });
 
   it("says when the dates have no year, instead of showing an empty file", async () => {

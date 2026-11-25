@@ -32,6 +32,7 @@ import {
   detectImportFormat,
   failedStagedFile,
   readColumnChoices,
+  readMappingFields,
   MAX_IMPORT_FILE_BYTES,
   type CommitStagedState,
   type StagedFile,
@@ -87,6 +88,7 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
       categories,
       vocabulary,
       columns: readColumnChoices(formData),
+      mapping: readMappingFields(formData),
     });
     if (statement.status === "mappingNeeded") {
       return failed(t("staged.mappingNeeded"), { needsMapping: true });

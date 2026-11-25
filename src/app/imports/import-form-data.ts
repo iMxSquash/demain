@@ -305,6 +305,13 @@ export function readMappingFields(formData: FormData): CsvMapping | null {
   };
 }
 
+/** A mapping as the fields of the mapping form send it, for `readMappingFields` to read back. */
+export function mappingToFormFields(mapping: CsvMapping): Record<string, string> {
+  const { hasHeader, ...fields } = mappingToFields(mapping);
+  // An unchecked box sends nothing.
+  return { mappingPresent: "1", ...fields, ...(hasHeader ? { hasHeader: "on" } : {}) };
+}
+
 const COLUMN_CHOICE_FIELDS = [
   "typeColumn",
   "paymentModeColumn",

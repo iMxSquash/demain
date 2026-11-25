@@ -37,6 +37,8 @@ export interface StatementContext {
   vocabulary: TypeVocabulary;
   /** The columns the user assigned to the roles, over the detected ones. */
   columns?: ColumnChoices;
+  /** The mapping the user set by hand, for a file whose columns the analysis cannot find. */
+  mapping?: CsvMapping | null;
 }
 
 function stageOfx(text: string, currency: string): StagedStatement {
@@ -57,13 +59,14 @@ function stageOfx(text: string, currency: string): StagedStatement {
   };
 }
 
-// The mapping of the last import, or the guess on the header row: kept for a
-// file the analysis cannot read, so that a mapping fixed by hand is not lost.
-function stageWithSavedMapping(
+// For a file the analysis cannot read: the mapping set by hand, otherwise the
+// one of the last import or the guess on the header row, so that a mapping
+// fixed by hand is not lost.
+function stageWithMapping(
   text: string,
-  { accountId, currency }: StatementContext,
+  { accountId, currency, mapping = null }: StatementContext,
 ): StagedStatement {
-  const reading = readCsv(text, null, accountId, currency);
+  const reading = readCsv(text, mapping, accountId, currency);
   if (reading.used === null) return { status: "mappingNeeded" };
   return {
     status: "ready",
@@ -80,7 +83,8 @@ function stageWithSavedMapping(
 /**
  * A statement as typed rows to review. A CSV file is read by its own layout
  * (types, categories, payment modes); only when the analysis finds no columns
- * does the mapping of the last import read it, and then the sign decides the type.
+ * does the mapping set by hand, or else that of the last import, read it, and
+ * then the sign decides the type.
  */
 export function stageStatement(
   text: string,
@@ -100,7 +104,7 @@ export function stageStatement(
     context.categories,
   );
   const { analysis } = staged.reading;
-  if (analysis.mapping === null) return stageWithSavedMapping(text, context);
+  if (analysis.mapping === null) return stageWithMapping(text, context);
   // Without a year every date is unreadable: say so rather than show no row.
   if (analysis.issues.some((issue) => issue.kind === "dateYearMissing")) {
     return { status: "yearMissing" };
