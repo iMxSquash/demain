@@ -62,6 +62,9 @@
     "title": "Settings",
     "appearance": "Appearance",
     "language": "Language",
+    "defaultPaymentMode": "Default payment mode",
+    "defaultPaymentModeLegend": "Preselected for each transaction you enter",
+    "applyPaymentMode": "Apply payment mode",
     "more": "More",
     "moreLabel": "Other pages",
     "links": {
@@ -1418,6 +1421,7 @@
     "exchangeRateSaved": "Exchange rate saved.",
     "exchangeRateDeleted": "Exchange rate deleted.",
     "referenceCurrencySaved": "Reference currency saved.",
+    "defaultPaymentModeSaved": "Default payment mode saved.",
     "ecbFetchTurnedOn": "Fetching the rates of the European Central Bank is turned on.",
     "ecbFetchTurnedOff": "Fetching the rates of the European Central Bank is turned off.",
     "ecbRatesStored": "Exchange rates stored: {count}.",
