@@ -8,7 +8,7 @@ import { createAccount } from "../../src/ledger/accounts";
 import { type CalendarMonth, getCalendarMonth } from "../../src/ledger/calendar";
 import { createCategory } from "../../src/ledger/categories";
 import { saveExchangeRate } from "../../src/ledger/exchange-rates";
-import { createPlannedItem } from "../../src/ledger/planned-items";
+import { createPlannedItem, saveOccurrenceOverride } from "../../src/ledger/planned-items";
 import { linkTransactionToOccurrence } from "../../src/ledger/planned-matching";
 import { createTransaction } from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
@@ -112,6 +112,8 @@ describe("monthly line view of real and planned movements", () => {
         nominalDate: null,
         unplacedSurplus: null,
         routingInvalid: false,
+        hasOverride: false,
+        isLinked: false,
       },
     ]);
     expect(dayOf(result, 15).entries).toEqual([
@@ -132,6 +134,8 @@ describe("monthly line view of real and planned movements", () => {
         nominalDate: "2026-11-15",
         unplacedSurplus: null,
         routingInvalid: false,
+        hasOverride: false,
+        isLinked: false,
       },
     ]);
   });
@@ -206,6 +210,61 @@ describe("monthly line view of real and planned movements", () => {
       }),
     ]);
     expect(balancesOf(result)).toEqual(Array(30).fill(OPENING_BALANCE));
+  });
+
+  it("flags the occurrences that have an override, moved or skipped", () => {
+    const rent = planExpense("Rent", -60_000, 15);
+    const gym = planExpense("Gym", -3_000, 20);
+    saveOccurrenceOverride(db, rent.id, {
+      nominalDate: "2026-11-15",
+      status: "modified",
+      overrideDate: "2026-11-18",
+      overrideAmount: null,
+    });
+    saveOccurrenceOverride(db, gym.id, {
+      nominalDate: "2026-11-20",
+      status: "cancelled",
+      overrideDate: null,
+      overrideAmount: null,
+    });
+    const groceries = spend("2026-11-03", -4_000);
+
+    const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, date, hasOverride }) => ({ id, date, hasOverride }))).toEqual([
+      { id: `t${groceries.id}`, date: "2026-11-03", hasOverride: false },
+      { id: `p${rent.id}:2026-11-15`, date: "2026-11-18", hasOverride: true },
+      { id: `p${gym.id}:2026-11-20`, date: "2026-11-20", hasOverride: true },
+    ]);
+  });
+
+  it("flags a partly settled provision as linked, from its linked transactions", () => {
+    const groceries = createPlannedItem(db, {
+      name: "Groceries",
+      kind: "expense",
+      accountId: checkingId,
+      startDate: "2026-10-30",
+      repetition: { kind: "monthly_on_day", day: 30 },
+      amount: -40_000,
+      acceptsMultipleTransactions: true,
+    });
+    const rent = planExpense("Rent", -60_000, 15);
+    const shopping = spend("2026-11-08", -10_000, "SUPERMARKET");
+    db.transaction((tx) =>
+      linkTransactionToOccurrence(tx, {
+        transactionId: shopping.id,
+        plannedItemId: groceries.id,
+        nominalDate: "2026-11-30",
+      }),
+    );
+
+    const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, status, isLinked }) => ({ id, status, isLinked }))).toEqual([
+      { id: `t${shopping.id}`, status: "confirmed", isLinked: false },
+      { id: `p${rent.id}:2026-11-15`, status: "planned", isLinked: false },
+      { id: `p${groceries.id}:2026-11-30`, status: "partial", isLinked: true },
+    ]);
   });
 
   it("the balance of each day comes from real transactions and planned occurrences only", () => {

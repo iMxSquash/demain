@@ -149,6 +149,10 @@ const FORM_FIELD_OF: Record<PlannedItemField, PlannedItemFormField | undefined> 
   provisionLabelFilter: "provisionLabelFilter",
   amountMode: "amountMode",
   averageWindow: "averageWindow",
+  // An occurrence override is edited from its occurrence, never from the creation form.
+  nominalDate: undefined,
+  overrideDate: undefined,
+  overrideAmount: undefined,
 };
 
 export function formFieldOf(field: PlannedItemField): PlannedItemFormField | undefined {

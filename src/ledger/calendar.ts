@@ -63,6 +63,13 @@ export interface CalendarEntry {
   unplacedSurplus: { amount: number; accountId: number } | null;
   /** A planned transfer whose overflow chain is invalid. */
   routingInvalid: boolean;
+  /** A planned occurrence skipped, moved or with a changed amount. False for a real transaction. */
+  hasOverride: boolean;
+  /**
+   * A planned occurrence with at least one linked transaction (a partial provision): it must be
+   * unlinked before it is changed or restored. False for a real transaction.
+   */
+  isLinked: boolean;
 }
 
 export interface CalendarDay {
@@ -146,6 +153,8 @@ function buildRealEntry(
     nominalDate: transaction.occurrenceDate,
     unplacedSurplus: null,
     routingInvalid: false,
+    hasOverride: false,
+    isLinked: false,
   };
 }
 
@@ -178,6 +187,8 @@ function buildPlannedEntry(
     unplacedSurplus: unplaced > 0 ? { amount: unplaced, accountId: item.accountId } : null,
     // An invalid chain is reported on the row, never thrown (ADR-013).
     routingInvalid: routing?.status === "invalid",
+    hasOverride: item.overrides.some((override) => override.nominalDate === occurrence.nominalDate),
+    isLinked: occurrence.links.length > 0,
   };
 }
 

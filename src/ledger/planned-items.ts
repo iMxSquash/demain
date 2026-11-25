@@ -9,6 +9,10 @@ import {
   validatePlannedItemEndDate,
   validatePlannedItemInput,
   validatePlannedItemVersion,
+  validateOccurrenceOverride,
+  validateOccurrenceOverrideRemoval,
+  type OccurrenceOverrideContext,
+  type OccurrenceOverrideInput,
   type PlannedItemDetails,
   type PlannedItemInput,
   type PlannedItemVersionInput,
@@ -205,22 +209,10 @@ export function addPlannedItemVersion(
 ): { item: PlannedItemWithDetails; replaced: boolean } {
   return db.transaction((tx) => {
     const current = getPlannedItem(tx, itemId);
-    // Read in the same transaction as the write: a match recorded in between cannot slip through.
-    const settledNominalDates = tx
-      .select({ occurrenceDate: transactions.occurrenceDate })
-      .from(transactions)
-      .where(and(eq(transactions.plannedItemId, itemId), isNotNull(transactions.occurrenceDate)))
-      .all()
-      .flatMap(({ occurrenceDate }) => (occurrenceDate === null ? [] : [occurrenceDate]));
-    const account = tx
-      .select({ archived: accounts.archived })
-      .from(accounts)
-      .where(eq(accounts.id, current.accountId))
-      .get();
     const valid = validatePlannedItemVersion(input, {
       item: { ...toPlannedSchedule(current), kind: current.kind },
-      accountArchived: account?.archived ?? false,
-      settledNominalDates,
+      accountArchived: isAccountArchived(tx, current.accountId),
+      settledNominalDates: readSettledNominalDates(tx, itemId),
       overrides: current.overrides,
     });
     const { kind: repetitionKind, value: repetitionValue } = fromRepetition(valid.repetition);
@@ -264,6 +256,79 @@ export function cancelPlannedItem(db: AppDatabase, itemId: number): PlannedItemW
       .where(eq(plannedItems.id, itemId))
       .run();
     if (changes === 0) throw new PlannedItemNotFoundError(itemId);
+    return getPlannedItem(tx, itemId);
+  });
+}
+
+// Called inside the transaction of the write: a match recorded in between cannot slip through.
+function readSettledNominalDates(tx: Reader, itemId: number): string[] {
+  return tx
+    .select({ occurrenceDate: transactions.occurrenceDate })
+    .from(transactions)
+    .where(and(eq(transactions.plannedItemId, itemId), isNotNull(transactions.occurrenceDate)))
+    .all()
+    .flatMap(({ occurrenceDate }) => (occurrenceDate === null ? [] : [occurrenceDate]));
+}
+
+function isAccountArchived(tx: Reader, accountId: number): boolean {
+  const account = tx
+    .select({ archived: accounts.archived })
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .get();
+  return account?.archived ?? false;
+}
+
+function overrideContextOf(tx: Reader, item: PlannedItemWithDetails): OccurrenceOverrideContext {
+  return {
+    item: { ...toPlannedSchedule(item), kind: item.kind },
+    accountArchived: isAccountArchived(tx, item.accountId),
+    settledNominalDates: readSettledNominalDates(tx, item.id),
+  };
+}
+
+/** Skips, moves or changes the amount of one occurrence, replacing any override it already has. */
+export function saveOccurrenceOverride(
+  db: AppDatabase,
+  itemId: number,
+  input: OccurrenceOverrideInput,
+): PlannedItemWithDetails {
+  return db.transaction((tx) => {
+    const item = getPlannedItem(tx, itemId);
+    const valid = validateOccurrenceOverride(input, overrideContextOf(tx, item));
+    const stored = {
+      status: valid.status,
+      overrideDate: valid.overrideDate,
+      overrideAmount: valid.overrideAmount,
+    };
+    tx.insert(occurrenceOverrides)
+      .values({ plannedItemId: itemId, nominalDate: valid.nominalDate, ...stored })
+      .onConflictDoUpdate({
+        target: [occurrenceOverrides.plannedItemId, occurrenceOverrides.nominalDate],
+        set: stored,
+      })
+      .run();
+    return getPlannedItem(tx, itemId);
+  });
+}
+
+/**
+ * Gives an occurrence back its computed date and amount. An occurrence without override is left as
+ * it is, so that a repeated request does not fail.
+ */
+export function deleteOccurrenceOverride(
+  db: AppDatabase,
+  itemId: number,
+  nominalDate: string,
+): PlannedItemWithDetails {
+  return db.transaction((tx) => {
+    const item = getPlannedItem(tx, itemId);
+    validateOccurrenceOverrideRemoval(nominalDate, overrideContextOf(tx, item));
+    tx.delete(occurrenceOverrides)
+      .where(
+        and(eq(occurrenceOverrides.plannedItemId, itemId), eq(occurrenceOverrides.nominalDate, nominalDate)),
+      )
+      .run();
     return getPlannedItem(tx, itemId);
   });
 }

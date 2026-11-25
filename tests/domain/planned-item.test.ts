@@ -10,8 +10,12 @@ import {
   toRepetition,
   validatePlannedItemDetails,
   validatePlannedItemInput,
+  validateOccurrenceOverride,
+  validateOccurrenceOverrideRemoval,
   validatePlannedItemVersion,
   versionInEffectAt,
+  type OccurrenceOverrideContext,
+  type OccurrenceOverrideInput,
   type PlannedItemContext,
   type PlannedItemInput,
   type PlannedItemVersionInput,
@@ -480,5 +484,134 @@ describe("validatePlannedItemVersion amount mode", () => {
     );
 
     expect(valid).toMatchObject({ amountMode: "fixed" });
+  });
+});
+
+describe("validateOccurrenceOverride", () => {
+  const monthlyOn5th = {
+    effectiveFrom: "2026-01-05",
+    repetition: { kind: "monthly_on_day", day: 5 } as Repetition,
+    businessDayRule: "none" as const,
+    amount: -80_000,
+    amountMode: "fixed" as const,
+    averageWindow: 3,
+  };
+
+  function contextOf(overrides: Partial<OccurrenceOverrideContext> = {}, version: PlannedVersion = monthlyOn5th) {
+    return {
+      item: {
+        kind: "expense" as const,
+        startDate: "2026-01-05",
+        endDate: null,
+        cancelled: false,
+        versions: [version],
+      },
+      accountArchived: false,
+      settledNominalDates: [],
+      ...overrides,
+    } satisfies OccurrenceOverrideContext;
+  }
+
+  const moveFebruary: OccurrenceOverrideInput = {
+    nominalDate: "2026-02-05",
+    status: "modified",
+    overrideDate: "2026-02-10",
+    overrideAmount: null,
+  };
+
+  function refusalOf(action: () => unknown): PlannedItemValidationError {
+    try {
+      action();
+    } catch (error) {
+      if (error instanceof PlannedItemValidationError) return error;
+      throw error;
+    }
+    throw new Error("The override was accepted");
+  }
+
+  it("returns a moved occurrence", () => {
+    expect(validateOccurrenceOverride(moveFebruary, contextOf())).toEqual(moveFebruary);
+  });
+
+  it("returns a changed amount", () => {
+    const input = { ...moveFebruary, overrideDate: null, overrideAmount: -95_000 };
+
+    expect(validateOccurrenceOverride(input, contextOf())).toEqual(input);
+  });
+
+  it("clears the date and the amount of a skipped occurrence", () => {
+    const valid = validateOccurrenceOverride(
+      { ...moveFebruary, status: "cancelled", overrideAmount: -95_000 },
+      contextOf(),
+    );
+
+    expect(valid).toEqual({
+      nominalDate: "2026-02-05",
+      status: "cancelled",
+      overrideDate: null,
+      overrideAmount: null,
+    });
+  });
+
+  it("accepts a nominal date on a weekend that the business-day rule moves", () => {
+    // 2026-04-05 is a Sunday: the occurrence is shown on Friday 3 April.
+    const context = contextOf({}, { ...monthlyOn5th, businessDayRule: "previous" });
+
+    expect(validateOccurrenceOverride({ ...moveFebruary, nominalDate: "2026-04-05" }, context)).toMatchObject({
+      nominalDate: "2026-04-05",
+    });
+  });
+
+  it("accepts an override date after the end date of the item", () => {
+    const context = contextOf();
+    const bounded = { ...context, item: { ...context.item, endDate: "2026-02-28" } };
+
+    expect(
+      validateOccurrenceOverride({ ...moveFebruary, overrideDate: "2026-03-15" }, bounded),
+    ).toMatchObject({ overrideDate: "2026-03-15" });
+  });
+
+  it.each([
+    ["a date the schedule does not produce", { nominalDate: "2026-02-06" }, "nominalDate", "plannedItemOccurrenceNotProduced"],
+    ["a date before the start date", { nominalDate: "2025-12-05" }, "nominalDate", "plannedItemOccurrenceNotProduced"],
+    ["an empty nominal date", { nominalDate: "" }, "nominalDate", "plannedItemDateInvalid"],
+    ["a garbage nominal date", { nominalDate: "soon" }, "nominalDate", "plannedItemDateInvalid"],
+    ["an impossible override date", { overrideDate: "2026-02-30" }, "overrideDate", "plannedItemDateInvalid"],
+    ["an empty override date", { overrideDate: "" }, "overrideDate", "plannedItemDateInvalid"],
+    ["neither a date nor an amount", { overrideDate: null, overrideAmount: null }, "overrideDate", "plannedItemOverrideEmpty"],
+    ["a zero amount", { overrideAmount: 0 }, "overrideAmount", "transactionAmountNonZero"],
+    ["a fractional amount", { overrideAmount: 1.5 }, "overrideAmount", "transactionAmountNonZero"],
+    ["a positive amount on an expense", { overrideAmount: 5_000 }, "overrideAmount", "expenseMustBeNegative"],
+  ] as const)("refuses %s", (_label, change, field, key) => {
+    const error = refusalOf(() => validateOccurrenceOverride({ ...moveFebruary, ...change }, contextOf()));
+
+    expect(error.field).toBe(field);
+    expect(error.ref.key).toBe(key);
+  });
+
+  it("refuses a date past the end date of the item", () => {
+    const context = contextOf();
+    const bounded = { ...context, item: { ...context.item, endDate: "2026-01-31" } };
+
+    expect(refusalOf(() => validateOccurrenceOverride(moveFebruary, bounded)).ref.key).toBe(
+      "plannedItemOccurrenceNotProduced",
+    );
+  });
+
+  it.each([
+    ["a cancelled item", (context: OccurrenceOverrideContext) => ({ ...context, item: { ...context.item, cancelled: true } }), "plannedItemOccurrenceOnCancelled"],
+    ["an archived account", (context: OccurrenceOverrideContext) => ({ ...context, accountArchived: true }), "plannedItemAccountArchived"],
+    ["a linked occurrence", (context: OccurrenceOverrideContext) => ({ ...context, settledNominalDates: ["2026-02-05"] }), "plannedItemOccurrenceLinked"],
+  ])("refuses an override and its removal on %s", (_label, change, key) => {
+    const context = change(contextOf());
+
+    expect(refusalOf(() => validateOccurrenceOverride(moveFebruary, context)).ref.key).toBe(key);
+    expect(refusalOf(() => validateOccurrenceOverrideRemoval("2026-02-05", context)).ref.key).toBe(key);
+  });
+
+  it("allows the removal of an override on an occurrence that is not linked", () => {
+    expect(() =>
+      validateOccurrenceOverrideRemoval("2026-02-05", contextOf({ settledNominalDates: ["2026-03-05"] })),
+    ).not.toThrow();
   });
 });

@@ -8,8 +8,10 @@ import { addDays } from "./calendar-date";
 import { messageRef, type MessageRef } from "./message";
 import {
   generateOccurrences,
+  isNominalDate,
   type AmountMode,
   type OccurrenceOverride,
+  type OverrideStatus,
   type PlannedSchedule,
   type PlannedVersion,
 } from "./occurrences";
@@ -94,6 +96,9 @@ export type PlannedItemField =
   | "repetition"
   | "amount"
   | "amountMode"
+  | "nominalDate"
+  | "overrideDate"
+  | "overrideAmount"
   | "averageWindow";
 
 export class PlannedItemValidationError extends Error {
@@ -160,10 +165,14 @@ function assertTransferDestination(
   }
 }
 
-function assertAmount(kind: PlannedItemKind, amount: number): void {
+function assertAmount(
+  kind: PlannedItemKind,
+  amount: number,
+  field: "amount" | "overrideAmount" = "amount",
+): void {
   if (!Number.isSafeInteger(amount) || amount === 0) {
     refuse(
-      "amount",
+      field,
       "The amount must be a non-zero integer in minor units",
       messageRef("transactionAmountNonZero"),
     );
@@ -172,17 +181,17 @@ function assertAmount(kind: PlannedItemKind, amount: number): void {
   const leavesAccount = kind === "expense" || kind === "transfer";
   if (leavesAccount === amount < 0) return;
   if (kind === "expense") {
-    refuse("amount", "An expense must have a negative amount", messageRef("expenseMustBeNegative"));
+    refuse(field, "An expense must have a negative amount", messageRef("expenseMustBeNegative"));
   }
   if (kind === "transfer") {
     refuse(
-      "amount",
+      field,
       "The amount of a planned transfer must be negative, as it leaves the account",
       messageRef("plannedItemTransferMustBeNegative"),
     );
   }
   refuse(
-    "amount",
+    field,
     `An ${kind} must have a positive amount`,
     messageRef(kind === "interest" ? "interestMustBePositive" : "incomeMustBePositive"),
   );
@@ -549,7 +558,10 @@ export function isOneOff(versions: readonly PlannedVersion[]): boolean {
   return versions.every((version) => version.repetition === null);
 }
 
-function assertCalendarDate(field: "startDate" | "endDate" | "effectiveFrom", date: string): void {
+function assertCalendarDate(
+  field: "startDate" | "endDate" | "effectiveFrom" | "nominalDate" | "overrideDate",
+  date: string,
+): void {
   if (isCalendarDate(date)) return;
   refuse(
     field,
@@ -660,4 +672,89 @@ export function validatePlannedItemEndDate(
     refuse("endDate", "A one-off event has no end date", messageRef("plannedItemOneOffHasNoEndDate"));
   }
   return endDate;
+}
+
+export interface OccurrenceOverrideInput {
+  nominalDate: string;
+  status: OverrideStatus;
+  overrideDate: string | null;
+  overrideAmount: number | null;
+}
+
+export interface OccurrenceOverrideContext {
+  item: PlannedSchedule & { kind: PlannedItemKind };
+  accountArchived: boolean;
+  /** Nominal dates of the occurrences linked to a transaction, partial provisions included. */
+  settledNominalDates: readonly string[];
+}
+
+// A linked occurrence keeps what its transaction settled: it is unlinked first (owner, Q1 of #174),
+// whether it is fully settled or a partial provision.
+function assertOccurrenceEditable(nominalDate: string, context: OccurrenceOverrideContext): void {
+  if (context.item.cancelled) {
+    refuse(
+      "nominalDate",
+      "The occurrences of a cancelled planned item cannot change",
+      messageRef("plannedItemOccurrenceOnCancelled"),
+    );
+  }
+  if (context.accountArchived) {
+    refuse(
+      "nominalDate",
+      "A planned item whose account is archived cannot change",
+      messageRef("plannedItemAccountArchived"),
+    );
+  }
+  if (context.settledNominalDates.includes(nominalDate)) {
+    refuse(
+      "nominalDate",
+      "This occurrence is linked to a transaction: unlink it first",
+      messageRef("plannedItemOccurrenceLinked"),
+    );
+  }
+}
+
+/**
+ * Validates the skip, move or amount change of one occurrence, identified by its nominal date. The
+ * new date may fall outside the span of its version or after the end date (owner, Q2 of #174).
+ */
+export function validateOccurrenceOverride(
+  input: OccurrenceOverrideInput,
+  context: OccurrenceOverrideContext,
+): OccurrenceOverride {
+  assertOccurrenceEditable(input.nominalDate, context);
+  assertCalendarDate("nominalDate", input.nominalDate);
+  if (!isNominalDate(context.item, input.nominalDate)) {
+    refuse(
+      "nominalDate",
+      `The schedule has no occurrence on ${input.nominalDate}`,
+      messageRef("plannedItemOccurrenceNotProduced", { date: input.nominalDate }),
+    );
+  }
+  if (input.status === "cancelled") {
+    return { nominalDate: input.nominalDate, status: "cancelled", overrideDate: null, overrideAmount: null };
+  }
+  if (input.overrideDate === null && input.overrideAmount === null) {
+    refuse(
+      "overrideDate",
+      "A modified occurrence needs a new date or a new amount",
+      messageRef("plannedItemOverrideEmpty"),
+    );
+  }
+  if (input.overrideDate !== null) assertCalendarDate("overrideDate", input.overrideDate);
+  if (input.overrideAmount !== null) assertAmount(context.item.kind, input.overrideAmount, "overrideAmount");
+  return {
+    nominalDate: input.nominalDate,
+    status: "modified",
+    overrideDate: input.overrideDate,
+    overrideAmount: input.overrideAmount,
+  };
+}
+
+/** Validates giving an occurrence back its computed date and amount. */
+export function validateOccurrenceOverrideRemoval(
+  nominalDate: string,
+  context: OccurrenceOverrideContext,
+): void {
+  assertOccurrenceEditable(nominalDate, context);
 }

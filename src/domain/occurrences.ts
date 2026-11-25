@@ -125,6 +125,16 @@ function enumerateNominalDates(schedule: PlannedSchedule, range: DateRange): Raw
   return raw;
 }
 
+/**
+ * Whether the schedule produces an occurrence whose nominal date is `date`, inside the span of its
+ * version and on or before the end date. The business-day rule and overrides play no part: they
+ * move the effective date, never the nominal one.
+ */
+export function isNominalDate(schedule: PlannedSchedule, date: string): boolean {
+  assertValidSchedule(schedule);
+  return enumerateNominalDates(schedule, { from: date, to: date }).length > 0;
+}
+
 // The range of nominal dates to enumerate so that every occurrence whose effective date is inside
 // `range` is found: the shift of the business-day rule, and the nominal date of each override that
 // moves an occurrence to a date of the range (an override date has no bound).
