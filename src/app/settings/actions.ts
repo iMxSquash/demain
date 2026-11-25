@@ -8,9 +8,14 @@ import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
 import { runWithNotice } from "../feedback/flash";
 
+/**
+ * The form only offers valid modes, so a refused value comes from a tampered post: the toast never
+ * echoes it (a flash holds no data of the user, ADR-015), and only an unexpected error is logged.
+ */
 function describeDefaultPaymentModeFailure(error: unknown): MessageRef {
-  if (error instanceof TransactionValidationError) return error.ref;
-  console.error("Default payment mode action failed", error);
+  if (!(error instanceof TransactionValidationError)) {
+    console.error("Default payment mode action failed", error);
+  }
   return messageRef("nothingSaved");
 }
 

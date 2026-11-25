@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Button } from "../../components/button";
 import { ChoiceChips } from "../../components/choice-chips";
 import { PAYMENT_MODES, type PaymentMode } from "../../domain/transaction";
 import { setDefaultPaymentModeAction } from "./actions";
@@ -31,9 +32,9 @@ export function DefaultPaymentModeForm({ stored }: { stored: PaymentMode }) {
         options={options}
         layout="row"
       />
-      <button type="submit" className="min-h-11 rounded-pill border border-border-control px-3">
+      <Button type="submit" variant="secondary">
         {t("applyPaymentMode")}
-      </button>
+      </Button>
     </form>
   );
 }

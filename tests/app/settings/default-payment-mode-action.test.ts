@@ -72,22 +72,23 @@ describe("saving the default payment mode from the settings", () => {
     });
   });
 
-  it("stores nothing for an unknown mode and tells the refusal in a toast", async () => {
+  // Only a tampered post can refuse a value, and a toast never echoes posted text (ADR-015).
+  it("stores nothing for an unknown mode and flashes a toast without the posted value", async () => {
     await setDefaultPaymentModeAction(formOf({ paymentMode: "cheque" }));
 
     expect(getDefaultPaymentMode(db)).toBe("card");
     expect(refreshData).not.toHaveBeenCalled();
-    expect(readFlashCookie()).toMatchObject({
-      kind: "error",
-      ref: { key: "transactionPaymentModeUnknown", values: { mode: "cheque" } },
-    });
+    expect(readFlashCookie()).toMatchObject({ kind: "error" });
+    expect(readFlashCookie()?.ref).toEqual({ key: "nothingSaved" });
+    expect(holder.jar.get(FLASH_COOKIE)).not.toContain("cheque");
   });
 
-  it("stores nothing when no mode is posted", async () => {
+  it("stores nothing when no mode is posted and flashes a toast without values", async () => {
     await setDefaultPaymentModeAction(formOf({}));
 
     expect(getDefaultPaymentMode(db)).toBe("card");
     expect(readFlashCookie()).toMatchObject({ kind: "error" });
+    expect(readFlashCookie()?.ref).toEqual({ key: "nothingSaved" });
   });
 
   it("checks the session before reading the form", async () => {

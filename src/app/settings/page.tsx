@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // One read for the whole request: the session check and the section below share it.
-const readSettings = cache(async () => {
+const readStoredPaymentMode = cache(async () => {
   // Inside a `Suspense`, so the page itself joins the prefetched App Shell (ADR-023).
   await requireSession();
   // The page reads the database: it must run per request, never at build time.
@@ -55,15 +55,15 @@ async function readDefaultPaymentModeFromDatabase() {
   return withDatabase(getDefaultPaymentMode);
 }
 
-// The page itself waits for no data: the check renders nothing in its own `Suspense` and still
-// sends an anonymous visitor to the login page if the proxy ever let one through.
+// Sends an anonymous visitor the proxy let through to the login page while the page itself awaits
+// nothing (ADR-023). The read is shared with the payment mode section, so it costs no second query.
 async function SessionCheck() {
-  await readSettings();
+  await readStoredPaymentMode();
   return null;
 }
 
 async function DefaultPaymentMode() {
-  const stored = await readSettings();
+  const stored = await readStoredPaymentMode();
 
   return <DefaultPaymentModeForm key={stored} stored={stored} />;
 }
