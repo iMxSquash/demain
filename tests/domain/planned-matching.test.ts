@@ -5,6 +5,8 @@ import {
   decideMatches,
   DUE_SOON_DAYS,
   dueOccurrences,
+  type EnteredPayment,
+  findEnteredPayments,
   isWithinTolerance,
   matchingRange,
   matchingWindow,
@@ -552,5 +554,92 @@ describe("amountToSettle", () => {
 
   it("is the expected amount of an overdue provision that nothing settled", () => {
     expect(amountToSettle({ status: "overdue", expectedAmount: -30_000, remaining: 0 })).toBe(-30_000);
+  });
+});
+
+describe("findEnteredPayments", () => {
+  const ENTRY_ID = 40;
+
+  function bankRow(overrides: Partial<MatchTransaction> = {}): MatchTransaction {
+    return transaction({ id: 0, label: "RENT TRANSFER", ...overrides });
+  }
+
+  function entered(overrides: Partial<EnteredPayment> = {}): EnteredPayment {
+    return {
+      ...transaction({ id: ENTRY_ID, label: "Rent" }),
+      plannedItemId: 3,
+      nominalDate: DEFAULT_DATE,
+      windowDays: DEFAULT_WINDOW_DAYS,
+      toleranceBasisPoints: DEFAULT_TOLERANCE_BASIS_POINTS,
+      ...overrides,
+    };
+  }
+
+  it("proposes the entry a bank row of the window and the tolerance can replace", () => {
+    const entry = entered();
+
+    const found = findEnteredPayments([bankRow({ date: "2026-03-08", amount: -45200 })], [entry]);
+
+    expect(found).toEqual([{ rowId: 0, candidates: [entry], proposed: entry }]);
+  });
+
+  it("keeps the bounds of the window and of the tolerance", () => {
+    const entry = entered();
+
+    const found = findEnteredPayments(
+      [
+        bankRow({ id: 0, date: "2026-02-28" }),
+        bankRow({ id: 1, date: "2026-03-10" }),
+        bankRow({ id: 2, amount: -42858 }),
+      ],
+      [entry],
+    );
+
+    expect(found.map(({ rowId }) => rowId)).toEqual([0, 1, 2]);
+  });
+
+  it("does not propose an entry outside the window, the tolerance or the account", () => {
+    const found = findEnteredPayments(
+      [
+        bankRow({ id: 0, date: "2026-02-27" }),
+        bankRow({ id: 1, date: "2026-03-11" }),
+        bankRow({ id: 2, amount: -50000 }),
+        bankRow({ id: 3, accountId: OTHER_ACCOUNT_ID }),
+      ],
+      [entered()],
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("does not propose an entry of the other sign", () => {
+    const found = findEnteredPayments([bankRow({ amount: 45000, kind: "income" })], [entered()]);
+
+    expect(found).toEqual([]);
+  });
+
+  it("gives a choice, with nothing chosen, when two entries fit the row", () => {
+    const rent = entered();
+    const parking = entered({ id: ENTRY_ID + 1, label: "Parking", plannedItemId: 4, date: "2026-03-06" });
+
+    const found = findEnteredPayments([bankRow()], [parking, rent]);
+
+    expect(found).toEqual([{ rowId: 0, candidates: [rent, parking], proposed: null }]);
+  });
+
+  it("chooses nothing when the entry also fits another row of the file", () => {
+    const entry = entered();
+
+    const found = findEnteredPayments([bankRow({ id: 0 }), bankRow({ id: 1, date: "2026-03-06" })], [entry]);
+
+    expect(found).toEqual([
+      { rowId: 0, candidates: [entry], proposed: null },
+      { rowId: 1, candidates: [entry], proposed: null },
+    ]);
+  });
+
+  it("never proposes a transfer, on either side", () => {
+    expect(findEnteredPayments([bankRow({ kind: "transfer" })], [entered()])).toEqual([]);
+    expect(findEnteredPayments([bankRow()], [entered({ kind: "transfer" })])).toEqual([]);
   });
 });
