@@ -181,7 +181,19 @@ Occurrences are generated on the fly (see [invariants](#invariants)). Only the o
 | override_date | For `modified`: the date to use instead (a merchant delays one payment). Optional. |
 | override_amount | For `modified`: the amount to use instead for this occurrence only. Optional. |
 
-The user creates overrides from the calendar or from the monthly line view, on a single day, without touching the rest of the item.
+The user creates overrides from the "Change" button of a planned row, in the monthly line view and in the day details of the calendar grid, on a single occurrence, without touching the rest of the item. Validation (`validateOccurrenceOverride` and `validateOccurrenceOverrideRemoval` in `src/domain/planned-item.ts`, applied by `saveOccurrenceOverride` and `deleteOccurrenceOverride` in `src/ledger/planned-items.ts`):
+
+- The item is not cancelled, its account is not archived, and the occurrence is not linked to a transaction (Q1 below). These three checks apply to saving and to restoring.
+- The nominal date is a calendar date that the schedule produces. The business-day rule plays no part: the nominal date is the identity of the occurrence, not the date it is shown on.
+- A skip (`cancelled`) stores no date and no amount, whatever the form holds.
+- A `modified` override needs a new date, a new amount, or both. The date is a calendar date; the amount is not zero and has the sign of the kind of the item (typed without a sign, signed on the server).
+- Saving again on the same nominal date replaces the override, so a skipped occurrence given a date or an amount is `modified` again.
+- Restoring deletes the override, and the occurrence takes back its computed date and amount. Restoring an occurrence without override changes nothing and is not refused.
+
+Decisions of the owner on occurrence overrides (`src/domain/planned-item.ts`), 19 Nov 2026, numbered as in issue #174:
+
+- Q1, refused: an occurrence settled by a transaction has no "Change" button and cannot be changed, moved, skipped or restored. It is unlinked first (#168). Settled means at least one linked transaction on that nominal date, a partial provision included, the same notion as for a new version.
+- Q2, allowed: the override date may fall outside the span of its version or after the end date of the item.
 
 ### Occurrence status
 
@@ -405,7 +417,7 @@ Two modes, chosen per planned item version. **Fixed is the default.** The rollin
 2. The **estimated amount** of an occurrence is the average of the reference values of the previous `average_window` occurrences (fewer when fewer exist). When there is no previous value, it is the starting estimate.
 3. Occurrences that were **cancelled**, or that are **overdue** without a linked transaction, are skipped: they are not payments.
 4. A new version effective from a date **restarts** the average: occurrences before that date are no longer part of the window, and the starting estimate of the new version applies again.
-5. A manual amount override on one future occurrence is used for that occurrence only and does **not** feed the average of the next ones. Real payments do.
+5. A manual amount override on one future occurrence (see [Occurrence override](#occurrence-override)) is used for that occurrence only and does **not** feed the average of the next ones. Real payments do.
 6. The average is computed in integer minor units and rounded to the nearest minor unit (ties away from zero) at every step.
 
 Example with a window of 3 and a starting estimate of 90:
