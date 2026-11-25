@@ -333,7 +333,8 @@
     },
     "delete": {
       "heading": "Delete",
-      "label": "Delete this planned item",
+      "description": "Deletes the planned item, its versions and the occurrences changed one by one. No transaction changes.",
+      "label": "Delete",
       "title": "Delete {name}?",
       "message": "This cannot be undone: the item, its versions and the occurrences changed one by one are erased.",
       "confirm": "Delete the planned item",

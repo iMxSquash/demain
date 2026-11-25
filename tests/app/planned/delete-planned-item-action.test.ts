@@ -16,6 +16,7 @@ const holder = vi.hoisted(() => ({
   db: null as unknown,
   jar: new Map<string, string>(),
   refreshData: vi.fn(),
+  requireSession: vi.fn(async () => undefined),
 }));
 
 vi.mock("next/headers", () => ({
@@ -33,7 +34,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("../../../src/app/data-cache", () => ({ refreshData: holder.refreshData }));
-vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
+vi.mock("../../../src/app/auth/session", () => ({ requireSession: holder.requireSession }));
 vi.mock("../../../src/storage/with-database", () => ({
   withDatabase: <T>(work: (db: AppDatabase) => T): T => work(holder.db as AppDatabase),
 }));
@@ -50,6 +51,7 @@ describe("deleting a planned item from its edit page", () => {
   beforeEach(() => {
     holder.jar.clear();
     holder.refreshData.mockClear();
+    holder.requireSession.mockClear();
     dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
     db = openDatabase(dataDir);
     migrateDatabase(db);
@@ -72,6 +74,7 @@ describe("deleting a planned item from its edit page", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     db.$client.close();
     rmSync(dataDir, { recursive: true, force: true });
   });
@@ -79,6 +82,7 @@ describe("deleting a planned item from its edit page", () => {
   it("deletes the item, tells it and goes back to the list", async () => {
     await expect(deletePlannedItemAction(itemId)).rejects.toThrow("redirect:/planned");
 
+    expect(holder.requireSession).toHaveBeenCalledOnce();
     expect(remainingItems()).toEqual([]);
     expect(holder.refreshData).toHaveBeenCalledOnce();
     expect(flashed()).toMatchObject({ kind: "success", ref: { key: "plannedItemDeleted" } });
@@ -94,10 +98,32 @@ describe("deleting a planned item from its edit page", () => {
     });
     linkTransactionToOccurrence(db, { transactionId: transaction.id, plannedItemId: itemId, nominalDate: "2026-01-05" });
 
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
     await expect(deletePlannedItemAction(itemId)).resolves.toBeUndefined();
 
     expect(remainingItems()).toEqual([itemId]);
     expect(holder.refreshData).not.toHaveBeenCalled();
     expect(flashed()).toMatchObject({ kind: "error", ref: { key: "plannedItemHasTransactions" } });
+    expect(logged).not.toHaveBeenCalled();
+  });
+
+  it.each([9999, 0, -1, 1.5, Number.NaN])(
+    "says that the item is gone and goes back to the list for the id %s",
+    async (unknownId) => {
+      await expect(deletePlannedItemAction(unknownId)).rejects.toThrow("redirect:/planned");
+
+      expect(remainingItems()).toEqual([itemId]);
+      expect(holder.refreshData).not.toHaveBeenCalled();
+      expect(flashed()).toMatchObject({ kind: "error", ref: { key: "plannedItemGone" } });
+    },
+  );
+
+  it("deletes nothing without a session", async () => {
+    holder.requireSession.mockRejectedValueOnce(new Error("redirect:/login"));
+
+    await expect(deletePlannedItemAction(itemId)).rejects.toThrow("redirect:/login");
+
+    expect(remainingItems()).toEqual([itemId]);
   });
 });

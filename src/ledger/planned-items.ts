@@ -288,12 +288,12 @@ export function hasLinkedTransactions(db: Reader, itemId: number): boolean {
  */
 export function deletePlannedItem(db: AppDatabase, itemId: number): void {
   db.transaction((tx) => {
-    getPlannedItem(tx, itemId);
     // Checked inside the transaction of the write: a link recorded since the page was shown counts.
     if (hasLinkedTransactions(tx, itemId)) throw new PlannedItemHasTransactionsError(itemId);
     tx.delete(occurrenceOverrides).where(eq(occurrenceOverrides.plannedItemId, itemId)).run();
     tx.delete(plannedItemVersions).where(eq(plannedItemVersions.plannedItemId, itemId)).run();
-    tx.delete(plannedItems).where(eq(plannedItems.id, itemId)).run();
+    const { changes } = tx.delete(plannedItems).where(eq(plannedItems.id, itemId)).run();
+    if (changes === 0) throw new PlannedItemNotFoundError(itemId);
   });
 }
 

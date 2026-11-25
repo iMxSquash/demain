@@ -216,10 +216,13 @@ export async function cancelPlannedItemAction(itemId: number): Promise<void> {
 export async function deletePlannedItemAction(itemId: number): Promise<void> {
   await requireSession();
   try {
+    // The id is bound by the page, but the endpoint can be called with any value.
+    if (!Number.isSafeInteger(itemId) || itemId < 1) throw new PlannedItemNotFoundError(itemId);
     withDatabase((db) => deletePlannedItem(db, itemId));
   } catch (error) {
-    // The item stays, so the user stays on its page and reads why.
     await flashError(describeFailure(error));
+    // An item that is still there keeps its page, where the user reads why; a gone one has none.
+    if (error instanceof PlannedItemNotFoundError) redirect(PLANNED_PATH);
     return;
   }
 

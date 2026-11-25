@@ -333,12 +333,13 @@
     },
     "delete": {
       "heading": "Suppression",
-      "label": "Supprimer cet élément planifié",
+      "description": "Supprime l'élément planifié, ses versions et les occurrences modifiées une à une. Aucune transaction ne change.",
+      "label": "Supprimer",
       "title": "Supprimer {name} ?",
       "message": "Cette suppression est définitive : l'élément, ses versions et les occurrences modifiées une à une sont effacés.",
       "confirm": "Supprimer l'élément planifié",
-      "blocked": "Une transaction est liée à cet élément, il ne peut donc pas être supprimé. Annulez-le à la place.",
-      "blockedCancelled": "Une transaction est liée à cet élément, il ne peut donc pas être supprimé. Il reste annulé, avec ses occurrences passées."
+      "blocked": "Une transaction est liée à cet élément : il ne peut pas être supprimé. Annulez-le à la place.",
+      "blockedCancelled": "Une transaction est liée à cet élément : il ne peut pas être supprimé. Il reste annulé, avec ses occurrences passées."
     },
     "categoryArchived": "{name} (archivée)",
     "saveDetails": "Enregistrer les détails",

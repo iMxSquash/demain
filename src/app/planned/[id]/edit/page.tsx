@@ -254,16 +254,19 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
         {isLinked ? (
           <p>{t(item.cancelled ? "delete.blockedCancelled" : "delete.blocked")}</p>
         ) : (
-          <ConfirmActionButton
-            action={deletePlannedItemAction.bind(null, item.id)}
-            label={t("delete.label")}
-            subject={item.name}
-            title={t("delete.title", { name: item.name })}
-            message={t("delete.message")}
-            confirmLabel={t("delete.confirm")}
-            variant="destructive"
-            className="self-start"
-          />
+          <>
+            <p>{t("delete.description")}</p>
+            <ConfirmActionButton
+              action={deletePlannedItemAction.bind(null, item.id)}
+              label={t("delete.label")}
+              subject={item.name}
+              title={t("delete.title", { name: item.name })}
+              message={t("delete.message")}
+              confirmLabel={t("delete.confirm")}
+              variant="secondary"
+              className="self-start"
+            />
+          </>
         )}
       </PageSection>
     </>
