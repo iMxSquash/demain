@@ -696,8 +696,8 @@ function assertOccurrenceEditable(nominalDate: string, context: OccurrenceOverri
   if (context.accountArchived) {
     refuse(
       "nominalDate",
-      "A planned item whose account is archived cannot change",
-      messageRef("plannedItemAccountArchived"),
+      "The occurrences of a planned item whose account is archived cannot change",
+      messageRef("plannedItemOccurrenceAccountArchived"),
     );
   }
   if (context.settledNominalDates.includes(nominalDate)) {

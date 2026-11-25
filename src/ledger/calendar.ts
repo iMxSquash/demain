@@ -70,10 +70,11 @@ export interface CalendarEntry {
    */
   override: OccurrenceOverride | null;
   /**
-   * A planned occurrence with at least one linked transaction (a partial provision): it must be
-   * unlinked before it is changed or restored. False for a real transaction.
+   * A planned occurrence that can be changed or restored: none of its transactions is linked (a
+   * partial provision is unlinked first) and the account of its item is not archived, as the server
+   * checks. False for a real transaction.
    */
-  isLinked: boolean;
+  isEditable: boolean;
 }
 
 export interface CalendarDay {
@@ -158,7 +159,7 @@ function buildRealEntry(
     unplacedSurplus: null,
     routingInvalid: false,
     override: null,
-    isLinked: false,
+    isEditable: false,
   };
 }
 
@@ -193,7 +194,7 @@ function buildPlannedEntry(
     // An invalid chain is reported on the row, never thrown (ADR-013).
     routingInvalid: routing?.status === "invalid",
     override: override ?? null,
-    isLinked: occurrence.links.length > 0,
+    isEditable: occurrence.links.length === 0 && !account.archived,
   };
 }
 

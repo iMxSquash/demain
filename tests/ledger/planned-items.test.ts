@@ -894,10 +894,10 @@ describe("planned items", () => {
       db.update(accounts).set({ archived: true }).where(eq(accounts.id, accountId)).run();
 
       expect(refusalOf(() => saveOccurrenceOverride(db, item.id, skip("2026-03-05"))).ref.key).toBe(
-        "plannedItemAccountArchived",
+        "plannedItemOccurrenceAccountArchived",
       );
       expect(refusalOf(() => deleteOccurrenceOverride(db, item.id, "2026-02-05")).ref.key).toBe(
-        "plannedItemAccountArchived",
+        "plannedItemOccurrenceAccountArchived",
       );
     });
 

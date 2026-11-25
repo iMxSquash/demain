@@ -1392,6 +1392,7 @@
     "plannedItemEndDateCleared": "Date de fin supprimée.",
     "plannedItemCancelled": "Élément planifié annulé.",
     "plannedItemOccurrenceOnCancelled": "Les occurrences d'un élément planifié annulé ne peuvent pas changer.",
+    "plannedItemOccurrenceAccountArchived": "Les occurrences d'un élément planifié sur un compte archivé ne peuvent pas changer.",
     "plannedItemOccurrenceNotProduced": "Cet élément planifié n'a pas d'occurrence le {date}.",
     "plannedItemOccurrenceLinked": "Cette occurrence est liée à une transaction : détachez d'abord la transaction.",
     "plannedItemOverrideEmpty": "Saisissez une nouvelle date ou un nouveau montant.",

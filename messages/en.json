@@ -1392,6 +1392,7 @@
     "plannedItemEndDateCleared": "End date removed.",
     "plannedItemCancelled": "Planned item cancelled.",
     "plannedItemOccurrenceOnCancelled": "The occurrences of a cancelled planned item cannot change.",
+    "plannedItemOccurrenceAccountArchived": "The occurrences of a planned item on an archived account cannot change.",
     "plannedItemOccurrenceNotProduced": "This planned item has no occurrence on {date}.",
     "plannedItemOccurrenceLinked": "This occurrence is linked to a transaction: unlink the transaction first.",
     "plannedItemOverrideEmpty": "Enter a new date or a new amount.",

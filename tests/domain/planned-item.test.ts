@@ -600,7 +600,7 @@ describe("validateOccurrenceOverride", () => {
 
   it.each([
     ["a cancelled item", (context: OccurrenceOverrideContext) => ({ ...context, item: { ...context.item, cancelled: true } }), "plannedItemOccurrenceOnCancelled"],
-    ["an archived account", (context: OccurrenceOverrideContext) => ({ ...context, accountArchived: true }), "plannedItemAccountArchived"],
+    ["an archived account", (context: OccurrenceOverrideContext) => ({ ...context, accountArchived: true }), "plannedItemOccurrenceAccountArchived"],
     ["a linked occurrence", (context: OccurrenceOverrideContext) => ({ ...context, settledNominalDates: ["2026-02-05"] }), "plannedItemOccurrenceLinked"],
   ])("refuses an override and its removal on %s", (_label, change, key) => {
     const context = change(contextOf());

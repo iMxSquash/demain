@@ -69,7 +69,7 @@ function entry(overrides: Partial<CalendarEntry> = {}): CalendarEntry {
     unplacedSurplus: null,
     routingInvalid: false,
     override: null,
-    isLinked: false,
+    isEditable: false,
     ...overrides,
   };
 }
@@ -313,6 +313,7 @@ describe("monthly line table", () => {
       label: "Rent",
       plannedItemId: 4,
       nominalDate: "2026-11-15",
+      isEditable: true,
     });
     const html = render(monthOf({ 18: { entries: [rent] } }));
 
@@ -321,8 +322,8 @@ describe("monthly line table", () => {
     }
   });
 
-  it("offers to restore a skipped occurrence, but no change of a linked one or of a real transaction", () => {
-    const planned = { kind: "planned" as const, plannedItemId: 4, nominalDate: "2026-11-15" };
+  it("offers to restore a skipped occurrence, but no change of one that is not editable or of a real transaction", () => {
+    const planned = { kind: "planned" as const, plannedItemId: 4, nominalDate: "2026-11-15", isEditable: true };
     const html = render(
       monthOf({
         3: { entries: [entry()] },
@@ -335,7 +336,8 @@ describe("monthly line table", () => {
               label: "Rent",
               override: { nominalDate: "2026-11-15", status: "cancelled", overrideDate: null, overrideAmount: null },
             }),
-            entry({ ...planned, id: "p5:2026-11-15", status: "partial", label: "Groceries", plannedItemId: 5, isLinked: true }),
+            entry({ ...planned, id: "p5:2026-11-15", status: "partial", label: "Groceries", plannedItemId: 5, isEditable: false }),
+            entry({ ...planned, id: "p6:2026-11-15", status: "overdue", label: "Subscription", plannedItemId: 6, isEditable: false }),
           ],
         },
       }),
@@ -343,6 +345,7 @@ describe("monthly line table", () => {
 
     expect(countOf(html, "> Rent, Nov 15, 2026<")).toBe(2);
     expect(html).not.toContain("> Groceries,");
+    expect(html).not.toContain("> Subscription,");
     expect(countOf(html, ">Change<")).toBe(2);
   });
 

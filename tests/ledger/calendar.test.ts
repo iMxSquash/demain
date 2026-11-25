@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createAccount } from "../../src/ledger/accounts";
+import { archiveAccount, createAccount } from "../../src/ledger/accounts";
 import { type CalendarMonth, getCalendarMonth } from "../../src/ledger/calendar";
 import { createCategory } from "../../src/ledger/categories";
 import { saveExchangeRate } from "../../src/ledger/exchange-rates";
@@ -113,7 +113,7 @@ describe("monthly line view of real and planned movements", () => {
         unplacedSurplus: null,
         routingInvalid: false,
         override: null,
-        isLinked: false,
+        isEditable: false,
       },
     ]);
     expect(dayOf(result, 15).entries).toEqual([
@@ -135,7 +135,7 @@ describe("monthly line view of real and planned movements", () => {
         unplacedSurplus: null,
         routingInvalid: false,
         override: null,
-        isLinked: false,
+        isEditable: true,
       },
     ]);
   });
@@ -270,7 +270,7 @@ describe("monthly line view of real and planned movements", () => {
     ]);
   });
 
-  it("flags a partly settled provision as linked, from its linked transactions", () => {
+  it("a partly settled provision cannot be changed until it is unlinked", () => {
     const groceries = createPlannedItem(db, {
       name: "Groceries",
       kind: "expense",
@@ -292,10 +292,32 @@ describe("monthly line view of real and planned movements", () => {
 
     const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
 
-    expect(entries.map(({ id, status, isLinked }) => ({ id, status, isLinked }))).toEqual([
-      { id: `t${shopping.id}`, status: "confirmed", isLinked: false },
-      { id: `p${rent.id}:2026-11-15`, status: "planned", isLinked: false },
-      { id: `p${groceries.id}:2026-11-30`, status: "partial", isLinked: true },
+    expect(entries.map(({ id, status, isEditable }) => ({ id, status, isEditable }))).toEqual([
+      { id: `t${shopping.id}`, status: "confirmed", isEditable: false },
+      { id: `p${rent.id}:2026-11-15`, status: "planned", isEditable: true },
+      { id: `p${groceries.id}:2026-11-30`, status: "partial", isEditable: false },
+    ]);
+  });
+
+  it("an occurrence of an item whose account is archived cannot be changed", () => {
+    const cardId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Old card", kind: "checking", openingBalance: 0 }).id;
+    const subscription = createPlannedItem(db, {
+      name: "Subscription",
+      kind: "expense",
+      accountId: cardId,
+      startDate: "2026-11-05",
+      endDate: "2026-11-05",
+      repetition: { kind: "monthly_on_day", day: 5 },
+      amount: -1_000,
+    });
+    const rent = planExpense("Rent", -60_000, 15);
+    archiveAccount(db, cardId, TODAY);
+
+    const entries = month(NOVEMBER, { accountIds: [checkingId, cardId] }).days.flatMap((day) => day.entries);
+
+    expect(entries.map(({ id, isEditable }) => ({ id, isEditable }))).toEqual([
+      { id: `p${subscription.id}:2026-11-05`, isEditable: false },
+      { id: `p${rent.id}:2026-11-15`, isEditable: true },
     ]);
   });
 

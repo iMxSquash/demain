@@ -131,10 +131,10 @@ function Notes({ notes }: { notes: readonly string[] }) {
 }
 
 // A linked occurrence keeps what its transaction settled: it is unlinked first (owner decision Q1 of issue 174).
-// A skipped one keeps its button, so that it can be restored.
+// Nor does an occurrence of an archived account change. A skipped one keeps its button, so that it can be restored.
 function ChangeOccurrence({ entry, locale, text }: { entry: CalendarEntry; locale: string; text: CalendarLinesTableText }) {
   const { plannedItemId, nominalDate, override } = entry;
-  if (entry.kind !== "planned" || entry.isLinked || plannedItemId === null || nominalDate === null) return null;
+  if (!entry.isEditable || plannedItemId === null || nominalDate === null) return null;
   const date = formatCalendarDate(nominalDate, locale);
   return (
     <OccurrenceChangeButton

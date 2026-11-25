@@ -29,7 +29,7 @@ const surplusEntry: CalendarEntry = {
   unplacedSurplus: { amount: 10_000, accountId: 2 },
   routingInvalid: false,
   override: null,
-  isLinked: false,
+  isEditable: false,
 };
 
 function monthWith(unconvertedCurrencies: string[]): CalendarMonth {
