@@ -213,6 +213,53 @@ describe("replacing an entry marked as paid by its bank row", () => {
     expect(isOpen(other.id, "2026-03-06")).toBe(true);
   });
 
+  it("an income row replaces a received income, keeping the category chosen in the review", () => {
+    const bonusCategoryId = createCategory(db, { name: "Bonus" }).id;
+    const item = rentItem({ name: "Salary", kind: "income", amount: 245_000 });
+    const entry = markPaid(item.id, RENT_DATE, 245_000);
+
+    commit(
+      [draft({ label: "SALARY", amount: "2 450,00" }, { type: "income", categoryId: bonusCategoryId })],
+      [{ index: 0, entryId: entry.id }],
+    );
+
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({
+        label: "SALARY",
+        amount: 245_000,
+        plannedItemId: item.id,
+        categoryId: bonusCategoryId,
+        categoryFromPlannedItem: false,
+      }),
+    ]);
+  });
+
+  it("a replaced income is not counted twice against the deposit ceiling", () => {
+    db.$client.prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?").run(300_000, checkingId);
+    const entry = markPaid(rentItem({ name: "Salary", kind: "income", amount: 150_000 }).id, RENT_DATE, 150_000);
+
+    const result = commit(
+      [draft({ label: "SALARY", amount: "1 500,00" }, { type: "income" })],
+      [{ index: 0, entryId: entry.id }],
+    );
+
+    expect(result).toMatchObject({ status: "done", ceilingWarnings: [] });
+  });
+
+  it("an entry moved to another account than its planned item is not offered", () => {
+    const jointId = createAccount(db, {
+      name: "Joint",
+      kind: "checking",
+      currency: "EUR",
+      openingDate: "2026-01-01",
+      openingBalance: 0,
+    }).id;
+    const entry = markPaid(rentItem().id);
+    db.$client.prepare("UPDATE transactions SET account_id = ? WHERE id = ?").run(jointId, entry.id);
+
+    expect(listEnteredPayments(db)).toEqual([]);
+  });
+
   describe("a refused file deletes nothing", () => {
     it("when another row of the file is refused", () => {
       const entry = markPaid(rentItem().id);

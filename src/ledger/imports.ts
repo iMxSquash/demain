@@ -476,12 +476,14 @@ function checkReplacements(
   accountId: number,
   fresh: readonly FreshRow[],
   replacements: readonly EntryReplacement[],
-): { checked: ImportPlan["replacements"]; issues: ImportIssue[] } {
-  if (replacements.length === 0) return { checked: [], issues: [] };
+): { checked: ImportPlan["replacements"]; issues: ImportIssue[]; removedAmount: number } {
+  if (replacements.length === 0) return { checked: [], issues: [], removedAmount: 0 };
   const freshByIndex = new Map(fresh.map((row) => [row.index, row]));
   const rows: MatchTransaction[] = fresh.map(({ index, input }) => ({ ...input, id: index }));
+  const entered = listEnteredPayments(db, [accountId]);
+  const enteredById = new Map(entered.map((entry) => [entry.id, entry]));
   const candidates = new Map(
-    findEnteredPayments(rows, listEnteredPayments(db, [accountId])).map(({ rowId, candidates }) => [
+    findEnteredPayments(rows, entered).map(({ rowId, candidates }) => [
       rowId,
       new Set(candidates.map((entry) => entry.id)),
     ]),
@@ -490,6 +492,8 @@ function checkReplacements(
   const usedEntries = new Set<number>();
   const checked: ImportPlan["replacements"] = [];
   const issues: ImportIssue[] = [];
+  // The deleted entries leave the balance: the ceiling must not count the movement twice.
+  let removedAmount = 0;
   for (const { index, entryId } of replacements) {
     const row = freshByIndex.get(index);
     const holds =
@@ -504,8 +508,10 @@ function checkReplacements(
     usedRows.add(index);
     usedEntries.add(entryId);
     checked.push({ fingerprint: row.fingerprint, entryId });
+    // A candidate of the row, so the entry was listed.
+    removedAmount += enteredById.get(entryId)!.amount;
   }
-  return { checked, issues };
+  return { checked, issues, removedAmount };
 }
 
 function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
@@ -551,7 +557,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
       duplicateCount: flagged.length - newCount,
       ceilingWarnings: findCeilingExcesses(
         outcome.flows,
-        getAccountBalance(db, account.id),
+        getAccountBalance(db, account.id) - replacements.removedAmount,
         account.depositCeiling,
       ),
       accountArchived: account.archived,

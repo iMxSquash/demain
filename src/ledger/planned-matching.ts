@@ -858,7 +858,11 @@ export function listEnteredPayments(
       toleranceBasisPoints: plannedItems.matchAmountToleranceBp,
     })
     .from(transactions)
-    .innerJoin(plannedItems, eq(plannedItems.id, transactions.plannedItemId))
+    // An entry moved to another account than its item could not take the link back.
+    .innerJoin(
+      plannedItems,
+      and(eq(plannedItems.id, transactions.plannedItemId), eq(plannedItems.accountId, transactions.accountId)),
+    )
     .innerJoin(accounts, eq(accounts.id, transactions.accountId))
     .where(
       and(
@@ -889,9 +893,11 @@ export function replaceEnteredPayment(
 ): void {
   const entry = readTransactionOrThrow(db, entryId);
   const bankRow = readTransactionOrThrow(db, bankRowId);
-  if (entry.plannedItemId === null || entry.occurrenceDate === null) {
-    throw new Error(`Transaction ${entryId} settles no occurrence`);
+  if (entry.plannedItemId === null || entry.occurrenceDate === null || entry.importBatchId !== null) {
+    throw new Error(`Transaction ${entryId} is not an entered payment`);
   }
+  assertNotTransfer(entry);
+  getOpenAccount(db, entry.accountId);
   db.delete(transactions).where(eq(transactions.id, entryId)).run();
   const taken = {
     ...(bankRow.categoryId === null && entry.categoryId !== null

@@ -21,11 +21,13 @@ interface EnteredRowProps {
   currency: string;
   chosen: number | null | undefined;
   isBusy: boolean;
-  onChoose: (rowId: number, entryId: number | null) => void;
+  onChoose: (match: EnteredMatch, entryId: number | null) => void;
+  /** The notes of the panel, read with the choice. */
+  noteIds: string;
 }
 
 /** One flagged row: native radios, the owner's choice is only sent when the file is imported. */
-function EnteredRow({ match, row, currency, chosen, isBusy, onChoose }: EnteredRowProps) {
+function EnteredRow({ match, row, currency, chosen, isBusy, onChoose, noteIds }: EnteredRowProps) {
   const t = useTranslations("imports.staged.entered");
   const locale = useLocale();
   const radioName = useId();
@@ -49,7 +51,7 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose }: EnteredR
         value={value}
         checked={chosen === entryId}
         disabled={isBusy}
-        onChange={() => onChoose(match.rowId, entryId)}
+        onChange={() => onChoose(match, entryId)}
         className={RADIO_CLASS}
       />
       <span className="py-2.5">{label}</span>
@@ -57,7 +59,7 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose }: EnteredR
   );
 
   return (
-    <fieldset aria-describedby={textId} className="flex flex-col gap-1">
+    <fieldset aria-describedby={`${textId} ${noteIds}`} className="flex flex-col gap-1">
       <legend className="font-medium">
         {t("legend", {
           line: row.line,
@@ -97,12 +99,14 @@ export function EnteredPaymentsPanel({
   currency: string;
   settled: SettledEnteredChoices;
   isBusy: boolean;
-  onChoose: (rowId: number, entryId: number | null) => void;
+  onChoose: (match: EnteredMatch, entryId: number | null) => void;
   /** The note on the undo, which the import button also points at while a replacement is chosen. */
   undoNoteId: string;
 }) {
   const t = useTranslations("imports.staged.entered");
   const headingId = useId();
+  const takesId = useId();
+  const noteIds = settled.replacements.length > 0 ? `${takesId} ${undoNoteId}` : takesId;
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col items-start gap-3 border-t border-border-control pt-3">
@@ -122,10 +126,13 @@ export function EnteredPaymentsPanel({
             chosen={settled.chosen.get(match.rowId)}
             isBusy={isBusy}
             onChoose={onChoose}
+            noteIds={noteIds}
           />
         );
       })}
-      <p className="max-w-prose">{t("takes")}</p>
+      <p id={takesId} className="max-w-prose">
+        {t("takes")}
+      </p>
       {settled.replacements.length > 0 ? (
         <p id={undoNoteId} className="max-w-prose">
           {t("undoNote")}

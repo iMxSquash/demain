@@ -1,5 +1,5 @@
 import type { FileContext } from "../../domain/import-assertions";
-import { readImportDraft, type RowProblem } from "../../domain/import-draft";
+import { readImportDraft, signedAmountForType, type RowProblem } from "../../domain/import-draft";
 import type { ReviewedRow } from "../../domain/import-review";
 import {
   findEnteredPayments,
@@ -11,8 +11,16 @@ import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 
 export type EnteredMatch = EnteredPaymentMatch<EnteredPaymentEntry>;
 
-/** What the owner chose for a flagged row, by its position: the entry to replace, or null to keep both. */
-export type EnteredChoices = ReadonlyMap<number, number | null>;
+/** What the owner chose for a flagged row, under `choiceKey`: the entry to replace, or null to keep both. */
+export type EnteredChoices = ReadonlyMap<string, number | null>;
+
+/**
+ * Names a choice by the line of its row and the entries offered: a choice follows its line when
+ * the file is read again, and gives way to the proposal once the row offers other entries.
+ */
+export function choiceKey(line: number, { candidates }: Pick<EnteredMatch, "candidates">): string {
+  return `${line}:${candidates.map((entry) => entry.id).join(",")}`;
+}
 
 /**
  * The rows of a file under review that may be an entry marked as paid, read as the import
@@ -34,7 +42,8 @@ export function enteredMatchesOf(
     const reading = readImportDraft(row.draft, currency);
     if (!reading.ok) return [];
     const { date, label, amount } = reading.row;
-    return [{ id: index, accountId, categoryId: row.details.categoryId, date, label, amount, kind: type }];
+    const signed = signedAmountForType(type, amount);
+    return [{ id: index, accountId, categoryId: row.details.categoryId, date, label, amount: signed, kind: type }];
   });
   return findEnteredPayments(candidates, available);
 }
@@ -49,16 +58,16 @@ export interface SettledEnteredChoices {
   isEntryChosenTwice: boolean;
 }
 
-/** A choice the owner made stands while its entry is still offered; otherwise the proposal does. */
+/** A choice the owner made stands while its row offers the same entries; otherwise the proposal does. */
 export function settleEnteredChoices(
   matches: readonly EnteredMatch[],
   choices: EnteredChoices,
+  lineOf: (rowId: number) => number,
 ): SettledEnteredChoices {
   const chosen = new Map(
-    matches.map(({ rowId, candidates, proposed }) => {
-      const choice = choices.get(rowId);
-      const stands = choice === null || candidates.some((entry) => entry.id === choice);
-      return [rowId, stands ? choice : proposed?.id] as const;
+    matches.map((match) => {
+      const key = choiceKey(lineOf(match.rowId), match);
+      return [match.rowId, choices.has(key) ? choices.get(key) : match.proposed?.id] as const;
     }),
   );
   const replacements = [...chosen].flatMap(([index, entryId]) =>

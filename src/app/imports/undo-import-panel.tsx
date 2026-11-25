@@ -24,6 +24,7 @@ export function UndoImportPanel({
   const t = useTranslations("imports.staged.undo");
   const headingId = useId();
   const [result, setResult] = useState<UndoImportState | null>(null);
+  const replacedNote = t("replacedNote", { count: replacedCount });
 
   async function undo() {
     try {
@@ -44,14 +45,14 @@ export function UndoImportPanel({
       <h3 id={headingId} className="font-medium">
         {t("heading")}
       </h3>
-      {replacedCount > 0 ? <p className="max-w-prose">{t("replacedNote", { count: replacedCount })}</p> : null}
+      {replacedCount > 0 && result?.status !== "undone" ? <p className="max-w-prose">{replacedNote}</p> : null}
       {result?.status === "undone" ? null : (
         <ConfirmActionButton
           action={undo}
           label={t("open")}
           subject={t("subject", { name: fileName })}
           title={t("title", { name: fileName })}
-          message={t("message")}
+          message={replacedCount > 0 ? `${t("message")} ${replacedNote}` : t("message")}
           confirmLabel={t("confirm")}
           variant="secondary"
         />
