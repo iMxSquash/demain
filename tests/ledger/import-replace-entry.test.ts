@@ -155,7 +155,7 @@ describe("replacing an entry marked as paid by its bank row", () => {
 
     const result = commit([draft()], [{ index: 0, entryId: entry.id }]);
 
-    expect(result).toMatchObject({ status: "done", replacedCount: 1 });
+    expect(result).toMatchObject({ status: "done", replacedCount: 1, matchedCount: 1 });
     expect(listTransactions(db)).toEqual([
       expect.objectContaining({
         label: "RENT MARCH",
@@ -265,11 +265,11 @@ describe("replacing an entry marked as paid by its bank row", () => {
       const entry = markPaid(rentItem().id);
 
       const result = commit(
-        [draft(), draft({ label: "BAD ROW", amount: "not an amount" })],
+        [draft(), draft({ label: "BAD ROW", amount: "-3,00" }, { categoryId: 999 })],
         [{ index: 0, entryId: entry.id }],
       );
 
-      expect(result.status).toBe("invalid");
+      expect(result.status).toBe("blocked");
       expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entry.id })]);
       expect(listImportBatches(db, checkingId)).toEqual([]);
     });

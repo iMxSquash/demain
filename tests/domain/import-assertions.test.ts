@@ -423,6 +423,39 @@ describe("linkReviewAssertions", () => {
     expect(second?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 98_000, gap: 0 });
   });
 
+  describe("an entry marked as paid that a row replaces", () => {
+    const entry = { accountId: CHECKING_ID, date: "2026-03-02", amount: -1_000 };
+    const linkReplacing = (files: ReviewedFile[], replaced: (typeof entry)[][]) =>
+      linkReviewAssertions(
+        files,
+        planReview(files, {
+          currency: CONTEXT.currency,
+          defaultSavingsAccountId: DEFAULT_SAVINGS_ACCOUNT_ID,
+          accounts: OVERFLOW_ACCOUNTS,
+        }),
+        {
+          accounts: ASSERTED_ACCOUNTS,
+          transactions: [entry],
+          assertions: [assertion(1, CHECKING_ID, "2026-04-02", 97_000)],
+        },
+        CONTEXT,
+        replaced,
+      );
+
+    it("leaves the balance of the files, and of the later ones", () => {
+      const [first, second] = linkReplacing([march, april], [[entry], []]);
+
+      expect(first?.checked).toBe(0);
+      expect(second?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 97_000, gap: 0 });
+    });
+
+    it("stays in the balance when its file is cancelled", () => {
+      const [, second] = linkReplacing([{ ...march, phase: "cancelled" }, april], [[entry], []]);
+
+      expect(second?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 97_000, gap: 0 });
+    });
+  });
+
   it("checks nothing for a cancelled file", () => {
     const [result] = linkAll(
       [{ ...march, phase: "cancelled" }],

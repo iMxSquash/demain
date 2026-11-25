@@ -189,18 +189,24 @@ export function linkAssertions(
  * is compared with the balances once the files before it are recorded too: the
  * snapshot holds the transactions as they were before any of them, so a file
  * already imported still counts. A file after it does not, since it is imported
- * later. The result of a cancelled or failed file checks nothing.
+ * later. The result of a cancelled or failed file checks nothing. `replacedByFile`
+ * holds, by file, the stored entries marked as paid that its rows replace: they
+ * leave the balance with the file, so the movement is not counted twice.
  */
 export function linkReviewAssertions(
   files: readonly ReviewedFile[],
   plans: readonly FilePlan[],
   snapshot: AssertionLinkSnapshot,
   context: FileContext,
+  replacedByFile: readonly (readonly AssertionMovement[])[] = [],
 ): AssertionLinks[] {
   const earlierMovements: AssertionMovement[] = [];
   return files.map((file, index) => {
     const plan = plans[index];
-    const movements = plan === undefined ? [] : fileMovements(file, plan, context);
+    const removed = isFileRecorded(file)
+      ? (replacedByFile[index] ?? []).map((entry) => ({ ...entry, amount: -entry.amount }))
+      : [];
+    const movements = [...(plan === undefined ? [] : fileMovements(file, plan, context)), ...removed];
     const links = linkAssertions(
       {
         accountId: context.accountId,

@@ -672,7 +672,14 @@ export function commitImport(
       .set({ contentDigest })
       .where(eq(importBatches.id, batch.id))
       .run();
-    return { ...preview, batchId: batch.id, ...matches, replacedCount: replacements.length };
+    // A replaced entry leaves its occurrence settled by the bank row: it counts as matched.
+    return {
+      ...preview,
+      batchId: batch.id,
+      ...matches,
+      matchedCount: matches.matchedCount + replacements.length,
+      replacedCount: replacements.length,
+    };
   });
 }
 

@@ -29,7 +29,7 @@ import {
   type ReviewFile,
 } from "./review-state";
 import { AssertionLinkPanel } from "./assertion-link-panel";
-import { choiceKey, settleEnteredChoices, type EnteredChoices, type EnteredMatch } from "./entered-payments";
+import type { EnteredMatch, SettledEnteredChoices } from "./entered-payments";
 import { EnteredPaymentsPanel } from "./entered-payments-panel";
 import { BalanceCheckPanel } from "./balance-check-panel";
 import { PlannedMatchesPanel } from "./planned-matches-panel";
@@ -156,6 +156,9 @@ interface FileCardProps {
   overflowChoices: readonly PendingOverflow[];
   /** The rows that may be entries marked as paid, with the entries each may replace. */
   enteredMatches: readonly EnteredMatch[];
+  /** What the owner chose for those rows, or the proposals. */
+  enteredSettled: SettledEnteredChoices;
+  onChooseEntered: (match: EnteredMatch, entryId: number | null) => void;
   /** Called with the entries the file replaced once it is recorded: no other file offers them again. */
   onEntriesReplaced: (entryIds: readonly number[]) => void;
   lookups: RowLookups;
@@ -176,6 +179,8 @@ export function FileCard({
   accountNames,
   overflowChoices,
   enteredMatches,
+  enteredSettled: settled,
+  onChooseEntered,
   onEntriesReplaced,
   lookups,
   isReading,
@@ -203,15 +208,6 @@ export function FileCard({
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [isUndone, setIsUndone] = useState(false);
-  const [enteredChoices, setEnteredChoices] = useState<EnteredChoices>(new Map());
-  // Keyed by line: a row keeps its choice when the file is read again with other columns.
-  const lineOf = useCallback((rowId: number) => rows[rowId]?.line ?? -1, [rows]);
-  const settled = useMemo(
-    () => settleEnteredChoices(enteredMatches, enteredChoices, lineOf),
-    [enteredMatches, enteredChoices, lineOf],
-  );
-  const chooseEntered = (match: EnteredMatch, entryId: number | null) =>
-    setEnteredChoices((previous) => new Map(previous).set(choiceKey(lineOf(match.rowId), match), entryId));
   const enteredHint =
     settled.unsettledCount > 0
       ? t("entered.chooseFirst", { count: settled.unsettledCount })
@@ -465,7 +461,7 @@ export function FileCard({
               currency={file.currency}
               settled={settled}
               isBusy={isLocked}
-              onChoose={chooseEntered}
+              onChoose={onChooseEntered}
               undoNoteId={undoNoteId}
             />
           )}

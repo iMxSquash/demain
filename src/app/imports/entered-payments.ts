@@ -58,6 +58,14 @@ export interface SettledEnteredChoices {
   isEntryChosenTwice: boolean;
 }
 
+/** A file with no row to settle. */
+export const NO_ENTERED_CHOICES: SettledEnteredChoices = {
+  chosen: new Map(),
+  replacements: [],
+  unsettledCount: 0,
+  isEntryChosenTwice: false,
+};
+
 /** A choice the owner made stands while its row offers the same entries; otherwise the proposal does. */
 export function settleEnteredChoices(
   matches: readonly EnteredMatch[],
