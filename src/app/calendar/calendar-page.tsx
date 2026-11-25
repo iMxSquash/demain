@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { connection } from "next/server";
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 
 import { Button } from "../../components/button";
 import { Icon } from "../../components/icon";
@@ -16,7 +15,7 @@ import { listAccounts } from "../../ledger/accounts";
 import { getCalendarMonth } from "../../ledger/calendar";
 import { getReferenceCurrency } from "../../ledger/exchange-rates";
 import { withDatabase } from "../../storage/with-database";
-import { requireSession } from "../auth/session";
+import { requireRequest } from "../auth/require-request";
 import { tagDataRead } from "../data-cache";
 import { readDueCount } from "../planned/due-count";
 import { FormField } from "../form-field";
@@ -61,12 +60,6 @@ export async function calendarMetadata(searchParams: SearchParams, view: Calenda
   const { title, titleMonth } = META_KEYS[view];
   return { title: month === "" ? t(title) : t(titleMonth, { month: formatMonth(month, locale) }) };
 }
-
-// Once per request: the page is read per request, never at build time (ADR-023).
-const requireRequest = cache(async () => {
-  await requireSession();
-  await connection();
-});
 
 // Only serialisable arguments: they are the cache key. Plain data comes out, never JSX or text.
 async function readCalendar(month: string, today: string, accountKey: string) {

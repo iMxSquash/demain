@@ -4,8 +4,7 @@ import { useTranslations } from "next-intl";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { connection } from "next/server";
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 
 import { Button } from "../../../components/button";
 import { EmptyState, Pill } from "../../../components/data-display";
@@ -23,7 +22,7 @@ import {
   type OccurrenceRef,
 } from "../../../ledger/planned-matching";
 import { withDatabase } from "../../../storage/with-database";
-import { requireSession } from "../../auth/session";
+import { requireRequest } from "../../auth/require-request";
 import { tagDataRead } from "../../data-cache";
 import { CONTROL_CLASS, FormField } from "../../form-field";
 import {
@@ -45,12 +44,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned.link");
   return { title: t("metaTitle") };
 }
-
-// Once per request: the page is read per request, never at build time (ADR-023).
-const requireRequest = cache(async () => {
-  await requireSession();
-  await connection();
-});
 
 // Plain data only: the arguments are the cache key. A refusal is data too, so it is cached with the rest.
 async function readCandidates(ref: OccurrenceRef, today: string, filters: Required<LinkFilters>) {

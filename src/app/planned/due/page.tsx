@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
-import { connection } from "next/server";
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 
 import { EmptyState, Pill } from "../../../components/data-display";
 import { SkeletonBlock, SkeletonRegion } from "../../../components/skeleton";
@@ -12,7 +11,7 @@ import { formatCalendarDate, todayIn } from "../../../i18n/dates";
 import { listAccounts } from "../../../ledger/accounts";
 import { listDueOccurrences, type OpenOccurrence } from "../../../ledger/planned-matching";
 import { withDatabase } from "../../../storage/with-database";
-import { requireSession } from "../../auth/session";
+import { requireRequest } from "../../auth/require-request";
 import { tagDataRead } from "../../data-cache";
 import { MarkPaidCardForm, type MarkPaidButtonText } from "../mark-paid-form";
 import { markPaidKindOf } from "../mark-paid-kind";
@@ -23,12 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned.due");
   return { title: t("metaTitle") };
 }
-
-// Once per request: the page is read per request, never at build time (ADR-023).
-const requireRequest = cache(async () => {
-  await requireSession();
-  await connection();
-});
 
 // `today` is read outside the cache, so that the lists never go stale at midnight.
 async function readDue(today: string) {

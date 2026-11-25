@@ -8,6 +8,7 @@ import {
   resolveOccurrences,
   type OccurrenceLink,
   type OccurrenceStatus,
+  type ResolvedOccurrence,
 } from "../domain/occurrence-resolution";
 import type { PlannedItemKind } from "../domain/planned-item";
 import {
@@ -237,6 +238,26 @@ function linksOf(
   return byItem;
 }
 
+/** The occurrences of an item whose effective date is in `range`, with their status. */
+function resolveOver(
+  item: PlannedItemWithDetails,
+  links: readonly OccurrenceLink[],
+  range: DateRange,
+  today: string,
+): ResolvedOccurrence[] {
+  return resolveOccurrences(
+    {
+      schedule: toPlannedSchedule(item),
+      overrides: item.overrides,
+      matchWindowDays: item.matchWindowDays,
+      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
+    },
+    links,
+    range,
+    today,
+  );
+}
+
 interface OpenOccurrences {
   regular: MatchOccurrence[];
   provisions: ProvisionOccurrence[];
@@ -248,17 +269,7 @@ function openOccurrencesOf(
   transactionDates: DateRange,
   today: string,
 ): OpenOccurrences {
-  const resolved = resolveOccurrences(
-    {
-      schedule: toPlannedSchedule(item),
-      overrides: item.overrides,
-      matchWindowDays: item.matchWindowDays,
-      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
-    },
-    links,
-    matchingRange(transactionDates, item),
-    today,
-  );
+  const resolved = resolveOver(item, links, matchingRange(transactionDates, item), today);
   const open: OpenOccurrences = { regular: [], provisions: [] };
   for (const occurrence of resolved) {
     if (occurrence.status === "cancelled") continue;
@@ -712,18 +723,10 @@ function candidatesOf(
   today: string,
 ): LinkCandidate[] {
   const lastDate = today > transaction.date ? today : transaction.date;
-  const resolved = resolveOccurrences(
-    {
-      schedule: toPlannedSchedule(item),
-      overrides: item.overrides,
-      matchWindowDays: item.matchWindowDays,
-      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
-    },
+  const resolved = resolveOver(
+    item,
     links,
-    {
-      from: item.startDate,
-      to: addDays(lastDate, LINK_CANDIDATE_HORIZON_DAYS),
-    },
+    { from: item.startDate, to: addDays(lastDate, LINK_CANDIDATE_HORIZON_DAYS) },
     today,
   );
   const candidates: LinkCandidate[] = [];
@@ -855,28 +858,9 @@ function rangeAround(item: PlannedItemWithDetails, nominalDate: string): DateRan
   return { from: moved < from ? moved : from, to: moved > to ? moved : to };
 }
 
-function resolveItem(
-  item: PlannedItemWithDetails,
-  links: readonly OccurrenceLink[],
-  range: DateRange,
-  today: string,
-) {
-  return resolveOccurrences(
-    {
-      schedule: toPlannedSchedule(item),
-      overrides: item.overrides,
-      matchWindowDays: item.matchWindowDays,
-      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
-    },
-    links,
-    range,
-    today,
-  );
-}
-
 function toOpenOccurrence(
   item: PlannedItemWithDetails,
-  occurrence: ReturnType<typeof resolveItem>[number] & { status: OpenStatus },
+  occurrence: ResolvedOccurrence & { status: OpenStatus },
   currency: string,
 ): OpenOccurrence {
   return {
@@ -892,10 +876,6 @@ function toOpenOccurrence(
     amount: amountToSettle(occurrence),
     window: matchingWindow(occurrence, item.matchWindowDays),
   };
-}
-
-function currencyOf(db: Pick<AppDatabase, "select">, accountId: number): string {
-  return getOpenAccount(db, accountId).currency;
 }
 
 /** Names one occurrence of a planned item. */
@@ -928,13 +908,14 @@ function readOpenOccurrence(
 ): { item: PlannedItemWithDetails; occurrence: OpenOccurrence } {
   const item = readItemOrThrow(db, plannedItemId);
   const links = linksOf(db, [item.id]).get(item.id) ?? [];
-  const occurrence = resolveItem(item, links, rangeAround(item, nominalDate), today).find(
+  const occurrence = resolveOver(item, links, rangeAround(item, nominalDate), today).find(
     (candidate) => candidate.nominalDate === nominalDate,
   );
   if (occurrence === undefined) refuse(`No occurrence of item ${item.id} on ${nominalDate}`, "markPaidOccurrenceUnknown");
   if (item.cancelled || occurrence.status === "cancelled") refuse("The occurrence is cancelled", "markPaidOccurrenceCancelled");
   if (occurrence.status === "confirmed") refuse("The occurrence is already settled", "markPaidOccurrenceSettled");
-  const currency = currencyOf(db, item.accountId);
+  // Nothing is entered on an archived account: the occurrence is refused there too.
+  const { currency } = getOpenAccount(db, item.accountId);
   // The narrowing of `status` is lost through the checks above.
   return { item, occurrence: toOpenOccurrence(item, { ...occurrence, status: occurrence.status as OpenStatus }, currency) };
 }
@@ -1010,15 +991,16 @@ export function markOccurrencePaid(
   });
 }
 
-/** The accounts that are archived: an item on one of them takes no entered transaction. */
-function archivedAccountIds(db: Pick<AppDatabase, "select">): Set<number> {
-  const rows = db.select({ id: accounts.id }).from(accounts).where(eq(accounts.archived, true)).all();
-  return new Set(rows.map(({ id }) => id));
-}
-
-function currencies(db: Pick<AppDatabase, "select">): Map<number, string> {
-  const rows = db.select({ id: accounts.id, currency: accounts.currency }).from(accounts).all();
-  return new Map(rows.map(({ id, currency }) => [id, currency]));
+/** The currency of every account, and which are archived: an item there takes no entered transaction. */
+function accountFacts(db: Pick<AppDatabase, "select">) {
+  const rows = db
+    .select({ id: accounts.id, currency: accounts.currency, archived: accounts.archived })
+    .from(accounts)
+    .all();
+  return {
+    currencyOf: new Map(rows.map(({ id, currency }) => [id, currency])),
+    archived: new Set(rows.filter(({ archived }) => archived).map(({ id }) => id)),
+  };
 }
 
 /**
@@ -1027,7 +1009,7 @@ function currencies(db: Pick<AppDatabase, "select">): Map<number, string> {
  * entered there; so are cancelled items. The navigation counts `due`.
  */
 export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: string): DueOccurrences<OpenOccurrence> {
-  const archived = archivedAccountIds(db);
+  const { currencyOf, archived } = accountFacts(db);
   const items = listPlannedItems(db, { includeCancelled: false }).filter(
     (item) =>
       !archived.has(item.accountId) && (item.destinationAccountId === null || !archived.has(item.destinationAccountId)),
@@ -1037,7 +1019,6 @@ export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: strin
     db,
     items.map((item) => item.id),
   );
-  const currencyById = currencies(db);
   const to = addDays(today, DUE_SOON_DAYS);
   const open = items.flatMap((item) => {
     // Every occurrence since the start can still be overdue; an override may move one earlier.
@@ -1045,10 +1026,10 @@ export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: strin
       (earliest, { overrideDate }) => (overrideDate !== null && overrideDate < earliest ? overrideDate : earliest),
       addDays(item.startDate, -NOMINAL_SHIFT_DAYS),
     );
-    return resolveItem(item, links.get(item.id) ?? [], { from, to }, today).flatMap((occurrence) => {
+    return resolveOver(item, links.get(item.id) ?? [], { from, to }, today).flatMap((occurrence) => {
       const { status } = occurrence;
       return isOpenStatus(status)
-        ? [toOpenOccurrence(item, { ...occurrence, status }, currencyById.get(item.accountId) ?? "")]
+        ? [toOpenOccurrence(item, { ...occurrence, status }, currencyOf.get(item.accountId) ?? "")]
         : [];
     });
   });

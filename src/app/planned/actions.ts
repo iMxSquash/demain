@@ -3,6 +3,7 @@
 import { getLocale, getTimeZone } from "next-intl/server";
 import { redirect } from "next/navigation";
 
+import { parseWholeNumber } from "../../domain/amount-syntax";
 import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import { formatAmount } from "../../domain/money";
 import type { PlannedItemField, PlannedItemKind } from "../../domain/planned-item";
@@ -335,7 +336,10 @@ export async function markOccurrencePaidAction(
   const values = readSubmittedMarkPaid(formData);
   if (formData.get("decision") === TRANSFER_DECISION.cancel) return { status: "cancelled", values };
   const read = readOccurrenceTarget(formData);
-  if (!read.ok) return markPaidFailure(new PlannedLinkError("Malformed occurrence", read.ref), values, translate);
+  if (!read.ok) {
+    await flashError(read.ref);
+    return { status: "error", message: translate(read.ref), values };
+  }
 
   let outcome: MarkPaidOutcome;
   try {
@@ -358,10 +362,11 @@ export async function markOccurrencePaidAction(
   return null;
 }
 
-const transactionIdOf = (value: FormDataEntryValue | null): number | null => {
-  const id = typeof value === "string" && /^[1-9]\d{0,14}$/.test(value) ? Number(value) : null;
-  return id !== null && Number.isSafeInteger(id) ? id : null;
-};
+// Same rule as the ids of `readOccurrenceTarget`: a positive safe integer typed in digits only.
+function transactionIdOf(formData: FormData): number | null {
+  const id = parseWholeNumber(readText(formData, "transactionId"));
+  return id !== null && id >= 1 && Number.isSafeInteger(id) ? id : null;
+}
 
 /**
  * Links a transaction chosen on the "Link a transaction" page to its occurrence, then goes back to
@@ -375,7 +380,7 @@ export async function linkTransactionToOccurrenceAction(
   await requireSession();
   const [translate, timeZone] = await Promise.all([getTranslator(), getTimeZone()]);
   const read = readOccurrenceTarget(formData);
-  const transactionId = transactionIdOf(formData.get("transactionId"));
+  const transactionId = transactionIdOf(formData);
   if (!read.ok || transactionId === null) return translate(messageRef("occurrenceLinkFailed"));
   const { itemId, nominalDate } = read.target;
   const month = parseMonthParam(readText(formData, "month"), nominalDate.slice(0, 7));
