@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 
 import { Button } from "../../components/button";
 import { Icon } from "../../components/icon";
@@ -18,6 +18,7 @@ import { getReferenceCurrency } from "../../ledger/exchange-rates";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
+import { readDueCount } from "../planned/due-count";
 import { FormField } from "../form-field";
 import {
   CHECKING_KEY,
@@ -101,16 +102,43 @@ export async function loadCalendarPage(searchParams: SearchParams) {
   return { ...data, locale, today, month };
 }
 
-/** The `h1` and the way in to the planned items; both views have them. */
+const TO_PAY_HREF = "/planned/due";
+
+// The count of the "Due" section, on every width: a column without the sidebar still has it.
+async function ToPayLink() {
+  const [t, timeZone] = await Promise.all([getTranslations("calendar"), getTimeZone(), requireRequest()]);
+  const count = await readDueCount(todayIn(timeZone, new Date()));
+
+  return (
+    <Link href={TO_PAY_HREF} aria-label={t("toPayLinkLabel", { count })} className={LINK_CLASS}>
+      {t("toPayLink", { count })}
+    </Link>
+  );
+}
+
+/** The `h1`, the way to the due occurrences and the way in to the planned items; both views have them. */
 export function CalendarHeading() {
   const t = useTranslations("calendar");
+  const navigation = useTranslations("navigation");
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
       <h1 className="text-heading font-medium">{t("title")}</h1>
-      <Link href="/planned" className={LINK_CLASS}>
-        {t("plannedLink")}
-      </Link>
+      <div className="flex flex-wrap gap-1">
+        {/* The count needs the request: the link is drawn without it until it is known. */}
+        <Suspense
+          fallback={
+            <Link href={TO_PAY_HREF} className={LINK_CLASS}>
+              {navigation("toPay")}
+            </Link>
+          }
+        >
+          <ToPayLink />
+        </Suspense>
+        <Link href="/planned" className={LINK_CLASS}>
+          {t("plannedLink")}
+        </Link>
+      </div>
     </div>
   );
 }

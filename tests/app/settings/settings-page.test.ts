@@ -37,6 +37,7 @@ vi.mock("next/cache", () => ({
 vi.mock("next/server", () => ({ connection: async () => undefined }));
 vi.mock("next-intl/server", () => ({
   getLocale: async () => LOCALE,
+  getTimeZone: async () => "Europe/Paris",
   getTranslations: async (namespace: string) =>
     createTranslator({ locale: LOCALE, messages: loadMessages(LOCALE), namespace }),
 }));
@@ -129,18 +130,24 @@ describe("settings page", () => {
     ]);
   });
 
-  it("links to the seven pages of the More list, each with a name and an icon", async () => {
+  it("links to the eight pages of the More list, each with a name and an icon", async () => {
     openSession(false);
 
     const html = await renderSettings();
 
     const links = [...html.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/g)].map((match) => ({
       href: match[1],
-      text: (match[2] ?? "").replace(/<svg.*?<\/svg>/g, ""),
+      text: (match[2] ?? "").replace(/<svg.*?<\/svg>/g, "").replace(/<[^>]+>/g, ""),
       hasIcon: (match[2] ?? "").includes("<svg"),
     }));
     expect(links).toEqual([
       { href: "/transactions", text: "Transactions", hasIcon: true },
+      {
+        href: "/planned/due",
+        // The badge digit, then its words for assistive technology.
+        text: "To pay0, 0 due",
+        hasIcon: true,
+      },
       { href: "/balances", text: "Balances", hasIcon: true },
       { href: "/categories", text: "Categories", hasIcon: true },
       { href: "/rules", text: "Rules", hasIcon: true },

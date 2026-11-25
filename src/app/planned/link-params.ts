@@ -46,7 +46,7 @@ function boundOf(value: SearchParam, unbounded: string): string | null {
 }
 
 /** The filters of the page; the ledger fills a bound the user did not set with the occurrence window. */
-export function parseLinkFilters(params: Record<string, SearchParam>): LinkFilters {
+export function parseLinkFilters(params: Record<string, SearchParam>): Required<LinkFilters> {
   const from = boundOf(params.from, NO_LOWER_BOUND);
   const to = boundOf(params.to, NO_UPPER_BOUND);
   return {

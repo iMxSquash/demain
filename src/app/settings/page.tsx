@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTimeZone, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
@@ -8,25 +8,30 @@ import {
   ArrowsDownUp,
   CurrencyEur,
   Funnel,
+  Receipt,
   Scales,
   ShieldCheck,
   Tag,
 } from "@phosphor-icons/react/ssr";
 
 import { Button } from "../../components/button";
+import { CountBadge } from "../../components/data-display";
 import { Icon } from "../../components/icon";
 import { SkeletonFields, SkeletonRegion } from "../../components/skeleton";
+import { todayIn } from "../../i18n/dates";
 import { getDefaultPaymentMode } from "../../ledger/default-payment-mode";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 import { logoutAction } from "../login/actions";
+import { readDueCount } from "../planned/due-count";
 import { LocaleSwitcher } from "../locale/locale-switcher";
 import { ThemeSwitcher } from "../theme/theme-switcher";
 import { DefaultPaymentModeForm } from "./default-payment-mode-form";
 
 const MORE_LINKS = [
   { href: "/transactions", key: "transactions", icon: ArrowsDownUp },
+  { href: "/planned/due", key: "toPay", icon: Receipt },
   { href: "/balances", key: "balances", icon: Scales },
   { href: "/categories", key: "categories", icon: Tag },
   { href: "/rules", key: "rules", icon: Funnel },
@@ -66,6 +71,19 @@ async function DefaultPaymentMode() {
   const stored = await readStoredPaymentMode();
 
   return <DefaultPaymentModeForm key={stored} stored={stored} />;
+}
+
+// The count of the To pay row, the one the sidebar shows on a wide screen (DESIGN section 18).
+async function ToPayCount() {
+  const [t, timeZone] = await Promise.all([getTranslations("navigation"), getTimeZone(), readStoredPaymentMode()]);
+  const count = await readDueCount(todayIn(timeZone, new Date()));
+
+  return (
+    <>
+      <CountBadge decorative count={count} className="ml-auto" />
+      <span className="sr-only">, {t("dueCount", { count })}</span>
+    </>
+  );
 }
 
 export default async function SettingsPage() {
@@ -121,6 +139,11 @@ export default async function SettingsPage() {
                 >
                   <Icon icon={icon} />
                   {t(`links.${key}`)}
+                  {key === "toPay" ? (
+                    <Suspense fallback={null}>
+                      <ToPayCount />
+                    </Suspense>
+                  ) : null}
                 </Link>
               </li>
             ))}
