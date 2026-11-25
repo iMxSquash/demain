@@ -20,7 +20,12 @@ const CATEGORIES = [
 
 function render(kind?: string): string {
   const initialValues = {
-    ...addTransactionDefaults({ today: TODAY, accountIds: [1, 2], lastAccountId: null }),
+    ...addTransactionDefaults({
+      today: TODAY,
+      accountIds: [1, 2],
+      lastAccountId: null,
+      defaultPaymentMode: "card",
+    }),
     ...(kind === undefined ? {} : { kind }),
   };
   const form = createElement(AddTransactionForm, {

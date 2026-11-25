@@ -10,6 +10,7 @@ import { formatAmount } from "../../domain/money";
 import { formatCalendarDate, todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
+import { getDefaultPaymentMode } from "../../ledger/default-payment-mode";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
 import {
   getLastUsedAccountId,
@@ -63,6 +64,7 @@ async function readTransactionsFromDatabase() {
       rows: listTransactions(db),
       labelSuggestions: listLabelSuggestions(db, openAccountIds),
       lastAccountId: getLastUsedAccountId(db),
+      defaultPaymentMode: getDefaultPaymentMode(db),
     };
   });
 }
@@ -254,11 +256,12 @@ function TransactionFormsLoading() {
 }
 
 async function TransactionForms() {
-  const [t, timeZone, { accounts, categories, labelSuggestions, lastAccountId }] = await Promise.all([
+  const [t, timeZone, data] = await Promise.all([
     getTranslations("transactions"),
     getTimeZone(),
     readTransactions(),
   ]);
+  const { accounts, categories, labelSuggestions, lastAccountId, defaultPaymentMode } = data;
   const active = accounts.filter((account) => !account.archived);
   const today = todayIn(timeZone, new Date());
 
@@ -285,6 +288,7 @@ async function TransactionForms() {
         today,
         accountIds: active.map((account) => account.id),
         lastAccountId,
+        defaultPaymentMode,
       })}
       accounts={active}
       categories={listAssignableCategories(categories)}

@@ -8,11 +8,14 @@ import {
 } from "../../../src/app/transactions/add-transaction-defaults";
 import {
   parseTransactionForm,
+  parseTransferForm,
   type TransactionFormValues,
 } from "../../../src/app/transactions/transaction-form-data";
 import {
+  buildTransferLegs,
   TransactionValidationError,
   validateTransactionInput,
+  type PaymentMode,
 } from "../../../src/domain/transaction";
 import { translateKey } from "../translate-key";
 
@@ -30,11 +33,15 @@ function formOf(values: TransactionFormValues): FormData {
   return formData;
 }
 
-function defaults(lastAccountId: number | null = null): TransactionFormValues {
+function defaults(
+  lastAccountId: number | null = null,
+  defaultPaymentMode: PaymentMode = "card",
+): TransactionFormValues {
   return addTransactionDefaults({
     today: TODAY,
     accountIds: [CHECKING_ID, SAVINGS_ID],
     lastAccountId,
+    defaultPaymentMode,
   });
 }
 
@@ -59,9 +66,18 @@ describe("addTransactionDefaults", () => {
   });
 
   it("gives no account when there is none", () => {
-    const values = addTransactionDefaults({ today: TODAY, accountIds: [], lastAccountId: null });
+    const values = addTransactionDefaults({
+      today: TODAY,
+      accountIds: [],
+      lastAccountId: null,
+      defaultPaymentMode: "card",
+    });
 
     expect(values.accountId).toBe("");
+  });
+
+  it("preselects the payment mode of the setting", () => {
+    expect(defaults(null, "direct_debit").paymentMode).toBe("direct_debit");
   });
 });
 
@@ -84,8 +100,18 @@ describe("an expense needs only an amount and a label", () => {
       label: "Coffee",
       categoryId: null,
       description: null,
-      paymentMode: null,
+      paymentMode: "card",
     });
+  });
+
+  it("is recorded with the payment mode of the setting", () => {
+    const formData = formOf({ ...defaults(null, "direct_debit"), amount: "42,50", label: "Gym" });
+
+    const parsed = parseTransactionForm(formData, CURRENCIES, translateKey);
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(validateTransactionInput(parsed.input).paymentMode).toBe("direct_debit");
   });
 
   it("refuses the amount first when both are empty", () => {
@@ -107,6 +133,32 @@ describe("an expense needs only an amount and a label", () => {
     } catch (error) {
       expect(error).toMatchObject({ field: "label" });
     }
+  });
+});
+
+describe("a transfer posted from the defaults", () => {
+  it("still carries transfer on both legs, whatever the default payment mode", () => {
+    const posted = { ...defaults(null, "card"), kind: "transfer", amount: "100", label: "Savings" };
+    const formData = formOf(posted);
+    formData.set("sourceId", String(CHECKING_ID));
+    formData.set("destinationId", String(SAVINGS_ID));
+
+    const parsed = parseTransferForm(formData, CURRENCIES, translateKey);
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const { request } = parsed;
+    const account = (id: number) => ({ id, currency: "EUR", archived: false });
+    const legs = buildTransferLegs({
+      source: account(request.sourceId),
+      destination: account(request.destinationId),
+      amount: request.amount,
+      date: request.date,
+      label: request.label,
+    });
+
+    expect(formData.get("paymentMode")).toBe("card");
+    expect(legs.map((leg) => leg.paymentMode)).toEqual(["transfer", "transfer"]);
   });
 });
 
