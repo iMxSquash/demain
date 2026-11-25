@@ -1,0 +1,268 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { detailsFromSign, type ReviewedDraft, type RowDetails } from "../../src/domain/import-draft";
+import type { PlannedItemInput } from "../../src/domain/planned-item";
+import { createAccount } from "../../src/ledger/accounts";
+import { createCategory } from "../../src/ledger/categories";
+import { createRule } from "../../src/ledger/categorization-rules";
+import { undoImportBatch } from "../../src/ledger/import-undo";
+import { listImportBatches } from "../../src/ledger/imports";
+import { createPlannedItem } from "../../src/ledger/planned-items";
+import { listDueOccurrences, listEnteredPayments, markOccurrencePaid } from "../../src/ledger/planned-matching";
+import { commitDrafts } from "../../src/ledger/staged-import";
+import { createTransaction, listTransactions, type Transaction } from "../../src/ledger/transactions";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
+
+const NOW = new Date("2026-03-12T10:00:00Z");
+const TODAY = "2026-03-12";
+const RENT_DATE = "2026-03-05";
+const RENT_AMOUNT = 65_000;
+
+function draft(overrides: Partial<ReviewedDraft> = {}, details: Partial<RowDetails> = {}): ReviewedDraft {
+  return {
+    date: RENT_DATE,
+    label: "RENT MARCH",
+    amount: "-650,00",
+    externalId: null,
+    details: { ...detailsFromSign(-1), ...details },
+    ...overrides,
+  };
+}
+
+describe("replacing an entry marked as paid by its bank row", () => {
+  let dataDir: string;
+  let db: AppDatabase;
+  let checkingId: number;
+  let housingId: number;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    db = openDatabase(dataDir);
+    migrateDatabase(db);
+    checkingId = createAccount(db, {
+      name: "Checking",
+      kind: "checking",
+      currency: "EUR",
+      openingDate: "2026-01-01",
+      openingBalance: 100_000,
+    }).id;
+    housingId = createCategory(db, { name: "Housing" }).id;
+  });
+
+  afterEach(() => {
+    db.$client.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  function rentItem(overrides: Partial<PlannedItemInput> = {}) {
+    return createPlannedItem(db, {
+      name: "Rent",
+      kind: "expense",
+      accountId: checkingId,
+      categoryId: housingId,
+      startDate: RENT_DATE,
+      repetition: { kind: "monthly_on_day", day: 5 },
+      amount: -RENT_AMOUNT,
+      ...overrides,
+    });
+  }
+
+  function markPaid(plannedItemId: number, nominalDate = RENT_DATE, amount = RENT_AMOUNT): Transaction {
+    markOccurrencePaid(db, { plannedItemId, nominalDate, date: nominalDate, amount }, TODAY);
+    const entry = listTransactions(db).find(
+      (transaction) => transaction.plannedItemId === plannedItemId && transaction.occurrenceDate === nominalDate,
+    );
+    if (entry === undefined) throw new Error("The entry was not recorded");
+    return entry;
+  }
+
+  function commit(drafts: ReviewedDraft[], replacements: { index: number; entryId: number }[] = []) {
+    return commitDrafts(db, {
+      accountId: checkingId,
+      format: "csv",
+      fileName: "2026-03.csv",
+      mapping: null,
+      drafts,
+      replacements,
+      now: NOW,
+      today: TODAY,
+    });
+  }
+
+  function isOpen(plannedItemId: number, nominalDate: string): boolean {
+    return listDueOccurrences(db, TODAY).due.some(
+      (occurrence) => occurrence.plannedItemId === plannedItemId && occurrence.nominalDate === nominalDate,
+    );
+  }
+
+  describe("the entries a review may offer to replace", () => {
+    it("lists an entry marked as paid, with the window and the tolerance of its item", () => {
+      const item = rentItem({ matchWindowDays: 3, matchAmountToleranceBp: 200 });
+      const entry = markPaid(item.id);
+
+      expect(listEnteredPayments(db)).toEqual([
+        {
+          id: entry.id,
+          accountId: checkingId,
+          categoryId: housingId,
+          date: RENT_DATE,
+          label: "Rent",
+          kind: "expense",
+          amount: -RENT_AMOUNT,
+          plannedItemId: item.id,
+          plannedItemName: "Rent",
+          nominalDate: RENT_DATE,
+          windowDays: 3,
+          toleranceBasisPoints: 200,
+        },
+      ]);
+    });
+
+    it("leaves out imported rows, unlinked entries, provisions and transfers", () => {
+      const savingsId = createAccount(db, {
+        name: "Savings",
+        kind: "savings",
+        currency: "EUR",
+        openingDate: "2026-01-01",
+        openingBalance: 0,
+      }).id;
+      const groceries = rentItem({ name: "Groceries", acceptsMultipleTransactions: true });
+      const saving = rentItem({
+        name: "Monthly saving",
+        kind: "transfer",
+        categoryId: null,
+        destinationAccountId: savingsId,
+      });
+      markPaid(groceries.id, RENT_DATE, 4_000);
+      markPaid(saving.id, RENT_DATE, 10_000);
+      createTransaction(db, { accountId: checkingId, date: RENT_DATE, amount: -2_000, kind: "expense", label: "Cafe" });
+      const imported = rentItem({ name: "Phone", amount: -2_500 });
+      commit([draft({ label: "PHONE", amount: "-25,00" })]);
+
+      expect(listTransactions(db).some((transaction) => transaction.plannedItemId === imported.id)).toBe(true);
+      expect(listEnteredPayments(db)).toEqual([]);
+    });
+  });
+
+  it("replace deletes the entry and links the bank row, which takes its category and description", () => {
+    const item = rentItem();
+    const entry = markPaid(item.id);
+    db.$client.prepare("UPDATE transactions SET description = 'Paid by hand' WHERE id = ?").run(entry.id);
+
+    const result = commit([draft()], [{ index: 0, entryId: entry.id }]);
+
+    expect(result).toMatchObject({ status: "done", replacedCount: 1 });
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({
+        label: "RENT MARCH",
+        amount: -RENT_AMOUNT,
+        plannedItemId: item.id,
+        occurrenceDate: RENT_DATE,
+        categoryId: housingId,
+        categoryFromPlannedItem: true,
+        description: "Paid by hand",
+      }),
+    ]);
+    expect(listTransactions(db)[0]?.importBatchId).not.toBeNull();
+  });
+
+  it("a bank row keeps the category a rule gave it and its own description", () => {
+    const rentCategoryId = createCategory(db, { name: "Rent by rule" }).id;
+    createRule(db, { operator: "contains", value: "rent", categoryId: rentCategoryId });
+    const entry = markPaid(rentItem().id);
+
+    commit([draft({}, { description: "From the bank" })], [{ index: 0, entryId: entry.id }]);
+
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({
+        label: "RENT MARCH",
+        categoryId: rentCategoryId,
+        categoryFromPlannedItem: false,
+        description: "From the bank",
+      }),
+    ]);
+  });
+
+  it("keep both keeps two transactions, the entry still settling the occurrence", () => {
+    const item = rentItem();
+    const entry = markPaid(item.id);
+
+    const result = commit([draft()]);
+
+    expect(result).toMatchObject({ status: "done", replacedCount: 0 });
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({ id: entry.id, plannedItemId: item.id, occurrenceDate: RENT_DATE }),
+      expect.objectContaining({ label: "RENT MARCH", plannedItemId: null, occurrenceDate: null }),
+    ]);
+  });
+
+  it("the replaced occurrence keeps its link when the bank row also fits another open occurrence", () => {
+    const item = rentItem();
+    const entry = markPaid(item.id);
+    const other = rentItem({ name: "Garage", categoryId: null, startDate: "2026-03-06", repetition: null });
+
+    commit([draft()], [{ index: 0, entryId: entry.id }]);
+
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({ label: "RENT MARCH", plannedItemId: item.id, occurrenceDate: RENT_DATE }),
+    ]);
+    expect(isOpen(other.id, "2026-03-06")).toBe(true);
+  });
+
+  describe("a refused file deletes nothing", () => {
+    it("when another row of the file is refused", () => {
+      const entry = markPaid(rentItem().id);
+
+      const result = commit(
+        [draft(), draft({ label: "BAD ROW", amount: "not an amount" })],
+        [{ index: 0, entryId: entry.id }],
+      );
+
+      expect(result.status).toBe("invalid");
+      expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entry.id })]);
+      expect(listImportBatches(db, checkingId)).toEqual([]);
+    });
+
+    it("when the entry chosen is not one the row can replace", () => {
+      const item = rentItem();
+      const entry = markPaid(item.id);
+
+      const result = commit([draft({ amount: "-900,00" })], [{ index: 0, entryId: entry.id }]);
+
+      expect(result).toMatchObject({ status: "blocked", issues: [{ kind: "replacementRefused", index: 0 }] });
+      expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entry.id, plannedItemId: item.id })]);
+      expect(listImportBatches(db, checkingId)).toEqual([]);
+    });
+
+    it("when the same entry is chosen for two rows", () => {
+      const entry = markPaid(rentItem().id);
+
+      const result = commit(
+        [draft(), draft({ date: "2026-03-06", label: "RENT AGAIN" })],
+        [
+          { index: 0, entryId: entry.id },
+          { index: 1, entryId: entry.id },
+        ],
+      );
+
+      expect(result).toMatchObject({ status: "blocked", issues: [{ kind: "replacementRefused", index: 1 }] });
+      expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entry.id })]);
+    });
+  });
+
+  it("the undo of the file restores nothing it did not create", () => {
+    const item = rentItem();
+    const entry = markPaid(item.id);
+    const result = commit([draft()], [{ index: 0, entryId: entry.id }]);
+    if (result.status !== "done" || result.batchId === null) throw new Error("The file was not recorded");
+
+    expect(undoImportBatch(db, result.batchId)).toBe(1);
+
+    expect(listTransactions(db)).toEqual([]);
+    expect(isOpen(item.id, RENT_DATE)).toBe(true);
+  });
+});

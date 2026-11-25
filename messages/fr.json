@@ -1077,7 +1077,8 @@
         "message": "Tous les mouvements enregistrés depuis ce fichier seront supprimés, les deux jambes d'un virement comprises, et le fichier pourra être importé de nouveau. Cela ne fonctionne que si rien n'a été modifié dans ce fichier depuis l'import. Les règles, les assertions de solde et les comptes de débordement créés avec lui restent.",
         "confirm": "Supprimer les mouvements de ce fichier",
         "done": "Import annulé. Mouvements supprimés : {count}.",
-        "failed": "Une erreur est survenue, rien n'a été supprimé."
+        "failed": "Une erreur est survenue, rien n'a été supprimé.",
+        "replacedNote": "{count, plural, one {Ce fichier a remplacé une entrée marquée comme payée. L'annuler ne fait pas revenir l'entrée : son occurrence redevient non réglée, et vous pourrez la marquer de nouveau comme payée.} other {Ce fichier a remplacé # entrées marquées comme payées. L'annuler ne les fait pas revenir : leurs occurrences redeviennent non réglées, et vous pourrez les marquer de nouveau comme payées.}}"
       },
       "ruleProposals": {
         "heading": "Règles à créer depuis ce fichier",
@@ -1127,7 +1128,8 @@
         "overflowChainCycle": "La chaîne de débordement des comptes d'épargne boucle. Corrigez-la dans les comptes, puis importez à nouveau.",
         "rowProblem": {
           "savingsAccountRequired": "Choisissez le compte d'épargne."
-        }
+        },
+        "replacementRefused": "L'entrée choisie pour être remplacée par cette ligne n'est plus une entrée qu'elle peut remplacer. Relisez le fichier et choisissez de nouveau."
       },
       "problems": {
         "dateInvalid": "Saisissez une date valide.",
@@ -1240,7 +1242,20 @@
         "reordered": "Ce n'est pas l'ordre dans lequel vous les avez choisis.",
         "overlap": "Les dates chevauchent celles d'un fichier listé avant : {names}. Chaque fichier est traité en entier, donc ses lignes d'épargne sont placées après toutes celles des fichiers précédents, même quand certaines sont plus anciennes."
       },
-      "importAfter": "Importez ou annulez d'abord {name} : les fichiers sont enregistrés dans l'ordre des dates."
+      "importAfter": "Importez ou annulez d'abord {name} : les fichiers sont enregistrés dans l'ordre des dates.",
+      "entered": {
+        "heading": "Entrées déjà marquées comme payées",
+        "intro": "Ces lignes du fichier ressemblent à des paiements que vous avez déjà marqués comme payés. Remplacez votre entrée par la ligne bancaire, ou gardez les deux : garder les deux compte le mouvement deux fois.",
+        "legend": "Ligne {line} : {label}, {date}, {amount}",
+        "one": "Vous avez marqué {name} du {nominalDate} comme payé le {date} ({amount}).",
+        "several": "Cette ligne peut correspondre à l'une de {count} entrées marquées comme payées. Choisissez celle à remplacer, ou gardez les deux.",
+        "replace": "Remplacer mon entrée par cette ligne bancaire",
+        "replaceThis": "Remplacer mon entrée {name} du {nominalDate}, payée le {date} ({amount})",
+        "keepBoth": "Garder les deux",
+        "takes": "La ligne bancaire reprend l'occurrence de l'entrée, sa catégorie si la ligne n'en a pas, et sa description si la ligne n'en a pas.",
+        "undoNote": "Si vous annulez ce fichier plus tard, une entrée remplacée ne revient pas : son occurrence redevient non réglée, et vous pourrez la marquer de nouveau comme payée.",
+        "chooseFirst": "{count, plural, one {Choisissez quoi faire de la ligne qui peut être une entrée marquée comme payée.} other {Choisissez quoi faire des # lignes qui peuvent être des entrées marquées comme payées.}}"
+      }
     }
   },
   "backup": {

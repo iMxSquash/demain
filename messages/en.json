@@ -1077,7 +1077,8 @@
         "message": "Every movement recorded from this file will be removed, both legs of a transfer included, and the file can be imported again. This works only if nothing in the file was changed since the import. The rules, the balance assertions and the overflow accounts created with it stay.",
         "confirm": "Remove the movements of this file",
         "done": "Import undone. Movements removed: {count}.",
-        "failed": "Something went wrong, nothing was removed."
+        "failed": "Something went wrong, nothing was removed.",
+        "replacedNote": "{count, plural, one {This file replaced an entry marked as paid. Undoing it does not bring the entry back: its occurrence becomes unpaid again, and you can mark it as paid again.} other {This file replaced # entries marked as paid. Undoing it does not bring them back: their occurrences become unpaid again, and you can mark them as paid again.}}"
       },
       "ruleProposals": {
         "heading": "Rules to create from this file",
@@ -1127,7 +1128,8 @@
         "overflowChainCycle": "The overflow chain of the savings accounts loops. Fix it in the accounts, then import again.",
         "rowProblem": {
           "savingsAccountRequired": "Choose the savings account."
-        }
+        },
+        "replacementRefused": "The entry chosen to be replaced by this row is not one it can replace any more. Read the file again and choose again."
       },
       "problems": {
         "dateInvalid": "Enter a valid date.",
@@ -1240,7 +1242,20 @@
         "reordered": "This is not the order in which you chose them.",
         "overlap": "Dates overlap with a file listed before: {names}. Each file is processed whole, so its savings rows are placed after all those of the files before it, even when some are earlier."
       },
-      "importAfter": "Import or cancel {name} first: the files are recorded in date order."
+      "importAfter": "Import or cancel {name} first: the files are recorded in date order.",
+      "entered": {
+        "heading": "Entries already marked as paid",
+        "intro": "These rows of the file look like payments you already marked as paid. Replace your entry with the bank row, or keep both: keeping both counts the movement twice.",
+        "legend": "Row {line}: {label}, {date}, {amount}",
+        "one": "You marked {name} of {nominalDate} as paid on {date} ({amount}).",
+        "several": "This row may be one of {count} entries marked as paid. Choose the one to replace, or keep both.",
+        "replace": "Replace my entry with this bank row",
+        "replaceThis": "Replace my entry {name} of {nominalDate}, paid on {date} ({amount})",
+        "keepBoth": "Keep both",
+        "takes": "The bank row takes the occurrence of the entry, its category if the row has none, and its description if the row has none.",
+        "undoNote": "If you undo this file later, a replaced entry does not come back: its occurrence becomes unpaid again, and you can mark it as paid again.",
+        "chooseFirst": "{count, plural, one {Choose what to do with the row that may be an entry marked as paid.} other {Choose what to do with the # rows that may be entries marked as paid.}}"
+      }
     }
   },
   "backup": {
