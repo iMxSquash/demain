@@ -22,8 +22,8 @@ export type PaymentMode = (typeof PAYMENT_MODES)[number];
 
 const TRANSFER_PAYMENT_MODE = "transfer" satisfies PaymentMode;
 
-function isPaymentMode(value: string): value is PaymentMode {
-  return (PAYMENT_MODES as readonly string[]).includes(value);
+export function isPaymentMode(value: unknown): value is PaymentMode {
+  return typeof value === "string" && (PAYMENT_MODES as readonly string[]).includes(value);
 }
 
 export interface TransactionInput {
@@ -101,15 +101,19 @@ function normalizeLabel(label: string): string {
   return trimmed;
 }
 
+export function assertPaymentMode(value: unknown): asserts value is PaymentMode {
+  if (isPaymentMode(value)) return;
+  const mode = String(value);
+  throw new TransactionValidationError(
+    "paymentMode",
+    `Unknown payment mode "${mode}"`,
+    messageRef("transactionPaymentModeUnknown", { mode }),
+  );
+}
+
 function normalizePaymentMode(value: string | null | undefined): PaymentMode | null {
   if (value === null || value === undefined) return null;
-  if (!isPaymentMode(value)) {
-    throw new TransactionValidationError(
-      "paymentMode",
-      `Unknown payment mode "${value}"`,
-      messageRef("transactionPaymentModeUnknown", { mode: value }),
-    );
-  }
+  assertPaymentMode(value);
   return value;
 }
 
