@@ -23,8 +23,11 @@ import {
   cancelPlannedItem,
   createPlannedItem,
   deleteOccurrenceOverride,
+  deletePlannedItem,
   getPlannedItem,
+  hasLinkedTransactions,
   listPlannedItems,
+  PlannedItemHasTransactionsError,
   PlannedItemNotFoundError,
   saveOccurrenceOverride,
   setPlannedItemEnd,
@@ -600,6 +603,80 @@ describe("planned items", () => {
     it("throws for a missing item on the end date and the cancellation", () => {
       expect(() => setPlannedItemEnd(db, 999, null)).toThrow(PlannedItemNotFoundError);
       expect(() => cancelPlannedItem(db, 999)).toThrow(PlannedItemNotFoundError);
+    });
+
+    describe("deletion", () => {
+      it("refuses an unknown id", () => {
+        expect(() => deletePlannedItem(db, 999)).toThrow(PlannedItemNotFoundError);
+      });
+
+      it("deletes an item, its versions and its overrides", () => {
+        const mistake = createPlannedItem(db, rent);
+        addPlannedItemVersion(db, mistake.id, rentFrom("2026-04-05"));
+        override(mistake.id, "2026-02-05");
+        const kept = createPlannedItem(db, { ...rent, name: "Gym" });
+        override(kept.id, "2026-02-05");
+
+        deletePlannedItem(db, mistake.id);
+
+        expect(() => getPlannedItem(db, mistake.id)).toThrow(PlannedItemNotFoundError);
+        expect(db.select().from(plannedItemVersions).all()).toEqual([
+          expect.objectContaining({ plannedItemId: kept.id }),
+        ]);
+        expect(db.select().from(occurrenceOverrides).all()).toEqual([
+          expect.objectContaining({ plannedItemId: kept.id }),
+        ]);
+      });
+
+      it("deletes a cancelled item", () => {
+        const item = createPlannedItem(db, rent);
+        cancelPlannedItem(db, item.id);
+
+        deletePlannedItem(db, item.id);
+
+        expect(listPlannedItems(db, { includeCancelled: true })).toEqual([]);
+      });
+
+      it("refuses an item with a linked transaction and changes nothing", () => {
+        const item = createPlannedItem(db, rent);
+        override(item.id, "2026-02-05");
+        settle(item.id, "2026-01-05");
+        const before = getPlannedItem(db, item.id);
+
+        expect(() => deletePlannedItem(db, item.id)).toThrow(PlannedItemHasTransactionsError);
+
+        expect(getPlannedItem(db, item.id)).toEqual(before);
+        expect(db.select().from(transactions).all()).toEqual([
+          expect.objectContaining({ plannedItemId: item.id, occurrenceDate: "2026-01-05" }),
+        ]);
+      });
+
+      it("refuses an item linked by a transaction without an occurrence date", () => {
+        const item = createPlannedItem(db, rent);
+        const transaction = createTransaction(db, {
+          accountId,
+          date: "2026-01-05",
+          amount: -80_000,
+          kind: "expense",
+          label: "Rent",
+        });
+        db.update(transactions)
+          .set({ plannedItemId: item.id })
+          .where(eq(transactions.id, transaction.id))
+          .run();
+
+        expect(hasLinkedTransactions(db, item.id)).toBe(true);
+        expect(() => deletePlannedItem(db, item.id)).toThrow(PlannedItemHasTransactionsError);
+      });
+
+      it("tells whether an item has linked transactions", () => {
+        const item = createPlannedItem(db, rent);
+        expect(hasLinkedTransactions(db, item.id)).toBe(false);
+
+        settle(item.id, "2026-01-05");
+
+        expect(hasLinkedTransactions(db, item.id)).toBe(true);
+      });
     });
 
     it("refuses an effective date on or before a settled occurrence and names the earliest date", () => {

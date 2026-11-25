@@ -46,6 +46,13 @@ export class PlannedItemNotFoundError extends Error {
   }
 }
 
+export class PlannedItemHasTransactionsError extends Error {
+  constructor(id: number) {
+    super(`Planned item ${id} is linked to transactions: cancel it instead`);
+    this.name = "PlannedItemHasTransactionsError";
+  }
+}
+
 function attachDetails(db: Reader, items: PlannedItem[]): PlannedItemWithDetails[] {
   if (items.length === 0) return [];
   const ids = items.map((item) => item.id);
@@ -261,6 +268,32 @@ export function cancelPlannedItem(db: AppDatabase, itemId: number): PlannedItemW
       .run();
     if (changes === 0) throw new PlannedItemNotFoundError(itemId);
     return getPlannedItem(tx, itemId);
+  });
+}
+
+/** Whether a transaction is linked to the item, with or without an occurrence date. */
+export function hasLinkedTransactions(db: Reader, itemId: number): boolean {
+  const linked = db
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(eq(transactions.plannedItemId, itemId))
+    .limit(1)
+    .get();
+  return linked !== undefined;
+}
+
+/**
+ * Deletes an item created by mistake, with its versions and overrides. An item that a transaction
+ * references is kept for the history (DOMAIN, invariant 5): it can only be cancelled.
+ */
+export function deletePlannedItem(db: AppDatabase, itemId: number): void {
+  db.transaction((tx) => {
+    getPlannedItem(tx, itemId);
+    // Checked inside the transaction of the write: a link recorded since the page was shown counts.
+    if (hasLinkedTransactions(tx, itemId)) throw new PlannedItemHasTransactionsError(itemId);
+    tx.delete(occurrenceOverrides).where(eq(occurrenceOverrides.plannedItemId, itemId)).run();
+    tx.delete(plannedItemVersions).where(eq(plannedItemVersions.plannedItemId, itemId)).run();
+    tx.delete(plannedItems).where(eq(plannedItems.id, itemId)).run();
   });
 }
 
