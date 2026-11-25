@@ -46,6 +46,7 @@ function occurrence(overrides: Partial<MatchOccurrence> = {}): MatchOccurrence {
     status: "planned",
     windowDays: DEFAULT_WINDOW_DAYS,
     toleranceBasisPoints: DEFAULT_TOLERANCE_BASIS_POINTS,
+    isTransfer: false,
     ...overrides,
   };
 }
@@ -228,12 +229,38 @@ describe("decideMatches", () => {
       expect(result).toEqual(noMatch([1]));
     });
 
-    it("ignores transfers entirely", () => {
+    it("a transfer leg never settles a planned expense", () => {
       const transfers = [transaction({ id: 1, kind: "transfer" })];
 
       const result = decideMatches(transfers, [occurrence()]);
 
-      expect(result).toEqual(noMatch());
+      expect(result).toEqual(noMatch([1]));
+    });
+
+    it("an expense never settles a planned transfer", () => {
+      const result = decideMatches([transaction({ id: 1 })], [occurrence({ isTransfer: true })]);
+
+      expect(result).toEqual(noMatch([1]));
+    });
+
+    it("a transfer leg settles a planned transfer of its account", () => {
+      const transfers = [transaction({ id: 1, kind: "transfer" })];
+
+      const result = decideMatches(transfers, [occurrence({ plannedItemId: 4, isTransfer: true })]);
+
+      expect(result).toEqual({ confirmed: [pair(1, 4)], proposed: [], unmatched: [] });
+    });
+
+    it("two planned transfers of the same amount are proposed, not confirmed", () => {
+      const transfers = [transaction({ id: 1, kind: "transfer" })];
+      const occurrences = [
+        occurrence({ plannedItemId: 4, isTransfer: true }),
+        occurrence({ plannedItemId: 5, isTransfer: true }),
+      ];
+
+      const result = decideMatches(transfers, occurrences);
+
+      expect(result).toEqual({ confirmed: [], proposed: [[pair(1, 4), pair(1, 5)]], unmatched: [] });
     });
 
     it("does not let a transfer make a regular match ambiguous", () => {
@@ -241,7 +268,7 @@ describe("decideMatches", () => {
 
       const result = decideMatches(transactions, [occurrence()]);
 
-      expect(result).toEqual({ confirmed: [pair(1, 1)], proposed: [], unmatched: [] });
+      expect(result).toEqual({ confirmed: [pair(1, 1)], proposed: [], unmatched: [2] });
     });
   });
 

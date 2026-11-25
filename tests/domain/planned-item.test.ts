@@ -114,6 +114,18 @@ describe("validatePlannedItemInput", () => {
     expect(error.ref.key).toEqual(expect.any(String));
   });
 
+  it("refuses a provision on a planned transfer", () => {
+    const error = refusal({
+      ...RENT,
+      kind: "transfer",
+      destinationAccountId: 2,
+      acceptsMultipleTransactions: true,
+    });
+
+    expect(error.field).toBe("acceptsMultipleTransactions");
+    expect(error.ref.key).toBe("plannedItemProvisionOnTransfer");
+  });
+
   it("accepts a monthly expense", () => {
     expect(validatePlannedItemInput(RENT, CONTEXT)).toMatchObject({
       name: "Rent",

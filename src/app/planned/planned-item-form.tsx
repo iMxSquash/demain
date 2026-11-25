@@ -152,8 +152,12 @@ export function PlannedItemForm({
       {account.name} ({account.currency})
     </option>
   ));
+  // A transfer is never a provision: the box and its filter go with JavaScript, and the domain
+  // refuses them without it. The state keeps the box so that switching back restores it.
+  const isProvisionOffered = !isTransfer || !isHydrated;
+  const isProvisionShown = isProvision && !isTransfer;
+  const isMatchingHidden = isProvisionShown && isHydrated;
   // A refusal that no control shows, such as a failed save, is told above the button.
-  const isMatchingHidden = isProvision && isHydrated;
   const hasOwnControl =
     state?.field !== undefined &&
     state.field !== "kind" &&
@@ -297,24 +301,28 @@ export function PlannedItemForm({
           <AmountInput {...controlProps("amount")} className={CONTROL_CLASS} required />
         </FormField>
 
-        <div className={FULL_WIDTH_CLASS}>
-          <Checkbox
-            key={`provision-${resultCount}`}
-            name="acceptsMultipleTransactions"
-            value={PROVISION_CHECKED}
-            defaultChecked={values.acceptsMultipleTransactions === PROVISION_CHECKED}
-            onChange={(event) => {
-              const { form } = event.target;
-              if (form !== null) {
-                setMatching((current) => matchingOfForm(new FormData(form), current));
-              }
-              setIsProvision(event.target.checked);
-            }}
-            label={t("provision")}
-          />
-        </div>
+        {isProvisionOffered ? (
+          <div className={FULL_WIDTH_CLASS}>
+            {/* Mounted again after a switch back from a transfer: the state, not the last result,
+                says whether the box was checked. */}
+            <Checkbox
+              key={`provision-${resultCount}`}
+              name="acceptsMultipleTransactions"
+              value={PROVISION_CHECKED}
+              defaultChecked={isProvision}
+              onChange={(event) => {
+                const { form } = event.target;
+                if (form !== null) {
+                  setMatching((current) => matchingOfForm(new FormData(form), current));
+                }
+                setIsProvision(event.target.checked);
+              }}
+              label={t("provision")}
+            />
+          </div>
+        ) : null}
 
-        {isProvision || !isHydrated ? (
+        {isProvisionShown || !isHydrated ? (
           <div className={FULL_WIDTH_CLASS}>
             <FormField
               {...fieldProps("provisionLabelFilter", t("provisionLabelFilter"))}

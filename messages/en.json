@@ -1377,6 +1377,7 @@
     "plannedItemAverageWindowInvalid": "The average window must be one of {allowed}",
     "plannedItemLabelFilterNeedsProvision": "A label filter only applies to a provision",
     "plannedItemProvisionNeedsRepetition": "A provision needs a repetition",
+    "plannedItemProvisionOnTransfer": "A transfer cannot be a provision",
     "plannedItemTolerancePercentInvalid": "The tolerance is a percentage from 0 to 100, with two decimals at most",
     "plannedItemRepetitionNumberInvalid": "Enter a whole number: 1 to 31 for a day, 1 or more for months and weeks",
     "plannedItemBusinessDayRuleInvalid": "Choose what to do when the date falls on a weekend",

@@ -342,6 +342,14 @@ export function validatePlannedItemInput(
       messageRef("plannedItemProvisionNeedsRepetition"),
     );
   }
+  // A planned transfer is settled by one imported row, never filled up (owner, Q3 of #175).
+  if (acceptsMultipleTransactions && input.kind === "transfer") {
+    refuse(
+      "acceptsMultipleTransactions",
+      "A transfer cannot be a provision",
+      messageRef("plannedItemProvisionOnTransfer"),
+    );
+  }
 
   return {
     name,

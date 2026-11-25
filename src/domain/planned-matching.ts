@@ -32,6 +32,8 @@ export interface MatchOccurrence {
   status: OccurrenceStatus;
   windowDays: number;
   toleranceBasisPoints: number;
+  /** A planned transfer is settled by transfer legs only, and nothing else settles it. */
+  isTransfer: boolean;
 }
 
 /** An open provision occurrence: the caller leaves out the cancelled ones, no status is checked here. */
@@ -96,6 +98,7 @@ function toPair(transaction: MatchTransaction, plannedItemId: number, nominalDat
 }
 
 function isRegularCandidate(transaction: MatchTransaction, occurrence: MatchOccurrence): boolean {
+  if ((transaction.kind === "transfer") !== occurrence.isTransfer) return false;
   if (!MATCHABLE_STATUSES.includes(occurrence.status)) return false;
   if (transaction.accountId !== occurrence.accountId) return false;
   if (transaction.date < addDays(occurrence.date, -occurrence.windowDays)) return false;
@@ -183,10 +186,10 @@ export function decideMatches(
   occurrences: readonly MatchOccurrence[],
   provisions: readonly ProvisionOccurrence[] = [],
 ): MatchDecisions {
-  const matchable = transactions.filter((transaction) => transaction.kind !== "transfer");
-  const candidates = [...regularCandidates(matchable, occurrences), ...provisionCandidates(matchable, provisions)].sort(
-    (a, b) => comparePairs(a.pair, b.pair),
-  );
+  const candidates = [
+    ...regularCandidates(transactions, occurrences),
+    ...provisionCandidates(transactions, provisions),
+  ].sort((a, b) => comparePairs(a.pair, b.pair));
   const perTransaction = Map.groupBy(candidates, (candidate) => candidate.pair.transactionId);
   const regularPerOccurrence = Map.groupBy(
     candidates.filter((candidate) => !candidate.isProvision),
@@ -204,7 +207,7 @@ export function decideMatches(
     else ambiguous.push(candidate);
   }
 
-  const unmatched = matchable
+  const unmatched = transactions
     .filter((transaction) => !perTransaction.has(transaction.id))
     .map((transaction) => transaction.id)
     .sort((a, b) => a - b);

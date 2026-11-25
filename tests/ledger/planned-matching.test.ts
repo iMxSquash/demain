@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { detailsFromSign } from "../../src/domain/import-draft";
 import { resolveOccurrences } from "../../src/domain/occurrence-resolution";
 import type { MatchPair } from "../../src/domain/planned-matching";
 import type { PlannedItemInput } from "../../src/domain/planned-item";
@@ -734,6 +735,43 @@ describe("linking a transaction to an occurrence by hand", () => {
     const archivedError = catchError(() => linkByHand(db, pairOf(shop.id), TODAY));
     expect(archivedError).toMatchObject({ ref: { key: "transactionOnArchivedAccount" } });
     expect(getTransaction(db, shop.id)).toMatchObject(NO_LINK);
+  });
+
+  it("refuses to unlink by hand a transfer leg linked by an import", () => {
+    const savingsId = createAccount(db, {
+      ...ACCOUNT_DETAILS,
+      name: "Savings",
+      kind: "savings",
+    }).id;
+    const item = oneOffItem("Savings plan", "2026-03-10", {
+      kind: "transfer",
+      destinationAccountId: savingsId,
+    });
+    commitImport(db, {
+      accountId: checkingId,
+      format: "ofx",
+      fileName: "statement.file",
+      mapping: null,
+      rows: [
+        {
+          ...row("2026-03-10", -1_000, "TO SAVINGS"),
+          details: { ...detailsFromSign(-1), type: "savings", savingsAccountId: savingsId },
+        },
+      ],
+      now: NOW,
+      today: TODAY,
+    });
+    const leg = listTransactions(db).find(
+      (transaction) => transaction.accountId === checkingId && transaction.label === "TO SAVINGS",
+    )!;
+
+    const error = catchError(() => unlinkByHand(db, leg.id));
+
+    expect(refOf(error)).toBe("matchTransactionIsTransfer");
+    expect(getTransaction(db, leg.id)).toMatchObject({
+      plannedItemId: item.id,
+      occurrenceDate: "2026-03-10",
+    });
   });
 
   it("unlinks by hand, and refuses a transaction of an archived account", () => {

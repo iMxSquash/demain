@@ -210,6 +210,22 @@ describe("parsePlannedItemForm", () => {
     });
   });
 
+  it("passes a provision on a transfer for the domain to refuse", () => {
+    expect(
+      parsePlannedItemForm(
+        formOf({
+          kind: "transfer",
+          destinationAccountId: "2",
+          acceptsMultipleTransactions: "true",
+          provisionLabelFilter: "market",
+        }),
+      ),
+    ).toMatchObject({
+      ok: true,
+      input: { kind: "transfer", acceptsMultipleTransactions: true, provisionLabelFilter: "market" },
+    });
+  });
+
   it("drops the destination of anything but a transfer", () => {
     expect(parsePlannedItemForm(formOf({ destinationAccountId: "2" }))).toMatchObject({
       ok: true,

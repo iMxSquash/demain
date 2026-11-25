@@ -374,8 +374,8 @@ export function parsePlannedItemForm(
       amount: signedAmountOf(kind, amount.value),
       amountMode: mode.amountMode,
       averageWindow: mode.averageWindow,
+      // The domain refuses a filter without the provision box, and a provision on a transfer.
       acceptsMultipleTransactions: values.acceptsMultipleTransactions === PROVISION_CHECKED,
-      // The domain refuses a filter without the provision box.
       provisionLabelFilter: values.provisionLabelFilter,
       matchWindowDays: match.windowDays,
       matchAmountToleranceBp: match.toleranceBp,

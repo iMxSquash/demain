@@ -1377,6 +1377,7 @@
     "plannedItemAverageWindowInvalid": "La fenêtre de moyenne doit valoir {allowed}",
     "plannedItemLabelFilterNeedsProvision": "Un filtre de libellé ne s'applique qu'à une provision",
     "plannedItemProvisionNeedsRepetition": "Une provision a besoin d'une répétition",
+    "plannedItemProvisionOnTransfer": "Un virement ne peut pas être une provision",
     "plannedItemTolerancePercentInvalid": "La tolérance est un pourcentage de 0 à 100, avec deux décimales au plus",
     "plannedItemRepetitionNumberInvalid": "Saisissez un nombre entier : de 1 à 31 pour un jour, 1 ou plus pour des mois et des semaines",
     "plannedItemBusinessDayRuleInvalid": "Choisissez quoi faire quand la date tombe un week-end",
