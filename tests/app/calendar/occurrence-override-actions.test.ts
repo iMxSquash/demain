@@ -173,7 +173,8 @@ describe("occurrence override actions", () => {
       formOf({ itemId: String(itemId + 1), nominalDate: NOMINAL_DATE, intent: "skip" }),
     );
 
-    expect(state).toMatchObject({ message: "plannedItemGone" });
+    expect(state).toEqual({ message: "plannedItemGone", values: { overrideDate: "", overrideAmount: "" } });
+    expect(flashed()).toMatchObject({ kind: "error", ref: { key: "plannedItemGone" } });
   });
 
   it("restores the computed date and amount, then tells it", async () => {
@@ -204,5 +205,12 @@ describe("occurrence override actions", () => {
     db.$client.exec(`UPDATE planned_items SET cancelled = 1 WHERE id = ${itemId}`);
 
     expect(await restore()).toEqual({ message: "plannedItemOccurrenceOnCancelled" });
+  });
+
+  it("tells, in the form and in a toast, that the item to restore no longer exists", async () => {
+    const state = await restore({ itemId: String(itemId + 1) });
+
+    expect(state).toEqual({ message: "plannedItemGone" });
+    expect(flashed()).toMatchObject({ kind: "error", ref: { key: "plannedItemGone" } });
   });
 });

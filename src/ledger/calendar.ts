@@ -1,5 +1,6 @@
 import { addDays } from "../domain/calendar-date";
 import { convertAmount } from "../domain/exchange-rate";
+import type { OccurrenceOverride } from "../domain/occurrences";
 import {
   resolveOccurrences,
   type OccurrenceLink,
@@ -63,12 +64,11 @@ export interface CalendarEntry {
   unplacedSurplus: { amount: number; accountId: number } | null;
   /** A planned transfer whose overflow chain is invalid. */
   routingInvalid: boolean;
-  /** A planned occurrence skipped, moved or with a changed amount. False for a real transaction. */
-  hasOverride: boolean;
-  /** The date stored by the override, null when it keeps the computed date or has no override. */
-  overrideDate: string | null;
-  /** The signed amount stored by the override, null when it keeps the computed amount. */
-  overrideAmount: number | null;
+  /**
+   * The override of a planned occurrence skipped, moved or with a changed amount; its date and
+   * signed amount are null when it keeps the computed ones. Null for a real transaction.
+   */
+  override: OccurrenceOverride | null;
   /**
    * A planned occurrence with at least one linked transaction (a partial provision): it must be
    * unlinked before it is changed or restored. False for a real transaction.
@@ -157,9 +157,7 @@ function buildRealEntry(
     nominalDate: transaction.occurrenceDate,
     unplacedSurplus: null,
     routingInvalid: false,
-    hasOverride: false,
-    overrideDate: null,
-    overrideAmount: null,
+    override: null,
     isLinked: false,
   };
 }
@@ -167,6 +165,7 @@ function buildRealEntry(
 function buildPlannedEntry(
   item: PlannedItemWithDetails,
   occurrence: ResolvedOccurrence,
+  override: OccurrenceOverride | undefined,
   account: Account,
   categoryNames: ReadonlyMap<number, string>,
   transfers: ReadonlyMap<string, PlannedTransferRouting>,
@@ -175,7 +174,6 @@ function buildPlannedEntry(
   const isPending = occurrence.status === "planned" || occurrence.status === "partial";
   const routing = isPending ? transfers.get(routingKey(item.id, occurrence.nominalDate))?.routing : undefined;
   const unplaced = routing?.status === "ok" ? routing.unplaced : 0;
-  const override = item.overrides.find((candidate) => candidate.nominalDate === occurrence.nominalDate);
   return {
     id: `p${item.id}:${occurrence.nominalDate}`,
     date: occurrence.date,
@@ -194,9 +192,7 @@ function buildPlannedEntry(
     unplacedSurplus: unplaced > 0 ? { amount: unplaced, accountId: item.accountId } : null,
     // An invalid chain is reported on the row, never thrown (ADR-013).
     routingInvalid: routing?.status === "invalid",
-    hasOverride: override !== undefined,
-    overrideDate: override?.overrideDate ?? null,
-    overrideAmount: override?.overrideAmount ?? null,
+    override: override ?? null,
     isLinked: occurrence.links.length > 0,
   };
 }
@@ -235,6 +231,13 @@ function plannedEntries(
       selected.has(item.accountId) ||
       (item.destinationAccountId !== null && selected.has(item.destinationAccountId));
     if (account === undefined || !isSelected) return [];
+    // Only the fields of the domain: the row ids of the store stay on the server.
+    const overrides = new Map(
+      item.overrides.map(({ nominalDate, status, overrideDate, overrideAmount }): [string, OccurrenceOverride] => [
+        nominalDate,
+        { nominalDate, status, overrideDate, overrideAmount },
+      ]),
+    );
     // Resolved over the month itself rather than from today, so that a past month still shows
     // what was overdue or cancelled. A confirmed occurrence is listed through its transaction.
     return resolveOccurrences(
@@ -252,7 +255,16 @@ function plannedEntries(
         (occurrence) =>
           occurrence.status !== "confirmed" && occurrence.date >= range.from && occurrence.date <= range.to,
       )
-      .map((occurrence) => buildPlannedEntry(item, occurrence, account, categoryNames, routings));
+      .map((occurrence) =>
+        buildPlannedEntry(
+          item,
+          occurrence,
+          overrides.get(occurrence.nominalDate),
+          account,
+          categoryNames,
+          routings,
+        ),
+      );
   });
 }
 

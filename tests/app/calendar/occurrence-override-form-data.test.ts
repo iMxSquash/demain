@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseOccurrenceOverrideForm as parse,
   readOccurrenceTarget,
+  readSubmittedOverride,
 } from "../../../src/app/calendar/occurrence-override-form-data";
 import type { PlannedItemKind } from "../../../src/domain/planned-item";
 import { translateKey } from "../translate-key";
@@ -20,7 +21,10 @@ function formOf(fields: Record<string, string>): FormData {
 const parseOccurrenceOverrideForm = (
   fields: Record<string, string>,
   { kind = "expense", currency = "EUR" }: { kind?: PlannedItemKind; currency?: string } = {},
-) => parse(formOf(fields), { ...TARGET, kind, currency }, translateKey);
+) => {
+  const formData = formOf(fields);
+  return parse(formData, readSubmittedOverride(formData), { ...TARGET, kind, currency }, translateKey);
+};
 
 describe("readOccurrenceTarget", () => {
   it("reads the item id and the nominal date", () => {

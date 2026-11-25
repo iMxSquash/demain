@@ -10,6 +10,7 @@ import { CONTROL_CLASS, FormField } from "../form-field";
 import { Modal } from "../modal";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { deleteOccurrenceOverrideAction, saveOccurrenceOverrideAction } from "./actions";
+import { DAY_HEADING_SELECTOR } from "./month-grid-client";
 import {
   SAVE_INTENT,
   SKIP_INTENT,
@@ -18,7 +19,7 @@ import {
 } from "./occurrence-override-form-data";
 
 /** Where the focus goes when the row of a changed occurrence leaves the page (DESIGN section 6). */
-const FOCUS_FALLBACK_SELECTORS = ["[data-day-heading]", "[data-focus-fallback]"];
+const FOCUS_FALLBACK_SELECTORS = [DAY_HEADING_SELECTOR, "[data-focus-fallback]"];
 
 export interface OccurrenceChangeButtonProps {
   itemId: number;

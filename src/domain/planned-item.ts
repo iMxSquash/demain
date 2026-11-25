@@ -98,7 +98,6 @@ export type PlannedItemField =
   | "amountMode"
   | "nominalDate"
   | "overrideDate"
-  | "overrideAmount"
   | "averageWindow";
 
 export class PlannedItemValidationError extends Error {
@@ -165,14 +164,10 @@ function assertTransferDestination(
   }
 }
 
-function assertAmount(
-  kind: PlannedItemKind,
-  amount: number,
-  field: "amount" | "overrideAmount" = "amount",
-): void {
+function assertAmount(kind: PlannedItemKind, amount: number): void {
   if (!Number.isSafeInteger(amount) || amount === 0) {
     refuse(
-      field,
+      "amount",
       "The amount must be a non-zero integer in minor units",
       messageRef("transactionAmountNonZero"),
     );
@@ -181,17 +176,17 @@ function assertAmount(
   const leavesAccount = kind === "expense" || kind === "transfer";
   if (leavesAccount === amount < 0) return;
   if (kind === "expense") {
-    refuse(field, "An expense must have a negative amount", messageRef("expenseMustBeNegative"));
+    refuse("amount", "An expense must have a negative amount", messageRef("expenseMustBeNegative"));
   }
   if (kind === "transfer") {
     refuse(
-      field,
+      "amount",
       "The amount of a planned transfer must be negative, as it leaves the account",
       messageRef("plannedItemTransferMustBeNegative"),
     );
   }
   refuse(
-    field,
+    "amount",
     `An ${kind} must have a positive amount`,
     messageRef(kind === "interest" ? "interestMustBePositive" : "incomeMustBePositive"),
   );
@@ -731,9 +726,7 @@ export function validateOccurrenceOverride(
       messageRef("plannedItemOccurrenceNotProduced", { date: input.nominalDate }),
     );
   }
-  if (input.status === "cancelled") {
-    return { nominalDate: input.nominalDate, status: "cancelled", overrideDate: null, overrideAmount: null };
-  }
+  if (input.status === "cancelled") return { ...input, overrideDate: null, overrideAmount: null };
   if (input.overrideDate === null && input.overrideAmount === null) {
     refuse(
       "overrideDate",
@@ -742,13 +735,8 @@ export function validateOccurrenceOverride(
     );
   }
   if (input.overrideDate !== null) assertCalendarDate("overrideDate", input.overrideDate);
-  if (input.overrideAmount !== null) assertAmount(context.item.kind, input.overrideAmount, "overrideAmount");
-  return {
-    nominalDate: input.nominalDate,
-    status: "modified",
-    overrideDate: input.overrideDate,
-    overrideAmount: input.overrideAmount,
-  };
+  if (input.overrideAmount !== null) assertAmount(context.item.kind, input.overrideAmount);
+  return input;
 }
 
 /** Validates giving an occurrence back its computed date and amount. */

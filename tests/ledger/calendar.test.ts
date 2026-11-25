@@ -112,9 +112,7 @@ describe("monthly line view of real and planned movements", () => {
         nominalDate: null,
         unplacedSurplus: null,
         routingInvalid: false,
-        hasOverride: false,
-        overrideDate: null,
-        overrideAmount: null,
+        override: null,
         isLinked: false,
       },
     ]);
@@ -136,9 +134,7 @@ describe("monthly line view of real and planned movements", () => {
         nominalDate: "2026-11-15",
         unplacedSurplus: null,
         routingInvalid: false,
-        hasOverride: false,
-        overrideDate: null,
-        overrideAmount: null,
+        override: null,
         isLinked: false,
       },
     ]);
@@ -235,10 +231,10 @@ describe("monthly line view of real and planned movements", () => {
 
     const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
 
-    expect(entries.map(({ id, date, hasOverride }) => ({ id, date, hasOverride }))).toEqual([
-      { id: `t${groceries.id}`, date: "2026-11-03", hasOverride: false },
-      { id: `p${rent.id}:2026-11-15`, date: "2026-11-18", hasOverride: true },
-      { id: `p${gym.id}:2026-11-20`, date: "2026-11-20", hasOverride: true },
+    expect(entries.map(({ id, date, override }) => ({ id, date, status: override?.status ?? null }))).toEqual([
+      { id: `t${groceries.id}`, date: "2026-11-03", status: null },
+      { id: `p${rent.id}:2026-11-15`, date: "2026-11-18", status: "modified" },
+      { id: `p${gym.id}:2026-11-20`, date: "2026-11-20", status: "cancelled" },
     ]);
   });
 
@@ -261,12 +257,16 @@ describe("monthly line view of real and planned movements", () => {
 
     const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
 
-    expect(
-      entries.map(({ id, overrideDate, overrideAmount }) => ({ id, overrideDate, overrideAmount })),
-    ).toEqual([
-      { id: `t${groceries.id}`, overrideDate: null, overrideAmount: null },
-      { id: `p${rent.id}:2026-11-15`, overrideDate: null, overrideAmount: -62_000 },
-      { id: `p${gym.id}:2026-11-20`, overrideDate: "2026-11-22", overrideAmount: null },
+    expect(entries.map(({ id, override }) => ({ id, override }))).toEqual([
+      { id: `t${groceries.id}`, override: null },
+      {
+        id: `p${rent.id}:2026-11-15`,
+        override: { nominalDate: "2026-11-15", status: "modified", overrideDate: null, overrideAmount: -62_000 },
+      },
+      {
+        id: `p${gym.id}:2026-11-20`,
+        override: { nominalDate: "2026-11-20", status: "modified", overrideDate: "2026-11-22", overrideAmount: null },
+      },
     ]);
   });
 

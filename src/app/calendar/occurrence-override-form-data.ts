@@ -66,15 +66,16 @@ export function readSubmittedOverride(formData: FormData): OccurrenceOverrideFor
 }
 
 /**
- * Converts the occurrence form to a skip or a change. A blank field keeps what the schedule computes;
- * a zero amount is passed on, for the domain to refuse. The amount never goes through a float.
+ * Converts the occurrence form to a skip or a change, from the values read by
+ * `readSubmittedOverride`. A blank field keeps what the schedule computes; a zero amount is passed
+ * on, for the domain to refuse. The amount never goes through a float.
  */
 export function parseOccurrenceOverrideForm(
   formData: FormData,
+  values: OccurrenceOverrideFormValues,
   context: OccurrenceOverrideFormContext,
   translate: Translate,
 ): ParsedOccurrenceOverrideForm {
-  const values = readSubmittedOverride(formData);
   const fail = (ref: MessageRef, field?: OccurrenceOverrideFormField) => ({
     ok: false as const,
     error: { ...(field === undefined ? {} : { field }), message: translate(ref), values },

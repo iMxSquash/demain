@@ -1,19 +1,14 @@
 "use server";
 
-import { messageRef, type MessageRef, type Translate } from "../../domain/message";
 import type { OverrideStatus } from "../../domain/occurrences";
-import { PlannedItemValidationError, type PlannedItemField } from "../../domain/planned-item";
+import type { PlannedItemField } from "../../domain/planned-item";
 import { getAccount } from "../../ledger/accounts";
-import {
-  deleteOccurrenceOverride,
-  getPlannedItem,
-  PlannedItemNotFoundError,
-  saveOccurrenceOverride,
-} from "../../ledger/planned-items";
+import { deleteOccurrenceOverride, getPlannedItem, saveOccurrenceOverride } from "../../ledger/planned-items";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
-import { flashError, flashSuccess } from "../feedback/flash";
+import { flashSuccess } from "../feedback/flash";
+import { toFailureState } from "../planned/planned-item-failure";
 import { getTranslator } from "../translator";
 import {
   parseOccurrenceOverrideForm,
@@ -28,30 +23,16 @@ export interface OccurrenceRestoreFormState {
   message: string;
 }
 
-// The fields with a control of their own; a refusal on the nominal date (linked, cancelled item,
-// archived account, no such occurrence) is about the occurrence, so it is told as a message.
-function controlOf(field: PlannedItemField): OccurrenceOverrideFormField | undefined {
-  return field === "overrideDate" || field === "overrideAmount" ? field : undefined;
+// The domain refuses the amount of an override on "amount", like any planned amount. A refusal on
+// the nominal date (linked, cancelled item, archived account, no such occurrence) is about the
+// occurrence, so it is told as a message.
+function overrideControlOf(field: PlannedItemField): OccurrenceOverrideFormField | undefined {
+  if (field === "overrideDate") return "overrideDate";
+  if (field === "amount") return "overrideAmount";
+  return undefined;
 }
 
-/**
- * A refusal of the domain is shown in the form, on its field when it has one. An unexpected failure
- * is logged with its detail, the user sees a generic message in the form and in a toast.
- */
-async function describeFailure(
-  error: unknown,
-  translate: Translate,
-): Promise<{ field?: OccurrenceOverrideFormField; message: string }> {
-  if (error instanceof PlannedItemValidationError) {
-    const field = controlOf(error.field);
-    return { ...(field === undefined ? {} : { field }), message: translate(error.ref) };
-  }
-  if (error instanceof PlannedItemNotFoundError) return { message: translate(messageRef("plannedItemGone")) };
-  console.error("Occurrence override action failed", error);
-  const ref: MessageRef = messageRef("plannedItemNotSaved");
-  await flashError(ref);
-  return { message: translate(ref) };
-}
+const noControl = () => undefined;
 
 type SaveOutcome = { rejected: OccurrenceOverrideFormState } | { status: OverrideStatus };
 
@@ -76,13 +57,13 @@ export async function saveOccurrenceOverrideAction(
       // The kind gives the sign of the amount and the account its currency: neither comes from the form.
       const { kind, accountId } = getPlannedItem(db, target.itemId);
       const { currency } = getAccount(db, accountId);
-      const parsed = parseOccurrenceOverrideForm(formData, { ...target, kind, currency }, translate);
+      const parsed = parseOccurrenceOverrideForm(formData, values, { ...target, kind, currency }, translate);
       if (!parsed.ok) return { rejected: parsed.error };
       saveOccurrenceOverride(db, target.itemId, parsed.input);
       return { status: parsed.input.status };
     });
   } catch (error) {
-    return { ...(await describeFailure(error, translate)), values };
+    return { ...(await toFailureState(error, translate, overrideControlOf)), values };
   }
   if ("rejected" in outcome) return outcome.rejected;
 
@@ -106,7 +87,8 @@ export async function deleteOccurrenceOverrideAction(
   try {
     withDatabase((db) => deleteOccurrenceOverride(db, itemId, nominalDate));
   } catch (error) {
-    return { message: (await describeFailure(error, translate)).message };
+    const { message } = await toFailureState(error, translate, noControl);
+    return { message };
   }
 
   refreshData();

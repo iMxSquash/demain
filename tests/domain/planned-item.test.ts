@@ -579,9 +579,9 @@ describe("validateOccurrenceOverride", () => {
     ["an impossible override date", { overrideDate: "2026-02-30" }, "overrideDate", "plannedItemDateInvalid"],
     ["an empty override date", { overrideDate: "" }, "overrideDate", "plannedItemDateInvalid"],
     ["neither a date nor an amount", { overrideDate: null, overrideAmount: null }, "overrideDate", "plannedItemOverrideEmpty"],
-    ["a zero amount", { overrideAmount: 0 }, "overrideAmount", "transactionAmountNonZero"],
-    ["a fractional amount", { overrideAmount: 1.5 }, "overrideAmount", "transactionAmountNonZero"],
-    ["a positive amount on an expense", { overrideAmount: 5_000 }, "overrideAmount", "expenseMustBeNegative"],
+    ["a zero amount", { overrideAmount: 0 }, "amount", "transactionAmountNonZero"],
+    ["a fractional amount", { overrideAmount: 1.5 }, "amount", "transactionAmountNonZero"],
+    ["a positive amount on an expense", { overrideAmount: 5_000 }, "amount", "expenseMustBeNegative"],
   ] as const)("refuses %s", (_label, change, field, key) => {
     const error = refusalOf(() => validateOccurrenceOverride({ ...moveFebruary, ...change }, contextOf()));
 

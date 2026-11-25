@@ -838,8 +838,8 @@ describe("planned items", () => {
     });
 
     it.each([
-      ["a zero amount", changeAmount("2026-02-05", 0), "overrideAmount", "transactionAmountNonZero"],
-      ["a positive amount on an expense", changeAmount("2026-02-05", 5_000), "overrideAmount", "expenseMustBeNegative"],
+      ["a zero amount", changeAmount("2026-02-05", 0), "amount", "transactionAmountNonZero"],
+      ["a positive amount on an expense", changeAmount("2026-02-05", 5_000), "amount", "expenseMustBeNegative"],
       ["an invalid override date", move("2026-02-05", "2026-02-30"), "overrideDate", "plannedItemDateInvalid"],
       ["an empty nominal date", skip(""), "nominalDate", "plannedItemDateInvalid"],
       ["a garbage nominal date", skip("next month"), "nominalDate", "plannedItemDateInvalid"],

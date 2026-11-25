@@ -133,23 +133,25 @@ function Notes({ notes }: { notes: readonly string[] }) {
 // A linked occurrence keeps what its transaction settled: it is unlinked first (owner decision Q1 of issue 174).
 // A skipped one keeps its button, so that it can be restored.
 function ChangeOccurrence({ entry, locale, text }: { entry: CalendarEntry; locale: string; text: CalendarLinesTableText }) {
-  const { plannedItemId, nominalDate } = entry;
+  const { plannedItemId, nominalDate, override } = entry;
   if (entry.kind !== "planned" || entry.isLinked || plannedItemId === null || nominalDate === null) return null;
-  const subject = `${entry.label}, ${formatCalendarDate(nominalDate, locale)}`;
+  const date = formatCalendarDate(nominalDate, locale);
   return (
     <OccurrenceChangeButton
       itemId={plannedItemId}
       nominalDate={nominalDate}
       label={text.change}
-      subject={subject}
-      title={text.changeTitle(entry.label, formatCalendarDate(nominalDate, locale))}
-      hasOverride={entry.hasOverride}
-      isSkipped={entry.hasOverride && entry.status === "cancelled"}
+      subject={`${entry.label}, ${date}`}
+      title={text.changeTitle(entry.label, date)}
+      hasOverride={override !== null}
+      isSkipped={override?.status === "cancelled"}
       initialValues={{
-        overrideDate: entry.overrideDate ?? "",
+        overrideDate: override?.overrideDate ?? "",
         // Unsigned in the form: the kind of the item gives the direction.
         overrideAmount:
-          entry.overrideAmount === null ? "" : formatEditableAmount(Math.abs(entry.overrideAmount), entry.currency),
+          override === null || override.overrideAmount === null
+            ? ""
+            : formatEditableAmount(Math.abs(override.overrideAmount), entry.currency),
       }}
     />
   );

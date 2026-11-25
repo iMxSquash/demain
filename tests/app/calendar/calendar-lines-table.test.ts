@@ -68,9 +68,7 @@ function entry(overrides: Partial<CalendarEntry> = {}): CalendarEntry {
     nominalDate: null,
     unplacedSurplus: null,
     routingInvalid: false,
-    hasOverride: false,
-    overrideDate: null,
-    overrideAmount: null,
+    override: null,
     isLinked: false,
     ...overrides,
   };
@@ -330,7 +328,13 @@ describe("monthly line table", () => {
         3: { entries: [entry()] },
         15: {
           entries: [
-            entry({ ...planned, id: "p4:2026-11-15", status: "cancelled", label: "Rent", hasOverride: true }),
+            entry({
+              ...planned,
+              id: "p4:2026-11-15",
+              status: "cancelled",
+              label: "Rent",
+              override: { nominalDate: "2026-11-15", status: "cancelled", overrideDate: null, overrideAmount: null },
+            }),
             entry({ ...planned, id: "p5:2026-11-15", status: "partial", label: "Groceries", plannedItemId: 5, isLinked: true }),
           ],
         },
