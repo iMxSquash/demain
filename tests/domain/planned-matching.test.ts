@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  amountToSettle,
   decideMatches,
+  DUE_SOON_DAYS,
+  dueOccurrences,
   isWithinTolerance,
   matchingRange,
+  matchingWindow,
+  type DueCandidate,
   provisionLinks,
   type MatchDecisions,
   type MatchOccurrence,
@@ -476,5 +481,76 @@ describe("matchingRange", () => {
     const range = matchingRange(TRANSACTION_DATES, { matchWindowDays: 5, acceptsMultipleTransactions: true });
 
     expect(range.from <= "2025-03-10" && range.to >= "2027-03-20").toBe(true);
+  });
+});
+
+describe("dueOccurrences", () => {
+  const TODAY = "2026-11-21";
+
+  function open(nominalDate: string, status: DueCandidate["status"], plannedItemId = 1): DueCandidate {
+    return { plannedItemId, nominalDate, date: nominalDate, status };
+  }
+
+  it("lists a planned occurrence of yesterday, an overdue one and a partial provision, oldest first", () => {
+    const yesterday = open("2026-11-20", "planned");
+    const overdue = open("2026-11-02", "overdue", 2);
+    const partial = open("2026-11-19", "partial", 3);
+
+    const { due } = dueOccurrences([yesterday, overdue, partial], TODAY, DUE_SOON_DAYS);
+
+    expect(due).toEqual([overdue, partial, yesterday]);
+  });
+
+  it("counts an occurrence of today as due", () => {
+    const today = open(TODAY, "planned");
+
+    expect(dueOccurrences([today], TODAY, DUE_SOON_DAYS)).toEqual({ due: [today], soon: [] });
+  });
+
+  it("leaves out confirmed and cancelled occurrences", () => {
+    const result = dueOccurrences(
+      [open("2026-11-20", "confirmed"), open("2026-11-18", "cancelled", 2), open("2026-11-23", "cancelled", 3)],
+      TODAY,
+      DUE_SOON_DAYS,
+    );
+
+    expect(result).toEqual({ due: [], soon: [] });
+  });
+
+  it("puts the occurrence of today plus 7 days in the second list and the one of today plus 8 days in none", () => {
+    const inSeven = open("2026-11-28", "planned");
+    const inEight = open("2026-11-29", "planned", 2);
+
+    expect(dueOccurrences([inEight, inSeven], TODAY, DUE_SOON_DAYS)).toEqual({ due: [], soon: [inSeven] });
+  });
+
+  it("reads the effective date, not the nominal one", () => {
+    const moved = { ...open("2026-11-25", "planned"), date: "2026-11-20" };
+
+    expect(dueOccurrences([moved], TODAY, DUE_SOON_DAYS).due).toEqual([moved]);
+  });
+});
+
+describe("matchingWindow", () => {
+  it("centres the window of a regular occurrence on its effective date", () => {
+    expect(matchingWindow({ date: "2026-03-05", period: null }, 5)).toEqual({ from: "2026-02-28", to: "2026-03-10" });
+  });
+
+  it("is the period of a provision", () => {
+    expect(matchingWindow({ date: "2026-03-31", period: MARCH }, 5)).toEqual(MARCH);
+  });
+});
+
+describe("amountToSettle", () => {
+  it("is the expected amount of a regular occurrence", () => {
+    expect(amountToSettle({ status: "planned", expectedAmount: -2_990, remaining: -2_990 })).toBe(-2_990);
+  });
+
+  it("is what a partial provision still expects", () => {
+    expect(amountToSettle({ status: "partial", expectedAmount: -30_000, remaining: -1_500 })).toBe(-1_500);
+  });
+
+  it("is the expected amount of an overdue provision that nothing settled", () => {
+    expect(amountToSettle({ status: "overdue", expectedAmount: -30_000, remaining: 0 })).toBe(-30_000);
   });
 });
