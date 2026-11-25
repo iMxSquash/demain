@@ -12,6 +12,7 @@ import { DatePicker } from "../../../components/date-picker";
 import { Icon } from "../../../components/icon";
 import { SkeletonBlock, SkeletonRegion } from "../../../components/skeleton";
 import { formatAmount } from "../../../domain/money";
+import { TransactionValidationError } from "../../../domain/transaction";
 import { monthOf } from "../../../domain/synthesis";
 import { formatCalendarDate, formatFullCalendarDate, todayIn } from "../../../i18n/dates";
 import { getAccount } from "../../../ledger/accounts";
@@ -27,13 +28,13 @@ import { tagDataRead } from "../../data-cache";
 import { CONTROL_CLASS, FormField } from "../../form-field";
 import {
   calendarHref,
-  LINK_ROUTE,
   parseBackView,
   parseLinkFilters,
   parseOccurrenceRef,
   shownBound,
   type CalendarBackView,
 } from "../link-params";
+import { LINK_ROUTE } from "../routes";
 import { LinkTransactionList } from "./link-transaction-list";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -55,7 +56,8 @@ async function readCandidates(ref: OccurrenceRef, today: string, filters: Requir
       const { name } = getAccount(db, result.occurrence.accountId);
       return { ...result, accountName: name };
     } catch (error) {
-      if (error instanceof PlannedLinkError) return null;
+      // A settled, cancelled or unknown occurrence, or one of an archived account, takes no link.
+      if (error instanceof PlannedLinkError || error instanceof TransactionValidationError) return null;
       throw error;
     }
   });

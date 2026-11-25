@@ -25,13 +25,14 @@ import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 import { logoutAction } from "../login/actions";
 import { readDueCount } from "../planned/due-count";
+import { TO_PAY_ROUTE } from "../planned/routes";
 import { LocaleSwitcher } from "../locale/locale-switcher";
 import { ThemeSwitcher } from "../theme/theme-switcher";
 import { DefaultPaymentModeForm } from "./default-payment-mode-form";
 
 const MORE_LINKS = [
   { href: "/transactions", key: "transactions", icon: ArrowsDownUp },
-  { href: "/planned/due", key: "toPay", icon: Receipt },
+  { href: TO_PAY_ROUTE, key: "toPay", icon: Receipt },
   { href: "/balances", key: "balances", icon: Scales },
   { href: "/categories", key: "categories", icon: Tag },
   { href: "/rules", key: "rules", icon: Funnel },

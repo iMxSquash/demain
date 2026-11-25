@@ -18,6 +18,7 @@ import { withDatabase } from "../../storage/with-database";
 import { requireRequest } from "../auth/require-request";
 import { tagDataRead } from "../data-cache";
 import { readDueCount } from "../planned/due-count";
+import { TO_PAY_ROUTE } from "../planned/routes";
 import { FormField } from "../form-field";
 import {
   CHECKING_KEY,
@@ -95,15 +96,13 @@ export async function loadCalendarPage(searchParams: SearchParams) {
   return { ...data, locale, today, month };
 }
 
-const TO_PAY_HREF = "/planned/due";
-
 // The count of the "Due" section, on every width: a column without the sidebar still has it.
 async function ToPayLink() {
   const [t, timeZone] = await Promise.all([getTranslations("calendar"), getTimeZone(), requireRequest()]);
   const count = await readDueCount(todayIn(timeZone, new Date()));
 
   return (
-    <Link href={TO_PAY_HREF} aria-label={t("toPayLinkLabel", { count })} className={LINK_CLASS}>
+    <Link href={TO_PAY_ROUTE} aria-label={t("toPayLinkLabel", { count })} className={LINK_CLASS}>
       {t("toPayLink", { count })}
     </Link>
   );
@@ -121,7 +120,7 @@ export function CalendarHeading() {
         {/* The count needs the request: the link is drawn without it until it is known. */}
         <Suspense
           fallback={
-            <Link href={TO_PAY_HREF} className={LINK_CLASS}>
+            <Link href={TO_PAY_ROUTE} className={LINK_CLASS}>
               {navigation("toPay")}
             </Link>
           }

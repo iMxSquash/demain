@@ -11,6 +11,13 @@ export interface MarkPaidFormValues {
   amount: string;
 }
 
+/**
+ * The surplus step posts the date and the amount its split was computed for: a decision on other
+ * values (a field changed while the step was shown) is not applied, the step is shown again.
+ */
+export const DECIDED_DATE_FIELD = "decidedDate";
+export const DECIDED_AMOUNT_FIELD = "decidedAmount";
+
 export type MarkPaidFormField = keyof MarkPaidFormValues | "surplusAccountId";
 
 /** A planned transfer above the ceiling of its destination: what the surplus step shows. */

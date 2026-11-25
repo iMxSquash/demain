@@ -1516,7 +1516,8 @@
     "occurrenceMarkedReceived": "{name} marked as received.",
     "occurrenceMarkedTransferred": "{name} marked as transferred.",
     "occurrenceLinkedTo": "{transaction} linked to {name}.",
-    "occurrenceLinkFailed": "the transaction could not be linked. Try again."
+    "occurrenceLinkFailed": "the transaction could not be linked. Try again.",
+    "occurrenceReceivedAboveCeiling": "{name} marked as received. Warning: it exceeds the deposit ceiling of the account by {excess}."
   },
   "auth": {
     "signOut": "Sign out",

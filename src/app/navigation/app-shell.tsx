@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import { CountBadge } from "../../components/data-display";
 import { Icon } from "../../components/icon";
 import { Logo } from "../../components/logo";
+import { TO_PAY_ROUTE } from "../planned/routes";
 import styles from "./app-shell.module.css";
 import { NavLink } from "./nav-link";
 
@@ -34,7 +35,6 @@ const TABS = [
 ] as const;
 
 const QUEUE_HREF = "/categories";
-const TO_PAY_HREF = "/planned/due";
 const SETTINGS_HREF = "/settings";
 const ADD_TRANSACTION_HREF = "/transactions#new-heading";
 
@@ -94,7 +94,7 @@ export async function AppShell({ toCategorizeCount, toPayCount, children }: AppS
                 </li>
               ))}
               <li className={styles.wideOnly}>
-                <NavLink href={TO_PAY_HREF} className={styles.item}>
+                <NavLink href={TO_PAY_ROUTE} className={styles.item}>
                   <Icon icon={Receipt} />
                   {t("toPay")}
                   <CountBadge decorative count={toPayCount} className="ml-auto" />

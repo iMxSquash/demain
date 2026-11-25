@@ -10,7 +10,7 @@ import type { PlannedItemField, PlannedItemKind } from "../../domain/planned-ite
 import { TransactionValidationError } from "../../domain/transaction";
 import { todayIn } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
-import { linkByHand, markOccurrencePaid, PlannedLinkError } from "../../ledger/planned-matching";
+import { linkByHand, markOccurrencePaid, PlannedLinkError, type MarkPaidResult } from "../../ledger/planned-matching";
 import {
   getTransaction,
   SurplusDecisionRequiredError,
@@ -23,6 +23,7 @@ import {
   cancelPlannedItem,
   createPlannedItem,
   getPlannedItem,
+  PlannedItemNotFoundError,
   setPlannedItemEnd,
   updatePlannedItemDetails,
 } from "../../ledger/planned-items";
@@ -37,6 +38,8 @@ import { readDecision, type CurrencyByAccount } from "../transactions/transactio
 import { TRANSFER_DECISION } from "../transactions/transfer-decision";
 import { calendarHref, parseBackView } from "./link-params";
 import {
+  DECIDED_AMOUNT_FIELD,
+  DECIDED_DATE_FIELD,
   parseMarkPaidForm,
   readSubmittedMarkPaid,
   type MarkPaidFormState,
@@ -217,6 +220,7 @@ function describeMarkPaidFailure(error: unknown): { field?: "date" | "amount"; r
   }
   if (error instanceof PlannedLinkError) return { ref: error.ref };
   if (error instanceof AccountNotFoundError) return { ref: messageRef("accountGone") };
+  if (error instanceof PlannedItemNotFoundError) return { ref: messageRef("plannedItemGone") };
   console.error("Mark as paid failed", error);
   return { ref: messageRef("nothingSaved") };
 }
@@ -270,18 +274,25 @@ interface MarkPaidContext {
   translate: Translate;
 }
 
-// The toast says what was recorded; a surplus left in the source carries a figure, so it is told instead.
+// The toast says what was recorded. A surplus left in the source, or an income above the ceiling,
+// carries a figure, so it is told instead.
 function feedbackOf(
   db: AppDatabase,
   item: { kind: PlannedItemKind; name: string; accountId: number; destinationAccountId: number | null },
-  unplaced: number,
+  { unplaced, ceilingExcess }: MarkPaidResult,
   decision: SurplusDecision | null,
   locale: string,
 ): Feedback {
+  const source = getAccount(db, item.accountId);
+  if (ceilingExcess > 0) {
+    return {
+      key: "occurrenceReceivedAboveCeiling",
+      values: { name: item.name, excess: formatAmount(ceilingExcess, source.currency, locale) },
+    };
+  }
   if (unplaced === 0 || item.destinationAccountId === null) {
     return { key: MARKED_FEEDBACK[markPaidKindOf(item.kind)], values: { name: item.name } };
   }
-  const source = getAccount(db, item.accountId);
   const full = decision?.kind === "send-surplus" ? decision.accountId : item.destinationAccountId;
   return {
     key: "transferUnplaced",
@@ -306,8 +317,11 @@ function markInDatabase(db: AppDatabase, formData: FormData, context: MarkPaidCo
   }
   const request = { plannedItemId: item.id, nominalDate, ...parsed.input };
   try {
-    const { unplaced } = markOccurrencePaid(db, request, today, decision.value);
-    return { feedback: feedbackOf(db, item, unplaced, decision.value, locale) };
+    // A decision taken on a split of other values is stale: the step is shown again for these ones.
+    const isStale =
+      readText(formData, DECIDED_AMOUNT_FIELD) !== values.amount || readText(formData, DECIDED_DATE_FIELD) !== values.date;
+    const result = markOccurrencePaid(db, request, today, isStale ? null : decision.value);
+    return { feedback: feedbackOf(db, item, result, decision.value, locale) };
   } catch (error) {
     if (!(error instanceof SurplusDecisionRequiredError) || item.destinationAccountId === null) throw error;
     const transfer: TransferRequest = {

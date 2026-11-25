@@ -1516,7 +1516,8 @@
     "occurrenceMarkedReceived": "{name} marqué comme reçu.",
     "occurrenceMarkedTransferred": "{name} marqué comme viré.",
     "occurrenceLinkedTo": "{transaction} liée à {name}.",
-    "occurrenceLinkFailed": "la transaction n'a pas pu être liée. Réessayez."
+    "occurrenceLinkFailed": "la transaction n'a pas pu être liée. Réessayez.",
+    "occurrenceReceivedAboveCeiling": "{name} marqué comme reçu. Attention : il dépasse le plafond de dépôt du compte de {excess}."
   },
   "auth": {
     "signOut": "Se déconnecter",

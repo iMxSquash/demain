@@ -1,13 +1,13 @@
 import { isCalendarDate } from "../../domain/account";
 import { parseWholeNumber } from "../../domain/amount-syntax";
 import type { LinkFilters, OccurrenceRef } from "../../ledger/planned-matching";
+import { LINK_ROUTE } from "./routes";
 
 type SearchParam = string | string[] | undefined;
 
 /** The calendar view a "Link a transaction" page goes back to. */
 export type CalendarBackView = "grid" | "lines";
 
-export const LINK_ROUTE = "/planned/link";
 
 // A bound the user cleared lists everything on that side.
 const NO_LOWER_BOUND = "0001-01-01";

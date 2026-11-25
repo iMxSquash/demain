@@ -10,7 +10,12 @@ import { CONTROL_CLASS, FormField } from "../form-field";
 import { SurplusStep } from "../transactions/surplus-step";
 import { useFocusFirstError } from "../use-focus-first-error";
 import { markOccurrencePaidAction } from "./actions";
-import type { MarkPaidFormState, MarkPaidFormValues } from "./mark-paid-form-data";
+import {
+  DECIDED_AMOUNT_FIELD,
+  DECIDED_DATE_FIELD,
+  type MarkPaidFormState,
+  type MarkPaidFormValues,
+} from "./mark-paid-form-data";
 
 /** The words of the button of one occurrence, built on the server: its type names it. */
 export interface MarkPaidButtonText {
@@ -58,17 +63,21 @@ function SurplusOr({
   children: ReactNode;
 }) {
   if (state?.status !== "surplus") return children;
-  const { step } = state;
+  const { step, values } = state;
   return (
-    <SurplusStep
-      choice={step.choice}
-      sourceName={step.sourceName}
-      destinationName={step.destinationName}
-      targets={step.targets}
-      isPending={isPending}
-      // The focus goes back to the button once the server has answered the cancel.
-      onCancel={() => undefined}
-    />
+    <>
+      <input type="hidden" name={DECIDED_DATE_FIELD} value={values.date} />
+      <input type="hidden" name={DECIDED_AMOUNT_FIELD} value={values.amount} />
+      <SurplusStep
+        choice={step.choice}
+        sourceName={step.sourceName}
+        destinationName={step.destinationName}
+        targets={step.targets}
+        isPending={isPending}
+        // The focus goes back to the button once the server has answered the cancel.
+        onCancel={() => undefined}
+      />
+    </>
   );
 }
 

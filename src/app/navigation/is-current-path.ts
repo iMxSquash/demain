@@ -1,3 +1,5 @@
+import { LINK_ROUTE, TO_PAY_ROUTE } from "../planned/routes";
+
 function isUnder(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -5,8 +7,8 @@ function isUnder(pathname: string, href: string): boolean {
 // Pages whose path sits under one entry but that belong to another (DESIGN section 18, "Navigation"):
 // To pay is an entry of its own, and the Link a transaction page is reached from the calendar.
 const OWNERS: readonly { path: string; href: string }[] = [
-  { path: "/planned/due", href: "/planned/due" },
-  { path: "/planned/link", href: "/calendar" },
+  { path: TO_PAY_ROUTE, href: TO_PAY_ROUTE },
+  { path: LINK_ROUTE, href: "/calendar" },
 ];
 
 /**
