@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 
+import { todayIn } from "../i18n/dates";
 import { countUncategorizedTransactions } from "../ledger/transactions";
 import { withDatabase } from "../storage/with-database";
 import { readSession } from "./auth/session";
@@ -13,6 +14,7 @@ import { readFlash } from "./feedback/flash";
 import { ToastProvider, type Notice } from "./feedback/toast-provider";
 import { MotionProvider } from "./motion-provider";
 import { AppShell } from "./navigation/app-shell";
+import { readDueCount } from "./planned/due-count";
 import { THEME_COOKIE, themeAttribute } from "./theme/theme-preference";
 import { getTranslator } from "./translator";
 
@@ -54,15 +56,19 @@ async function readNotice(): Promise<Notice | null> {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [locale, session, tCommon, notice, cookieStore] = await Promise.all([
+  const [locale, session, tCommon, notice, cookieStore, timeZone] = await Promise.all([
     getLocale(),
     readSession(),
     getTranslations("common"),
     readNotice(),
     cookies(),
+    getTimeZone(),
   ]);
   const isSignedIn = session !== null && !session.mfaPending;
-  const toCategorizeCount = isSignedIn ? await readToCategorizeCount() : 0;
+  // "Today" is read once the request is known, and passed to the cached count.
+  const [toCategorizeCount, toPayCount] = isSignedIn
+    ? await Promise.all([readToCategorizeCount(), readDueCount(todayIn(timeZone, new Date()))])
+    : [0, 0];
   // Focus target of the skip link; each page renders its own <main>.
   const content = (
     <div id={CONTENT_ID} tabIndex={-1}>
@@ -87,7 +93,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 {tCommon("skipToContent")}
               </a>
               {isSignedIn ? (
-                <AppShell toCategorizeCount={toCategorizeCount}>
+                <AppShell toCategorizeCount={toCategorizeCount} toPayCount={toPayCount}>
                   {content}
                 </AppShell>
               ) : (

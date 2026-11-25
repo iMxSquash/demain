@@ -53,7 +53,7 @@ export interface Occurrence {
 
 // The business-day rule moves a date by two days at most (a Sunday to the previous Friday). The
 // nominal dates are enumerated this far outside the range so that one moved into it is found.
-const MAX_BUSINESS_DAY_SHIFT_DAYS = 2;
+export const MAX_BUSINESS_DAY_SHIFT_DAYS = 2;
 
 function isSameRepetition(a: Repetition | null, b: Repetition | null): boolean {
   if (a === null || b === null) return a === b;

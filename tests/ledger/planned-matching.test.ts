@@ -24,7 +24,10 @@ import {
   linkByHand,
   linkTransactionToOccurrence,
   listBatchMatches,
+  listDueOccurrences,
   listLinkCandidates,
+  listOccurrenceLinkCandidates,
+  markOccurrencePaid,
   PlannedLinkError,
   undoMatch,
   unlinkByHand,
@@ -35,8 +38,10 @@ import {
   createTransfer,
   getTransaction,
   listTransactions,
+  SurplusDecisionRequiredError,
   type Transaction,
 } from "../../src/ledger/transactions";
+import { setDefaultPaymentMode } from "../../src/ledger/default-payment-mode";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { occurrenceOverrides } from "../../src/storage/schema";
 
@@ -788,5 +793,501 @@ describe("linking a transaction to an occurrence by hand", () => {
     unlinkByHand(db, paid.id);
     expect(getTransaction(db, paid.id)).toMatchObject(NO_LINK);
     expect(refOf(catchError(() => unlinkByHand(db, 9_999)))).toBe("matchTransactionUnknown");
+  });
+});
+
+describe("marking a due occurrence as paid", () => {
+  let dataDir: string;
+  let db: AppDatabase;
+  let checkingId: number;
+  let savingsId: number;
+  let groceriesId: number;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    db = openDatabase(dataDir);
+    migrateDatabase(db);
+    checkingId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Checking", kind: "checking" }).id;
+    savingsId = createAccount(db, {
+      ...ACCOUNT_DETAILS,
+      name: "Savings",
+      kind: "savings",
+      openingBalance: 0,
+      depositCeiling: 50_000,
+    }).id;
+    groceriesId = createCategory(db, { name: "Groceries" }).id;
+  });
+
+  afterEach(() => {
+    db.$client.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  function rentItem(overrides: Partial<PlannedItemInput> = {}) {
+    return createPlannedItem(db, {
+      name: "Rent",
+      kind: "expense",
+      accountId: checkingId,
+      categoryId: groceriesId,
+      startDate: "2026-03-05",
+      repetition: { kind: "monthly_on_day", day: 5 },
+      amount: -65_000,
+      ...overrides,
+    });
+  }
+
+  function provisionItem() {
+    return createPlannedItem(db, {
+      name: "Groceries",
+      kind: "expense",
+      accountId: checkingId,
+      categoryId: groceriesId,
+      startDate: "2026-03-31",
+      repetition: { kind: "monthly_on_day", day: 31 },
+      acceptsMultipleTransactions: true,
+      amount: -30_000,
+    });
+  }
+
+  function statusOf(itemId: number, nominalDate: string) {
+    const item = getPlannedItem(db, itemId);
+    const links = listTransactions(db)
+      .filter((transaction) => transaction.plannedItemId === itemId && transaction.occurrenceDate !== null)
+      .map((transaction) => ({
+        transactionId: transaction.id,
+        occurrenceDate: transaction.occurrenceDate!,
+        date: transaction.date,
+        amount: transaction.amount,
+      }));
+    return resolveOccurrences(
+      {
+        schedule: toPlannedSchedule(item),
+        overrides: item.overrides,
+        matchWindowDays: item.matchWindowDays,
+        acceptsMultipleTransactions: item.acceptsMultipleTransactions,
+      },
+      links,
+      { from: "2026-03-01", to: "2026-04-30" },
+      TODAY,
+    ).find((occurrence) => occurrence.nominalDate === nominalDate);
+  }
+
+  it("marking as paid creates the transaction and confirms the occurrence", () => {
+    const item = rentItem();
+
+    markOccurrencePaid(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-05", amount: 65_000 },
+      TODAY,
+    );
+
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({
+        accountId: checkingId,
+        kind: "expense",
+        date: "2026-03-05",
+        amount: -65_000,
+        label: "Rent",
+        categoryId: groceriesId,
+        categoryFromPlannedItem: true,
+        paymentMode: "card",
+        importBatchId: null,
+        plannedItemId: item.id,
+        occurrenceDate: "2026-03-05",
+      }),
+    ]);
+    expect(statusOf(item.id, "2026-03-05")?.status).toBe("confirmed");
+  });
+
+  it("the date and amount typed are the ones recorded, with the default payment mode", () => {
+    const item = rentItem();
+    setDefaultPaymentMode(db, "direct_debit");
+
+    markOccurrencePaid(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-07", amount: 66_012 },
+      TODAY,
+    );
+
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({ date: "2026-03-07", amount: -66_012, paymentMode: "direct_debit" }),
+    ]);
+  });
+
+  it("records an income with a positive amount", () => {
+    const item = rentItem({ name: "Salary", kind: "income", categoryId: null, amount: 245_000 });
+
+    markOccurrencePaid(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-05", amount: 245_000 },
+      TODAY,
+    );
+
+    expect(listTransactions(db)).toEqual([
+      expect.objectContaining({ kind: "income", amount: 245_000, categoryId: null, categoryFromPlannedItem: false }),
+    ]);
+  });
+
+  it("a provision gets one more payment and stays partial until its remaining amount is zero", () => {
+    const item = provisionItem();
+    const occurrence = { plannedItemId: item.id, nominalDate: "2026-03-31" };
+
+    markOccurrencePaid(db, { ...occurrence, date: "2026-03-08", amount: 10_000 }, TODAY);
+    expect(statusOf(item.id, "2026-03-31")).toMatchObject({ status: "partial", remaining: -20_000 });
+
+    markOccurrencePaid(db, { ...occurrence, date: "2026-03-10", amount: 20_000 }, TODAY);
+    expect(statusOf(item.id, "2026-03-31")).toMatchObject({ status: "confirmed", remaining: 0 });
+    expect(listTransactions(db)).toHaveLength(2);
+  });
+
+  it("refuses a settled, a cancelled or an unknown occurrence", () => {
+    const item = rentItem();
+    const march = { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-05", amount: 65_000 };
+    markOccurrencePaid(db, march, TODAY);
+    db.insert(occurrenceOverrides)
+      .values({ plannedItemId: item.id, nominalDate: "2026-04-05", status: "cancelled" })
+      .run();
+
+    expect(catchError(() => markOccurrencePaid(db, march, TODAY))).toMatchObject({
+      ref: { key: "markPaidOccurrenceSettled" },
+    });
+    expect(
+      catchError(() => markOccurrencePaid(db, { ...march, nominalDate: "2026-04-05" }, TODAY)),
+    ).toMatchObject({ ref: { key: "markPaidOccurrenceCancelled" } });
+    expect(
+      catchError(() => markOccurrencePaid(db, { ...march, nominalDate: "2026-03-06" }, TODAY)),
+    ).toMatchObject({ ref: { key: "markPaidOccurrenceUnknown" } });
+    expect(
+      catchError(() => markOccurrencePaid(db, { ...march, plannedItemId: 9_999 }, TODAY)),
+    ).toMatchObject({ ref: { key: "plannedItemGone" } });
+    expect(listTransactions(db)).toHaveLength(1);
+  });
+
+  it("tells by how much an income goes over the ceiling of its account, and records it", () => {
+    const item = createPlannedItem(db, {
+      name: "Bonus",
+      kind: "income",
+      accountId: savingsId,
+      startDate: "2026-03-05",
+      repetition: null,
+      amount: 60_000,
+    });
+
+    const result = markOccurrencePaid(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-05", amount: 60_000 },
+      TODAY,
+    );
+
+    expect(result).toEqual({ unplaced: 0, ceilingExcess: 10_000 });
+    expect(listTransactions(db)).toHaveLength(1);
+  });
+
+  it("says that a future occurrence of a cancelled item is cancelled, not unknown", () => {
+    const item = rentItem();
+    cancelPlannedItem(db, item.id);
+
+    expect(
+      catchError(() =>
+        markOccurrencePaid(
+          db,
+          { plannedItemId: item.id, nominalDate: "2026-04-05", date: "2026-04-05", amount: 65_000 },
+          TODAY,
+        ),
+      ),
+    ).toMatchObject({ ref: { key: "markPaidOccurrenceCancelled" } });
+  });
+
+  it("refuses an archived account", () => {
+    const item = rentItem();
+    db.$client.exec(`UPDATE accounts SET archived = 1 WHERE id = ${checkingId}`);
+
+    const error = catchError(() =>
+      markOccurrencePaid(
+        db,
+        { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-05", amount: 65_000 },
+        TODAY,
+      ),
+    );
+
+    expect(error).toMatchObject({ ref: { key: "transactionOnArchivedAccount" } });
+    expect(listTransactions(db)).toEqual([]);
+  });
+
+  it("writes nothing when the transaction is refused", () => {
+    const item = rentItem();
+
+    const error = catchError(() =>
+      markOccurrencePaid(
+        db,
+        { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-02-30", amount: 65_000 },
+        TODAY,
+      ),
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(listTransactions(db)).toEqual([]);
+    expect(statusOf(item.id, "2026-03-05")?.status).not.toBe("confirmed");
+  });
+
+  describe("a planned transfer", () => {
+    function savingsTransfer(amount: number) {
+      return createPlannedItem(db, {
+        name: "Savings transfer",
+        kind: "transfer",
+        accountId: checkingId,
+        destinationAccountId: savingsId,
+        startDate: "2026-03-10",
+        repetition: { kind: "monthly_on_day", day: 10 },
+        amount: -amount,
+      });
+    }
+
+    it("records the two legs with the transfer payment mode and links the outgoing one", () => {
+      const item = savingsTransfer(20_000);
+
+      const result = markOccurrencePaid(
+        db,
+        { plannedItemId: item.id, nominalDate: "2026-03-10", date: "2026-03-10", amount: 20_000 },
+        TODAY,
+      );
+
+      expect(result).toEqual({ unplaced: 0, ceilingExcess: 0 });
+      expect(listTransactions(db)).toEqual([
+        expect.objectContaining({
+          accountId: checkingId,
+          amount: -20_000,
+          kind: "transfer",
+          label: "Savings transfer",
+          paymentMode: "transfer",
+          plannedItemId: item.id,
+          occurrenceDate: "2026-03-10",
+        }),
+        expect.objectContaining({ accountId: savingsId, amount: 20_000, paymentMode: "transfer", ...NO_LINK }),
+      ]);
+      expect(statusOf(item.id, "2026-03-10")?.status).toBe("confirmed");
+    });
+
+    it("writes nothing and asks for a decision when the ceiling is reached", () => {
+      const item = savingsTransfer(80_000);
+      const request = { plannedItemId: item.id, nominalDate: "2026-03-10", date: "2026-03-10", amount: 80_000 };
+
+      const error = catchError(() => markOccurrencePaid(db, request, TODAY));
+
+      expect(error).toBeInstanceOf(SurplusDecisionRequiredError);
+      expect(listTransactions(db)).toEqual([]);
+    });
+
+    it("deposits the room only when asked, and settles the occurrence", () => {
+      const item = savingsTransfer(80_000);
+      const request = { plannedItemId: item.id, nominalDate: "2026-03-10", date: "2026-03-10", amount: 80_000 };
+
+      const result = markOccurrencePaid(db, request, TODAY, { kind: "room-only" });
+
+      expect(result).toEqual({ unplaced: 30_000, ceilingExcess: 0 });
+      expect(listTransactions(db).map(({ amount, plannedItemId }) => ({ amount, plannedItemId }))).toEqual([
+        { amount: -50_000, plannedItemId: item.id },
+        { amount: 50_000, plannedItemId: null },
+      ]);
+      expect(statusOf(item.id, "2026-03-10")?.status).toBe("confirmed");
+    });
+  });
+});
+
+describe("listing the due occurrences", () => {
+  let dataDir: string;
+  let db: AppDatabase;
+  let checkingId: number;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    db = openDatabase(dataDir);
+    migrateDatabase(db);
+    checkingId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Checking", kind: "checking" }).id;
+  });
+
+  afterEach(() => {
+    db.$client.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  function oneOff(name: string, date: string, overrides: Partial<PlannedItemInput> = {}) {
+    return createPlannedItem(db, {
+      name,
+      kind: "expense",
+      accountId: checkingId,
+      startDate: date,
+      repetition: null,
+      amount: -2_990,
+      ...overrides,
+    });
+  }
+
+  it("lists the due occurrences, then those of the next seven days, with what they expect", () => {
+    const water = oneOff("Water", "2026-03-02");
+    const internet = oneOff("Internet", "2026-03-12", { kind: "income", amount: 1_500 });
+    const insurance = oneOff("Insurance", "2026-03-19");
+    oneOff("Later", "2026-03-20");
+
+    const { due, soon } = listDueOccurrences(db, TODAY);
+
+    expect(due).toEqual([
+      expect.objectContaining({ plannedItemId: water.id, name: "Water", kind: "expense", status: "overdue", amount: -2_990 }),
+      expect.objectContaining({ plannedItemId: internet.id, kind: "income", status: "planned", amount: 1_500 }),
+    ]);
+    expect(soon).toEqual([expect.objectContaining({ plannedItemId: insurance.id, date: "2026-03-19" })]);
+  });
+
+  it("leaves out a settled occurrence and an item of an archived account", () => {
+    const water = oneOff("Water", "2026-03-10");
+    const paid = createTransaction(db, {
+      accountId: checkingId,
+      date: "2026-03-10",
+      amount: -2_990,
+      kind: "expense",
+      label: "WATER",
+    });
+    linkTransactionToOccurrence(db, { transactionId: paid.id, plannedItemId: water.id, nominalDate: "2026-03-10" });
+    const closedId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Closed", kind: "checking" }).id;
+    oneOff("Old", "2026-03-11", { accountId: closedId });
+    db.$client.exec(`UPDATE accounts SET archived = 1 WHERE id = ${closedId}`);
+
+    expect(listDueOccurrences(db, TODAY)).toEqual({ due: [], soon: [] });
+  });
+});
+
+describe("listing the transactions an occurrence can be linked to", () => {
+  let dataDir: string;
+  let db: AppDatabase;
+  let checkingId: number;
+  let jointId: number;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "demain-test-"));
+    db = openDatabase(dataDir);
+    migrateDatabase(db);
+    checkingId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Checking", kind: "checking" }).id;
+    jointId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Joint", kind: "checking" }).id;
+  });
+
+  afterEach(() => {
+    db.$client.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  function enter(date: string, amount: number, label: string, accountId = checkingId): Transaction {
+    return createTransaction(db, {
+      accountId,
+      date,
+      amount,
+      kind: amount < 0 ? "expense" : "income",
+      label,
+    });
+  }
+
+  function internetItem() {
+    return createPlannedItem(db, {
+      name: "Internet",
+      kind: "expense",
+      accountId: checkingId,
+      startDate: "2026-03-10",
+      repetition: { kind: "monthly_on_day", day: 10 },
+      amount: -2_990,
+      matchWindowDays: 3,
+    });
+  }
+
+  it("prefills the range with the matching window of the item around the occurrence", () => {
+    const item = internetItem();
+
+    const result = listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-10" }, TODAY);
+
+    expect(result.occurrence).toMatchObject({ name: "Internet", date: "2026-03-10", status: "planned", amount: -2_990 });
+    expect(result.range).toEqual({ from: "2026-03-07", to: "2026-03-13" });
+  });
+
+  it("prefills the range with the period of a provision", () => {
+    const item = createPlannedItem(db, {
+      name: "Groceries",
+      kind: "expense",
+      accountId: checkingId,
+      startDate: "2026-03-31",
+      repetition: { kind: "monthly_on_day", day: 31 },
+      acceptsMultipleTransactions: true,
+      amount: -30_000,
+    });
+
+    const result = listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-31" }, TODAY);
+
+    expect(result.range).toEqual({ from: "2026-03-01", to: "2026-03-31" });
+  });
+
+  it("lists only the unlinked transactions of the same account and sign, newest first, in the range", () => {
+    const item = internetItem();
+    const older = enter("2026-03-08", -1_850, "PHARMACY");
+    const newer = enter("2026-03-12", -2_990, "INTERNET");
+    enter("2026-03-11", 5_000, "REFUND");
+    enter("2026-03-11", -2_990, "INTERNET JOINT", jointId);
+    enter("2026-03-20", -2_990, "OUT OF RANGE");
+    const linked = enter("2026-03-09", -2_990, "LINKED");
+    linkTransactionToOccurrence(db, { transactionId: linked.id, plannedItemId: internetItem().id, nominalDate: "2026-03-10" });
+
+    const result = listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-10" }, TODAY);
+
+    expect(result.transactions.map(({ id }) => id)).toEqual([newer.id, older.id]);
+  });
+
+  it("widens the range and filters on the label when asked", () => {
+    const item = internetItem();
+    const early = enter("2026-02-20", -1_200, "Pharmacy Central");
+    enter("2026-02-21", -1_200, "Bakery");
+
+    const result = listOccurrenceLinkCandidates(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-10" },
+      TODAY,
+      { range: { from: "2026-02-01", to: "2026-03-31" }, search: "pharm" },
+    );
+
+    expect(result.range).toEqual({ from: "2026-02-01", to: "2026-03-31" });
+    expect(result.transactions.map(({ id }) => id)).toEqual([early.id]);
+  });
+
+  it("lists only what the server accepts for an occurrence more than a year ahead", () => {
+    const item = internetItem();
+    const kept = enter("2027-04-01", -2_990, "INTERNET");
+    enter("2026-03-11", -2_990, "TOO FAR BACK");
+
+    const result = listOccurrenceLinkCandidates(
+      db,
+      { plannedItemId: item.id, nominalDate: "2027-05-10" },
+      TODAY,
+      { range: { from: "0001-01-01" } },
+    );
+
+    expect(result.transactions.map(({ id }) => id)).toEqual([kept.id]);
+    for (const transaction of result.transactions) {
+      linkByHand(db, { transactionId: transaction.id, plannedItemId: item.id, nominalDate: "2027-05-10" }, TODAY);
+    }
+  });
+
+  it("refuses an occurrence that is not open", () => {
+    const item = internetItem();
+
+    expect(
+      catchError(() => listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-11" }, TODAY)),
+    ).toMatchObject({ ref: { key: "markPaidOccurrenceUnknown" } });
+  });
+
+  it("the server refuses to link a transaction of another account", () => {
+    const item = internetItem();
+    const other = enter("2026-03-10", -2_990, "INTERNET", jointId);
+
+    const error = catchError(() =>
+      linkByHand(db, { transactionId: other.id, plannedItemId: item.id, nominalDate: "2026-03-10" }, TODAY),
+    );
+
+    expect(error).toBeInstanceOf(PlannedLinkError);
+    expect(getTransaction(db, other.id)).toMatchObject(NO_LINK);
   });
 });

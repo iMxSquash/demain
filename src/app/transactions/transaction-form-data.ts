@@ -218,8 +218,8 @@ type DecisionResult =
   | { value: SurplusDecision | null }
   | { message: string };
 
-// No decision is the normal first submit: the form then shows the split.
-function readDecision(
+/** The decision posted by the surplus step. No decision is the normal first submit: the form then shows the split. */
+export function readDecision(
   formData: FormData,
   currencies: CurrencyByAccount,
   translate: Translate,
