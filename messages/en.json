@@ -377,7 +377,8 @@
         "kind": "Kind",
         "status": "Status",
         "amount": "Amount",
-        "balance": "Balance at end of day"
+        "balance": "Balance at end of day",
+        "actions": "Actions"
       },
       "kinds": {
         "real": "Real",
@@ -397,6 +398,19 @@
       "transferTo": "{from} to {to}",
       "empty": "No entry this month.",
       "unconverted": "No exchange rate for {currencies}: these accounts are left out of the balance."
+    },
+    "occurrenceForm": {
+      "change": "Change",
+      "title": "Change {name}, {date}",
+      "onlyThis": "Only this occurrence changes. The other occurrences stay as planned.",
+      "skipped": "This occurrence is skipped. Restore it, or save a new date or amount to bring it back.",
+      "newDate": "New date",
+      "newDateHint": "Leave empty to keep the scheduled date.",
+      "newAmount": "New amount",
+      "newAmountHint": "Without a sign: the type sets the direction. Leave empty to keep the planned amount.",
+      "save": "Save",
+      "skip": "Skip this occurrence",
+      "restore": "Restore as planned"
     }
   },
   "balances": {
@@ -1426,7 +1440,10 @@
     "vocabularyNotChanged": "Something went wrong, the vocabulary was not changed.",
     "categoryIconUnknown": "This icon does not exist",
     "occurrenceLinked": "Transaction linked to the planned item.",
-    "occurrenceUnlinked": "Transaction unlinked from the planned item."
+    "occurrenceUnlinked": "Transaction unlinked from the planned item.",
+    "occurrenceOverrideSaved": "Occurrence changed.",
+    "occurrenceSkipped": "Occurrence skipped.",
+    "occurrenceRestored": "Occurrence restored as planned."
   },
   "auth": {
     "signOut": "Sign out",

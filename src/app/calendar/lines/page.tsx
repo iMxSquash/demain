@@ -45,7 +45,7 @@ function CalendarLoading() {
         head={
           <CalendarLinesHead columns={columnsText(t)} />
         }
-        columns={["start", "start", "start", "start", "start", "end", "end"]}
+        columns={["start", "start", "start", "start", "start", "end", "end", "start"]}
         rows={SKELETON_ROWS}
       />
     </SkeletonRegion>

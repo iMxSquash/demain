@@ -65,6 +65,10 @@ export interface CalendarEntry {
   routingInvalid: boolean;
   /** A planned occurrence skipped, moved or with a changed amount. False for a real transaction. */
   hasOverride: boolean;
+  /** The date stored by the override, null when it keeps the computed date or has no override. */
+  overrideDate: string | null;
+  /** The signed amount stored by the override, null when it keeps the computed amount. */
+  overrideAmount: number | null;
   /**
    * A planned occurrence with at least one linked transaction (a partial provision): it must be
    * unlinked before it is changed or restored. False for a real transaction.
@@ -154,6 +158,8 @@ function buildRealEntry(
     unplacedSurplus: null,
     routingInvalid: false,
     hasOverride: false,
+    overrideDate: null,
+    overrideAmount: null,
     isLinked: false,
   };
 }
@@ -169,6 +175,7 @@ function buildPlannedEntry(
   const isPending = occurrence.status === "planned" || occurrence.status === "partial";
   const routing = isPending ? transfers.get(routingKey(item.id, occurrence.nominalDate))?.routing : undefined;
   const unplaced = routing?.status === "ok" ? routing.unplaced : 0;
+  const override = item.overrides.find((candidate) => candidate.nominalDate === occurrence.nominalDate);
   return {
     id: `p${item.id}:${occurrence.nominalDate}`,
     date: occurrence.date,
@@ -187,7 +194,9 @@ function buildPlannedEntry(
     unplacedSurplus: unplaced > 0 ? { amount: unplaced, accountId: item.accountId } : null,
     // An invalid chain is reported on the row, never thrown (ADR-013).
     routingInvalid: routing?.status === "invalid",
-    hasOverride: item.overrides.some((override) => override.nominalDate === occurrence.nominalDate),
+    hasOverride: override !== undefined,
+    overrideDate: override?.overrideDate ?? null,
+    overrideAmount: override?.overrideAmount ?? null,
     isLinked: occurrence.links.length > 0,
   };
 }

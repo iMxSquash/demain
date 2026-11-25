@@ -159,7 +159,7 @@ export function formFieldOf(field: PlannedItemField): PlannedItemFormField | und
   return FORM_FIELD_OF[field];
 }
 
-function readText(formData: FormData, key: string): string {
+export function readText(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
 }
@@ -206,7 +206,7 @@ function isBusinessDayRule(value: string): value is BusinessDayRule {
   return BUSINESS_DAY_RULES.some((rule) => rule === value);
 }
 
-function readAmount(text: string, currency: string): { value: number } | Refusal {
+export function readAmount(text: string, currency: string): { value: number } | Refusal {
   // The sign gets its own message: the kind, not the text, gives the direction.
   if (containsTypedSign(text)) return { ref: messageRef("amountUnsigned") };
   try {
@@ -218,7 +218,7 @@ function readAmount(text: string, currency: string): { value: number } | Refusal
 }
 
 // The kind decides the direction. `0 - x` keeps a zero amount at +0, which the domain then refuses.
-function signedAmountOf(kind: PlannedItemKind, unsignedMinorUnits: number): number {
+export function signedAmountOf(kind: PlannedItemKind, unsignedMinorUnits: number): number {
   const leavesAccount = kind === DEFAULT_FORM_KIND || kind === TRANSFER_KIND;
   return leavesAccount ? 0 - unsignedMinorUnits : unsignedMinorUnits;
 }

@@ -1,7 +1,8 @@
 import { DataTable, EmptyState, Pill } from "../../../components/data-display";
-import { formatAmount } from "../../../domain/money";
+import { formatAmount, formatEditableAmount } from "../../../domain/money";
 import { formatCalendarDate, formatWeekdayDate } from "../../../i18n/dates";
 import type { CalendarEntry, CalendarMonth } from "../../../ledger/calendar";
+import { OccurrenceChangeButton } from "../occurrence-change-button";
 
 export interface CalendarLinesTableText {
   caption: string;
@@ -13,6 +14,7 @@ export interface CalendarLinesTableText {
     status: string;
     amount: string;
     balance: string;
+    actions: string;
   };
   kinds: { real: string; planned: string };
   statuses: Record<"planned" | "partial" | "confirmed" | "overdue" | "cancelled", string>;
@@ -23,6 +25,9 @@ export interface CalendarLinesTableText {
   transferTo: (from: string, to: string) => string;
   empty: string;
   unconverted: (currencies: string) => string;
+  /** The button that skips, moves or restores one planned occurrence, and the title of its dialog. */
+  change: string;
+  changeTitle: (name: string, date: string) => string;
 }
 
 export interface CalendarLinesTableProps {
@@ -125,6 +130,31 @@ function Notes({ notes }: { notes: readonly string[] }) {
   ));
 }
 
+// A linked occurrence keeps what its transaction settled: it is unlinked first (owner decision Q1 of issue 174).
+// A skipped one keeps its button, so that it can be restored.
+function ChangeOccurrence({ entry, locale, text }: { entry: CalendarEntry; locale: string; text: CalendarLinesTableText }) {
+  const { plannedItemId, nominalDate } = entry;
+  if (entry.kind !== "planned" || entry.isLinked || plannedItemId === null || nominalDate === null) return null;
+  const subject = `${entry.label}, ${formatCalendarDate(nominalDate, locale)}`;
+  return (
+    <OccurrenceChangeButton
+      itemId={plannedItemId}
+      nominalDate={nominalDate}
+      label={text.change}
+      subject={subject}
+      title={text.changeTitle(entry.label, formatCalendarDate(nominalDate, locale))}
+      hasOverride={entry.hasOverride}
+      isSkipped={entry.hasOverride && entry.status === "cancelled"}
+      initialValues={{
+        overrideDate: entry.overrideDate ?? "",
+        // Unsigned in the form: the kind of the item gives the direction.
+        overrideAmount:
+          entry.overrideAmount === null ? "" : formatEditableAmount(Math.abs(entry.overrideAmount), entry.currency),
+      }}
+    />
+  );
+}
+
 function BelowZero({ text }: { text: CalendarLinesTableText }) {
   return <span className="block text-caption font-medium text-negative">{text.belowZero}</span>;
 }
@@ -155,6 +185,9 @@ function TableRow({ line, locale, text }: { line: Line; locale: string; text: Ca
           </>
         )}
       </td>
+      <td>
+        <ChangeOccurrence entry={entry} locale={locale} text={text} />
+      </td>
     </tr>
   );
 }
@@ -171,6 +204,7 @@ export function CalendarLinesHead({ columns }: { columns: CalendarLinesTableText
         <th scope="col" className="align-bottom">{columns.status}</th>
         <th scope="col" className="align-bottom text-right">{columns.amount}</th>
         <th scope="col" className="align-bottom text-right">{columns.balance}</th>
+        <th scope="col" className="align-bottom">{columns.actions}</th>
       </tr>
     </thead>
   );
@@ -188,6 +222,7 @@ function LinesTable({ lines, locale, text }: { lines: Line[]; locale: string; te
           <col className="w-26" />
           <col className="w-26" />
           <col className="w-36" />
+          <col className="w-24" />
         </colgroup>
         <CalendarLinesHead columns={text.columns} />
         <tbody>
@@ -217,7 +252,10 @@ function ListEntry({ line, locale, text }: { line: Line; locale: string; text: C
         <StatusPill status={view.status} />
         <span className="ml-auto tabular-nums">{view.amount}</span>
       </div>
-      <p className="mt-1 text-caption text-text-muted">{view.account}</p>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
+        <p className="text-caption text-text-muted">{view.account}</p>
+        <ChangeOccurrence entry={entry} locale={locale} text={text} />
+      </div>
       <Notes notes={view.notes} />
       {balance === null ? null : (
         <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-caption text-text-muted">

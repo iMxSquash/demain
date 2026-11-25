@@ -377,7 +377,8 @@
         "kind": "Nature",
         "status": "Statut",
         "amount": "Montant",
-        "balance": "Solde en fin de journée"
+        "balance": "Solde en fin de journée",
+        "actions": "Actions"
       },
       "kinds": {
         "real": "Réel",
@@ -397,6 +398,19 @@
       "transferTo": "{from} vers {to}",
       "empty": "Aucune ligne ce mois-ci.",
       "unconverted": "Pas de taux de change pour {currencies} : ces comptes sont exclus du solde."
+    },
+    "occurrenceForm": {
+      "change": "Modifier",
+      "title": "Modifier {name}, {date}",
+      "onlyThis": "Seule cette occurrence change. Les autres occurrences restent comme prévu.",
+      "skipped": "Cette occurrence est ignorée. Rétablissez-la, ou enregistrez une nouvelle date ou un nouveau montant pour la retrouver.",
+      "newDate": "Nouvelle date",
+      "newDateHint": "Laissez vide pour garder la date prévue.",
+      "newAmount": "Nouveau montant",
+      "newAmountHint": "Sans signe : le type donne le sens. Laissez vide pour garder le montant prévu.",
+      "save": "Enregistrer",
+      "skip": "Ignorer cette occurrence",
+      "restore": "Rétablir comme prévu"
     }
   },
   "balances": {
@@ -1426,7 +1440,10 @@
     "vocabularyNotChanged": "Une erreur est survenue, le vocabulaire n'a pas été modifié.",
     "categoryIconUnknown": "Cette icône n'existe pas",
     "occurrenceLinked": "Transaction liée à l'élément prévu.",
-    "occurrenceUnlinked": "Transaction détachée de l'élément prévu."
+    "occurrenceUnlinked": "Transaction détachée de l'élément prévu.",
+    "occurrenceOverrideSaved": "Occurrence modifiée.",
+    "occurrenceSkipped": "Occurrence ignorée.",
+    "occurrenceRestored": "Occurrence rétablie comme prévu."
   },
   "auth": {
     "signOut": "Se déconnecter",

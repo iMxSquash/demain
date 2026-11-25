@@ -140,7 +140,14 @@ export function CalendarControls({ view, month, locale, selectedKey, selectable,
         >
           <Icon icon={CaretLeft} />
         </Link>
-        <h2 id={MONTH_HEADING_ID} aria-live="polite" className="min-w-40 text-center text-title font-medium">
+        {/* The focus lands here when a changed occurrence leaves the page with its dialog. */}
+        <h2
+          id={MONTH_HEADING_ID}
+          tabIndex={-1}
+          data-focus-fallback=""
+          aria-live="polite"
+          className="min-w-40 text-center text-title font-medium"
+        >
           {formatMonth(month, locale)}
         </h2>
         <Link

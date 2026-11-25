@@ -113,6 +113,8 @@ describe("monthly line view of real and planned movements", () => {
         unplacedSurplus: null,
         routingInvalid: false,
         hasOverride: false,
+        overrideDate: null,
+        overrideAmount: null,
         isLinked: false,
       },
     ]);
@@ -135,6 +137,8 @@ describe("monthly line view of real and planned movements", () => {
         unplacedSurplus: null,
         routingInvalid: false,
         hasOverride: false,
+        overrideDate: null,
+        overrideAmount: null,
         isLinked: false,
       },
     ]);
@@ -235,6 +239,34 @@ describe("monthly line view of real and planned movements", () => {
       { id: `t${groceries.id}`, date: "2026-11-03", hasOverride: false },
       { id: `p${rent.id}:2026-11-15`, date: "2026-11-18", hasOverride: true },
       { id: `p${gym.id}:2026-11-20`, date: "2026-11-20", hasOverride: true },
+    ]);
+  });
+
+  it("gives the stored override values, so that a form shows only what was changed", () => {
+    const rent = planExpense("Rent", -60_000, 15);
+    const gym = planExpense("Gym", -3_000, 20);
+    saveOccurrenceOverride(db, rent.id, {
+      nominalDate: "2026-11-15",
+      status: "modified",
+      overrideDate: null,
+      overrideAmount: -62_000,
+    });
+    saveOccurrenceOverride(db, gym.id, {
+      nominalDate: "2026-11-20",
+      status: "modified",
+      overrideDate: "2026-11-22",
+      overrideAmount: null,
+    });
+    const groceries = spend("2026-11-03", -4_000);
+
+    const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
+
+    expect(
+      entries.map(({ id, overrideDate, overrideAmount }) => ({ id, overrideDate, overrideAmount })),
+    ).toEqual([
+      { id: `t${groceries.id}`, overrideDate: null, overrideAmount: null },
+      { id: `p${rent.id}:2026-11-15`, overrideDate: null, overrideAmount: -62_000 },
+      { id: `p${gym.id}:2026-11-20`, overrideDate: "2026-11-22", overrideAmount: null },
     ]);
   });
 
