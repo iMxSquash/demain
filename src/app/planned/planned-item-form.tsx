@@ -152,8 +152,8 @@ export function PlannedItemForm({
       {account.name} ({account.currency})
     </option>
   ));
-  // A transfer is never a provision: the box and its filter go with JavaScript, and the server
-  // drops them without it. The state keeps the box so that switching back restores it.
+  // A transfer is never a provision: the box and its filter go with JavaScript, and the domain
+  // refuses them without it. The state keeps the box so that switching back restores it.
   const isProvisionOffered = !isTransfer || !isHydrated;
   const isProvisionShown = isProvision && !isTransfer;
   const isMatchingHidden = isProvisionShown && isHydrated;

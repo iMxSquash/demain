@@ -210,7 +210,7 @@ describe("parsePlannedItemForm", () => {
     });
   });
 
-  it("drops the provision box and the label filter of a transfer", () => {
+  it("passes a provision on a transfer for the domain to refuse", () => {
     expect(
       parsePlannedItemForm(
         formOf({
@@ -222,7 +222,7 @@ describe("parsePlannedItemForm", () => {
       ),
     ).toMatchObject({
       ok: true,
-      input: { kind: "transfer", acceptsMultipleTransactions: false, provisionLabelFilter: "" },
+      input: { kind: "transfer", acceptsMultipleTransactions: true, provisionLabelFilter: "market" },
     });
   });
 

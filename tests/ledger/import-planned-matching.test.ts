@@ -287,11 +287,20 @@ describe("matching planned occurrences when a file is imported", () => {
       });
     }
 
-    function savingsLegs() {
+    /** The legs of the savings rows, in id order. */
+    function savingsTransactions(): Transaction[] {
       return listTransactions(db)
         .filter((transaction) => transaction.label === SAVINGS_LABEL)
-        .sort((a, b) => a.id - b.id)
-        .map((leg) => [leg.accountId, leg.amount, leg.plannedItemId, leg.occurrenceDate]);
+        .sort((a, b) => a.id - b.id);
+    }
+
+    function savingsLegs() {
+      return savingsTransactions().map((leg) => [
+        leg.accountId,
+        leg.amount,
+        leg.plannedItemId,
+        leg.occurrenceDate,
+      ]);
     }
 
     it("a monthly savings transfer imported as one pair settles its planned transfer", () => {
@@ -321,23 +330,27 @@ describe("matching planned occurrences when a file is imported", () => {
       ]);
     });
 
-    function firstSavingsLeg(): Transaction {
-      const [first] = listTransactions(db)
-        .filter((transaction) => transaction.label === SAVINGS_LABEL)
-        .sort((a, b) => a.id - b.id);
-      if (first === undefined) throw new Error("No savings leg");
-      return first;
+    /**
+     * Imports one savings row of 30_000, split in two along the chain, that two planned transfers of
+     * that amount both fit. The row is named by its first outgoing leg.
+     */
+    function importAmbiguousRow() {
+      monthlyTransfer({ amount: -30_000 });
+      const other = monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
+      const { batchId, matchedCount, proposedCount } = importFile([
+        savingsRow("2026-03-11", -30_000),
+      ]);
+      const [firstLeg] = savingsTransactions();
+      if (batchId === null || firstLeg === undefined) throw new Error("No savings row imported");
+      return { batchId, matchedCount, proposedCount, otherId: other.id, transactionId: firstLeg.id };
     }
 
     it("two planned transfers of the same amount are proposed, not confirmed", () => {
-      monthlyTransfer({ amount: -30_000 });
-      monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
-
-      const { batchId, matchedCount, proposedCount } = importFile([savingsRow("2026-03-11", -30_000)]);
+      const { batchId, matchedCount, proposedCount, transactionId } = importAmbiguousRow();
 
       expect({ matchedCount, proposedCount }).toEqual({ matchedCount: 0, proposedCount: 1 });
       expect(savingsLegs().filter(([, , plannedItemId]) => plannedItemId !== null)).toEqual([]);
-      const matches = listBatchMatches(db, batchId!, TODAY);
+      const matches = listBatchMatches(db, batchId, TODAY);
       expect(matches.matched).toEqual([]);
       expect(
         matches.groups.map((group) =>
@@ -352,14 +365,14 @@ describe("matching planned occurrences when a file is imported", () => {
       ).toEqual([
         [
           {
-            transactionId: firstSavingsLeg().id,
+            transactionId,
             transactionAmount: -30_000,
             transactionLabel: SAVINGS_LABEL,
             plannedItemName: "Savings plan",
             givesCategory: false,
           },
           {
-            transactionId: firstSavingsLeg().id,
+            transactionId,
             transactionAmount: -30_000,
             transactionLabel: SAVINGS_LABEL,
             plannedItemName: "Holiday fund",
@@ -370,42 +383,28 @@ describe("matching planned occurrences when a file is imported", () => {
     });
 
     it("confirming a proposed transfer row links every outgoing leg of the row and no incoming leg", () => {
-      monthlyTransfer({ amount: -30_000 });
-      const other = monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
-      const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
+      const { batchId, otherId, transactionId } = importAmbiguousRow();
 
-      confirmMatch(
-        db,
-        batchId!,
-        { transactionId: firstSavingsLeg().id, plannedItemId: other.id, nominalDate: "2026-03-10" },
-        TODAY,
-      );
+      confirmMatch(db, batchId, { transactionId, plannedItemId: otherId, nominalDate: "2026-03-10" }, TODAY);
 
       expect(savingsLegs()).toEqual([
-        [checkingId, -10_000, other.id, "2026-03-10"],
+        [checkingId, -10_000, otherId, "2026-03-10"],
         [savingsId, 10_000, null, null],
-        [checkingId, -20_000, other.id, "2026-03-10"],
+        [checkingId, -20_000, otherId, "2026-03-10"],
         [overflowId, 20_000, null, null],
       ]);
     });
 
     it("a confirmed transfer row is listed once, with the row sum", () => {
-      monthlyTransfer({ amount: -30_000 });
-      const other = monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
-      const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
-      const pair = {
-        transactionId: firstSavingsLeg().id,
-        plannedItemId: other.id,
-        nominalDate: "2026-03-10",
-      };
-      confirmMatch(db, batchId!, pair, TODAY);
+      const { batchId, otherId, transactionId } = importAmbiguousRow();
+      confirmMatch(db, batchId, { transactionId, plannedItemId: otherId, nominalDate: "2026-03-10" }, TODAY);
 
-      const matches = listBatchMatches(db, batchId!, TODAY);
+      const matches = listBatchMatches(db, batchId, TODAY);
 
       expect(matches).toEqual({
         matched: [
           {
-            transactionId: pair.transactionId,
+            transactionId,
             label: SAVINGS_LABEL,
             date: "2026-03-11",
             amount: -30_000,
@@ -440,9 +439,9 @@ describe("matching planned occurrences when a file is imported", () => {
     it("undoing the match of a split row from a later outgoing leg unlinks every outgoing leg", () => {
       monthlyTransfer({ amount: -30_000 });
       const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
-      const laterOutgoing = listTransactions(db)
-        .filter((transaction) => transaction.label === SAVINGS_LABEL && transaction.amount < 0)
-        .sort((a, b) => b.id - a.id)[0]!;
+      const laterOutgoing = savingsTransactions()
+        .filter((leg) => leg.amount < 0)
+        .at(-1)!;
 
       undoMatch(db, batchId!, laterOutgoing.id);
 

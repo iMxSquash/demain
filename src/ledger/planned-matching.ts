@@ -58,27 +58,28 @@ export const NO_MATCHES: ImportMatchOutcome = {
   proposedCount: 0,
 };
 
-/** A transaction without category takes the one of its item; a transfer never has one. */
+/**
+ * A transaction without category takes the one of the item it is linked to. A transfer leg only
+ * matches a planned transfer, which the domain keeps without category.
+ */
 function inheritsCategory(
   item: Pick<PlannedItemRow, "categoryId">,
-  transaction: Pick<Transaction, "categoryId" | "kind">,
+  transaction: Pick<Transaction, "categoryId">,
 ): boolean {
-  return (
-    item.categoryId !== null && transaction.categoryId === null && transaction.kind !== "transfer"
-  );
+  return item.categoryId !== null && transaction.categoryId === null;
 }
 
 /**
- * Links `transactionIds` to an occurrence: the transaction itself, or every outgoing leg of a
- * transfer row, whose `transaction` is the representative.
+ * Links `transactionIds` to an occurrence: by default the transaction itself, or every outgoing leg
+ * of a transfer row whose representative is `transaction`.
  */
 function writeLink(
   db: Pick<AppDatabase, "update">,
-  transactionIds: readonly number[],
   transaction: Transaction,
   item: Pick<PlannedItemRow, "id" | "categoryId">,
   nominalDate: string,
   inheritCategory = true,
+  transactionIds: readonly number[] = [transaction.id],
 ): void {
   db.update(transactions)
     .set({
@@ -167,7 +168,7 @@ export function linkTransactionToOccurrence(
       messageRef("matchOccurrenceTaken"),
     );
   }
-  writeLink(db, [transaction.id], transaction, item, pair.nominalDate, inheritCategory);
+  writeLink(db, transaction, item, pair.nominalDate, inheritCategory);
 }
 
 /** Clears the link. A category the link gave goes with it; one chosen by hand stays. */
@@ -322,8 +323,8 @@ function transferRowsOf(db: Pick<AppDatabase, "select">, batchId: number): Trans
 /** What the matching of a batch looks at: its non-transfer transactions and its transfer rows. */
 interface BatchCandidates {
   transactions: Transaction[];
-  /** The transactions each candidate links: itself, or every outgoing leg of a transfer row. */
-  linkedIdsOf: Map<number, number[]>;
+  /** Every outgoing leg of a transfer row, under its representative; any other candidate is alone. */
+  legIdsOf: ReadonlyMap<number, readonly number[]>;
 }
 
 function batchCandidatesOf(
@@ -348,22 +349,23 @@ function batchCandidatesOf(
   );
   return {
     transactions: [...nonTransfers, ...candidateRows.map((row) => row.representative)],
-    linkedIdsOf: new Map([
-      ...nonTransfers.map(({ id }): [number, number[]] => [id, [id]]),
-      ...candidateRows.map(({ representative, legIds }): [number, number[]] => [
-        representative.id,
-        legIds,
-      ]),
-    ]),
+    legIdsOf: new Map(candidateRows.map(({ representative, legIds }) => [representative.id, legIds])),
   };
 }
 
 /** What a pair decided on a batch needs to be described or written. */
 interface BatchLookups {
-  transactionsById: Map<number, Transaction>;
-  itemsById: Map<number, PlannedItemWithDetails>;
-  linkedIdsOf: Map<number, number[]>;
+  transactionsById: ReadonlyMap<number, Transaction>;
+  itemsById: ReadonlyMap<number, PlannedItemWithDetails>;
+  legIdsOf: ReadonlyMap<number, readonly number[]>;
 }
+
+/** The lookups of a batch where nothing can match: no decision ever reads them. */
+const NO_LOOKUPS: BatchLookups = {
+  transactionsById: new Map(),
+  itemsById: new Map(),
+  legIdsOf: new Map(),
+};
 
 interface BatchDecisions extends BatchLookups {
   decisions: MatchDecisions;
@@ -375,7 +377,7 @@ interface BatchDecisions extends BatchLookups {
  */
 function decideBatchMatches(
   db: Pick<AppDatabase, "select">,
-  { transactions: batchTransactions, linkedIdsOf }: BatchCandidates,
+  { transactions: batchTransactions, legIdsOf }: BatchCandidates,
   today: string,
 ): BatchDecisions | null {
   if (batchTransactions.length === 0) return null;
@@ -407,23 +409,24 @@ function decideBatchMatches(
       batchTransactions.map((transaction) => [transaction.id, transaction]),
     ),
     itemsById: new Map(items.map((item) => [item.id, item])),
-    linkedIdsOf,
+    legIdsOf,
   };
 }
 
 /** Writes a pair the matching of a batch named, on every transaction its candidate stands for. */
 function writeDecidedLink(
   db: Pick<AppDatabase, "update">,
-  { transactionsById, itemsById, linkedIdsOf }: BatchLookups,
+  { transactionsById, itemsById, legIdsOf }: BatchLookups,
   pair: MatchPair,
 ): void {
   // The decisions only name candidates of the batch and its items, so the lookups succeed.
   writeLink(
     db,
-    linkedIdsOf.get(pair.transactionId)!,
     transactionsById.get(pair.transactionId)!,
     itemsById.get(pair.plannedItemId)!,
     pair.nominalDate,
+    true,
+    legIdsOf.get(pair.transactionId),
   );
 }
 
@@ -500,14 +503,7 @@ function proposedGroupsOf(
     batchCandidatesOf(db, batchId, rows, { unlinkedOnly: true }),
     today,
   );
-  if (result === null) {
-    return {
-      groups: [],
-      transactionsById: new Map(),
-      itemsById: new Map(),
-      linkedIdsOf: new Map(),
-    };
-  }
+  if (result === null) return { groups: [], ...NO_LOOKUPS };
   const { decisions, ...lookups } = result;
   const groups = [...decisions.confirmed.map((pair) => [pair]), ...decisions.proposed];
   return { groups, ...lookups };
@@ -655,11 +651,16 @@ export function undoMatch(db: AppDatabase, batchId: number, transactionId: numbe
         messageRef("matchNotInBatch"),
       );
     }
-    const legIds =
-      transaction.kind === "transfer"
-        ? transferRowsOf(tx, batchId).find((row) => row.legIds.includes(transactionId))?.legIds
-        : undefined;
-    for (const legId of legIds ?? [transactionId]) unlinkTransaction(tx, legId);
+    if (transaction.kind !== "transfer") {
+      unlinkTransaction(tx, transactionId);
+      return;
+    }
+    // A transfer leg never takes a category from its item: clearing the link is all there is.
+    const row = transferRowsOf(tx, batchId).find(({ legIds }) => legIds.includes(transactionId));
+    tx.update(transactions)
+      .set({ plannedItemId: null, occurrenceDate: null })
+      .where(inArray(transactions.id, row?.legIds ?? [transactionId]))
+      .run();
   });
 }
 
