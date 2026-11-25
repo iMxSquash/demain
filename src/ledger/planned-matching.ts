@@ -1,6 +1,7 @@
-import { and, asc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, between, desc, eq, gt, inArray, isNotNull, isNull, lt, ne } from "drizzle-orm";
 
 import { addDays, daysBetween } from "../domain/calendar-date";
+import { labelContains } from "../domain/categorization-rule";
 import { compareDates } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
 import {
@@ -8,10 +9,16 @@ import {
   type OccurrenceLink,
   type OccurrenceStatus,
 } from "../domain/occurrence-resolution";
+import type { PlannedItemKind } from "../domain/planned-item";
 import {
+  amountToSettle,
   comparePairs,
   decideMatches,
+  DUE_SOON_DAYS,
+  dueOccurrences,
   matchingRange,
+  matchingWindow,
+  type DueOccurrences,
   type MatchDecisions,
   type MatchOccurrence,
   type MatchPair,
@@ -19,10 +26,23 @@ import {
 } from "../domain/planned-matching";
 import type { DateRange } from "../domain/recurrence";
 import type { AppDatabase } from "../storage/database";
-import { plannedItems, transactions } from "../storage/schema";
+import { accounts, plannedItems, transactions } from "../storage/schema";
+import { getDefaultPaymentMode } from "./default-payment-mode";
 import { getImportBatch } from "./import-batch-lookup";
-import { listPlannedItems, toPlannedSchedule, type PlannedItemWithDetails } from "./planned-items";
-import { getOpenAccount, type Transaction } from "./transactions";
+import {
+  listPlannedItems,
+  PlannedItemNotFoundError,
+  getPlannedItem,
+  toPlannedSchedule,
+  type PlannedItemWithDetails,
+} from "./planned-items";
+import {
+  createTransaction,
+  getOpenAccount,
+  recordManualTransfer,
+  type SurplusDecision,
+  type Transaction,
+} from "./transactions";
 
 type Executor = Pick<AppDatabase, "select" | "update">;
 
@@ -673,7 +693,13 @@ export interface LinkCandidate {
   date: string;
   /** Integer minor units: the expected amount, or what a provision still expects. */
   amount: number;
-  status: Extract<OccurrenceStatus, "planned" | "overdue" | "partial">;
+  status: OpenStatus;
+}
+
+type OpenStatus = Extract<OccurrenceStatus, "planned" | "overdue" | "partial">;
+
+function isOpenStatus(status: OccurrenceStatus): status is OpenStatus {
+  return status === "planned" || status === "overdue" || status === "partial";
 }
 
 // Only bounds the generation of open-ended recurrences: it is not a matching rule.
@@ -703,10 +729,8 @@ function candidatesOf(
   const candidates: LinkCandidate[] = [];
   for (const occurrence of resolved) {
     const { status } = occurrence;
-    if (status !== "planned" && status !== "overdue" && status !== "partial") continue;
-    // A provision with nothing linked resolves to overdue with nothing remaining, yet nothing
-    // settled it: only a partial one is reduced to what it still expects.
-    const amount = status === "partial" ? occurrence.remaining : occurrence.expectedAmount;
+    if (!isOpenStatus(status)) continue;
+    const amount = amountToSettle(occurrence);
     if (amount === 0 || Math.sign(amount) !== Math.sign(transaction.amount)) continue;
     candidates.push({
       pair: {
@@ -797,4 +821,287 @@ export function unlinkByHand(db: AppDatabase, transactionId: number): void {
     getOpenAccount(tx, transaction.accountId);
     unlinkTransaction(tx, transactionId);
   });
+}
+
+/** An occurrence still waiting for a transaction, as the "To pay" and "Link a transaction" pages show it. */
+export interface OpenOccurrence {
+  plannedItemId: number;
+  nominalDate: string;
+  /** The effective date, after overrides and the business-day rule. */
+  date: string;
+  name: string;
+  kind: PlannedItemKind;
+  accountId: number;
+  /** A planned transfer only. */
+  destinationAccountId: number | null;
+  /** The currency of the account of the item. */
+  currency: string;
+  status: OpenStatus;
+  /** Signed minor units: the expected amount, or what a provision still expects. */
+  amount: number;
+  /** The dates of the transactions that settle it: its matching window, or its period. */
+  window: DateRange;
+}
+
+// A business-day rule moves a date by two days at most.
+const NOMINAL_SHIFT_DAYS = 2;
+
+/** The effective dates an occurrence can have: around its nominal date, or where an override moved it. */
+function rangeAround(item: PlannedItemWithDetails, nominalDate: string): DateRange {
+  const moved = item.overrides.find((override) => override.nominalDate === nominalDate)?.overrideDate ?? null;
+  const from = addDays(nominalDate, -NOMINAL_SHIFT_DAYS);
+  const to = addDays(nominalDate, NOMINAL_SHIFT_DAYS);
+  if (moved === null) return { from, to };
+  return { from: moved < from ? moved : from, to: moved > to ? moved : to };
+}
+
+function resolveItem(
+  item: PlannedItemWithDetails,
+  links: readonly OccurrenceLink[],
+  range: DateRange,
+  today: string,
+) {
+  return resolveOccurrences(
+    {
+      schedule: toPlannedSchedule(item),
+      overrides: item.overrides,
+      matchWindowDays: item.matchWindowDays,
+      acceptsMultipleTransactions: item.acceptsMultipleTransactions,
+    },
+    links,
+    range,
+    today,
+  );
+}
+
+function toOpenOccurrence(
+  item: PlannedItemWithDetails,
+  occurrence: ReturnType<typeof resolveItem>[number] & { status: OpenStatus },
+  currency: string,
+): OpenOccurrence {
+  return {
+    plannedItemId: item.id,
+    nominalDate: occurrence.nominalDate,
+    date: occurrence.date,
+    name: item.name,
+    kind: item.kind,
+    accountId: item.accountId,
+    destinationAccountId: item.destinationAccountId,
+    currency,
+    status: occurrence.status,
+    amount: amountToSettle(occurrence),
+    window: matchingWindow(occurrence, item.matchWindowDays),
+  };
+}
+
+function currencyOf(db: Pick<AppDatabase, "select">, accountId: number): string {
+  return getOpenAccount(db, accountId).currency;
+}
+
+/** Names one occurrence of a planned item. */
+export interface OccurrenceRef {
+  plannedItemId: number;
+  nominalDate: string;
+}
+
+function refuse(message: string, key: "markPaidOccurrenceUnknown" | "markPaidOccurrenceSettled" | "markPaidOccurrenceCancelled"): never {
+  throw new PlannedLinkError(message, messageRef(key));
+}
+
+function readItemOrThrow(db: Pick<AppDatabase, "select">, plannedItemId: number): PlannedItemWithDetails {
+  try {
+    return getPlannedItem(db, plannedItemId);
+  } catch (error) {
+    if (!(error instanceof PlannedItemNotFoundError)) throw error;
+    throw new PlannedLinkError(error.message, messageRef("plannedItemGone"));
+  }
+}
+
+/**
+ * The occurrence, if it still waits for a transaction; refused when it is unknown, settled or
+ * cancelled (the whole item cancelled included), or when the account of its item is archived.
+ */
+function readOpenOccurrence(
+  db: Pick<AppDatabase, "select">,
+  { plannedItemId, nominalDate }: OccurrenceRef,
+  today: string,
+): { item: PlannedItemWithDetails; occurrence: OpenOccurrence } {
+  const item = readItemOrThrow(db, plannedItemId);
+  const links = linksOf(db, [item.id]).get(item.id) ?? [];
+  const occurrence = resolveItem(item, links, rangeAround(item, nominalDate), today).find(
+    (candidate) => candidate.nominalDate === nominalDate,
+  );
+  if (occurrence === undefined) refuse(`No occurrence of item ${item.id} on ${nominalDate}`, "markPaidOccurrenceUnknown");
+  if (item.cancelled || occurrence.status === "cancelled") refuse("The occurrence is cancelled", "markPaidOccurrenceCancelled");
+  if (occurrence.status === "confirmed") refuse("The occurrence is already settled", "markPaidOccurrenceSettled");
+  const currency = currencyOf(db, item.accountId);
+  // The narrowing of `status` is lost through the checks above.
+  return { item, occurrence: toOpenOccurrence(item, { ...occurrence, status: occurrence.status as OpenStatus }, currency) };
+}
+
+export interface MarkPaidRequest extends OccurrenceRef {
+  /** YYYY-MM-DD: the date of the transaction to record. */
+  date: string;
+  /** Positive integer in minor units: the kind of the item gives the sign. */
+  amount: number;
+}
+
+export interface MarkPaidResult {
+  /** For a planned transfer, the part of the surplus that stays in the source account. */
+  unplaced: number;
+}
+
+function recordPlannedTransfer(
+  db: AppDatabase,
+  item: PlannedItemWithDetails,
+  request: MarkPaidRequest,
+  decision: SurplusDecision | null,
+): MarkPaidResult {
+  // The domain keeps a destination on every planned transfer.
+  const { transfers, unplaced } = recordManualTransfer(
+    db,
+    {
+      sourceId: item.accountId,
+      destinationId: item.destinationAccountId!,
+      amount: request.amount,
+      date: request.date,
+      label: item.name,
+    },
+    decision,
+  );
+  // Every outgoing leg settles the occurrence, as the import does for a split row (#175).
+  const outgoing = transfers.map(([leg]) => leg);
+  writeLink(db, outgoing[0]!, item, request.nominalDate, false, outgoing.map((leg) => leg.id));
+  return { unplaced };
+}
+
+/**
+ * Records the real transaction of an open occurrence and links it, in one database transaction
+ * (DOMAIN, "Matching planned vs actual"). The transaction follows the rules of one entered by hand:
+ * the account and the kind of the item, its name as the label, the default payment mode, and the
+ * category of the item, inherited as by a match. A provision takes one more payment each time.
+ * A planned transfer follows the manual transfer flow: `SurplusDecisionRequiredError` is thrown,
+ * with nothing written, until `decision` says what to do with a surplus above the ceiling.
+ * The planned item itself never changes (invariant 6).
+ */
+export function markOccurrencePaid(
+  db: AppDatabase,
+  request: MarkPaidRequest,
+  today: string,
+  decision: SurplusDecision | null = null,
+): MarkPaidResult {
+  return db.transaction(() => {
+    const { item } = readOpenOccurrence(db, request, today);
+    if (item.kind === "transfer") return recordPlannedTransfer(db, item, request, decision);
+    const created = createTransaction(db, {
+      accountId: item.accountId,
+      date: request.date,
+      amount: item.kind === "expense" ? -request.amount : request.amount,
+      kind: item.kind,
+      label: item.name,
+      paymentMode: getDefaultPaymentMode(db),
+    });
+    linkTransactionToOccurrence(db, {
+      transactionId: created.id,
+      plannedItemId: item.id,
+      nominalDate: request.nominalDate,
+    });
+    return { unplaced: 0 };
+  });
+}
+
+/** The accounts that are archived: an item on one of them takes no entered transaction. */
+function archivedAccountIds(db: Pick<AppDatabase, "select">): Set<number> {
+  const rows = db.select({ id: accounts.id }).from(accounts).where(eq(accounts.archived, true)).all();
+  return new Set(rows.map(({ id }) => id));
+}
+
+function currencies(db: Pick<AppDatabase, "select">): Map<number, string> {
+  const rows = db.select({ id: accounts.id, currency: accounts.currency }).from(accounts).all();
+  return new Map(rows.map(({ id, currency }) => [id, currency]));
+}
+
+/**
+ * The occurrences of the "To pay" page: due ones (effective date today or earlier), then those of
+ * the next `DUE_SOON_DAYS` days. Items of an archived account are left out, since nothing can be
+ * entered there; so are cancelled items. The navigation counts `due`.
+ */
+export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: string): DueOccurrences<OpenOccurrence> {
+  const archived = archivedAccountIds(db);
+  const items = listPlannedItems(db, { includeCancelled: false }).filter(
+    (item) =>
+      !archived.has(item.accountId) && (item.destinationAccountId === null || !archived.has(item.destinationAccountId)),
+  );
+  if (items.length === 0) return { due: [], soon: [] };
+  const links = linksOf(
+    db,
+    items.map((item) => item.id),
+  );
+  const currencyById = currencies(db);
+  const to = addDays(today, DUE_SOON_DAYS);
+  const open = items.flatMap((item) => {
+    // Every occurrence since the start can still be overdue; an override may move one earlier.
+    const from = item.overrides.reduce(
+      (earliest, { overrideDate }) => (overrideDate !== null && overrideDate < earliest ? overrideDate : earliest),
+      addDays(item.startDate, -NOMINAL_SHIFT_DAYS),
+    );
+    return resolveItem(item, links.get(item.id) ?? [], { from, to }, today).flatMap((occurrence) => {
+      const { status } = occurrence;
+      return isOpenStatus(status)
+        ? [toOpenOccurrence(item, { ...occurrence, status }, currencyById.get(item.accountId) ?? "")]
+        : [];
+    });
+  });
+  return dueOccurrences(open, today, DUE_SOON_DAYS);
+}
+
+export interface LinkFilters {
+  /** Defaults to the window of the occurrence. */
+  range?: DateRange;
+  /** Part of the label, whatever its case. */
+  search?: string;
+}
+
+export interface OccurrenceLinkCandidates {
+  occurrence: OpenOccurrence;
+  /** The dates listed: the filters, or the window of the occurrence. */
+  range: DateRange;
+  /** Newest first. */
+  transactions: Transaction[];
+}
+
+/**
+ * The transactions an open occurrence can be linked to by hand, the reverse of
+ * `listLinkCandidates`: unlinked transactions of the account of the item, of the sign of what it
+ * expects, never a transfer, in the range asked for. `linkByHand` checks the choice again.
+ */
+export function listOccurrenceLinkCandidates(
+  db: Pick<AppDatabase, "select">,
+  ref: OccurrenceRef,
+  today: string,
+  { range, search = "" }: LinkFilters = {},
+): OccurrenceLinkCandidates {
+  const { item, occurrence } = readOpenOccurrence(db, ref, today);
+  assertNotTransfer(item);
+  const listed = range ?? occurrence.window;
+  const rows = db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.accountId, item.accountId),
+        isNull(transactions.plannedItemId),
+        ne(transactions.kind, "transfer"),
+        occurrence.amount < 0 ? lt(transactions.amount, 0) : gt(transactions.amount, 0),
+        between(transactions.date, listed.from, listed.to),
+      ),
+    )
+    .orderBy(desc(transactions.date), desc(transactions.id))
+    .all();
+  const query = search.trim();
+  return {
+    occurrence,
+    range: listed,
+    transactions: query === "" ? rows : rows.filter((row) => labelContains(row.label, query)),
+  };
 }

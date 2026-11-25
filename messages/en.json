@@ -74,7 +74,8 @@
       "currencies": "Currencies",
       "backup": "Backup",
       "security": "Security",
-      "transactions": "Transactions"
+      "transactions": "Transactions",
+      "toPay": "To pay"
     }
   },
   "navigation": {
@@ -88,7 +89,9 @@
     "toCategorize": "To categorize",
     "queueCount": "{count, plural, one {# transaction} other {# transactions}}",
     "settings": "Settings",
-    "addTransaction": "Add transaction"
+    "addTransaction": "Add transaction",
+    "toPay": "To pay",
+    "dueCount": "{count} due"
   },
   "home": {
     "metaDescription": "Self-hosted personal budget web app.",
@@ -329,7 +332,52 @@
       "confirm": "Cancel the planned item"
     },
     "categoryArchived": "{name} (archived)",
-    "saveDetails": "Save details"
+    "saveDetails": "Save details",
+    "due": {
+      "metaTitle": "To pay",
+      "title": "To pay",
+      "intro": "Occurrences that are due. Check the date and the amount, then mark each one as paid, received or transferred.",
+      "dueHeading": "Due",
+      "soonHeading": "Due in the next {count} days",
+      "empty": "Nothing to pay.",
+      "loadingLabel": "Loading the occurrences to pay",
+      "dueOn": "Due {date}",
+      "where": "{account}. {due}",
+      "date": "Date",
+      "amount": "Amount",
+      "remainingAmount": "Remaining amount",
+      "subject": "{name}, due {date}",
+      "fieldSubject": "of {name}, due {date}"
+    },
+    "link": {
+      "metaTitle": "Link a transaction",
+      "title": "Link a transaction",
+      "back": "Back to the calendar",
+      "plannedFor": "Planned for {date}",
+      "where": "{account}. {planned}",
+      "planned": "Planned",
+      "filtersLabel": "Filter the transactions",
+      "search": "Search",
+      "searchPlaceholder": "Description",
+      "from": "From",
+      "to": "To",
+      "show": "Show",
+      "count": "{count, plural, one {# transaction} other {# transactions}}",
+      "caption": "Unlinked transactions of {account}, in {currency}",
+      "columns": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Account",
+        "amount": "Amount",
+        "action": "Action"
+      },
+      "link": "Link",
+      "linkPending": "Linking…",
+      "linkLabel": "Link, {transaction}, {date}, {amount}, to {name} due {due}",
+      "empty": "No unlinked transaction matches.",
+      "loadingLabel": "Loading the transactions",
+      "unavailable": "This occurrence cannot take a transaction any more."
+    }
   },
   "calendar": {
     "metaTitle": "Calendar lines | Demain",
@@ -414,6 +462,17 @@
       "save": "Save",
       "skip": "Skip this occurrence",
       "restore": "Restore as planned"
+    },
+    "toPayLink": "To pay ({count})",
+    "toPayLinkLabel": "To pay, {count} due",
+    "occurrenceActions": {
+      "expense": "Mark as paid",
+      "income": "Mark as received",
+      "transfer": "Mark as transferred",
+      "expensePending": "Marking as paid…",
+      "incomePending": "Marking as received…",
+      "transferPending": "Marking as transferred…",
+      "link": "Link a transaction"
     }
   },
   "balances": {
@@ -1450,7 +1509,15 @@
     "occurrenceUnlinked": "Transaction unlinked from the planned item.",
     "occurrenceOverrideSaved": "Occurrence changed.",
     "occurrenceSkipped": "Occurrence skipped.",
-    "occurrenceRestored": "Occurrence restored as planned."
+    "occurrenceRestored": "Occurrence restored as planned.",
+    "markPaidOccurrenceUnknown": "This occurrence no longer exists: reload the page.",
+    "markPaidOccurrenceSettled": "This occurrence is already settled.",
+    "markPaidOccurrenceCancelled": "This occurrence is cancelled.",
+    "occurrenceMarkedPaid": "{name} marked as paid.",
+    "occurrenceMarkedReceived": "{name} marked as received.",
+    "occurrenceMarkedTransferred": "{name} marked as transferred.",
+    "occurrenceLinkedTo": "{transaction} linked to {name}.",
+    "occurrenceLinkFailed": "the transaction could not be linked. Try again."
   },
   "auth": {
     "signOut": "Sign out",

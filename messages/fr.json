@@ -74,7 +74,8 @@
       "currencies": "Devises",
       "backup": "Sauvegarde",
       "security": "Sécurité",
-      "transactions": "Transactions"
+      "transactions": "Transactions",
+      "toPay": "À régler"
     }
   },
   "navigation": {
@@ -88,7 +89,9 @@
     "toCategorize": "À catégoriser",
     "queueCount": "{count, plural, one {# transaction} other {# transactions}}",
     "settings": "Réglages",
-    "addTransaction": "Ajouter une transaction"
+    "addTransaction": "Ajouter une transaction",
+    "toPay": "À régler",
+    "dueCount": "{count} à régler"
   },
   "home": {
     "metaDescription": "Application web de budget personnel, auto-hébergée.",
@@ -329,7 +332,52 @@
       "confirm": "Annuler l'élément planifié"
     },
     "categoryArchived": "{name} (archivée)",
-    "saveDetails": "Enregistrer les détails"
+    "saveDetails": "Enregistrer les détails",
+    "due": {
+      "metaTitle": "À régler",
+      "title": "À régler",
+      "intro": "Les occurrences arrivées à échéance. Vérifiez la date et le montant, puis marquez chacune comme payée, reçue ou virée.",
+      "dueHeading": "À échéance",
+      "soonHeading": "Dans les {count} prochains jours",
+      "empty": "Rien à régler.",
+      "loadingLabel": "Chargement des occurrences à régler",
+      "dueOn": "Échéance le {date}",
+      "where": "{account}. {due}",
+      "date": "Date",
+      "amount": "Montant",
+      "remainingAmount": "Montant restant",
+      "subject": "{name}, échéance le {date}",
+      "fieldSubject": "de {name}, échéance le {date}"
+    },
+    "link": {
+      "metaTitle": "Lier une transaction",
+      "title": "Lier une transaction",
+      "back": "Retour au calendrier",
+      "plannedFor": "Prévu le {date}",
+      "where": "{account}. {planned}",
+      "planned": "Prévu",
+      "filtersLabel": "Filtrer les transactions",
+      "search": "Recherche",
+      "searchPlaceholder": "Description",
+      "from": "Du",
+      "to": "Au",
+      "show": "Afficher",
+      "count": "{count, plural, one {# transaction} other {# transactions}}",
+      "caption": "Transactions non liées de {account}, en {currency}",
+      "columns": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Compte",
+        "amount": "Montant",
+        "action": "Action"
+      },
+      "link": "Lier",
+      "linkPending": "Liaison…",
+      "linkLabel": "Lier, {transaction}, {date}, {amount}, à {name} échéance le {due}",
+      "empty": "Aucune transaction non liée ne correspond.",
+      "loadingLabel": "Chargement des transactions",
+      "unavailable": "Cette occurrence ne peut plus recevoir de transaction."
+    }
   },
   "calendar": {
     "metaTitle": "Lignes du calendrier | Demain",
@@ -414,6 +462,17 @@
       "save": "Enregistrer",
       "skip": "Ignorer cette occurrence",
       "restore": "Rétablir comme prévu"
+    },
+    "toPayLink": "À régler ({count})",
+    "toPayLinkLabel": "À régler, {count} à régler",
+    "occurrenceActions": {
+      "expense": "Marquer comme payé",
+      "income": "Marquer comme reçu",
+      "transfer": "Marquer comme viré",
+      "expensePending": "Marquage comme payé…",
+      "incomePending": "Marquage comme reçu…",
+      "transferPending": "Marquage comme viré…",
+      "link": "Lier une transaction"
     }
   },
   "balances": {
@@ -1450,7 +1509,15 @@
     "occurrenceUnlinked": "Transaction détachée de l'élément prévu.",
     "occurrenceOverrideSaved": "Occurrence modifiée.",
     "occurrenceSkipped": "Occurrence ignorée.",
-    "occurrenceRestored": "Occurrence rétablie comme prévu."
+    "occurrenceRestored": "Occurrence rétablie comme prévu.",
+    "markPaidOccurrenceUnknown": "Cette occurrence n'existe plus : rechargez la page.",
+    "markPaidOccurrenceSettled": "Cette occurrence est déjà réglée.",
+    "markPaidOccurrenceCancelled": "Cette occurrence est annulée.",
+    "occurrenceMarkedPaid": "{name} marqué comme payé.",
+    "occurrenceMarkedReceived": "{name} marqué comme reçu.",
+    "occurrenceMarkedTransferred": "{name} marqué comme viré.",
+    "occurrenceLinkedTo": "{transaction} liée à {name}.",
+    "occurrenceLinkFailed": "la transaction n'a pas pu être liée. Réessayez."
   },
   "auth": {
     "signOut": "Se déconnecter",
