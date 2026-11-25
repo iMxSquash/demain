@@ -192,8 +192,10 @@ The user creates overrides from the "Change" button of a planned row, in the mon
 
 Decisions of the owner on occurrence overrides (`src/domain/planned-item.ts`), 19 Nov 2026, numbered as in issue #174:
 
-- Q1, refused: an occurrence settled by a transaction has no "Change" button and cannot be changed, moved, skipped or restored. It is unlinked first (#168). Settled means at least one linked transaction on that nominal date, a partial provision included, the same notion as for a new version.
+- Q1, refused: an occurrence settled by a transaction has no "Change" button and cannot be changed, moved, skipped or restored. It is unlinked first (#168).
 - Q2, allowed: the override date may fall outside the span of its version or after the end date of the item.
+
+An occurrence counts as settled for Q1 as soon as at least one transaction is linked on its nominal date, a partial provision included: the same notion a new version uses (see Planned item and versions). This reading awaits the owner's confirmation on issue #174.
 
 ### Occurrence status
 
