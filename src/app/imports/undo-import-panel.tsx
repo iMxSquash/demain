@@ -11,10 +11,13 @@ import type { UndoImportState } from "./import-form-data";
 export function UndoImportPanel({
   batchId,
   fileName,
+  replacedCount,
   onUndone,
 }: {
   batchId: number;
   fileName: string;
+  /** Entries marked as paid that the file replaced: undoing it does not bring them back. */
+  replacedCount: number;
   /** Called once the movements are removed: the panels that work on them are no longer offered. */
   onUndone: () => void;
 }) {
@@ -41,6 +44,7 @@ export function UndoImportPanel({
       <h3 id={headingId} className="font-medium">
         {t("heading")}
       </h3>
+      {replacedCount > 0 ? <p className="max-w-prose">{t("replacedNote", { count: replacedCount })}</p> : null}
       {result?.status === "undone" ? null : (
         <ConfirmActionButton
           action={undo}

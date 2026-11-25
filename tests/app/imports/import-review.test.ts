@@ -64,6 +64,7 @@ const REVIEW: Review = {
   overflowAccounts: [],
   storedOverflowAccounts: [],
   assertionSnapshot: { accounts: [], assertions: [], transactions: [] },
+  enteredPayments: [],
   overflowChoices: [],
   columnChoices: {},
   batch: 1,
@@ -90,6 +91,7 @@ function render(initialReview: Review | null): string {
     categories: [],
     overflowAccounts: [],
     assertionSnapshot: REVIEW.assertionSnapshot,
+    enteredPayments: initialReview?.enteredPayments ?? [],
   });
   return renderWithIntl(createElement(SessionProvider, { initialReview }, review));
 }
@@ -104,6 +106,34 @@ describe("ImportReview", () => {
     expect(markup).toContain("Import this file");
     expect(markup).toContain("Cancel this file");
     expect(markup).toContain(">Cancel</button>");
+  });
+
+  it("flags a row that matches an entry marked as paid, with Replace chosen in advance", () => {
+    const markup = render({
+      ...REVIEW,
+      enteredPayments: [
+        {
+          id: 9,
+          accountId: 1,
+          categoryId: null,
+          date: "2026-03-02",
+          label: "Synthetic shop",
+          kind: "expense",
+          amount: -1_250,
+          plannedItemId: 4,
+          plannedItemName: "Synthetic shop",
+          nominalDate: "2026-03-01",
+          windowDays: 5,
+          toleranceBasisPoints: 500,
+        },
+      ],
+    });
+
+    expect(markup).toContain("Entries already marked as paid");
+    expect(markup).toContain("You marked Synthetic shop of");
+    expect(markup).toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/);
+    expect(markup).toContain("Keep both");
+    expect(markup).toContain("a replaced entry does not come back");
   });
 
   it("renders no dialog", () => {

@@ -11,6 +11,7 @@ import {
 
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import type { PendingOverflow } from "../../domain/import-overflow";
+import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 import type { AccountRef, OverflowAccount } from "../../domain/overflow";
 import type { StagedFile } from "./import-form-data";
 import type { ColumnChoicesBySource } from "./stage-sources";
@@ -26,6 +27,8 @@ export interface Review {
   storedOverflowAccounts: OverflowAccount<AccountRef>[];
   /** The balance assertions and the movements when the files were read: the page refreshes after each import, the comparison must not. */
   assertionSnapshot: AssertionLinkSnapshot;
+  /** The entries marked as paid when the files were read: what a bank row of a file may replace. */
+  enteredPayments: EnteredPaymentEntry[];
   /** The overflow accounts chosen so far: written with the first file imported, never before. */
   overflowChoices: PendingOverflow[];
   /** The columns chosen by hand, by position in `sources`: a file is read again with its own. */

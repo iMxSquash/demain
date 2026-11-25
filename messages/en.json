@@ -1254,7 +1254,8 @@
         "keepBoth": "Keep both",
         "takes": "The bank row takes the occurrence of the entry, its category if the row has none, and its description if the row has none.",
         "undoNote": "If you undo this file later, a replaced entry does not come back: its occurrence becomes unpaid again, and you can mark it as paid again.",
-        "chooseFirst": "{count, plural, one {Choose what to do with the row that may be an entry marked as paid.} other {Choose what to do with the # rows that may be entries marked as paid.}}"
+        "chooseFirst": "{count, plural, one {Choose what to do with the row that may be an entry marked as paid.} other {Choose what to do with the # rows that may be entries marked as paid.}}",
+        "chosenTwice": "An entry can be replaced by one row only: choose \"Keep both\" for the other rows."
       }
     }
   },

@@ -38,6 +38,8 @@ import type {
   ImportCategoryOption,
   StagedFile,
 } from "./import-form-data";
+import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
+import { enteredMatchesOf } from "./entered-payments";
 import { OverflowPrompt } from "./overflow-prompt";
 import { rereadFile } from "./reread-file";
 import { initReview, parseOptionalId, reviewReducer } from "./review-state";
@@ -58,6 +60,8 @@ interface ReviewBodyProps {
   storedOverflowAccounts: OverflowAccount<AccountRef>[];
   /** The assertions and movements as they were when the files were read: what each file is compared with. */
   assertionSnapshot: AssertionLinkSnapshot;
+  /** The entries marked as paid when the files were read: a bank row may replace one. */
+  enteredPayments: readonly EnteredPaymentEntry[];
   isReading: boolean;
   accountSelectRef: RefObject<SelectHandle | null>;
   onAccountChange: (accountId: number) => void;
@@ -80,6 +84,7 @@ function ReviewBody({
   overflowAccounts,
   storedOverflowAccounts,
   assertionSnapshot,
+  enteredPayments,
   isReading,
   accountSelectRef,
   onAccountChange,
@@ -149,6 +154,15 @@ function ReviewBody({
   const assertionLinks = useMemo(
     () => linkReviewAssertions(state.files, plans, assertionSnapshot, { accountId, currency }),
     [state.files, plans, assertionSnapshot, accountId, currency],
+  );
+  // Entries replaced by a file of this review: the snapshot still holds them until it is read again.
+  const [replacedIds, setReplacedIds] = useState<ReadonlySet<number>>(new Set());
+  const enteredMatches = useMemo(
+    () =>
+      state.files.map((file) =>
+        enteredMatchesOf(file.rows, { accountId, currency }, enteredPayments, replacedIds),
+      ),
+    [state.files, accountId, currency, enteredPayments, replacedIds],
   );
   const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
   // Read on the stored balances: a choice already made would hide the need it answers.
@@ -301,6 +315,8 @@ function ReviewBody({
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
             overflowChoices={choicesForShortfalls(overflowChoices, storedPlans[index]?.shortfalls ?? [])}
+            enteredMatches={enteredMatches[index] ?? []}
+            onEntriesReplaced={(entryIds) => setReplacedIds((previous) => new Set([...previous, ...entryIds]))}
             lookups={lookups}
             isReading={isBusy}
             onChangeColumns={(choices) => restageFile(index, choices)}

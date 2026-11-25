@@ -29,6 +29,8 @@ import {
   type ReviewFile,
 } from "./review-state";
 import { AssertionLinkPanel } from "./assertion-link-panel";
+import { settleEnteredChoices, type EnteredChoices, type EnteredMatch } from "./entered-payments";
+import { EnteredPaymentsPanel } from "./entered-payments-panel";
 import { BalanceCheckPanel } from "./balance-check-panel";
 import { PlannedMatchesPanel } from "./planned-matches-panel";
 import { RuleProposalsPanel } from "./rule-proposals-panel";
@@ -152,6 +154,10 @@ interface FileCardProps {
   accountNames: ReadonlyMap<number, string>;
   /** The overflow accounts this file needs: saved with the file, or not at all. */
   overflowChoices: readonly PendingOverflow[];
+  /** The rows that may be entries marked as paid, with the entries each may replace. */
+  enteredMatches: readonly EnteredMatch[];
+  /** Called with the entries the file replaced once it is recorded: no other file offers them again. */
+  onEntriesReplaced: (entryIds: readonly number[]) => void;
   lookups: RowLookups;
   isReading: boolean;
   /** Reads the file again with other columns; resolves to whether the new rows are in. */
@@ -169,6 +175,8 @@ export function FileCard({
   defaultSavingsAccountId,
   accountNames,
   overflowChoices,
+  enteredMatches,
+  onEntriesReplaced,
   lookups,
   isReading,
   onChangeColumns,
@@ -180,6 +188,8 @@ export function FileCard({
   const hintId = useId();
   const waitId = useId();
   const rereadErrorId = useId();
+  const enteredHintId = useId();
+  const undoNoteId = useId();
   const { phase, outcome, rows, columns } = file;
 
   const problemCount = rows.filter((row) => row.problem !== null).length;
@@ -193,6 +203,20 @@ export function FileCard({
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [isUndone, setIsUndone] = useState(false);
+  const [enteredChoices, setEnteredChoices] = useState<EnteredChoices>(new Map());
+  const settled = useMemo(
+    () => settleEnteredChoices(enteredMatches, enteredChoices),
+    [enteredMatches, enteredChoices],
+  );
+  const chooseEntered = useCallback((rowId: number, entryId: number | null) => {
+    setEnteredChoices((previous) => new Map(previous).set(rowId, entryId));
+  }, []);
+  const enteredHint =
+    settled.unsettledCount > 0
+      ? t("entered.chooseFirst", { count: settled.unsettledCount })
+      : settled.isEntryChosenTwice
+        ? t("entered.chosenTwice")
+        : null;
   const regionRef = useRef<HTMLDivElement>(null);
   const visible = useMemo(
     () => visibleRowIndexes(rows, onlyToConfirm),
@@ -289,7 +313,11 @@ export function FileCard({
         savingsAccountId: defaultSavingsAccountId,
         drafts: rows.map((row) => ({ ...row.draft, details: row.details })),
         overflowChoices: [...overflowChoices],
+        replacements: settled.replacements,
       });
+      if (result.status === "done" && result.replacedCount > 0) {
+        onEntriesReplaced(settled.replacements.map(({ entryId }) => entryId));
+      }
       dispatch({
         type: "setPhase",
         file: fileIndex,
@@ -300,6 +328,7 @@ export function FileCard({
           issues: result.issues,
           batchId: result.batchId,
           endDate: result.endDate,
+          replacedCount: result.replacedCount,
         },
       });
     } catch (error) {
@@ -308,18 +337,27 @@ export function FileCard({
         type: "setPhase",
         file: fileIndex,
         phase: "reviewing",
-        outcome: { message: t("importFailed"), warnings: [], issues: [], batchId: null, endDate: null },
+        outcome: {
+          message: t("importFailed"),
+          warnings: [],
+          issues: [],
+          batchId: null,
+          endDate: null,
+          replacedCount: 0,
+        },
       });
     }
   }
 
-  const canImport = canImportFile(file, { isReading, waitFor });
+  const canImport = canImportFile(file, { isReading, waitFor }) && enteredHint === null;
   const isReviewing = phase === "reviewing" || phase === "importing";
   const describedBy =
     [
       problemCount > 0 ? hintId : null,
       waitFor === null ? null : waitId,
       file.rereadError === null ? null : rereadErrorId,
+      enteredHint === null ? null : enteredHintId,
+      settled.replacements.length === 0 ? null : undoNoteId,
     ]
       .filter((id) => id !== null)
       .join(" ") || undefined;
@@ -419,7 +457,19 @@ export function FileCard({
               accountNames={accountNames}
             />
           )}
+          {enteredMatches.length === 0 ? null : (
+            <EnteredPaymentsPanel
+              matches={enteredMatches}
+              rows={rows}
+              currency={file.currency}
+              settled={settled}
+              isBusy={isLocked}
+              onChoose={chooseEntered}
+              undoNoteId={undoNoteId}
+            />
+          )}
           {problemCount > 0 ? <p id={hintId}>{t("fixFirst")}</p> : null}
+          {enteredHint === null ? null : <p id={enteredHintId}>{enteredHint}</p>}
           {waitFor === null ? null : (
             <p id={waitId}>{t("importAfter", { name: waitFor })}</p>
           )}
@@ -488,6 +538,7 @@ export function FileCard({
           <UndoImportPanel
             batchId={outcome.batchId}
             fileName={file.fileName}
+            replacedCount={outcome.replacedCount}
             onUndone={() => setIsUndone(true)}
           />
         </>
