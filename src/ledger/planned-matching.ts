@@ -10,6 +10,7 @@ import {
   type OccurrenceStatus,
   type ResolvedOccurrence,
 } from "../domain/occurrence-resolution";
+import { MAX_BUSINESS_DAY_SHIFT_DAYS } from "../domain/occurrences";
 import type { PlannedItemKind } from "../domain/planned-item";
 import {
   amountToSettle,
@@ -37,9 +38,11 @@ import {
   toPlannedSchedule,
   type PlannedItemWithDetails,
 } from "./planned-items";
+import type { TransactionInput } from "../domain/transaction";
 import {
   createTransaction,
   getOpenAccount,
+  previewCeilingWarning,
   recordManualTransfer,
   type SurplusDecision,
   type Transaction,
@@ -846,14 +849,11 @@ export interface OpenOccurrence {
   window: DateRange;
 }
 
-// A business-day rule moves a date by two days at most.
-const NOMINAL_SHIFT_DAYS = 2;
-
 /** The effective dates an occurrence can have: around its nominal date, or where an override moved it. */
 function rangeAround(item: PlannedItemWithDetails, nominalDate: string): DateRange {
   const moved = item.overrides.find((override) => override.nominalDate === nominalDate)?.overrideDate ?? null;
-  const from = addDays(nominalDate, -NOMINAL_SHIFT_DAYS);
-  const to = addDays(nominalDate, NOMINAL_SHIFT_DAYS);
+  const from = addDays(nominalDate, -MAX_BUSINESS_DAY_SHIFT_DAYS);
+  const to = addDays(nominalDate, MAX_BUSINESS_DAY_SHIFT_DAYS);
   if (moved === null) return { from, to };
   return { from: moved < from ? moved : from, to: moved > to ? moved : to };
 }
@@ -908,11 +908,13 @@ function readOpenOccurrence(
 ): { item: PlannedItemWithDetails; occurrence: OpenOccurrence } {
   const item = readItemOrThrow(db, plannedItemId);
   const links = linksOf(db, [item.id]).get(item.id) ?? [];
+  // A cancelled schedule produces nothing after today: its occurrences would read as unknown.
+  if (item.cancelled) refuse("The planned item is cancelled", "markPaidOccurrenceCancelled");
   const occurrence = resolveOver(item, links, rangeAround(item, nominalDate), today).find(
     (candidate) => candidate.nominalDate === nominalDate,
   );
   if (occurrence === undefined) refuse(`No occurrence of item ${item.id} on ${nominalDate}`, "markPaidOccurrenceUnknown");
-  if (item.cancelled || occurrence.status === "cancelled") refuse("The occurrence is cancelled", "markPaidOccurrenceCancelled");
+  if (occurrence.status === "cancelled") refuse("The occurrence is cancelled", "markPaidOccurrenceCancelled");
   if (occurrence.status === "confirmed") refuse("The occurrence is already settled", "markPaidOccurrenceSettled");
   // Nothing is entered on an archived account: the occurrence is refused there too.
   const { currency } = getOpenAccount(db, item.accountId);
@@ -930,6 +932,8 @@ export interface MarkPaidRequest extends OccurrenceRef {
 export interface MarkPaidResult {
   /** For a planned transfer, the part of the surplus that stays in the source account. */
   unplaced: number;
+  /** For an income, by how much it goes over the deposit ceiling of its account (DOMAIN: accepted with a warning). */
+  ceilingExcess: number;
 }
 
 function recordPlannedTransfer(
@@ -953,7 +957,7 @@ function recordPlannedTransfer(
   // Every outgoing leg settles the occurrence, as the import does for a split row (#175).
   const outgoing = transfers.map(([leg]) => leg);
   writeLink(db, outgoing[0]!, item, request.nominalDate, false, outgoing.map((leg) => leg.id));
-  return { unplaced };
+  return { unplaced, ceilingExcess: 0 };
 }
 
 /**
@@ -974,20 +978,23 @@ export function markOccurrencePaid(
   return db.transaction(() => {
     const { item } = readOpenOccurrence(db, request, today);
     if (item.kind === "transfer") return recordPlannedTransfer(db, item, request, decision);
-    const created = createTransaction(db, {
+    const input: TransactionInput = {
       accountId: item.accountId,
       date: request.date,
       amount: item.kind === "expense" ? -request.amount : request.amount,
       kind: item.kind,
       label: item.name,
       paymentMode: getDefaultPaymentMode(db),
-    });
+    };
+    // Read before the write, as the add-transaction form does: the new amount is not counted twice.
+    const warning = previewCeilingWarning(db, input);
+    const created = createTransaction(db, input);
     linkTransactionToOccurrence(db, {
       transactionId: created.id,
       plannedItemId: item.id,
       nominalDate: request.nominalDate,
     });
-    return { unplaced: 0 };
+    return { unplaced: 0, ceilingExcess: warning?.excess ?? 0 };
   });
 }
 
@@ -1024,7 +1031,7 @@ export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: strin
     // Every occurrence since the start can still be overdue; an override may move one earlier.
     const from = item.overrides.reduce(
       (earliest, { overrideDate }) => (overrideDate !== null && overrideDate < earliest ? overrideDate : earliest),
-      addDays(item.startDate, -NOMINAL_SHIFT_DAYS),
+      addDays(item.startDate, -MAX_BUSINESS_DAY_SHIFT_DAYS),
     );
     return resolveOver(item, links.get(item.id) ?? [], { from, to }, today).flatMap((occurrence) => {
       const { status } = occurrence;
@@ -1064,7 +1071,14 @@ export function listOccurrenceLinkCandidates(
 ): OccurrenceLinkCandidates {
   const { item, occurrence } = readOpenOccurrence(db, ref, today);
   assertNotTransfer(item);
-  const listed = { from: range?.from ?? occurrence.window.from, to: range?.to ?? occurrence.window.to };
+  // `linkByHand` only finds an occurrence up to a horizon after the transaction (or after today):
+  // a transaction further back than that is not listed, so the page never offers a refused link.
+  const reachable = addDays(occurrence.date, -LINK_CANDIDATE_HORIZON_DAYS);
+  const from = range?.from ?? occurrence.window.from;
+  const listed = {
+    from: today < reachable && from < reachable ? reachable : from,
+    to: range?.to ?? occurrence.window.to,
+  };
   const rows = db
     .select()
     .from(transactions)

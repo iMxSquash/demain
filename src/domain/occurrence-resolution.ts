@@ -5,6 +5,7 @@ import { addDays } from "./calendar-date";
 import { divideRound } from "./money";
 import {
   generateOccurrences,
+  MAX_BUSINESS_DAY_SHIFT_DAYS,
   type Occurrence,
   type OccurrenceOverride,
   type PlannedSchedule,
@@ -51,7 +52,7 @@ export interface ResolvedOccurrence extends Occurrence {
 }
 
 // A business-day rule moves a date by two days at most (weekend to the previous or next weekday).
-const BUSINESS_DAY_SHIFT_MARGIN_DAYS = 2;
+const BUSINESS_DAY_SHIFT_MARGIN_DAYS = MAX_BUSINESS_DAY_SHIFT_DAYS;
 
 interface Resolution {
   status: OccurrenceStatus;
