@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { buttonClass } from "../../../components/button";
-import { DataTable, EmptyState, Pill } from "../../../components/data-display";
+import { DataTable, EmptyState, Pill, SECONDARY_LINK_CLASS } from "../../../components/data-display";
 import { formatAmount, formatEditableAmount } from "../../../domain/money";
 import { formatCalendarDate, formatWeekdayDate } from "../../../i18n/dates";
 import type { CalendarEntry, CalendarMonth } from "../../../ledger/calendar";
@@ -203,7 +202,7 @@ function OccurrenceActions({ entry, locale, text, backView }: ActionsProps) {
             <Link
               href={linkHref({ plannedItemId, nominalDate }, backView)}
               aria-label={`${text.actions.link}, ${subject}`}
-              className={buttonClass("secondary")}
+              className={SECONDARY_LINK_CLASS}
             >
               {text.actions.link}
             </Link>

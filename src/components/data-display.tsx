@@ -99,7 +99,8 @@ interface EmptyStateProps {
   action?: { href: string; label: string };
 }
 
-const ACTION_CLASS =
+/** A link drawn as the secondary button, for server markup (the button module is client code). */
+export const SECONDARY_LINK_CLASS =
   "inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill bg-control px-4 font-medium text-text transition-colors hover:bg-control-hover";
 
 export function EmptyState({ children, action }: EmptyStateProps) {
@@ -107,7 +108,7 @@ export function EmptyState({ children, action }: EmptyStateProps) {
     <div className="flex flex-col items-center gap-4 rounded-control bg-surface-sunken px-4 py-8 text-center text-text-muted">
       <p className="max-w-[36ch]">{children}</p>
       {action === undefined ? null : (
-        <Link href={action.href} className={ACTION_CLASS}>
+        <Link href={action.href} className={SECONDARY_LINK_CLASS}>
           {action.label}
         </Link>
       )}
