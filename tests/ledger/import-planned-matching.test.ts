@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { detailsFromSign } from "../../src/domain/import-draft";
 import type { MatchPair } from "../../src/domain/planned-matching";
 import type { PlannedItemInput } from "../../src/domain/planned-item";
-import { createAccount } from "../../src/ledger/accounts";
+import { createAccount, updateAccount } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
 import { createRule } from "../../src/ledger/categorization-rules";
 import { undoImportBatch } from "../../src/ledger/import-undo";
@@ -19,7 +19,10 @@ import {
 } from "../../src/ledger/imports";
 import { createPlannedItem, getPlannedItem } from "../../src/ledger/planned-items";
 import {
+  confirmMatch,
   linkTransactionToOccurrence,
+  listBatchMatches,
+  undoMatch,
   unlinkTransaction,
 } from "../../src/ledger/planned-matching";
 import {
@@ -241,6 +244,277 @@ describe("matching planned occurrences when a file is imported", () => {
       ]);
       expect(linked.every((transaction) => transaction.plannedItemId === provision.id)).toBe(true);
       expect(linked.every((transaction) => transaction.occurrenceDate === "2026-03-15")).toBe(true);
+    });
+  });
+
+  describe("a planned transfer", () => {
+    const SAVINGS_LABEL = "TO SAVINGS";
+    let savingsId: number;
+    let overflowId: number;
+
+    beforeEach(() => {
+      const savings = {
+        ...ACCOUNT_DETAILS,
+        name: "Savings",
+        kind: "savings",
+        openingBalance: 90_000,
+        depositCeiling: 100_000,
+      } as const;
+      savingsId = createAccount(db, savings).id;
+      overflowId = createAccount(db, {
+        ...ACCOUNT_DETAILS,
+        name: "Overflow",
+        kind: "savings",
+        openingBalance: 0,
+      }).id;
+      updateAccount(db, savingsId, { ...savings, overflowAccountId: overflowId });
+    });
+
+    function savingsRow(date: string, amount: number): ImportRow {
+      return {
+        ...row(date, amount, SAVINGS_LABEL),
+        details: { ...detailsFromSign(-1), type: "savings", savingsAccountId: savingsId },
+      };
+    }
+
+    function monthlyTransfer(overrides: Partial<PlannedItemInput> = {}) {
+      return monthlyItem({
+        name: "Savings plan",
+        kind: "transfer",
+        destinationAccountId: savingsId,
+        amount: -5_000,
+        ...overrides,
+      });
+    }
+
+    function savingsLegs() {
+      return listTransactions(db)
+        .filter((transaction) => transaction.label === SAVINGS_LABEL)
+        .sort((a, b) => a.id - b.id)
+        .map((leg) => [leg.accountId, leg.amount, leg.plannedItemId, leg.occurrenceDate]);
+    }
+
+    it("a monthly savings transfer imported as one pair settles its planned transfer", () => {
+      const item = monthlyTransfer();
+
+      const result = importFile([savingsRow("2026-03-11", -5_000)]);
+
+      expect(result).toMatchObject({ transferCount: 1, matchedCount: 1, proposedCount: 0 });
+      expect(savingsLegs()).toEqual([
+        [checkingId, -5_000, item.id, "2026-03-10"],
+        [savingsId, 5_000, null, null],
+      ]);
+    });
+
+    it("a savings row split into two outgoing legs along the chain settles its planned transfer through the row sum", () => {
+      // The savings account holds 90_000 of a 100_000 ceiling: 10_000 fit, 20_000 overflow.
+      const item = monthlyTransfer({ amount: -30_000 });
+
+      const result = importFile([savingsRow("2026-03-11", -30_000)]);
+
+      expect(result).toMatchObject({ transferCount: 2, matchedCount: 1, proposedCount: 0 });
+      expect(savingsLegs()).toEqual([
+        [checkingId, -10_000, item.id, "2026-03-10"],
+        [savingsId, 10_000, null, null],
+        [checkingId, -20_000, item.id, "2026-03-10"],
+        [overflowId, 20_000, null, null],
+      ]);
+    });
+
+    function firstSavingsLeg(): Transaction {
+      const [first] = listTransactions(db)
+        .filter((transaction) => transaction.label === SAVINGS_LABEL)
+        .sort((a, b) => a.id - b.id);
+      if (first === undefined) throw new Error("No savings leg");
+      return first;
+    }
+
+    it("two planned transfers of the same amount are proposed, not confirmed", () => {
+      monthlyTransfer({ amount: -30_000 });
+      monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
+
+      const { batchId, matchedCount, proposedCount } = importFile([savingsRow("2026-03-11", -30_000)]);
+
+      expect({ matchedCount, proposedCount }).toEqual({ matchedCount: 0, proposedCount: 1 });
+      expect(savingsLegs().filter(([, , plannedItemId]) => plannedItemId !== null)).toEqual([]);
+      const matches = listBatchMatches(db, batchId!, TODAY);
+      expect(matches.matched).toEqual([]);
+      expect(
+        matches.groups.map((group) =>
+          group.options.map((option) => ({
+            transactionId: option.pair.transactionId,
+            transactionAmount: option.transactionAmount,
+            transactionLabel: option.transactionLabel,
+            plannedItemName: option.plannedItemName,
+            givesCategory: option.givesCategory,
+          })),
+        ),
+      ).toEqual([
+        [
+          {
+            transactionId: firstSavingsLeg().id,
+            transactionAmount: -30_000,
+            transactionLabel: SAVINGS_LABEL,
+            plannedItemName: "Savings plan",
+            givesCategory: false,
+          },
+          {
+            transactionId: firstSavingsLeg().id,
+            transactionAmount: -30_000,
+            transactionLabel: SAVINGS_LABEL,
+            plannedItemName: "Holiday fund",
+            givesCategory: false,
+          },
+        ],
+      ]);
+    });
+
+    it("confirming a proposed transfer row links every outgoing leg of the row and no incoming leg", () => {
+      monthlyTransfer({ amount: -30_000 });
+      const other = monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
+      const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
+
+      confirmMatch(
+        db,
+        batchId!,
+        { transactionId: firstSavingsLeg().id, plannedItemId: other.id, nominalDate: "2026-03-10" },
+        TODAY,
+      );
+
+      expect(savingsLegs()).toEqual([
+        [checkingId, -10_000, other.id, "2026-03-10"],
+        [savingsId, 10_000, null, null],
+        [checkingId, -20_000, other.id, "2026-03-10"],
+        [overflowId, 20_000, null, null],
+      ]);
+    });
+
+    it("a confirmed transfer row is listed once, with the row sum", () => {
+      monthlyTransfer({ amount: -30_000 });
+      const other = monthlyTransfer({ name: "Holiday fund", amount: -30_000 });
+      const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
+      const pair = {
+        transactionId: firstSavingsLeg().id,
+        plannedItemId: other.id,
+        nominalDate: "2026-03-10",
+      };
+      confirmMatch(db, batchId!, pair, TODAY);
+
+      const matches = listBatchMatches(db, batchId!, TODAY);
+
+      expect(matches).toEqual({
+        matched: [
+          {
+            transactionId: pair.transactionId,
+            label: SAVINGS_LABEL,
+            date: "2026-03-11",
+            amount: -30_000,
+            plannedItemName: "Holiday fund",
+            nominalDate: "2026-03-10",
+          },
+        ],
+        groups: [],
+      });
+    });
+
+    it("undoing the match of a split row unlinks every outgoing leg", () => {
+      const item = monthlyTransfer({ amount: -30_000 });
+      const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
+      const [outgoing] = listBatchMatches(db, batchId!, TODAY).matched;
+
+      undoMatch(db, batchId!, outgoing!.transactionId);
+
+      expect(savingsLegs().filter(([, , plannedItemId]) => plannedItemId !== null)).toEqual([]);
+      expect(listBatchMatches(db, batchId!, TODAY).groups).toEqual([
+        {
+          options: [
+            expect.objectContaining({
+              pair: { transactionId: outgoing!.transactionId, plannedItemId: item.id, nominalDate: "2026-03-10" },
+              transactionAmount: -30_000,
+            }),
+          ],
+        },
+      ]);
+    });
+
+    it("undoing the match of a split row from a later outgoing leg unlinks every outgoing leg", () => {
+      monthlyTransfer({ amount: -30_000 });
+      const { batchId } = importFile([savingsRow("2026-03-11", -30_000)]);
+      const laterOutgoing = listTransactions(db)
+        .filter((transaction) => transaction.label === SAVINGS_LABEL && transaction.amount < 0)
+        .sort((a, b) => b.id - a.id)[0]!;
+
+      undoMatch(db, batchId!, laterOutgoing.id);
+
+      expect(savingsLegs().filter(([, , plannedItemId]) => plannedItemId !== null)).toEqual([]);
+    });
+
+    it("a withdrawal from savings settles a planned transfer from the savings account", () => {
+      const item = monthlyTransfer({
+        name: "Back to checking",
+        accountId: savingsId,
+        destinationAccountId: checkingId,
+      });
+
+      const result = importFile([savingsRow("2026-03-11", 5_000)]);
+
+      expect(result).toMatchObject({ transferCount: 1, matchedCount: 1, proposedCount: 0 });
+      expect(savingsLegs()).toEqual([
+        [savingsId, -5_000, item.id, "2026-03-10"],
+        [checkingId, 5_000, null, null],
+      ]);
+    });
+
+    it("two split savings rows of one batch on different dates each settle their own planned transfer", () => {
+      // Overflow takes 30_000 before it passes the rest to a reserve, so that both rows split:
+      // the first fills the savings account and part of the overflow, the second the rest of the
+      // overflow and the reserve.
+      const reserveId = createAccount(db, {
+        ...ACCOUNT_DETAILS,
+        name: "Reserve",
+        kind: "savings",
+        openingBalance: 0,
+      }).id;
+      updateAccount(db, overflowId, {
+        ...ACCOUNT_DETAILS,
+        name: "Overflow",
+        kind: "savings",
+        openingBalance: 0,
+        depositCeiling: 30_000,
+        overflowAccountId: reserveId,
+      });
+      const early = monthlyTransfer({
+        startDate: "2026-03-05",
+        repetition: { kind: "monthly_on_day", day: 5 },
+        amount: -30_000,
+      });
+      const late = monthlyTransfer({ name: "Holiday fund", amount: -25_000 });
+
+      const result = importFile([
+        savingsRow("2026-03-05", -30_000),
+        savingsRow("2026-03-11", -25_000),
+      ]);
+
+      expect(result).toMatchObject({ transferCount: 4, matchedCount: 2, proposedCount: 0 });
+      expect(savingsLegs()).toEqual([
+        [checkingId, -10_000, early.id, "2026-03-05"],
+        [savingsId, 10_000, null, null],
+        [checkingId, -20_000, early.id, "2026-03-05"],
+        [overflowId, 20_000, null, null],
+        [checkingId, -10_000, late.id, "2026-03-10"],
+        [overflowId, 10_000, null, null],
+        [checkingId, -15_000, late.id, "2026-03-10"],
+        [reserveId, 15_000, null, null],
+      ]);
+    });
+
+    it("a transfer leg never settles a planned expense", () => {
+      monthlyItem({ name: "Rent", amount: -5_000 });
+
+      const result = importFile([savingsRow("2026-03-11", -5_000)]);
+
+      expect(result).toMatchObject({ matchedCount: 0, proposedCount: 0 });
+      expect(linkedTransactions()).toEqual([]);
     });
   });
 

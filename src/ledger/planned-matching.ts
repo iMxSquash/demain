@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 
 import { addDays, daysBetween } from "../domain/calendar-date";
 import { compareDates } from "../domain/import-savings";
@@ -46,7 +46,7 @@ export interface ImportMatchRequest {
 }
 
 export interface ImportMatchOutcome {
-  /** Transactions linked to an occurrence by the import. */
+  /** Transactions linked to an occurrence by the import; a transfer row counts once. */
   matchedCount: number;
   /** Groups of ambiguous pairs left to the owner: nothing is written for them. */
   proposedCount: number;
@@ -58,16 +58,23 @@ export const NO_MATCHES: ImportMatchOutcome = {
   proposedCount: 0,
 };
 
-/** A transaction without category takes the one of the item it is linked to. */
+/** A transaction without category takes the one of its item; a transfer never has one. */
 function inheritsCategory(
   item: Pick<PlannedItemRow, "categoryId">,
-  transaction: Pick<Transaction, "categoryId">,
+  transaction: Pick<Transaction, "categoryId" | "kind">,
 ): boolean {
-  return item.categoryId !== null && transaction.categoryId === null;
+  return (
+    item.categoryId !== null && transaction.categoryId === null && transaction.kind !== "transfer"
+  );
 }
 
+/**
+ * Links `transactionIds` to an occurrence: the transaction itself, or every outgoing leg of a
+ * transfer row, whose `transaction` is the representative.
+ */
 function writeLink(
   db: Pick<AppDatabase, "update">,
+  transactionIds: readonly number[],
   transaction: Transaction,
   item: Pick<PlannedItemRow, "id" | "categoryId">,
   nominalDate: string,
@@ -81,7 +88,7 @@ function writeLink(
         ? { categoryId: item.categoryId, categoryFromPlannedItem: true }
         : {}),
     })
-    .where(eq(transactions.id, transaction.id))
+    .where(inArray(transactions.id, [...transactionIds]))
     .run();
 }
 
@@ -160,7 +167,7 @@ export function linkTransactionToOccurrence(
       messageRef("matchOccurrenceTaken"),
     );
   }
-  writeLink(db, transaction, item, pair.nominalDate, inheritCategory);
+  writeLink(db, [transaction.id], transaction, item, pair.nominalDate, inheritCategory);
 }
 
 /** Clears the link. A category the link gave goes with it; one chosen by hand stays. */
@@ -254,24 +261,121 @@ function openOccurrencesOf(
       status: occurrence.status,
       windowDays: item.matchWindowDays,
       toleranceBasisPoints: item.matchAmountToleranceBp,
+      isTransfer: item.kind === "transfer",
     });
   }
   return open;
 }
 
-interface BatchDecisions {
-  decisions: MatchDecisions;
-  transactionsById: Map<number, Transaction>;
-  itemsById: Map<number, PlannedItemWithDetails>;
+/**
+ * One imported savings row as a single matchable transaction: the lowest id of its outgoing legs,
+ * with the sum of their amounts, since a planned transfer is compared with the whole row whatever
+ * its split along the overflow chain (owner). The legs of a row are linked and unlinked together.
+ */
+interface TransferRow {
+  representative: Transaction;
+  /** Every outgoing leg of the row, in id order: all of them carry the link. */
+  legIds: number[];
+}
+
+function startsNewRow(current: TransferRow, leg: Transaction, counterpart?: Transaction): boolean {
+  if (
+    leg.importFingerprint !== null ||
+    (counterpart !== undefined && counterpart.importFingerprint !== null)
+  ) {
+    return true;
+  }
+  const { date, label, accountId } = current.representative;
+  return leg.date !== date || leg.label !== label || leg.accountId !== accountId;
 }
 
 /**
- * Runs the matching on `batchTransactions`, which must be non-transfer rows; null when no item
- * can match.
+ * Groups the transfer legs of a batch back into the rows they came from. No column names the row:
+ * the import keys mark the first pair of each row, and a change of date, label or account guards
+ * against a keyed pair deleted by hand. The pairs of a row are inserted consecutively.
+ */
+function transferRowsOf(db: Pick<AppDatabase, "select">, batchId: number): TransferRow[] {
+  const legs = db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.importBatchId, batchId), eq(transactions.kind, "transfer")))
+    .orderBy(asc(transactions.id))
+    .all();
+  const legsById = new Map(legs.map((leg) => [leg.id, leg]));
+  const rows: TransferRow[] = [];
+  for (const leg of legs) {
+    if (leg.amount >= 0) continue;
+    const counterpart =
+      leg.transferCounterpartId === null ? undefined : legsById.get(leg.transferCounterpartId);
+    const current = rows.at(-1);
+    if (current === undefined || startsNewRow(current, leg, counterpart)) {
+      // A copy, so that summing the row leaves the selected leg as read.
+      rows.push({ representative: { ...leg }, legIds: [leg.id] });
+      continue;
+    }
+    current.representative.amount += leg.amount;
+    current.legIds.push(leg.id);
+  }
+  return rows;
+}
+
+/** What the matching of a batch looks at: its non-transfer transactions and its transfer rows. */
+interface BatchCandidates {
+  transactions: Transaction[];
+  /** The transactions each candidate links: itself, or every outgoing leg of a transfer row. */
+  linkedIdsOf: Map<number, number[]>;
+}
+
+function batchCandidatesOf(
+  db: Pick<AppDatabase, "select">,
+  batchId: number,
+  rows: readonly TransferRow[],
+  { unlinkedOnly }: { unlinkedOnly: boolean },
+): BatchCandidates {
+  const nonTransfers = db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.importBatchId, batchId),
+        ne(transactions.kind, "transfer"),
+        unlinkedOnly ? isNull(transactions.plannedItemId) : undefined,
+      ),
+    )
+    .all();
+  const candidateRows = rows.filter(
+    ({ representative }) => !unlinkedOnly || representative.plannedItemId === null,
+  );
+  return {
+    transactions: [...nonTransfers, ...candidateRows.map((row) => row.representative)],
+    linkedIdsOf: new Map([
+      ...nonTransfers.map(({ id }): [number, number[]] => [id, [id]]),
+      ...candidateRows.map(({ representative, legIds }): [number, number[]] => [
+        representative.id,
+        legIds,
+      ]),
+    ]),
+  };
+}
+
+/** What a pair decided on a batch needs to be described or written. */
+interface BatchLookups {
+  transactionsById: Map<number, Transaction>;
+  itemsById: Map<number, PlannedItemWithDetails>;
+  linkedIdsOf: Map<number, number[]>;
+}
+
+interface BatchDecisions extends BatchLookups {
+  decisions: MatchDecisions;
+}
+
+/**
+ * Runs the matching on the candidates of a batch, where a transfer stands for a whole imported
+ * row; null when no item can match.
  */
 function decideBatchMatches(
   db: Pick<AppDatabase, "select">,
-  batchTransactions: readonly Transaction[],
+  { transactions: batchTransactions, linkedIdsOf }: BatchCandidates,
   today: string,
 ): BatchDecisions | null {
   if (batchTransactions.length === 0) return null;
@@ -303,7 +407,24 @@ function decideBatchMatches(
       batchTransactions.map((transaction) => [transaction.id, transaction]),
     ),
     itemsById: new Map(items.map((item) => [item.id, item])),
+    linkedIdsOf,
   };
+}
+
+/** Writes a pair the matching of a batch named, on every transaction its candidate stands for. */
+function writeDecidedLink(
+  db: Pick<AppDatabase, "update">,
+  { transactionsById, itemsById, linkedIdsOf }: BatchLookups,
+  pair: MatchPair,
+): void {
+  // The decisions only name candidates of the batch and its items, so the lookups succeed.
+  writeLink(
+    db,
+    linkedIdsOf.get(pair.transactionId)!,
+    transactionsById.get(pair.transactionId)!,
+    itemsById.get(pair.plannedItemId)!,
+    pair.nominalDate,
+  );
 }
 
 /**
@@ -315,26 +436,18 @@ export function applyImportMatches(
   db: Executor,
   { batchId, today }: ImportMatchRequest,
 ): ImportMatchOutcome {
-  const batchTransactions = db
-    .select()
-    .from(transactions)
-    .where(and(eq(transactions.importBatchId, batchId), ne(transactions.kind, "transfer")))
-    .all();
-  const result = decideBatchMatches(db, batchTransactions, today);
+  const rows = transferRowsOf(db, batchId);
+  const result = decideBatchMatches(
+    db,
+    batchCandidatesOf(db, batchId, rows, { unlinkedOnly: false }),
+    today,
+  );
   if (result === null) return NO_MATCHES;
 
-  const { decisions, transactionsById, itemsById } = result;
-  for (const pair of decisions.confirmed) {
-    writeLink(
-      db,
-      transactionsById.get(pair.transactionId)!,
-      itemsById.get(pair.plannedItemId)!,
-      pair.nominalDate,
-    );
-  }
+  for (const pair of result.decisions.confirmed) writeDecidedLink(db, result, pair);
   return {
-    matchedCount: decisions.confirmed.length,
-    proposedCount: decisions.proposed.length,
+    matchedCount: result.decisions.confirmed.length,
+    proposedCount: result.decisions.proposed.length,
   };
 }
 
@@ -371,23 +484,6 @@ export interface BatchMatches {
   groups: ProposedMatchGroup[];
 }
 
-function unlinkedBatchTransactions(
-  db: Pick<AppDatabase, "select">,
-  batchId: number,
-): Transaction[] {
-  return db
-    .select()
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.importBatchId, batchId),
-        ne(transactions.kind, "transfer"),
-        isNull(transactions.plannedItemId),
-      ),
-    )
-    .all();
-}
-
 /**
  * The proposals of a batch, computed on its transactions still unlinked. A pair the matching
  * would confirm on its own is a proposal too: it only reaches this list once an automatic match
@@ -396,21 +492,36 @@ function unlinkedBatchTransactions(
 function proposedGroupsOf(
   db: Pick<AppDatabase, "select">,
   batchId: number,
+  rows: readonly TransferRow[],
   today: string,
-): {
-  groups: MatchPair[][];
-  transactionsById: Map<number, Transaction>;
-  itemsById: Map<number, PlannedItemWithDetails>;
-} {
-  const result = decideBatchMatches(db, unlinkedBatchTransactions(db, batchId), today);
-  if (result === null) return { groups: [], transactionsById: new Map(), itemsById: new Map() };
-  const { decisions, transactionsById, itemsById } = result;
+): BatchLookups & { groups: MatchPair[][] } {
+  const result = decideBatchMatches(
+    db,
+    batchCandidatesOf(db, batchId, rows, { unlinkedOnly: true }),
+    today,
+  );
+  if (result === null) {
+    return {
+      groups: [],
+      transactionsById: new Map(),
+      itemsById: new Map(),
+      linkedIdsOf: new Map(),
+    };
+  }
+  const { decisions, ...lookups } = result;
   const groups = [...decisions.confirmed.map((pair) => [pair]), ...decisions.proposed];
-  return { groups, transactionsById, itemsById };
+  return { groups, ...lookups };
 }
 
-/** The transactions of a batch already linked to an occurrence, oldest first. */
-function matchedRowsOf(db: Pick<AppDatabase, "select">, batchId: number): BatchMatchedItem[] {
+/**
+ * The transactions of a batch already linked to an occurrence, oldest first; the legs of a transfer
+ * row make one entry, under the id and with the amount of the row.
+ */
+function matchedRowsOf(
+  db: Pick<AppDatabase, "select">,
+  batchId: number,
+  transferRows: readonly TransferRow[],
+): BatchMatchedItem[] {
   const linkedRows = db
     .select({
       transactionId: transactions.id,
@@ -430,9 +541,19 @@ function matchedRowsOf(db: Pick<AppDatabase, "select">, batchId: number): BatchM
       ),
     )
     .all();
+  // A row shows under its representative, the first of its legs, with the row sum.
+  const rowSums = new Map(
+    transferRows.map(({ representative }) => [representative.id, representative.amount]),
+  );
+  const otherLegs = new Set(transferRows.flatMap(({ legIds }) => legIds.slice(1)));
   // The where clause keeps linked transactions only, so the nullable columns are set.
   return linkedRows
-    .map(({ nominalDate, ...row }) => ({ ...row, nominalDate: nominalDate! }))
+    .filter(({ transactionId }) => !otherLegs.has(transactionId))
+    .map(({ nominalDate, ...row }) => ({
+      ...row,
+      amount: rowSums.get(row.transactionId) ?? row.amount,
+      nominalDate: nominalDate!,
+    }))
     .sort((a, b) => compareDates(a.date, b.date) || a.transactionId - b.transactionId);
 }
 
@@ -472,7 +593,8 @@ export function listBatchMatches(
 ): BatchMatches {
   getImportBatch(db, batchId);
 
-  const { groups, transactionsById, itemsById } = proposedGroupsOf(db, batchId, today);
+  const rows = transferRowsOf(db, batchId);
+  const { groups, transactionsById, itemsById } = proposedGroupsOf(db, batchId, rows, today);
   const described = groups.map((pairs) => ({
     options: pairs.map((pair) =>
       describeOption(
@@ -483,7 +605,7 @@ export function listBatchMatches(
     ),
   }));
   return {
-    matched: matchedRowsOf(db, batchId),
+    matched: matchedRowsOf(db, batchId, rows),
     groups: described.sort(compareGroups),
   };
 }
@@ -497,18 +619,28 @@ export function confirmMatch(
 ): void {
   db.transaction((tx) => {
     getImportBatch(tx, batchId);
-    const { groups } = proposedGroupsOf(tx, batchId, today);
+    const rows = transferRowsOf(tx, batchId);
+    const { groups, ...lookups } = proposedGroupsOf(tx, batchId, rows, today);
     if (!groups.some((group) => group.some((proposed) => comparePairs(proposed, pair) === 0))) {
       throw new PlannedLinkError(
         "The pair is not proposed for this import batch",
         messageRef("matchNotProposed"),
       );
     }
-    linkTransactionToOccurrence(tx, pair);
+    // A proposed transfer row is a whole imported row, which manual linking refuses: it is written
+    // on all its outgoing legs. The pair is proposed, so the batch knows its transaction.
+    if (lookups.transactionsById.get(pair.transactionId)!.kind === "transfer") {
+      writeDecidedLink(tx, lookups, pair);
+    } else {
+      linkTransactionToOccurrence(tx, pair);
+    }
   });
 }
 
-/** Unlinks a transaction of the batch that is linked to an occurrence. */
+/**
+ * Unlinks a transaction of the batch that is linked to an occurrence; an outgoing leg of a transfer
+ * row unlinks the whole row.
+ */
 export function undoMatch(db: AppDatabase, batchId: number, transactionId: number): void {
   getImportBatch(db, batchId);
   db.transaction((tx) => {
@@ -523,7 +655,11 @@ export function undoMatch(db: AppDatabase, batchId: number, transactionId: numbe
         messageRef("matchNotInBatch"),
       );
     }
-    unlinkTransaction(tx, transactionId);
+    const legIds =
+      transaction.kind === "transfer"
+        ? transferRowsOf(tx, batchId).find((row) => row.legIds.includes(transactionId))?.legIds
+        : undefined;
+    for (const legId of legIds ?? [transactionId]) unlinkTransaction(tx, legId);
   });
 }
 
@@ -648,10 +784,16 @@ export function linkByHand(db: AppDatabase, pair: MatchPair, today: string): voi
   });
 }
 
-/** Clears the link of a transaction by hand, unless its account is archived. */
+/**
+ * Clears the link of a transaction by hand, unless its account is archived. A transfer leg is
+ * refused: every outgoing leg of its imported row carries the link, so the row is unlinked as a
+ * whole from the import review (`undoMatch`).
+ */
 export function unlinkByHand(db: AppDatabase, transactionId: number): void {
   db.transaction((tx) => {
-    getOpenAccount(tx, readTransactionOrThrow(tx, transactionId).accountId);
+    const transaction = readTransactionOrThrow(tx, transactionId);
+    assertNotTransfer(transaction);
+    getOpenAccount(tx, transaction.accountId);
     unlinkTransaction(tx, transactionId);
   });
 }

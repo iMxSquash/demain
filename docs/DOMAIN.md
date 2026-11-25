@@ -287,7 +287,7 @@ These rules must hold at all times and are the first candidates for unit tests.
 2. **A transaction's currency is its account's currency.** Cross-currency views convert to the reference currency at read time using stored rates.
 3. **A transfer is exactly two linked transactions** of opposite sign, on two different accounts, each pointing to the other. Deleting one deletes both. Transfers are excluded from income and expense statistics and from category statistics; transfers into savings accounts are reported as savings flows.
 4. **Occurrences are generated, not stored.** The list of occurrences for any horizon is a pure function of the planned item (versions, business-day rule), its recorded overrides and its linked transactions. Changing a schedule from a date changes all later non-settled occurrences at once.
-5. **A transaction settles at most one occurrence**, and an occurrence is settled by at most one transaction, except for a provision, which accepts several.
+5. **A transaction settles at most one occurrence**, and an occurrence is settled by at most one transaction, except for a provision, which accepts several. The outgoing legs of one imported savings row split along the overflow chain settle one planned transfer together and all carry its link: they count as one settlement.
 6. **The nominal rule is kept.** Matching never alters a planned item's rule; the real date and amount come from the matched transactions.
 7. **Real data is never changed by a scenario** until the scenario is validated, and validation only creates or modifies planned items, never transactions.
 8. **The computed balance of an account** at a date equals its opening balance plus the sum of its transactions up to and including that date.
@@ -478,7 +478,21 @@ Decisions of the owner on matching, 19 Nov 2026:
 - A manual link never changes the category of the transaction (unlike an automatic match, which gives the category of the item to a transaction without one) and never changes the planned item (invariant 6). A regular occurrence refuses a second transaction (invariant 5), checked on the server at each write.
 - Unlinking a manual link leaves the category alone, since it was not inherited. Unlinking an automatic match clears the category only when it came from the match, as described above.
 
-Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones. A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers are ignored here (#175).
+Provisions follow the linking rules of the previous section instead of the window and tolerance, but their candidates join the same decision as the regular ones. A provision accepts several transactions, so a sole provision candidate is confirmed even when other transactions fill the same provision, and provision occurrences never merge ambiguity groups. `provisionLinks` exposes the provision links alone. Transfers have no provision candidate, and linking a transfer by hand is still refused.
+
+**Planned transfers.** An imported savings row may be split along the overflow chain into several transfer pairs (ADR-016), so a planned transfer is compared with the whole row: the sum of the outgoing legs that row produced, whatever the split. Window, tolerance (`isWithinTolerance`, same sign) and decision are those of regular items, applied to that sum.
+
+- **Account.** The outgoing account of the row must be the source account of the planned transfer (its account). The destination is not compared, since the split can differ from the planned routing.
+- **Kinds.** A transfer leg only settles a planned transfer, and a planned transfer is only settled by transfer legs: an expense or an income never settles it.
+- **Link.** Every outgoing leg of the row carries the link (planned item and occurrence date), the incoming legs none, so the row counts once in the settled amount. Confirming or undoing a proposal acts on all the outgoing legs of the row, and a transfer leg never inherits a category. Deleting one pair of a split row leaves the other outgoing legs linked, and the occurrence settled with the remaining amount. A transfer leg cannot be unlinked by hand: undoing the match in the import review unlinks the whole row. The import review lists a transfer row like any other transaction: one entry per row, its amount being the row sum.
+- **Not a provision.** A planned transfer is always matched as a regular item: the planned item validation refuses a provision on a transfer, and the form does not offer it.
+- **Rows of a batch.** No column names the row: the pairs of one row are inserted consecutively and only the first carries the import fingerprint, so the rows are rebuilt from the transfer legs of the batch in id order, a new row starting at a pair with a fingerprint or when the date, the label or the outgoing account changes. Limitation: when the keyed first pair of a row is deleted by hand, its remaining pairs join the previous row if that row has the same date, label and outgoing account.
+
+Decisions of the owner on planned transfers, 19 Nov 2026, numbered as in issue #175:
+
+- Q1, a planned transfer is compared with the whole imported row (the sum of its outgoing legs), whatever the split.
+- Q2, every outgoing leg of the row carries the link, the incoming legs none.
+- Q3, a planned transfer is never a provision.
 
 ### Daily balance of the real trajectory
 
