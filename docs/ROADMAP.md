@@ -88,13 +88,15 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 **Scope.**
 
 - The constant-pace simulation, always available as the reference.
-- Estimated variable spending: rolling average of the last 3 complete months per category (configurable to 6 or 12), editable per category, current month estimated for what remains, spread evenly over the remaining days.
+- Estimated variable spending: average of the last 3 complete months per account and category (configurable to 6 or 12), with estimate overrides shared by every simulation, current month estimated for what remains, spread evenly over the remaining days.
 - Scenarios as named lists of modifications on top of the constant-pace simulation.
 - The 8 modification types handled by one cash flow engine: subscription change, one-off purchase, instalments or loan, income change, savings goal (and the inverse computation, following overflow chains), interest projection with a user-entered rate, category budget change, composite life event.
-- Comparison of 2 to 4 scenarios over 6, 12, 24 months or a custom horizon, with the real history shared and drawn once.
+- Comparison of the constant-pace simulation with 1 to 3 draft scenarios over 6, 12, 24 months or a custom horizon, with the real history shared and drawn once.
 - Indicators: final balance, minimum balance and its date, savings at a date, month-end curves, total cost over the horizon.
 - Diagrams: month-end checking and savings curves (main), income and expenses per month, expenses by category, comparison table, each with its data table.
 - Validating a scenario into planned items.
+
+Decided by the owner on 26 Nov 2026 (#217): the rules D1 to D14 are in DOMAIN [Estimated variable spending](DOMAIN.md#estimated-variable-spending), [Scenario and modification](DOMAIN.md#scenario-and-modification) and [Scenario evaluation pipeline](DOMAIN.md#scenario-evaluation-pipeline), and the phone navigation D15 in DESIGN.md section 6.
 
 **Definition of done.**
 
@@ -146,4 +148,4 @@ These are intentionally left undecided. Each will be resolved when its milestone
 | Which aggregator to use for bank sync, under which terms. | M4 |
 | Exact CSV column mappings per bank (beyond the owner's bank, Societe Generale). The importer is bank-agnostic; preset mappings can be contributed. | M1 and ongoing |
 | Whether to add notifications later, and in which form (local web push is the candidate). | After M3 |
-| Phone layout details. Decided: a top bar with the logo, a Settings button and a round Add transaction button, a floating tab bar (Overview, Calendar, Accounts, Imports until Simulations lands, Calendar having replaced Transactions in #173) and the other pages, Transactions included, in the More list of `/settings` (#112, #173, DESIGN.md section 6). The dark theme is decided: System, Light and Dark, stored in a `theme` cookie and rendered on the server (#107, recorded in `design-system-preview/identity/DECISIONS.md`). | M2 |
+| Phone layout details. Decided: a top bar with the logo, a Settings button and a round Add transaction button, a floating tab bar (Overview, Calendar, Accounts, Imports until Simulations lands, Calendar having replaced Transactions in #173) and the other pages, Transactions included, in the More list of `/settings` (#112, #173, DESIGN.md section 6). When Simulations lands, its tab (`ArrowsSplit`) takes the place of Imports, Imports becomes the first row of the More list (`TrayArrowDown`), and the wide sidebar keeps Imports and adds Simulations (owner, 26 Nov 2026, #217 D15). The dark theme is decided: System, Light and Dark, stored in a `theme` cookie and rendered on the server (#107, recorded in `design-system-preview/identity/DECISIONS.md`). | M2 |
