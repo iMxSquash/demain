@@ -14,14 +14,9 @@ import {
   updateAccount,
 } from "../../src/ledger/accounts";
 import { createTransaction, createTransfer } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { createPlannedItem } from "../../src/ledger/planned-items";
 import { accounts, plannedItems } from "../../src/storage/schema";
-
 
 const TODAY = "2026-06-15";
 
@@ -99,9 +94,9 @@ describe("accounts", () => {
   it("refuses an invalid update and leaves the account unchanged", () => {
     const created = createAccount(db, CHECKING_INPUT);
 
-    expect(() =>
-      updateAccount(db, created.id, { ...CHECKING_INPUT, name: " " }),
-    ).toThrow(expect.objectContaining({ field: "name" }));
+    expect(() => updateAccount(db, created.id, { ...CHECKING_INPUT, name: " " })).toThrow(
+      expect.objectContaining({ field: "name" }),
+    );
     expect(listAccounts(db)).toEqual([created]);
   });
 
@@ -158,9 +153,9 @@ describe("accounts", () => {
       const checking = createAccount(db, CHECKING_INPUT);
       createTransaction(db, { ...EXPENSE, accountId: checking.id });
 
-      expect(() =>
-        updateAccount(db, checking.id, { ...CHECKING_INPUT, currency: "USD" }),
-      ).toThrow(expect.objectContaining({ field: "currency" }));
+      expect(() => updateAccount(db, checking.id, { ...CHECKING_INPUT, currency: "USD" })).toThrow(
+        expect.objectContaining({ field: "currency" }),
+      );
     });
   });
 
@@ -240,9 +235,9 @@ describe("accounts", () => {
     it("refuses an overflow account in another currency", () => {
       const usd = createAccount(db, { ...SAVINGS_INPUT, currency: "USD" });
 
-      expect(() =>
-        createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: usd.id }),
-      ).toThrow(expect.objectContaining({ field: "overflowAccountId" }));
+      expect(() => createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: usd.id })).toThrow(
+        expect.objectContaining({ field: "overflowAccountId" }),
+      );
       expect(listAccounts(db)).toEqual([usd]);
     });
 
@@ -250,9 +245,9 @@ describe("accounts", () => {
       const livretA = createAccount(db, SAVINGS_INPUT);
       archiveAccount(db, livretA.id, TODAY);
 
-      expect(() =>
-        createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id }),
-      ).toThrow(expect.objectContaining({ field: "overflowAccountId" }));
+      expect(() => createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id })).toThrow(
+        expect.objectContaining({ field: "overflowAccountId" }),
+      );
     });
 
     it("refuses an update that would close a loop", () => {
@@ -313,9 +308,7 @@ describe("accounts", () => {
       const livretA = createAccount(db, SAVINGS_INPUT);
       createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id });
 
-      expect(() =>
-        db.delete(accounts).where(eq(accounts.id, livretA.id)).run(),
-      ).toThrow();
+      expect(() => db.delete(accounts).where(eq(accounts.id, livretA.id)).run()).toThrow();
       expect(listAccounts(db)).toHaveLength(2);
     });
 
@@ -323,9 +316,9 @@ describe("accounts", () => {
       const livretA = createAccount(db, SAVINGS_INPUT);
       createAccount(db, { ...SAVINGS_INPUT, overflowAccountId: livretA.id });
 
-      expect(() =>
-        updateAccount(db, livretA.id, { ...SAVINGS_INPUT, currency: "USD" }),
-      ).toThrow(expect.objectContaining({ field: "currency" }));
+      expect(() => updateAccount(db, livretA.id, { ...SAVINGS_INPUT, currency: "USD" })).toThrow(
+        expect.objectContaining({ field: "currency" }),
+      );
       expect(listAccounts(db)[0]?.currency).toBe("EUR");
     });
 

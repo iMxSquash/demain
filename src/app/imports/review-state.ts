@@ -259,10 +259,7 @@ export function canImportFile(
 }
 
 /** Positions of the rows the table shows: all of them, or only those to confirm. */
-export function visibleRowIndexes(
-  rows: readonly ReviewRow[],
-  onlyToConfirm: boolean,
-): number[] {
+export function visibleRowIndexes(rows: readonly ReviewRow[], onlyToConfirm: boolean): number[] {
   return rows.flatMap((row, index) => (onlyToConfirm && !row.needsConfirmation ? [] : [index]));
 }
 
@@ -408,9 +405,7 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
 
     case "replaceFile":
       return updateFile(state, action.file, (file) =>
-        file.phase === "reviewing"
-          ? readAgain(action.staged, file, defaultSavingsAccountId)
-          : file,
+        file.phase === "reviewing" ? readAgain(action.staged, file, defaultSavingsAccountId) : file,
       );
 
     case "replaceAll":

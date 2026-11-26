@@ -25,14 +25,9 @@ const BYTES_PER_MEGABYTE = 1024 * 1024;
  * its first rows and the fields to start from. Records nothing: once mapped,
  * the file is read again and goes through the review like any other (ADR-016).
  */
-export async function readMappingAction(
-  formData: FormData,
-): Promise<ImportFormState> {
+export async function readMappingAction(formData: FormData): Promise<ImportFormState> {
   await requireSession();
-  const [t, translate] = await Promise.all([
-    getTranslations("imports"),
-    getTranslator(),
-  ]);
+  const [t, translate] = await Promise.all([getTranslations("imports"), getTranslator()]);
   const accountText = String(formData.get("accountId") ?? "");
   const fail = (message: string): ImportFormState => ({
     status: "error",
@@ -50,9 +45,7 @@ export async function readMappingAction(
     return fail(file instanceof File ? t("fileEmpty") : t("fileRequired"));
   }
   if (file.size > MAX_IMPORT_FILE_BYTES) {
-    return fail(
-      t("fileTooLarge", { max: MAX_IMPORT_FILE_BYTES / BYTES_PER_MEGABYTE }),
-    );
+    return fail(t("fileTooLarge", { max: MAX_IMPORT_FILE_BYTES / BYTES_PER_MEGABYTE }));
   }
 
   try {
@@ -75,13 +68,10 @@ export async function readMappingAction(
     if (error instanceof ImportParseError) {
       const message = translate(error.ref);
       return fail(
-        error.line === null
-          ? message
-          : t("problemAtLine", { line: error.line, message }),
+        error.line === null ? message : t("problemAtLine", { line: error.line, message }),
       );
     }
-    if (error instanceof AccountNotFoundError)
-      return fail(translate({ key: "accountGone" }));
+    if (error instanceof AccountNotFoundError) return fail(translate({ key: "accountGone" }));
     // Unexpected failures are logged with their detail, the user sees a generic message.
     console.error("Reading the file for its mapping failed", error);
     const ref = messageRef("importFailed");

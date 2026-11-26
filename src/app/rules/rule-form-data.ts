@@ -32,8 +32,7 @@ export interface RuleFormInput {
 }
 
 export type ParsedRuleForm =
-  | { ok: true; input: RuleFormInput }
-  | { ok: false; field: RuleFormField; message: string };
+  { ok: true; input: RuleFormInput } | { ok: false; field: RuleFormField; message: string };
 
 type ParsedRuleCondition =
   | { ok: true; operator: RuleOperator; value: string }
@@ -77,10 +76,7 @@ function parseRuleCondition(
   }
 }
 
-export function parseRuleInput(
-  formData: FormData,
-  translate: Translate,
-): ParsedRuleForm {
+export function parseRuleInput(formData: FormData, translate: Translate): ParsedRuleForm {
   const values = readRuleFormValues(formData);
   const condition = parseRuleCondition(values.operator, values.value, translate);
   if (!condition.ok) return condition;

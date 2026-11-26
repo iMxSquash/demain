@@ -19,7 +19,11 @@ import { columnsText, linesTextOf } from "./calendar-lines-text";
 
 const SKELETON_ROWS = 6;
 
-export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
   return calendarMetadata(searchParams, "lines");
 }
 
@@ -42,9 +46,7 @@ function CalendarLoading() {
     <SkeletonRegion label={loading("table")}>
       <SkeletonDataTable
         caption={t("lines.loadingCaption")}
-        head={
-          <CalendarLinesHead columns={columnsText(t)} />
-        }
+        head={<CalendarLinesHead columns={columnsText(t)} />}
         columns={["start", "start", "start", "start", "start", "end", "end", "start"]}
         rows={SKELETON_ROWS}
       />
@@ -53,24 +55,31 @@ function CalendarLoading() {
 }
 
 async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
-  const [t, data] = await Promise.all([getTranslations("calendar"), loadCalendarPage(searchParams)]);
+  const [t, data] = await Promise.all([
+    getTranslations("calendar"),
+    loadCalendarPage(searchParams),
+  ]);
   const { calendar, accountNames, locale, month } = data;
 
   return (
     <section aria-labelledby={MONTH_HEADING_ID} className="flex flex-col gap-4">
       <CalendarControls view="lines" {...data} />
       {calendar === null ? (
-        <EmptyState action={{ href: "/accounts", label: t("noCheckingAction") }}>{t("noChecking")}</EmptyState>
+        <EmptyState action={{ href: "/accounts", label: t("noCheckingAction") }}>
+          {t("noChecking")}
+        </EmptyState>
       ) : (
         <CalendarLinesTable
           month={calendar}
           accounts={accountNames}
           locale={locale}
-          text={{ ...linesTextOf(t), caption: t("lines.caption", { month: formatMonth(month, locale) }) }}
+          text={{
+            ...linesTextOf(t),
+            caption: t("lines.caption", { month: formatMonth(month, locale) }),
+          }}
           backView="lines"
         />
       )}
     </section>
   );
 }
-

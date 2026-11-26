@@ -52,9 +52,7 @@ describe("Checkbox", () => {
   });
 
   it("keeps the checked state the caller sets", () => {
-    const markup = render(
-      createElement(Checkbox, { name: "x", label: "L", defaultChecked: true }),
-    );
+    const markup = render(createElement(Checkbox, { name: "x", label: "L", defaultChecked: true }));
 
     expect(markup).toContain('checked=""');
   });
@@ -153,7 +151,9 @@ describe("Disclosure", () => {
 });
 
 describe("Notice", () => {
-  const markup = render(createElement(Notice, { id: "n1" } as ComponentProps<typeof Notice>, "Check this."));
+  const markup = render(
+    createElement(Notice, { id: "n1" } as ComponentProps<typeof Notice>, "Check this."),
+  );
 
   it("starts with the word Warning in the warning colour, so colour is never alone", () => {
     expect(markup).toContain("Warning:");

@@ -33,8 +33,18 @@ export default async function SetupPage() {
             action={setupAction}
             fields={[
               { name: "token", label: t("token"), type: "masked", autoComplete: "off" },
-              { name: "password", label: t("password"), type: "password", autoComplete: "new-password" },
-              { name: "confirm", label: t("confirm"), type: "password", autoComplete: "new-password" },
+              {
+                name: "password",
+                label: t("password"),
+                type: "password",
+                autoComplete: "new-password",
+              },
+              {
+                name: "confirm",
+                label: t("confirm"),
+                type: "password",
+                autoComplete: "new-password",
+              },
             ]}
             submitLabel={t("submit")}
           />

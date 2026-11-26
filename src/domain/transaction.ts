@@ -8,11 +8,7 @@ import { messageRef, type MessageRef } from "./message";
 import { depositRoom, type OverflowAccount } from "./overflow";
 
 /** Kinds a user can enter directly: a transfer is created as a linked pair. */
-export const ENTERED_TRANSACTION_KINDS = [
-  "expense",
-  "income",
-  "interest",
-] as const;
+export const ENTERED_TRANSACTION_KINDS = ["expense", "income", "interest"] as const;
 
 export type EnteredTransactionKind = (typeof ENTERED_TRANSACTION_KINDS)[number];
 
@@ -48,14 +44,7 @@ export interface ValidTransactionInput extends TransactionInput {
 }
 
 export type TransactionField =
-  | "accountId"
-  | "amount"
-  | "categoryId"
-  | "date"
-  | "description"
-  | "kind"
-  | "label"
-  | "paymentMode";
+  "accountId" | "amount" | "categoryId" | "date" | "description" | "kind" | "label" | "paymentMode";
 
 export class TransactionValidationError extends Error {
   constructor(
@@ -117,9 +106,7 @@ function normalizePaymentMode(value: string | null | undefined): PaymentMode | n
   return value;
 }
 
-export function validateTransactionInput(
-  input: TransactionInput,
-): ValidTransactionInput {
+export function validateTransactionInput(input: TransactionInput): ValidTransactionInput {
   assertNonZeroMinorUnits(input.amount);
   const isExpense = input.kind === "expense";
   if (isExpense !== input.amount < 0) {
@@ -130,11 +117,7 @@ export function validateTransactionInput(
         : `An ${input.kind} must have a positive amount`,
       isExpense
         ? messageRef("expenseMustBeNegative")
-        : messageRef(
-            input.kind === "interest"
-              ? "interestMustBePositive"
-              : "incomeMustBePositive",
-          ),
+        : messageRef(input.kind === "interest" ? "interestMustBePositive" : "incomeMustBePositive"),
     );
   }
   assertCalendarDate(input.date);
@@ -174,10 +157,7 @@ export interface TransferLeg {
   paymentMode: "transfer";
 }
 
-function assertTransferEndpoints(
-  source: TransferEndpoint,
-  destination: TransferEndpoint,
-): void {
+function assertTransferEndpoints(source: TransferEndpoint, destination: TransferEndpoint): void {
   if (source.id === destination.id) {
     throw new TransactionValidationError(
       "accountId",
@@ -264,8 +244,7 @@ export function splitManualTransfer(
   return {
     deposited,
     surplus,
-    suggestedOverflowAccountId:
-      surplus > 0 ? destination.overflowAccountId : null,
+    suggestedOverflowAccountId: surplus > 0 ? destination.overflowAccountId : null,
   };
 }
 

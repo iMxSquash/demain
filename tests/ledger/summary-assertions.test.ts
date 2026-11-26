@@ -15,11 +15,7 @@ import {
   previewSummaryAssertions,
   saveSummaryAssertions,
 } from "../../src/ledger/summary-assertions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const TODAY = "2026-05-10";
 

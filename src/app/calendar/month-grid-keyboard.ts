@@ -1,7 +1,12 @@
 // Keyboard model of the month grid (DESIGN section 18, "Keyboard"): the date picker's keys, held to
 // the displayed month because the grid shows one month. Pure: no DOM, no clock.
 
-import { addDays, addMonths, resolveDateKey, type DateKeyModifiers } from "../../components/date-picker-keyboard";
+import {
+  addDays,
+  addMonths,
+  resolveDateKey,
+  type DateKeyModifiers,
+} from "../../components/date-picker-keyboard";
 
 interface GridKeyState {
   /** The day the focus is on, YYYY-MM-DD. */

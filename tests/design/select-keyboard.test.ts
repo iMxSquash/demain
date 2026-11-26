@@ -14,7 +14,10 @@ function options(...labels: string[]): SelectOption[] {
 }
 
 function numbered(count: number): SelectOption[] {
-  return Array.from({ length: count }, (_, index) => ({ value: `${index}`, label: `Option ${index}` }));
+  return Array.from({ length: count }, (_, index) => ({
+    value: `${index}`,
+    label: `Option ${index}`,
+  }));
 }
 
 function open(activeIndex: number, typeahead = ""): SelectKeyState {
@@ -37,21 +40,36 @@ describe("resolveSelectKey, closed", () => {
   });
 
   it("opens on the first option for Home and the last for End", () => {
-    expect(resolveSelectKey(closed(2), "Home", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "open", activeIndex: 0 });
-    expect(resolveSelectKey(closed(1), "End", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "open", activeIndex: 3 });
+    expect(resolveSelectKey(closed(2), "Home", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "open",
+      activeIndex: 0,
+    });
+    expect(resolveSelectKey(closed(1), "End", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "open",
+      activeIndex: 3,
+    });
   });
 
   it("opens ten options further for PageDown and ten back for PageUp", () => {
     const list = numbered(30);
 
-    expect(resolveSelectKey(closed(5), "PageDown", list, NO_MODIFIERS)).toMatchObject({ type: "open", activeIndex: 15 });
-    expect(resolveSelectKey(closed(15), "PageUp", list, NO_MODIFIERS)).toMatchObject({ type: "open", activeIndex: 5 });
+    expect(resolveSelectKey(closed(5), "PageDown", list, NO_MODIFIERS)).toMatchObject({
+      type: "open",
+      activeIndex: 15,
+    });
+    expect(resolveSelectKey(closed(15), "PageUp", list, NO_MODIFIERS)).toMatchObject({
+      type: "open",
+      activeIndex: 5,
+    });
   });
 
   it("opens on the first enabled option when nothing is selected", () => {
     const list: SelectOption[] = [{ value: "a", label: "A", disabled: true }, ...options("B")];
 
-    expect(resolveSelectKey(closed(-1), "ArrowDown", list, NO_MODIFIERS)).toMatchObject({ type: "open", activeIndex: 1 });
+    expect(resolveSelectKey(closed(-1), "ArrowDown", list, NO_MODIFIERS)).toMatchObject({
+      type: "open",
+      activeIndex: 1,
+    });
   });
 
   it("opens on the first match of a typed letter", () => {
@@ -71,24 +89,50 @@ describe("resolveSelectKey, closed", () => {
 
 describe("resolveSelectKey, open", () => {
   it("moves one option with the arrows and stays at the ends", () => {
-    expect(resolveSelectKey(open(1), "ArrowDown", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "move", activeIndex: 2 });
-    expect(resolveSelectKey(open(1), "ArrowUp", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "move", activeIndex: 0 });
-    expect(resolveSelectKey(open(3), "ArrowDown", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "move", activeIndex: 3 });
-    expect(resolveSelectKey(open(0), "ArrowUp", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "move", activeIndex: 0 });
+    expect(resolveSelectKey(open(1), "ArrowDown", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "move",
+      activeIndex: 2,
+    });
+    expect(resolveSelectKey(open(1), "ArrowUp", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "move",
+      activeIndex: 0,
+    });
+    expect(resolveSelectKey(open(3), "ArrowDown", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "move",
+      activeIndex: 3,
+    });
+    expect(resolveSelectKey(open(0), "ArrowUp", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "move",
+      activeIndex: 0,
+    });
   });
 
   it("jumps to the first and last option with Home and End", () => {
-    expect(resolveSelectKey(open(2), "Home", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "move", activeIndex: 0 });
-    expect(resolveSelectKey(open(1), "End", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "move", activeIndex: 3 });
+    expect(resolveSelectKey(open(2), "Home", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "move",
+      activeIndex: 0,
+    });
+    expect(resolveSelectKey(open(1), "End", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "move",
+      activeIndex: 3,
+    });
   });
 
   it("jumps by ten with PageDown and PageUp and stops at the ends", () => {
     const list = numbered(25);
 
-    expect(resolveSelectKey(open(3), "PageDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 13 });
-    expect(resolveSelectKey(open(20), "PageDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 24 });
-    expect(resolveSelectKey(open(12), "PageUp", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 2 });
-    expect(resolveSelectKey(open(4), "PageUp", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 0 });
+    expect(resolveSelectKey(open(3), "PageDown", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 13,
+    });
+    expect(resolveSelectKey(open(20), "PageDown", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 24,
+    });
+    expect(resolveSelectKey(open(12), "PageUp", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 2,
+    });
+    expect(resolveSelectKey(open(4), "PageUp", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 0,
+    });
   });
 
   it("skips disabled options", () => {
@@ -99,10 +143,16 @@ describe("resolveSelectKey, open", () => {
       { value: "d", label: "D", disabled: true },
     ];
 
-    expect(resolveSelectKey(open(0), "ArrowDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 2 });
-    expect(resolveSelectKey(open(2), "ArrowDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 2 });
+    expect(resolveSelectKey(open(0), "ArrowDown", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 2,
+    });
+    expect(resolveSelectKey(open(2), "ArrowDown", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 2,
+    });
     expect(resolveSelectKey(open(2), "End", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 2 });
-    expect(resolveSelectKey(open(2), "PageDown", list, NO_MODIFIERS)).toMatchObject({ activeIndex: 2 });
+    expect(resolveSelectKey(open(2), "PageDown", list, NO_MODIFIERS)).toMatchObject({
+      activeIndex: 2,
+    });
   });
 
   it("commits the active option on Enter and Space", () => {
@@ -111,18 +161,26 @@ describe("resolveSelectKey, open", () => {
       activeIndex: 2,
       preventDefault: true,
     });
-    expect(resolveSelectKey(open(1), " ", FRUITS, NO_MODIFIERS)).toMatchObject({ type: "commit", activeIndex: 1 });
+    expect(resolveSelectKey(open(1), " ", FRUITS, NO_MODIFIERS)).toMatchObject({
+      type: "commit",
+      activeIndex: 1,
+    });
   });
 
   it("commits on Alt+ArrowUp", () => {
-    expect(resolveSelectKey(open(1), "ArrowUp", FRUITS, { ...NO_MODIFIERS, alt: true })).toMatchObject({
+    expect(
+      resolveSelectKey(open(1), "ArrowUp", FRUITS, { ...NO_MODIFIERS, alt: true }),
+    ).toMatchObject({
       type: "commit",
       activeIndex: 1,
     });
   });
 
   it("closes without choosing on Escape", () => {
-    expect(resolveSelectKey(open(2), "Escape", FRUITS, NO_MODIFIERS)).toEqual({ type: "close", preventDefault: true });
+    expect(resolveSelectKey(open(2), "Escape", FRUITS, NO_MODIFIERS)).toEqual({
+      type: "close",
+      preventDefault: true,
+    });
   });
 
   it("closes on Tab without choosing and lets the focus move on", () => {
@@ -135,7 +193,11 @@ describe("resolveSelectKey, open", () => {
   it("never lands on a disabled option when every option of a jump is disabled", () => {
     const list: SelectOption[] = [
       { value: "0", label: "0", disabled: true },
-      ...Array.from({ length: 10 }, (_, index) => ({ value: `${index + 1}`, label: `${index + 1}`, disabled: true })),
+      ...Array.from({ length: 10 }, (_, index) => ({
+        value: `${index + 1}`,
+        label: `${index + 1}`,
+        disabled: true,
+      })),
     ];
 
     expect(resolveSelectKey(open(-1), "PageDown", list, NO_MODIFIERS)).toEqual({ type: "none" });
@@ -143,12 +205,19 @@ describe("resolveSelectKey, open", () => {
 
   it("does nothing when there is no option", () => {
     expect(resolveSelectKey(open(-1), "ArrowDown", [], NO_MODIFIERS)).toEqual({ type: "none" });
-    expect(resolveSelectKey(open(-1), "Enter", [], NO_MODIFIERS)).toEqual({ type: "close", preventDefault: true });
+    expect(resolveSelectKey(open(-1), "Enter", [], NO_MODIFIERS)).toEqual({
+      type: "close",
+      preventDefault: true,
+    });
   });
 
   it("leaves browser shortcuts alone", () => {
-    expect(resolveSelectKey(open(0), "a", FRUITS, { ...NO_MODIFIERS, ctrl: true })).toEqual({ type: "none" });
-    expect(resolveSelectKey(open(0), "r", FRUITS, { ...NO_MODIFIERS, meta: true })).toEqual({ type: "none" });
+    expect(resolveSelectKey(open(0), "a", FRUITS, { ...NO_MODIFIERS, ctrl: true })).toEqual({
+      type: "none",
+    });
+    expect(resolveSelectKey(open(0), "r", FRUITS, { ...NO_MODIFIERS, meta: true })).toEqual({
+      type: "none",
+    });
   });
 
   it("ignores keys it does not know", () => {

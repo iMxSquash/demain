@@ -8,10 +8,8 @@ import {
 } from "../../../src/app/transactions/transaction-form-data";
 import { translateKey } from "../translate-key";
 
-const parseTransactionForm = (
-  formData: FormData,
-  currencies: CurrencyByAccount,
-) => parseTransaction(formData, currencies, translateKey);
+const parseTransactionForm = (formData: FormData, currencies: CurrencyByAccount) =>
+  parseTransaction(formData, currencies, translateKey);
 const parseTransferForm = (formData: FormData, currencies: CurrencyByAccount) =>
   parseTransfer(formData, currencies, translateKey);
 
@@ -77,10 +75,7 @@ describe("parseTransactionForm", () => {
   });
 
   it("asks for an unsigned amount instead of guessing the direction", () => {
-    const parsed = parseTransactionForm(
-      transactionForm({ amount: "-12.50" }),
-      CURRENCIES,
-    );
+    const parsed = parseTransactionForm(transactionForm({ amount: "-12.50" }), CURRENCIES);
 
     expect(parsed).toMatchObject({
       ok: false,
@@ -93,57 +88,45 @@ describe("parseTransactionForm", () => {
     ["a grouping separator", "1.143,88"],
     ["a space as grouping", "1 143,88"],
   ])("refuses %s", (_label, amount) => {
-    expect(
-      parseTransactionForm(transactionForm({ amount }), CURRENCIES),
-    ).toMatchObject({ ok: false, error: { field: "amount", message: "amountSyntax" } });
-    expect(
-      parseTransferForm(transferForm({ amount }), CURRENCIES),
-    ).toMatchObject({ ok: false, error: { field: "amount", message: "amountSyntax" } });
+    expect(parseTransactionForm(transactionForm({ amount }), CURRENCIES)).toMatchObject({
+      ok: false,
+      error: { field: "amount", message: "amountSyntax" },
+    });
+    expect(parseTransferForm(transferForm({ amount }), CURRENCIES)).toMatchObject({
+      ok: false,
+      error: { field: "amount", message: "amountSyntax" },
+    });
   });
 
   it("accepts a comma as the decimal separator", () => {
-    expect(
-      parseTransactionForm(transactionForm({ amount: "42,5" }), CURRENCIES),
-    ).toMatchObject({ ok: true, input: { amount: -4250 } });
+    expect(parseTransactionForm(transactionForm({ amount: "42,5" }), CURRENCIES)).toMatchObject({
+      ok: true,
+      input: { amount: -4250 },
+    });
   });
 
   it("reports an unreadable amount on the amount field", () => {
-    const parsed = parseTransactionForm(
-      transactionForm({ amount: "lots" }),
-      CURRENCIES,
-    );
+    const parsed = parseTransactionForm(transactionForm({ amount: "lots" }), CURRENCIES);
 
     expect(parsed).toMatchObject({ ok: false, error: { field: "amount" } });
   });
 
   it("reports an unknown account on the account field", () => {
-    const parsed = parseTransactionForm(
-      transactionForm({ accountId: "99" }),
-      CURRENCIES,
-    );
+    const parsed = parseTransactionForm(transactionForm({ accountId: "99" }), CURRENCIES);
 
     expect(parsed).toMatchObject({ ok: false, error: { field: "accountId" } });
   });
 
   it("reads the optional category and treats blank as none", () => {
-    const chosen = parseTransactionForm(
-      transactionForm({ categoryId: "4" }),
-      CURRENCIES,
-    );
-    const blank = parseTransactionForm(
-      transactionForm({ categoryId: "" }),
-      CURRENCIES,
-    );
+    const chosen = parseTransactionForm(transactionForm({ categoryId: "4" }), CURRENCIES);
+    const blank = parseTransactionForm(transactionForm({ categoryId: "" }), CURRENCIES);
 
     expect(chosen).toMatchObject({ ok: true, input: { categoryId: 4 } });
     expect(blank).toMatchObject({ ok: true, input: { categoryId: null } });
   });
 
   it("reports an unreadable category on the category field", () => {
-    const parsed = parseTransactionForm(
-      transactionForm({ categoryId: "groceries" }),
-      CURRENCIES,
-    );
+    const parsed = parseTransactionForm(transactionForm({ categoryId: "groceries" }), CURRENCIES);
 
     expect(parsed).toMatchObject({ ok: false, error: { field: "categoryId" } });
   });
@@ -177,10 +160,7 @@ describe("parseTransferForm", () => {
   });
 
   it("reads the decision to deposit only the room", () => {
-    const parsed = parseTransferForm(
-      transferForm({ decision: "room-only" }),
-      CURRENCIES,
-    );
+    const parsed = parseTransferForm(transferForm({ decision: "room-only" }), CURRENCIES);
 
     expect(parsed).toMatchObject({ ok: true, decision: { kind: "room-only" } });
   });
@@ -210,12 +190,14 @@ describe("parseTransferForm", () => {
   });
 
   it("rejects a negative or unreadable amount", () => {
-    expect(
-      parseTransferForm(transferForm({ amount: "-5" }), CURRENCIES),
-    ).toMatchObject({ ok: false, error: { field: "amount" } });
-    expect(
-      parseTransferForm(transferForm({ amount: "x" }), CURRENCIES),
-    ).toMatchObject({ ok: false, error: { field: "amount" } });
+    expect(parseTransferForm(transferForm({ amount: "-5" }), CURRENCIES)).toMatchObject({
+      ok: false,
+      error: { field: "amount" },
+    });
+    expect(parseTransferForm(transferForm({ amount: "x" }), CURRENCIES)).toMatchObject({
+      ok: false,
+      error: { field: "amount" },
+    });
   });
 });
 
@@ -233,6 +215,8 @@ describe("fullAccountIdOf", () => {
   });
 
   it("names the account chosen for the surplus when it is the one that is full", () => {
-    expect(fullAccountIdOf(request, { kind: "send-surplus", accountId: LIVRET_JEUNE_ID })).toBe(LIVRET_JEUNE_ID);
+    expect(fullAccountIdOf(request, { kind: "send-surplus", accountId: LIVRET_JEUNE_ID })).toBe(
+      LIVRET_JEUNE_ID,
+    );
   });
 });

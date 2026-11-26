@@ -13,7 +13,11 @@ function render(notice: Notice | null): string {
       // The casts only satisfy `createElement`, which wants `children` among the props even when
       // it is passed as the third argument, as the lint rule requires.
       { locale: "en", messages } as ComponentProps<typeof NextIntlClientProvider>,
-      createElement(ToastProvider, { notice } as ComponentProps<typeof ToastProvider>, createElement("p", null, "page")),
+      createElement(
+        ToastProvider,
+        { notice } as ComponentProps<typeof ToastProvider>,
+        createElement("p", null, "page"),
+      ),
     ),
   );
 }
@@ -29,7 +33,10 @@ describe("ToastProvider rendered by the server", () => {
 
   it("puts a success in the status region with its kind word and a check icon", () => {
     const markup = render({ id: "a", kind: "success", message: "Account archived." });
-    const statusRegion = markup.slice(markup.indexOf('role="status"'), markup.indexOf('role="alert"'));
+    const statusRegion = markup.slice(
+      markup.indexOf('role="status"'),
+      markup.indexOf('role="alert"'),
+    );
 
     expect(statusRegion).toContain("Success.");
     expect(statusRegion).toContain("Account archived.");

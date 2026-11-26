@@ -30,7 +30,7 @@ describe("identity guard", () => {
   });
 
   it("rejects a class chosen inside a template literal", () => {
-    const source = "className={`border-2 ${isError ? \"border-red-800\" : \"border-green-800\"}`}";
+    const source = 'className={`border-2 ${isError ? "border-red-800" : "border-green-800"}`}';
 
     expect(findIdentityViolations(source, "toast.tsx")).toEqual([
       "border-red-800",

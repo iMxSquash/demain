@@ -44,7 +44,13 @@ function monthWith(unconvertedCurrencies: string[]): CalendarMonth {
       isBelowZero: false,
     };
   });
-  return { month: "2026-11", currency: "EUR", days, firstDayBelowZero: null, unconvertedCurrencies };
+  return {
+    month: "2026-11",
+    currency: "EUR",
+    days,
+    firstDayBelowZero: null,
+    unconvertedCurrencies,
+  };
 }
 
 function propsOf(month: CalendarMonth): MonthGridProps {
@@ -60,7 +66,13 @@ function propsOf(month: CalendarMonth): MonthGridProps {
       unplacedSurplus: "Unplaced surplus",
       real: (count) => `${count} real`,
       planned: (count) => `${count} planned`,
-      name: { today: "today", balance: "balance", noEntries: "no entries", belowZero: "below zero", unplacedSurplus: "unplaced surplus" },
+      name: {
+        today: "today",
+        balance: "balance",
+        noEntries: "no entries",
+        belowZero: "below zero",
+        unplacedSurplus: "unplaced surplus",
+      },
       legend: "Dot: real, ring: planned",
     },
     details: {
@@ -70,9 +82,23 @@ function propsOf(month: CalendarMonth): MonthGridProps {
       ],
       text: { balance: "End-of-day balance", noEntries: "No entries on this day." },
       lines: {
-        columns: { date: "Date", description: "Description", account: "Account", kind: "Kind", status: "Status", amount: "Amount", balance: "Balance" },
+        columns: {
+          date: "Date",
+          description: "Description",
+          account: "Account",
+          kind: "Kind",
+          status: "Status",
+          amount: "Amount",
+          balance: "Balance",
+        },
         kinds: { real: "Real", planned: "Planned" },
-        statuses: { planned: "Planned", partial: "Partial", confirmed: "Confirmed", overdue: "Overdue", cancelled: "Cancelled" },
+        statuses: {
+          planned: "Planned",
+          partial: "Partial",
+          confirmed: "Confirmed",
+          overdue: "Overdue",
+          cancelled: "Cancelled",
+        },
         belowZero: "Below zero",
         belowZeroFrom: (date) => `Below zero from ${date}`,
         unplacedSurplus: (amount, account) => `Unplaced surplus: ${amount} stays in ${account}.`,
@@ -98,7 +124,8 @@ function propsOf(month: CalendarMonth): MonthGridProps {
 
 function gridElementOf(month: CalendarMonth) {
   const grid = MonthGrid(propsOf(month));
-  if (!isValidElement<{ details: Record<string, ReactNode> }>(grid)) throw new Error("the grid is not an element");
+  if (!isValidElement<{ details: Record<string, ReactNode> }>(grid))
+    throw new Error("the grid is not an element");
   return grid;
 }
 
@@ -110,7 +137,10 @@ describe("day details unplaced surplus", () => {
   it("states the unplaced surplus with its amount and its account in the balance block", () => {
     const html = detailsMarkup(monthWith([]), SURPLUS_DATE);
     // The entries table also says it: the balance block is what comes before it.
-    const balanceBlock = html.slice(0, html.indexOf("<table") === -1 ? html.length : html.indexOf("<table"));
+    const balanceBlock = html.slice(
+      0,
+      html.indexOf("<table") === -1 ? html.length : html.indexOf("<table"),
+    );
 
     expect(balanceBlock).toMatch(/Unplaced surplus: [^<]*100[^<]* stays in Savings\./);
   });

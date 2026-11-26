@@ -57,7 +57,10 @@ type FormKind = (typeof PLANNED_ITEM_FORM_KINDS)[number];
 
 const FULL_WIDTH_CLASS = "@min-[640px]:col-span-2";
 
-const MATCHING_FIELDS: readonly PlannedItemFormField[] = ["matchWindowDays", "matchTolerancePercent"];
+const MATCHING_FIELDS: readonly PlannedItemFormField[] = [
+  "matchWindowDays",
+  "matchTolerancePercent",
+];
 
 interface MatchingSettings {
   windowDays: string;
@@ -76,7 +79,8 @@ function matchingOfForm(formData: FormData, previous: MatchingSettings): Matchin
   const tolerancePercent = formData.get("matchTolerancePercent");
   return {
     windowDays: typeof windowDays === "string" ? windowDays : previous.windowDays,
-    tolerancePercent: typeof tolerancePercent === "string" ? tolerancePercent : previous.tolerancePercent,
+    tolerancePercent:
+      typeof tolerancePercent === "string" ? tolerancePercent : previous.tolerancePercent,
   };
 }
 
@@ -173,7 +177,13 @@ export function PlannedItemForm({
       >
         <div className={FULL_WIDTH_CLASS}>
           <FormField {...fieldProps("name", t("name"))} hint={t("nameHint")}>
-            <input {...controlProps("name")} className={CONTROL_CLASS} type="text" required autoComplete="off" />
+            <input
+              {...controlProps("name")}
+              className={CONTROL_CLASS}
+              type="text"
+              required
+              autoComplete="off"
+            />
           </FormField>
         </div>
 
@@ -266,10 +276,7 @@ export function PlannedItemForm({
           </FormField>
         ) : null}
 
-        <FormField
-          {...fieldProps("businessDayRule", t("businessDay"))}
-          hint={t("businessDayHint")}
-        >
+        <FormField {...fieldProps("businessDayRule", t("businessDay"))} hint={t("businessDayHint")}>
           <Select key={`business-day-${resultCount}`} {...controlProps("businessDayRule")}>
             {BUSINESS_DAY_RULES.map((rule) => (
               <option key={rule} value={rule}>

@@ -7,10 +7,7 @@ import type { Flatten } from "./describe-issues";
 /** Keys of the review messages, checked against the reference translation file. */
 export type StagedKey = Flatten<(typeof en)["imports"]["staged"]>;
 
-export type StagedT = (
-  key: StagedKey,
-  values?: Record<string, string | number>,
-) => string;
+export type StagedT = (key: StagedKey, values?: Record<string, string | number>) => string;
 
 function describeConfirmReason(reason: ConfirmReason, t: StagedT): string {
   switch (reason.kind) {
@@ -34,10 +31,7 @@ function describeConfirmReason(reason: ConfirmReason, t: StagedT): string {
 }
 
 /** Why a row is "to confirm", as the text that follows its label. */
-export function describeConfirmReasons(
-  reasons: readonly ConfirmReason[],
-  t: StagedT,
-): string {
+export function describeConfirmReasons(reasons: readonly ConfirmReason[], t: StagedT): string {
   return reasons.map((reason) => describeConfirmReason(reason, t)).join("; ");
 }
 

@@ -55,15 +55,17 @@ export function fileMovements(
     if (row.details.type !== "savings") {
       return [{ accountId, date, amount: signedAmountForType(row.details.type, amount) }];
     }
-    return (plan.splits.get(index) ?? []).flatMap(({ direction, accountId: otherId, amount: part }) => {
-      // An account to create has no balance assertion to check the movement against.
-      if (direction === "unplaced" || otherId === null || isPendingAccount(otherId)) return [];
-      const sign = direction === "to" ? -1 : 1;
-      return [
-        { accountId, date, amount: sign * part },
-        { accountId: otherId, date, amount: -sign * part },
-      ];
-    });
+    return (plan.splits.get(index) ?? []).flatMap(
+      ({ direction, accountId: otherId, amount: part }) => {
+        // An account to create has no balance assertion to check the movement against.
+        if (direction === "unplaced" || otherId === null || isPendingAccount(otherId)) return [];
+        const sign = direction === "to" ? -1 : 1;
+        return [
+          { accountId, date, amount: sign * part },
+          { accountId: otherId, date, amount: -sign * part },
+        ];
+      },
+    );
   });
 }
 
@@ -173,9 +175,12 @@ export function linkAssertions(
     links.set(account.id, accountLinks);
   }
 
-  const byAccount = [...links].toSorted(([a], [b]) => a - b).map(
-    ([accountId, accountLinks]): AccountAssertionLinks => ({ accountId, links: accountLinks }),
-  );
+  const byAccount = [...links]
+    .toSorted(([a], [b]) => a - b)
+    .map(([accountId, accountLinks]): AccountAssertionLinks => ({
+      accountId,
+      links: accountLinks,
+    }));
   const all = byAccount.flatMap(({ links: accountLinks }) => accountLinks);
   return {
     accounts: byAccount,
@@ -206,7 +211,10 @@ export function linkReviewAssertions(
     const removed = isFileRecorded(file)
       ? (replacedByFile[index] ?? []).map((entry) => ({ ...entry, amount: -entry.amount }))
       : [];
-    const movements = [...(plan === undefined ? [] : fileMovements(file, plan, context)), ...removed];
+    const movements = [
+      ...(plan === undefined ? [] : fileMovements(file, plan, context)),
+      ...removed,
+    ];
     const links = linkAssertions(
       {
         accountId: context.accountId,

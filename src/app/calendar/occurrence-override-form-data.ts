@@ -36,11 +36,11 @@ interface OccurrenceOverrideFormContext extends OccurrenceTarget {
   currency: string;
 }
 
-type ParsedOccurrenceTarget = { ok: true; target: OccurrenceTarget } | { ok: false; ref: MessageRef };
+type ParsedOccurrenceTarget =
+  { ok: true; target: OccurrenceTarget } | { ok: false; ref: MessageRef };
 
 type ParsedOccurrenceOverrideForm =
-  | { ok: true; input: OccurrenceOverrideInput }
-  | { ok: false; error: OccurrenceOverrideFormState };
+  { ok: true; input: OccurrenceOverrideInput } | { ok: false; error: OccurrenceOverrideFormState };
 
 /**
  * Reads the hidden fields that name the occurrence. They come from the browser, so they are checked
@@ -84,7 +84,10 @@ export function parseOccurrenceOverrideForm(
 
   const intent = readText(formData, "intent");
   if (intent === SKIP_INTENT) {
-    return { ok: true, input: { nominalDate, status: "cancelled", overrideDate: null, overrideAmount: null } };
+    return {
+      ok: true,
+      input: { nominalDate, status: "cancelled", overrideDate: null, overrideAmount: null },
+    };
   }
   if (intent !== SAVE_INTENT) return fail(messageRef("nothingSaved"));
 

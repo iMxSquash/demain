@@ -25,9 +25,7 @@ const FALLBACK_FILE_NAME = "demain-backup";
 // The browser starts reading the blob asynchronously after the click.
 const REVOKE_DELAY_MS = 60_000;
 
-type Outcome =
-  | { file: Blob; contentDisposition: string | null }
-  | { message: string | null };
+type Outcome = { file: Blob; contentDisposition: string | null } | { message: string | null };
 
 /**
  * The file comes from a POST so that the password never appears in a URL or a
@@ -69,7 +67,12 @@ export function DownloadForm({
 
   return (
     <form onSubmit={download} className="flex max-w-md flex-col gap-4" noValidate>
-      <FormField id={passwordId} label={passwordLabel} optional={isPasswordOptional} hint={passwordHint}>
+      <FormField
+        id={passwordId}
+        label={passwordLabel}
+        optional={isPasswordOptional}
+        hint={passwordHint}
+      >
         <PasswordInput
           id={passwordId}
           name="password"
@@ -85,12 +88,7 @@ export function DownloadForm({
           autoComplete="new-password"
         />
       </FormField>
-      <Button
-        type="submit"
-        pending={isPending}
-        pendingLabel={t("working")}
-        className="self-start"
-      >
+      <Button type="submit" pending={isPending} pendingLabel={t("working")} className="self-start">
         {submitLabel}
       </Button>
       <p role="status">{isPending ? t("working") : null}</p>
@@ -113,7 +111,10 @@ async function requestFile(endpoint: string, body: FormData): Promise<Outcome> {
     throw error;
   }
   if (response.ok) {
-    return { file: await response.blob(), contentDisposition: response.headers.get("Content-Disposition") };
+    return {
+      file: await response.blob(),
+      contentDisposition: response.headers.get("Content-Disposition"),
+    };
   }
   try {
     const refusal: unknown = await response.json();

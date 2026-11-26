@@ -211,7 +211,11 @@ describe("withDefaultSavingsAccount", () => {
   });
 
   it("leaves a row with no account when there is no default either", () => {
-    expect(withDefaultSavingsAccount(details({ type: "savings" }), null).savingsAccountId).toBeNull();
-    expect(withDefaultSavingsAccount(details({ type: "savings" }), undefined).savingsAccountId).toBeNull();
+    expect(
+      withDefaultSavingsAccount(details({ type: "savings" }), null).savingsAccountId,
+    ).toBeNull();
+    expect(
+      withDefaultSavingsAccount(details({ type: "savings" }), undefined).savingsAccountId,
+    ).toBeNull();
   });
 });

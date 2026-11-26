@@ -27,9 +27,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const now = new Date();
-    const file = await withDatabaseAsync((db) =>
-      createJsonExport(db, now, confirmed?.password),
-    );
+    const file = await withDatabaseAsync((db) => createJsonExport(db, now, confirmed?.password));
     const extension = confirmed ? "json.enc" : "json";
     return fileResponse(file, `demain-export-${todayStamp(now)}.${extension}`);
   } catch (error) {

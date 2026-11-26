@@ -34,21 +34,16 @@ export interface RowDetails {
 /** A draft and, when the user went through the details, what was chosen for it. */
 export type ReviewedDraft = ImportDraft & { details?: RowDetails };
 
-export type DraftProblem =
-  "dateInvalid" | "labelRequired" | "amountInvalid" | "amountZero";
+export type DraftProblem = "dateInvalid" | "labelRequired" | "amountInvalid" | "amountZero";
 
 export type DetailsProblem = "savingsAccountRequired";
 
 /** Everything that can still be wrong with a reviewed row. */
 export type RowProblem = DraftProblem | DetailsProblem;
 
-export type DraftReading =
-  { ok: true; row: ImportedRow } | { ok: false; problem: DraftProblem };
+export type DraftReading = { ok: true; row: ImportedRow } | { ok: false; problem: DraftProblem };
 
-export function readImportDraft(
-  draft: ImportDraft,
-  currency: string,
-): DraftReading {
+export function readImportDraft(draft: ImportDraft, currency: string): DraftReading {
   if (!isCalendarDate(draft.date)) return { ok: false, problem: "dateInvalid" };
   const label = draft.label.trim();
   if (label === "") return { ok: false, problem: "labelRequired" };
@@ -124,11 +119,7 @@ export function isTypeAgainstSign(type: MovementType, amount: number): boolean {
  * will be recorded. Text that already agrees with the type, savings and text
  * that cannot be read as a non-null amount are returned as typed.
  */
-export function amountTextForType(
-  text: string,
-  type: MovementType,
-  currency: string,
-): string {
+export function amountTextForType(text: string, type: MovementType, currency: string): string {
   const amount = tryParseAmount(text, currency);
   if (amount === null || !isTypeAgainstSign(type, amount)) return text;
   return formatEditableAmount(signedAmountForType(type, amount), currency);

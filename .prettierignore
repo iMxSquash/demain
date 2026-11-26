@@ -1,0 +1,18 @@
+# Generated or vendored content
+.next/
+node_modules/
+coverage/
+package-lock.json
+drizzle/
+docs/export.schema.json
+
+# Local data
+data/
+
+# Markdown is hand-written prose with aligned tables, not formatted
+*.md
+
+# Design exploration, design detector and agent tooling
+design-system-preview/
+.impeccable/
+.claude/

@@ -10,7 +10,11 @@ import {
 } from "../../../src/app/calendar/actions";
 import { decodeFlash, FLASH_COOKIE } from "../../../src/app/feedback/flash-codec";
 import { createAccount } from "../../../src/ledger/accounts";
-import { createPlannedItem, getPlannedItem, saveOccurrenceOverride } from "../../../src/ledger/planned-items";
+import {
+  createPlannedItem,
+  getPlannedItem,
+  saveOccurrenceOverride,
+} from "../../../src/ledger/planned-items";
 import { createTransaction } from "../../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../../src/storage/database";
 import { translateKey } from "../translate-key";
@@ -58,10 +62,19 @@ describe("occurrence override actions", () => {
   const save = (fields: Record<string, string>) =>
     saveOccurrenceOverrideAction(
       null,
-      formOf({ itemId: String(itemId), nominalDate: NOMINAL_DATE, overrideDate: "", overrideAmount: "", ...fields }),
+      formOf({
+        itemId: String(itemId),
+        nominalDate: NOMINAL_DATE,
+        overrideDate: "",
+        overrideAmount: "",
+        ...fields,
+      }),
     );
   const restore = (fields: Record<string, string> = {}) =>
-    deleteOccurrenceOverrideAction(null, formOf({ itemId: String(itemId), nominalDate: NOMINAL_DATE, ...fields }));
+    deleteOccurrenceOverrideAction(
+      null,
+      formOf({ itemId: String(itemId), nominalDate: NOMINAL_DATE, ...fields }),
+    );
 
   beforeEach(() => {
     holder.jar.clear();
@@ -97,7 +110,12 @@ describe("occurrence override actions", () => {
 
     expect(state).toBeNull();
     expect(overridesOf()).toMatchObject([
-      { nominalDate: NOMINAL_DATE, status: "modified", overrideDate: "2026-03-12", overrideAmount: -1_500 },
+      {
+        nominalDate: NOMINAL_DATE,
+        status: "modified",
+        overrideDate: "2026-03-12",
+        overrideAmount: -1_500,
+      },
     ]);
     expect(holder.refreshData).toHaveBeenCalled();
     expect(flashed()).toMatchObject({ kind: "success", ref: { key: "occurrenceOverrideSaved" } });
@@ -107,7 +125,9 @@ describe("occurrence override actions", () => {
     const state = await save({ intent: "skip", overrideDate: "2026-03-12" });
 
     expect(state).toBeNull();
-    expect(overridesOf()).toMatchObject([{ nominalDate: NOMINAL_DATE, status: "cancelled", overrideDate: null }]);
+    expect(overridesOf()).toMatchObject([
+      { nominalDate: NOMINAL_DATE, status: "cancelled", overrideDate: null },
+    ]);
     expect(flashed()).toMatchObject({ kind: "success", ref: { key: "occurrenceSkipped" } });
   });
 
@@ -144,7 +164,9 @@ describe("occurrence override actions", () => {
   });
 
   it("refuses a linked occurrence: the transaction is unlinked first", async () => {
-    db.$client.exec(`UPDATE planned_items SET accepts_multiple_transactions = 1 WHERE id = ${itemId}`);
+    db.$client.exec(
+      `UPDATE planned_items SET accepts_multiple_transactions = 1 WHERE id = ${itemId}`,
+    );
     const transaction = createTransaction(db, {
       accountId,
       date: NOMINAL_DATE,
@@ -156,12 +178,17 @@ describe("occurrence override actions", () => {
       `UPDATE transactions SET planned_item_id = ${itemId}, occurrence_date = '${NOMINAL_DATE}' WHERE id = ${transaction.id}`,
     );
 
-    expect(await save({ intent: "skip" })).toMatchObject({ message: "plannedItemOccurrenceLinked" });
+    expect(await save({ intent: "skip" })).toMatchObject({
+      message: "plannedItemOccurrenceLinked",
+    });
     expect(overridesOf()).toEqual([]);
   });
 
   it.each(["", "0", "abc", "1.5"])("refuses the item id %j", async (id) => {
-    const state = await saveOccurrenceOverrideAction(null, formOf({ itemId: id, nominalDate: NOMINAL_DATE, intent: "skip" }));
+    const state = await saveOccurrenceOverrideAction(
+      null,
+      formOf({ itemId: id, nominalDate: NOMINAL_DATE, intent: "skip" }),
+    );
 
     expect(state).toMatchObject({ message: "plannedItemGone" });
     expect(overridesOf()).toEqual([]);
@@ -173,7 +200,10 @@ describe("occurrence override actions", () => {
       formOf({ itemId: String(itemId + 1), nominalDate: NOMINAL_DATE, intent: "skip" }),
     );
 
-    expect(state).toEqual({ message: "plannedItemGone", values: { overrideDate: "", overrideAmount: "" } });
+    expect(state).toEqual({
+      message: "plannedItemGone",
+      values: { overrideDate: "", overrideAmount: "" },
+    });
     expect(flashed()).toMatchObject({ kind: "error", ref: { key: "plannedItemGone" } });
   });
 

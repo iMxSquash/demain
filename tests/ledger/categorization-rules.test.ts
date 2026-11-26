@@ -7,22 +7,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { at } from "../auth/at";
 import { createAccount } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
-import {
-  createRule,
-  deleteRule,
-  listRules,
-  moveRule,
-} from "../../src/ledger/categorization-rules";
+import { createRule, deleteRule, listRules, moveRule } from "../../src/ledger/categorization-rules";
 import {
   createTransaction,
   listUncategorizedTransactions,
   setTransactionCategory,
 } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 describe("categorization rules", () => {
   let dataDir: string;
@@ -100,10 +91,7 @@ describe("categorization rules", () => {
 
     deleteRule(db, at(rules, 1).id);
 
-    expect(listRules(db).map((rule) => rule.id)).toEqual([
-      at(rules, 0).id,
-      at(rules, 2).id,
-    ]);
+    expect(listRules(db).map((rule) => rule.id)).toEqual([at(rules, 0).id, at(rules, 2).id]);
   });
 
   describe("categorizing with a rule", () => {
@@ -156,9 +144,7 @@ describe("categorization rules", () => {
         }),
       ).toThrow();
 
-      expect(listUncategorizedTransactions(db).map((t) => t.id)).toEqual([
-        transaction.id,
-      ]);
+      expect(listUncategorizedTransactions(db).map((t) => t.id)).toEqual([transaction.id]);
     });
   });
 });

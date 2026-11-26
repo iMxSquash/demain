@@ -9,10 +9,7 @@ import {
 } from "../../src/domain/sheet-verification";
 
 // Synthetic figures in minor units, never the owner's.
-const computed = (
-  month: string,
-  overrides: Partial<ComputedMonth> = {},
-): ComputedMonth => ({
+const computed = (month: string, overrides: Partial<ComputedMonth> = {}): ComputedMonth => ({
   month,
   net: 10_000,
   savings: 5_000,
@@ -22,10 +19,7 @@ const computed = (
   ...overrides,
 });
 
-const sheet = (
-  month: string,
-  overrides: Partial<SheetMonth> = {},
-): SheetMonth => ({
+const sheet = (month: string, overrides: Partial<SheetMonth> = {}): SheetMonth => ({
   ...computed(month),
   ...overrides,
 });
@@ -44,10 +38,7 @@ describe("verifyAgainstSummary", () => {
 
   it("reports each figure that differs, with both values", () => {
     const result = verifyAgainstSummary(
-      [
-        computed("2026-01"),
-        computed("2026-02", { net: 9_900, savings: 4_000 }),
-      ],
+      [computed("2026-01"), computed("2026-02", { net: 9_900, savings: 4_000 })],
       [sheet("2026-01"), sheet("2026-02")],
     );
 
@@ -76,9 +67,7 @@ describe("verifyAgainstSummary", () => {
       [sheet("2026-01")],
     );
 
-    expect(result.issues).toEqual([
-      { kind: "monthMissingInSheet", month: "2026-02" },
-    ]);
+    expect(result.issues).toEqual([{ kind: "monthMissingInSheet", month: "2026-02" }]);
     expect(result.isMatching).toBe(false);
   });
 
@@ -88,9 +77,7 @@ describe("verifyAgainstSummary", () => {
       [sheet("2026-01"), sheet("2026-02")],
     );
 
-    expect(result.issues).toEqual([
-      { kind: "monthMissingInDemain", month: "2026-02" },
-    ]);
+    expect(result.issues).toEqual([{ kind: "monthMissingInDemain", month: "2026-02" }]);
     expect(result.isMatching).toBe(false);
   });
 
@@ -100,9 +87,7 @@ describe("verifyAgainstSummary", () => {
       [sheet("2026-01"), sheet("2026-01", { net: 1 })],
     );
 
-    expect(result.issues).toEqual([
-      { kind: "duplicateSheetMonth", month: "2026-01" },
-    ]);
+    expect(result.issues).toEqual([{ kind: "duplicateSheetMonth", month: "2026-01" }]);
     expect(result.differences).toEqual([]);
   });
 
@@ -124,10 +109,7 @@ describe("verifyAgainstSummary", () => {
   });
 });
 
-const synthesis = (
-  month: string,
-  overrides: Partial<MonthlySynthesis> = {},
-): MonthlySynthesis => ({
+const synthesis = (month: string, overrides: Partial<MonthlySynthesis> = {}): MonthlySynthesis => ({
   month,
   net: 10_000,
   savings: 5_000,

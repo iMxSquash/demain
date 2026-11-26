@@ -38,11 +38,7 @@ const PAGE_GAP = "gap-6";
 
 // The back link shows at once; the title holds the label of the transaction, so it waits for the
 // database with the form.
-export default async function EditTransactionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("transactions");
 
   return (
@@ -105,9 +101,7 @@ async function EditTransaction({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <>
-      <h1 className="text-heading font-medium">
-        {t("editTitle", { label: transaction.label })}
-      </h1>
+      <h1 className="text-heading font-medium">{t("editTitle", { label: transaction.label })}</h1>
       <TransactionForm
         action={updateTransactionAction.bind(null, transaction.id)}
         initialValues={{

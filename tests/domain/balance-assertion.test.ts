@@ -20,11 +20,10 @@ describe("computeUnexplainedGap", () => {
   it("is zero when the asserted balance equals the computed balance", () => {
     const transactions = [movement(ACCOUNT_ID, "2026-01-10", -1000)];
 
-    const result = computeUnexplainedGap(
-      account,
-      transactions,
-      { date: "2026-01-31", amount: 4627 },
-    );
+    const result = computeUnexplainedGap(account, transactions, {
+      date: "2026-01-31",
+      amount: 4627,
+    });
 
     expect(result).toEqual({ computedBalance: 4627, gap: 0 });
   });
@@ -32,11 +31,10 @@ describe("computeUnexplainedGap", () => {
   it("is the computed balance minus the asserted amount", () => {
     const transactions = [movement(ACCOUNT_ID, "2026-01-10", -1000)];
 
-    const result = computeUnexplainedGap(
-      account,
-      transactions,
-      { date: "2026-01-31", amount: 4427 },
-    );
+    const result = computeUnexplainedGap(account, transactions, {
+      date: "2026-01-31",
+      amount: 4427,
+    });
 
     expect(result).toEqual({ computedBalance: 4627, gap: 200 });
   });
@@ -53,11 +51,10 @@ describe("computeUnexplainedGap", () => {
   it("counts the transactions of the asserted day itself (end of day)", () => {
     const transactions = [movement(ACCOUNT_ID, "2026-01-31", -500)];
 
-    const result = computeUnexplainedGap(
-      account,
-      transactions,
-      { date: "2026-01-31", amount: 5127 },
-    );
+    const result = computeUnexplainedGap(account, transactions, {
+      date: "2026-01-31",
+      amount: 5127,
+    });
 
     expect(result).toEqual({ computedBalance: 5127, gap: 0 });
   });
@@ -65,11 +62,10 @@ describe("computeUnexplainedGap", () => {
   it("ignores transactions after the asserted date", () => {
     const transactions = [movement(ACCOUNT_ID, "2026-02-01", -500)];
 
-    const result = computeUnexplainedGap(
-      account,
-      transactions,
-      { date: "2026-01-31", amount: 5627 },
-    );
+    const result = computeUnexplainedGap(account, transactions, {
+      date: "2026-01-31",
+      amount: 5627,
+    });
 
     expect(result).toEqual({ computedBalance: 5627, gap: 0 });
   });
@@ -77,11 +73,10 @@ describe("computeUnexplainedGap", () => {
   it("ignores the transactions of other accounts", () => {
     const transactions = [movement(OTHER_ACCOUNT_ID, "2026-01-10", -900)];
 
-    const result = computeUnexplainedGap(
-      account,
-      transactions,
-      { date: "2026-01-31", amount: 5627 },
-    );
+    const result = computeUnexplainedGap(account, transactions, {
+      date: "2026-01-31",
+      amount: 5627,
+    });
 
     expect(result).toEqual({ computedBalance: 5627, gap: 0 });
   });
@@ -100,34 +95,29 @@ describe("validateBalanceAssertionInput", () => {
 
   it("trims the note and turns a blank one into null", () => {
     expect(
-      validateBalanceAssertionInput({ ...VALID_INPUT, note: "  bank site " }, OPENING)
-        .note,
+      validateBalanceAssertionInput({ ...VALID_INPUT, note: "  bank site " }, OPENING).note,
     ).toBe("bank site");
-    expect(
-      validateBalanceAssertionInput({ ...VALID_INPUT, note: "   " }, OPENING).note,
-    ).toBeNull();
+    expect(validateBalanceAssertionInput({ ...VALID_INPUT, note: "   " }, OPENING).note).toBeNull();
   });
 
   it("accepts a negative balance", () => {
-    expect(
-      validateBalanceAssertionInput({ ...VALID_INPUT, amount: -1250 }, OPENING)
-        .amount,
-    ).toBe(-1250);
+    expect(validateBalanceAssertionInput({ ...VALID_INPUT, amount: -1250 }, OPENING).amount).toBe(
+      -1250,
+    );
   });
 
   it("accepts the opening date itself", () => {
     expect(
-      validateBalanceAssertionInput({ ...VALID_INPUT, date: "2026-01-01" }, OPENING)
-        .date,
+      validateBalanceAssertionInput({ ...VALID_INPUT, date: "2026-01-01" }, OPENING).date,
     ).toBe("2026-01-01");
   });
 
   it.each(["", "2026-1-31", "31/01/2026", "2026-02-30", "2026-13-01"])(
     "rejects the date %j",
     (date) => {
-      expect(() =>
-        validateBalanceAssertionInput({ ...VALID_INPUT, date }, OPENING),
-      ).toThrow(expect.objectContaining({ field: "date" }));
+      expect(() => validateBalanceAssertionInput({ ...VALID_INPUT, date }, OPENING)).toThrow(
+        expect.objectContaining({ field: "date" }),
+      );
     },
   );
 
@@ -140,9 +130,9 @@ describe("validateBalanceAssertionInput", () => {
   it.each([1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53])(
     "rejects the amount %j, which is not an integer in minor units",
     (amount) => {
-      expect(() =>
-        validateBalanceAssertionInput({ ...VALID_INPUT, amount }, OPENING),
-      ).toThrow(expect.objectContaining({ field: "amount" }));
+      expect(() => validateBalanceAssertionInput({ ...VALID_INPUT, amount }, OPENING)).toThrow(
+        expect.objectContaining({ field: "amount" }),
+      );
     },
   );
 });
@@ -164,7 +154,11 @@ describe("computedBalancesAt", () => {
   });
 
   it("is the opening balance when nothing happened yet", () => {
-    const balances = computedBalancesAt([account], [movement(ACCOUNT_ID, "2026-03-01", 5)], "2026-01-31");
+    const balances = computedBalancesAt(
+      [account],
+      [movement(ACCOUNT_ID, "2026-03-01", 5)],
+      "2026-01-31",
+    );
 
     expect(balances.get(ACCOUNT_ID)).toBe(5627);
   });

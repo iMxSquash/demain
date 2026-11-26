@@ -6,11 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { detailsFromSign, type RowDetails } from "../../src/domain/import-draft";
 import type { ImportedRow } from "../../src/domain/import-row";
-import {
-  createAccount,
-  getAccountBalance,
-  updateAccount,
-} from "../../src/ledger/accounts";
+import { createAccount, getAccountBalance, updateAccount } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
 import {
   commitImport,
@@ -20,11 +16,7 @@ import {
   type ImportRow,
 } from "../../src/ledger/imports";
 import { listTransactions } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const NOW = new Date("2026-04-01T10:00:00Z");
 const TODAY = "2026-04-01";
@@ -133,8 +125,7 @@ describe("importing savings rows", () => {
     });
   }
 
-  const legs = () =>
-    listTransactions(db).map((t) => [t.accountId, t.amount, t.kind]);
+  const legs = () => listTransactions(db).map((t) => [t.accountId, t.amount, t.kind]);
 
   it("records a deposit as one linked pair per account of the chain, from the current balances", () => {
     const result = importRows([savingsRow()]);
@@ -167,12 +158,7 @@ describe("importing savings rows", () => {
     const result = importRows([savingsRow()]);
 
     const all = listTransactions(db);
-    expect(all.map((t) => t.importFingerprint !== null)).toEqual([
-      true,
-      false,
-      false,
-      false,
-    ]);
+    expect(all.map((t) => t.importFingerprint !== null)).toEqual([true, false, false, false]);
     expect(all[0]?.accountId).toBe(CHECKING_ID);
     expect(all.every((t) => t.importBatchId === result.batchId)).toBe(true);
     expect(listImportBatches(db, CHECKING_ID)).toHaveLength(1);
@@ -290,18 +276,30 @@ describe("importing savings rows", () => {
 
   it.each([
     ["does not exist", "select 1", 999, "importSavingsAccountUnknown"],
-    ["is archived", "update accounts set archived = 1 where id = 2", A_ID, "importSavingsAccountArchived"],
-    ["is not a savings account", "update accounts set kind = 'other' where id = 2", A_ID, "importSavingsAccountNotSavings"],
-    ["is the account of the file", "update accounts set kind = 'savings' where id = 1", CHECKING_ID, "importSavingsAccountSameAsAccount"],
+    [
+      "is archived",
+      "update accounts set archived = 1 where id = 2",
+      A_ID,
+      "importSavingsAccountArchived",
+    ],
+    [
+      "is not a savings account",
+      "update accounts set kind = 'other' where id = 2",
+      A_ID,
+      "importSavingsAccountNotSavings",
+    ],
+    [
+      "is the account of the file",
+      "update accounts set kind = 'savings' where id = 1",
+      CHECKING_ID,
+      "importSavingsAccountSameAsAccount",
+    ],
   ])(
     "reports the row, not a crash, when the savings account %s",
     (_name, statement, savingsAccountId, key) => {
       db.$client.exec(statement);
 
-      const { issues } = previewImport(
-        db,
-        request([savingsRow({}, { savingsAccountId })]),
-      );
+      const { issues } = previewImport(db, request([savingsRow({}, { savingsAccountId })]));
 
       expect(issues).toEqual([{ kind: "rowInvalid", index: 0, ref: { key } }]);
     },
@@ -514,9 +512,7 @@ describe("importing rows with details", () => {
       rows: [savingsRow({}, { savingsAccountId: null })],
     });
 
-    expect(issues).toEqual([
-      { kind: "rowProblem", index: 0, problem: "savingsAccountRequired" },
-    ]);
+    expect(issues).toEqual([{ kind: "rowProblem", index: 0, problem: "savingsAccountRequired" }]);
   });
 
   it("reports a category that does not exist as an invalid row, not a crash", () => {
@@ -539,13 +535,9 @@ describe("importing rows with details", () => {
 
     const { issues } = previewImport(db, {
       accountId: CHECKING_ID,
-      rows: [
-        expenseRow({ details: { ...detailsFromSign(-1_250), categoryId: archived.id } }),
-      ],
+      rows: [expenseRow({ details: { ...detailsFromSign(-1_250), categoryId: archived.id } })],
     });
 
-    expect(issues).toEqual([
-      { kind: "rowInvalid", index: 0, ref: { key: "categoryArchived" } },
-    ]);
+    expect(issues).toEqual([{ kind: "rowInvalid", index: 0, ref: { key: "categoryArchived" } }]);
   });
 });

@@ -26,20 +26,9 @@ import { Select } from "../../components/select";
 
 const DELIMITER_KEY = { ";": "semicolon", ",": "comma", "\t": "tab" } as const;
 
-type ColumnField =
-  | "dateColumn"
-  | "labelColumn"
-  | "amountColumn"
-  | "debitColumn"
-  | "creditColumn";
+type ColumnField = "dateColumn" | "labelColumn" | "amountColumn" | "debitColumn" | "creditColumn";
 
-function ColumnInput({
-  name,
-  fields,
-}: {
-  name: ColumnField;
-  fields: MappingFields;
-}) {
+function ColumnInput({ name, fields }: { name: ColumnField; fields: MappingFields }) {
   const t = useTranslations("imports");
 
   return (
@@ -70,11 +59,7 @@ function ChoiceSelect<T extends string>({
 
   return (
     <FormField id={name} label={t(name)}>
-      <Select
-        id={name}
-        name={name}
-        defaultValue={defaultValue}
-      >
+      <Select id={name} name={name} defaultValue={defaultValue}>
         {values.map((value) => (
           <option key={value} value={value}>
             {optionLabel(value)}
@@ -99,11 +84,7 @@ function MappingFieldset({ fields }: { fields: MappingFields }) {
         defaultValue={fields.delimiter}
         optionLabel={(value) => t(`delimiters.${DELIMITER_KEY[value]}`)}
       />
-      <Checkbox
-        name="hasHeader"
-        defaultChecked={fields.hasHeader}
-        label={t("hasHeader")}
-      />
+      <Checkbox name="hasHeader" defaultChecked={fields.hasHeader} label={t("hasHeader")} />
       <ColumnInput name="dateColumn" fields={fields} />
       <ChoiceSelect
         name="dateFormat"
@@ -132,9 +113,7 @@ function RawRows({ rows }: { rows: string[][] }) {
   return (
     <div className="overflow-x-auto">
       <table className="border-collapse text-left">
-        <caption className="pb-2 text-left font-medium">
-          {t("rawHeading")}
-        </caption>
+        <caption className="pb-2 text-left font-medium">{t("rawHeading")}</caption>
         <thead>
           <tr className="border-b border-border-control">
             {Array.from({ length: width }, (_, index) => (
@@ -243,17 +222,9 @@ export function ImportForm({
   const discardMapping = () => setState(null);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex max-w-3xl flex-col gap-6"
-      noValidate
-    >
+    <form onSubmit={handleSubmit} className="flex max-w-3xl flex-col gap-6" noValidate>
       <FormField id="accountId" label={t("accountLabel")}>
-        <Select
-          id="accountId"
-          name="accountId"
-          onChange={discardMapping}
-        >
+        <Select id="accountId" name="accountId" onChange={discardMapping}>
           <option value="">{t("chooseAccount")}</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
@@ -275,10 +246,7 @@ export function ImportForm({
       {state !== null && state.mapping !== null ? (
         <>
           {state.rawRows.length > 0 ? <RawRows rows={state.rawRows} /> : null}
-          <MappingFieldset
-            key={JSON.stringify(state.mapping)}
-            fields={state.mapping}
-          />
+          <MappingFieldset key={JSON.stringify(state.mapping)} fields={state.mapping} />
         </>
       ) : null}
 
@@ -291,15 +259,9 @@ export function ImportForm({
         {state === null ? null : (
           <p
             role={state.status === "error" ? "alert" : "status"}
-            className={
-              state.status === "error"
-                ? "font-medium text-negative"
-                : "font-medium"
-            }
+            className={state.status === "error" ? "font-medium text-negative" : "font-medium"}
           >
-            {state.status === "error"
-              ? common("error", { message: state.message })
-              : state.message}
+            {state.status === "error" ? common("error", { message: state.message }) : state.message}
           </p>
         )}
       </div>

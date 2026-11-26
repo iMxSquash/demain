@@ -47,7 +47,12 @@ export function PlannedItemEndDateForm({ action, initialValues }: PlannedItemEnd
         </p>
       ) : null}
 
-      <Button type="submit" pending={isPending} pendingLabel={common("pending")} className="self-start">
+      <Button
+        type="submit"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
+      >
         {t("submit")}
       </Button>
     </form>

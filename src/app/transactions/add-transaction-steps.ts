@@ -57,8 +57,7 @@ export function amountInputMode(isHydrated: boolean, width: number): "decimal" |
 }
 
 export type KeypadKey =
-  | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-  | "," | "." | "backspace";
+  "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "," | "." | "backspace";
 const SEPARATOR_PATTERN = /[.,]/;
 
 function decimalsTyped(text: string): number {
@@ -68,7 +67,9 @@ function decimalsTyped(text: string): number {
 
 /** The decimal key of the keypad: the mark the locale writes, a comma or a point. */
 export function decimalSeparatorOf(locale: string): "," | "." {
-  const mark = new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === "decimal");
+  const mark = new Intl.NumberFormat(locale)
+    .formatToParts(1.1)
+    .find((part) => part.type === "decimal");
   return mark?.value === "," ? "," : ".";
 }
 
@@ -208,9 +209,7 @@ function amountErrors(draft: StepDraft, context: StepContext): StepError[] {
 
 // The server only requires a non-blank label; the category is optional ("Later").
 function labelErrors(draft: StepDraft): StepError[] {
-  return draft.label.trim() === ""
-    ? [error("label", messageRef("transactionLabelRequired"))]
-    : [];
+  return draft.label.trim() === "" ? [error("label", messageRef("transactionLabelRequired"))] : [];
 }
 
 function reviewErrors(draft: StepDraft, context: StepContext): StepError[] {

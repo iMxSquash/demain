@@ -129,15 +129,11 @@ describe("routeAlongOverflowChain input", () => {
   });
 
   it.each([-1, 12.5, Number.NaN])("rejects the amount %s", (amount) => {
-    expect(() => routeAlongOverflowChain(amount, LIVRET_A_ID, accounts)).toThrow(
-      RangeError,
-    );
+    expect(() => routeAlongOverflowChain(amount, LIVRET_A_ID, accounts)).toThrow(RangeError);
   });
 
   it("rejects an unknown destination instead of reporting everything unplaced", () => {
-    expect(() => routeAlongOverflowChain(100, 99, accounts)).toThrow(
-      /unknown account/i,
-    );
+    expect(() => routeAlongOverflowChain(100, 99, accounts)).toThrow(/unknown account/i);
   });
 });
 
@@ -162,9 +158,7 @@ describe("assertOverflowTargetAllowed", () => {
   it("refuses an account that overflows to itself", () => {
     const accounts = [account({ id: LIVRET_A_ID })];
 
-    expectRefused(() =>
-      assertOverflowTargetAllowed(candidate(LIVRET_A_ID), LIVRET_A_ID, accounts),
-    );
+    expectRefused(() => assertOverflowTargetAllowed(candidate(LIVRET_A_ID), LIVRET_A_ID, accounts));
   });
 
   it("refuses a target that overflows back to the account", () => {
@@ -204,9 +198,7 @@ describe("assertOverflowTargetAllowed", () => {
   it("checks the currency typed for an account that does not exist yet", () => {
     const accounts = [account({ id: LIVRET_A_ID, currency: "EUR" })];
 
-    expectRefused(() =>
-      assertOverflowTargetAllowed(candidate(null, "USD"), LIVRET_A_ID, accounts),
-    );
+    expectRefused(() => assertOverflowTargetAllowed(candidate(null, "USD"), LIVRET_A_ID, accounts));
     expect(() =>
       assertOverflowTargetAllowed(candidate(null, "EUR"), LIVRET_A_ID, accounts),
     ).not.toThrow();
@@ -248,9 +240,7 @@ describe("assertOverflowTargetAllowed", () => {
   it("refuses an unknown target", () => {
     const accounts = [account({ id: LIVRET_JEUNE_ID })];
 
-    expectRefused(() =>
-      assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), 99, accounts),
-    );
+    expectRefused(() => assertOverflowTargetAllowed(candidate(LIVRET_JEUNE_ID), 99, accounts));
   });
 
   it("terminates on stored data that already contains a loop elsewhere", () => {

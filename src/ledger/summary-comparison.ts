@@ -25,10 +25,5 @@ export function compareStoredHistoryWithSummary(
     referenceCurrency: options.referenceCurrency,
     throughMonth: options.lastCompleteMonth,
   });
-  return compareLedgerWithSummary(
-    synthesis,
-    savingsAccountIds,
-    sheet,
-    options.lastCompleteMonth,
-  );
+  return compareLedgerWithSummary(synthesis, savingsAccountIds, sheet, options.lastCompleteMonth);
 }

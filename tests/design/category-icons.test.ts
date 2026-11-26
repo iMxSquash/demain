@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  CATEGORY_ICON_COMPONENTS,
-  categoryIconOf,
-} from "../../src/components/category-icons";
+import { CATEGORY_ICON_COMPONENTS, categoryIconOf } from "../../src/components/category-icons";
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from "../../src/domain/category";
 
 describe("category icons", () => {

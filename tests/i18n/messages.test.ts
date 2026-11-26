@@ -10,9 +10,7 @@ const REFERENCE_LOCALE = "en";
 type Tree = { [key: string]: string | Tree };
 
 function load(locale: string): Tree {
-  return JSON.parse(
-    readFileSync(path.join(MESSAGES_DIR, `${locale}.json`), "utf8"),
-  ) as Tree;
+  return JSON.parse(readFileSync(path.join(MESSAGES_DIR, `${locale}.json`), "utf8")) as Tree;
 }
 
 function flatten(tree: Tree, prefix = ""): Record<string, string> {
@@ -57,15 +55,11 @@ describe("translation files", () => {
   });
 
   it.each(LOCALES)("%s has exactly the keys of the reference file", (locale) => {
-    expect(Object.keys(flatten(load(locale))).sort()).toEqual(
-      Object.keys(REFERENCE).sort(),
-    );
+    expect(Object.keys(flatten(load(locale))).sort()).toEqual(Object.keys(REFERENCE).sort());
   });
 
   it.each(LOCALES)("%s has no empty message", (locale) => {
-    const empty = Object.entries(flatten(load(locale))).filter(
-      ([, text]) => text.trim() === "",
-    );
+    const empty = Object.entries(flatten(load(locale))).filter(([, text]) => text.trim() === "");
     expect(empty).toEqual([]);
   });
 
@@ -90,11 +84,8 @@ describe("translation files", () => {
 
     for (const [key, text] of Object.entries(flatten(messages))) {
       const plurals = pluralsOf(text);
-      const sampleOf = (name: string) =>
-        plurals.includes(name) ? PLURAL_SAMPLE : `[${name}]`;
-      const values = Object.fromEntries(
-        valuesOf(text).map((name) => [name, sampleOf(name)]),
-      );
+      const sampleOf = (name: string) => (plurals.includes(name) ? PLURAL_SAMPLE : `[${name}]`);
+      const values = Object.fromEntries(valuesOf(text).map((name) => [name, sampleOf(name)]));
       // A tag is rendered as its content.
       const tags = Object.fromEntries(
         tagsOf(text).map((name) => [name, (chunks: unknown) => String(chunks)]),

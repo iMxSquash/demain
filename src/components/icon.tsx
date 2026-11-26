@@ -15,5 +15,5 @@ export function Icon({ icon: Glyph, label }: IconProps) {
     ? ({ role: "img", "aria-label": label } as const)
     : ({ "aria-hidden": true } as const);
 
-  return <Glyph size={ICON_SIZE} weight="regular"{...accessibility} />;
+  return <Glyph size={ICON_SIZE} weight="regular" {...accessibility} />;
 }

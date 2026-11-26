@@ -76,7 +76,11 @@ async function DefaultPaymentMode() {
 
 // The count of the To pay row, the one the sidebar shows on a wide screen (DESIGN section 18).
 async function ToPayCount() {
-  const [t, timeZone] = await Promise.all([getTranslations("navigation"), getTimeZone(), readStoredPaymentMode()]);
+  const [t, timeZone] = await Promise.all([
+    getTranslations("navigation"),
+    getTimeZone(),
+    readStoredPaymentMode(),
+  ]);
   const count = await readDueCount(todayIn(timeZone, new Date()));
 
   return (

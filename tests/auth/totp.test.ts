@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildTotpUri,
-  computeTotp,
-  generateTotpSecret,
-  verifyTotp,
-} from "../../src/auth/totp";
+import { buildTotpUri, computeTotp, generateTotpSecret, verifyTotp } from "../../src/auth/totp";
 
 // RFC 6238 appendix B, SHA-1 secret "12345678901234567890" in base32. The RFC
 // lists 8 digits; the 6-digit code is the last 6 of them.

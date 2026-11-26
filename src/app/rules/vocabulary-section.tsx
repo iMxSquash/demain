@@ -36,9 +36,15 @@ export async function VocabularySection() {
       </h2>
       <p>{t("intro")}</p>
       <ul className="list-disc pl-6">
-        <li>{t("origins.user")}: {t("originHelp.user")}</li>
-        <li>{t("origins.fixed")}: {t("originHelp.fixed")}</li>
-        <li>{t("origins.history")}: {t("originHelp.history")}</li>
+        <li>
+          {t("origins.user")}: {t("originHelp.user")}
+        </li>
+        <li>
+          {t("origins.fixed")}: {t("originHelp.fixed")}
+        </li>
+        <li>
+          {t("origins.history")}: {t("originHelp.history")}
+        </li>
       </ul>
 
       <Suspense fallback={<VocabularyWordsLoading />}>
@@ -117,12 +123,7 @@ async function VocabularyWords() {
                     <label htmlFor={`type-${word}`} className="sr-only">
                       {t("changeTypeOf", { word })}
                     </label>
-                    <Select
-                      id={`type-${word}`}
-                      name="type"
-                      defaultValue={type}
-                      inline
-                    >
+                    <Select id={`type-${word}`} name="type" defaultValue={type} inline>
                       {MOVEMENT_TYPES.map((option) => (
                         <option key={option} value={option}>
                           {t(`types.${option}`)}
@@ -130,12 +131,14 @@ async function VocabularyWords() {
                       ))}
                     </Select>
                     <Button type="submit" variant="link">
-                      {t("change")}<span className="sr-only"> {word}</span>
+                      {t("change")}
+                      <span className="sr-only"> {word}</span>
                     </Button>
                   </form>
                   <form action={removeVocabularyWordAction.bind(null, word)}>
                     <Button type="submit" variant="link">
-                      {t("remove")}<span className="sr-only"> {word}</span>
+                      {t("remove")}
+                      <span className="sr-only"> {word}</span>
                     </Button>
                   </form>
                 </div>
@@ -157,7 +160,8 @@ async function VocabularyWords() {
                 <span className="font-medium">{word}</span>
                 <form action={restoreVocabularyWordAction.bind(null, word)}>
                   <Button type="submit" variant="link">
-                    {t("restore")}<span className="sr-only"> {word}</span>
+                    {t("restore")}
+                    <span className="sr-only"> {word}</span>
                   </Button>
                 </form>
               </li>

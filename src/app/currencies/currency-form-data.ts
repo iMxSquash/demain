@@ -36,8 +36,7 @@ export function readRateValues(formData: FormData): RateFormValues {
 }
 
 export type CurrencyCodeReading =
-  | { ok: true; code: string }
-  | { ok: false; value: string; ref: MessageRef };
+  { ok: true; code: string } | { ok: false; value: string; ref: MessageRef };
 
 /** Exactly three letters, uppercased. `value` is what to show back when it is refused. */
 export function parseCurrencyCode(formData: FormData): CurrencyCodeReading {

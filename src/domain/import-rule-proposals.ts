@@ -3,11 +3,7 @@
  * functions: no database, no clock. See DOMAIN, Importing files.
  */
 
-import {
-  findMatchingRule,
-  readRuleLabel,
-  type CategorizationRule,
-} from "./categorization-rule";
+import { findMatchingRule, readRuleLabel, type CategorizationRule } from "./categorization-rule";
 import type { EnteredTransactionKind } from "./transaction";
 
 export interface RuleProposal {

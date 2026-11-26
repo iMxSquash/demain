@@ -10,11 +10,7 @@ import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../compon
 import { splitBalanceSide } from "../../../../domain/amount-syntax";
 import { formatEditableAmount } from "../../../../domain/money";
 import { overflowTargetsOf } from "../../../../domain/overflow";
-import {
-  AccountNotFoundError,
-  getAccount,
-  listAccounts,
-} from "../../../../ledger/accounts";
+import { AccountNotFoundError, getAccount, listAccounts } from "../../../../ledger/accounts";
 import { withDatabase } from "../../../../storage/with-database";
 import { AccountForm } from "../../account-form";
 import { updateAccountAction } from "../../actions";
@@ -29,11 +25,7 @@ const PAGE_GAP = "gap-6";
 
 // The back link shows at once; the title holds the name of the account, so it waits for the
 // database with the form.
-export default async function EditAccountPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditAccountPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("accounts");
 
   return (
@@ -67,19 +59,14 @@ async function EditAccount({ params }: { params: Promise<{ id: string }> }) {
   if (!Number.isSafeInteger(id)) notFound();
   // The page reads the database: it must run per request, never at build time.
   await connection();
-  const [t, common] = await Promise.all([
-    getTranslations("accounts"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("accounts"), getTranslations("common")]);
 
   let account;
   let overflowOptions;
   try {
     ({ account, overflowOptions } = withDatabase((db) => ({
       account: getAccount(db, id),
-      overflowOptions: overflowTargetsOf(listAccounts(db)).filter(
-        (other) => other.id !== id,
-      ),
+      overflowOptions: overflowTargetsOf(listAccounts(db)).filter((other) => other.id !== id),
     })));
   } catch (error) {
     if (error instanceof AccountNotFoundError) notFound();
@@ -90,33 +77,26 @@ async function EditAccount({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <h1 className="text-heading font-medium">
-        {t("editTitle", { name: account.name })}
-      </h1>
-    <AccountForm
-      action={updateAccountAction.bind(null, account.id)}
-      initialValues={{
-        name: account.name,
-        kind: account.kind,
-        currency: account.currency,
-        openingDate: account.openingDate,
-        openingBalance: formatEditableAmount(
-          opening.magnitude,
-          account.currency,
-        ),
-        openingBalanceSide: opening.side,
-        depositCeiling:
-          account.depositCeiling === null
-            ? ""
-            : formatEditableAmount(account.depositCeiling, account.currency),
-        overflowAccountId:
-          account.overflowAccountId === null
-            ? ""
-            : String(account.overflowAccountId),
-      }}
-      overflowOptions={overflowOptions}
-      submitLabel={common("saveChanges")}
-    />
+      <h1 className="text-heading font-medium">{t("editTitle", { name: account.name })}</h1>
+      <AccountForm
+        action={updateAccountAction.bind(null, account.id)}
+        initialValues={{
+          name: account.name,
+          kind: account.kind,
+          currency: account.currency,
+          openingDate: account.openingDate,
+          openingBalance: formatEditableAmount(opening.magnitude, account.currency),
+          openingBalanceSide: opening.side,
+          depositCeiling:
+            account.depositCeiling === null
+              ? ""
+              : formatEditableAmount(account.depositCeiling, account.currency),
+          overflowAccountId:
+            account.overflowAccountId === null ? "" : String(account.overflowAccountId),
+        }}
+        overflowOptions={overflowOptions}
+        submitLabel={common("saveChanges")}
+      />
     </>
   );
 }

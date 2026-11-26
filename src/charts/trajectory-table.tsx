@@ -1,4 +1,9 @@
-import { kindLabel, type TrajectoryKindText, type TrajectoryMonth, type TrajectorySeries } from "./trajectory-types";
+import {
+  kindLabel,
+  type TrajectoryKindText,
+  type TrajectoryMonth,
+  type TrajectorySeries,
+} from "./trajectory-types";
 import { monthKind } from "./trajectory-geometry";
 
 export interface TrajectoryTableText extends TrajectoryKindText {
@@ -25,13 +30,17 @@ export function TrajectoryTable({ months, todayIndex, series, text }: Trajectory
       <caption className="sr-only">{text.caption}</caption>
       <thead>
         <tr className="border-b border-border-control">
-          <th scope="col" className="py-2 pr-4">{text.month}</th>
+          <th scope="col" className="py-2 pr-4">
+            {text.month}
+          </th>
           {series.map((entry) => (
             <th key={entry.id} scope="col" className="py-2 pl-4 text-right">
               {entry.label}
             </th>
           ))}
-          <th scope="col" className="py-2 pl-4">{text.kind}</th>
+          <th scope="col" className="py-2 pl-4">
+            {text.kind}
+          </th>
         </tr>
       </thead>
       <tbody>

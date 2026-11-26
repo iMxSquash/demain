@@ -47,10 +47,7 @@ export function getBatchEndDate(db: AppDatabase, batchId: number): string {
   return endDate;
 }
 
-export function getBatchBalanceCheck(
-  db: AppDatabase,
-  batchId: number,
-): BatchBalanceCheck {
+export function getBatchBalanceCheck(db: AppDatabase, batchId: number): BatchBalanceCheck {
   const batch = getImportBatch(db, batchId);
   const endDate = getBatchEndDate(db, batchId);
 
@@ -71,10 +68,7 @@ export function getBatchBalanceCheck(
 }
 
 /** Computed balance minus the real one: positive when Demain holds more than the bank. */
-export function batchBalanceGap(
-  check: BatchBalanceCheck,
-  realBalance: number,
-): number {
+export function batchBalanceGap(check: BatchBalanceCheck, realBalance: number): number {
   return check.computedBalance - realBalance;
 }
 
@@ -131,10 +125,7 @@ function deriveRuleProposals(
  * `equals` rule per distinct (label, category) pair that no applicable rule
  * already gives. Nothing is written.
  */
-export function listRuleProposals(
-  db: AppDatabase,
-  batchId: number,
-): BatchRuleProposal[] {
+export function listRuleProposals(db: AppDatabase, batchId: number): BatchRuleProposal[] {
   const namesById = new Map(
     listCategories(db, { includeArchived: true }).map(({ id, name }) => [id, name]),
   );

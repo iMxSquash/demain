@@ -35,7 +35,10 @@ export function consumeBackupCode(hashes: readonly string[], input: string): str
 }
 
 function generateCode(): string {
-  const characters = Array.from({ length: GROUP_LENGTH * 2 }, () => ALPHABET[randomInt(ALPHABET.length)]);
+  const characters = Array.from(
+    { length: GROUP_LENGTH * 2 },
+    () => ALPHABET[randomInt(ALPHABET.length)],
+  );
   return `${characters.slice(0, GROUP_LENGTH).join("")}-${characters.slice(GROUP_LENGTH).join("")}`;
 }
 

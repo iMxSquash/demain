@@ -12,11 +12,7 @@ import { archiveAccount, createAccount } from "../../../src/ledger/accounts";
 import { balanceAssertions } from "../../../src/storage/schema";
 import { createTransaction } from "../../../src/ledger/transactions";
 import { commitImport } from "../../../src/ledger/imports";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../../src/storage/database";
 import { translateKey } from "../translate-key";
 
 const holder = vi.hoisted(() => ({ db: null as unknown }));

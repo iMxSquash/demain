@@ -7,15 +7,8 @@ import { Button } from "../../../components/button";
 import { DataTable } from "../../../components/data-display";
 import { FileInput } from "../../../components/file-input";
 import { Notice } from "../../../components/notice";
-import {
-  CONTROL_CLASS,
-  FormField,
-} from "../../form-field";
-import {
-  BYTES_PER_KILOBYTE,
-  MAX_FILE_BYTES,
-  withoutEmptyFilePlaceholders,
-} from "../../form-files";
+import { CONTROL_CLASS, FormField } from "../../form-field";
+import { BYTES_PER_KILOBYTE, MAX_FILE_BYTES, withoutEmptyFilePlaceholders } from "../../form-files";
 import { useFocusFirstError } from "../../use-focus-first-error";
 import { summaryBalancesAction } from "./actions";
 import type { SummaryBalancesState } from "./summary-balances-state";
@@ -26,7 +19,6 @@ export interface AccountOption {
   id: number;
   name: string;
 }
-
 
 function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
   const t = useTranslations("summaryBalances");
@@ -40,26 +32,18 @@ function BalancesTable({ rows }: { rows: SummaryBalancesState["rows"] }) {
       <DataTable caption={t("balancesCaption")}>
         <thead>
           <tr>
-            <th scope="col">
-              {t("balancesColumns.month")}
-            </th>
-            <th scope="col">
-              {t("balancesColumns.date")}
-            </th>
+            <th scope="col">{t("balancesColumns.month")}</th>
+            <th scope="col">{t("balancesColumns.date")}</th>
             <th scope="col" className="text-right">
               {t("balancesColumns.balance")}
             </th>
-            <th scope="col">
-              {t("balancesColumns.status")}
-            </th>
+            <th scope="col">{t("balancesColumns.status")}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.date}>
-              <th scope="row">
-                {row.month}
-              </th>
+              <th scope="row">{row.month}</th>
               <td className="tabular-nums">{row.date}</td>
               <td className="text-right">{row.balance}</td>
               <td>{row.status}</td>
@@ -85,12 +69,8 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
         <DataTable caption={t("comparisonCaption")}>
           <thead>
             <tr>
-              <th scope="col">
-                {t("comparisonColumns.month")}
-              </th>
-              <th scope="col">
-                {t("comparisonColumns.figure")}
-              </th>
+              <th scope="col">{t("comparisonColumns.month")}</th>
+              <th scope="col">{t("comparisonColumns.figure")}</th>
               <th scope="col" className="text-right">
                 {t("comparisonColumns.sheet")}
               </th>
@@ -108,15 +88,11 @@ function ComparisonSection({ state }: { state: SummaryBalancesState }) {
                 key={`${difference.month}-${difference.figure}`}
                 className="border-b border-divider"
               >
-                <th scope="row">
-                  {difference.month}
-                </th>
+                <th scope="row">{difference.month}</th>
                 <td>{difference.figure}</td>
                 <td className="text-right">{difference.sheet}</td>
                 <td className="text-right">{difference.demain}</td>
-                <td className="text-right">
-                  {difference.difference}
-                </td>
+                <td className="text-right">{difference.difference}</td>
               </tr>
             ))}
           </tbody>
@@ -140,10 +116,7 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
     event.preventDefault();
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const formData = withoutEmptyFilePlaceholders(
-      new FormData(
-        event.currentTarget,
-        submitter instanceof HTMLElement ? submitter : null,
-      ),
+      new FormData(event.currentTarget, submitter instanceof HTMLElement ? submitter : null),
     );
     startTransition(async () => {
       setState(await summaryBalancesAction(state, formData));
@@ -173,16 +146,8 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
       >
         <FileInput id="summary" name="summary" accept=".csv,.txt,text/csv" />
       </FormField>
-      <FormField
-        id="accountId"
-        label={t("accountLabel")}
-        error={errorFor("accountId")}
-      >
-        <Select
-          id="accountId"
-          name="accountId"
-          defaultValue=""
-        >
+      <FormField id="accountId" label={t("accountLabel")} error={errorFor("accountId")}>
+        <Select id="accountId" name="accountId" defaultValue="">
           <option value="">{t("chooseAccount")}</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
@@ -191,7 +156,13 @@ export function SummaryBalancesForm({ accounts }: { accounts: AccountOption[] })
           ))}
         </Select>
       </FormField>
-      <FormField id="year" label={t("yearLabel")} optional hint={t("yearHint")} error={errorFor("year")}>
+      <FormField
+        id="year"
+        label={t("yearLabel")}
+        optional
+        hint={t("yearHint")}
+        error={errorFor("year")}
+      >
         <input
           id="year"
           name="year"

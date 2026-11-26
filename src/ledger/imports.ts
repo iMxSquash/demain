@@ -1,17 +1,10 @@
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  CSV_DATE_FORMATS,
-  CSV_DELIMITERS,
-  type CsvMapping,
-} from "../domain/import-csv";
+import { CSV_DATE_FORMATS, CSV_DELIMITERS, type CsvMapping } from "../domain/import-csv";
 import type { AssertionMovement } from "../domain/balance-assertion";
 import { assertCategoryAssignable } from "../domain/category";
-import {
-  findMatchingRule,
-  type CategorizationRule,
-} from "../domain/categorization-rule";
+import { findMatchingRule, type CategorizationRule } from "../domain/categorization-rule";
 import {
   checkRowDetails,
   signedAmountForType,
@@ -20,11 +13,7 @@ import {
   type RowDetails,
 } from "../domain/import-draft";
 import { digestBatchTransactions } from "../domain/import-digest";
-import {
-  fingerprintRows,
-  type FingerprintedRow,
-  type ImportedRow,
-} from "../domain/import-row";
+import { fingerprintRows, type FingerprintedRow, type ImportedRow } from "../domain/import-row";
 import {
   checkSavingsAccount,
   compareDates,
@@ -35,7 +24,11 @@ import {
 } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
 import { withoutMovements, type OverflowAccount } from "../domain/overflow";
-import { findEnteredPayments, savingsRowTransaction, type MatchTransaction } from "../domain/planned-matching";
+import {
+  findEnteredPayments,
+  savingsRowTransaction,
+  type MatchTransaction,
+} from "../domain/planned-matching";
 import {
   buildTransferLegs,
   ceilingWarningFor,
@@ -212,9 +205,7 @@ function findKnownKeys(
   accountId: number,
   rows: readonly FingerprintedRow[],
 ): KnownKeys {
-  const keys = [
-    ...new Set(rows.flatMap((row) => [row.fingerprint, row.contentKey])),
-  ];
+  const keys = [...new Set(rows.flatMap((row) => [row.fingerprint, row.contentKey]))];
   const known: KnownKeys = { fingerprints: new Set(), contentKeys: new Set() };
   for (let start = 0; start < keys.length; start += KEY_CHUNK_SIZE) {
     const chunk = keys.slice(start, start + KEY_CHUNK_SIZE);
@@ -319,13 +310,8 @@ function fingerprintWithDuplicateFlags(
 }
 
 /** For each row, in order, whether the account already holds that movement. Writes nothing. */
-export function findDuplicateRows(
-  db: AppDatabase,
-  request: ImportRequest,
-): boolean[] {
-  return fingerprintWithDuplicateFlags(db, request).map(
-    ({ isDuplicate }) => isDuplicate,
-  );
+export function findDuplicateRows(db: AppDatabase, request: ImportRequest): boolean[] {
+  return fingerprintWithDuplicateFlags(db, request).map(({ isDuplicate }) => isDuplicate);
 }
 
 // The category the user chose, which must be assignable, else the first rule that matches.
@@ -364,9 +350,7 @@ function planRow(
 ): void {
   const given = request.rows[index]?.details;
   const details: RowDetails | undefined =
-    given === undefined
-      ? undefined
-      : withDefaultSavingsAccount(given, request.savingsAccountId);
+    given === undefined ? undefined : withDefaultSavingsAccount(given, request.savingsAccountId);
   const problem = details === undefined ? null : checkRowDetails(details);
   if (problem !== null) {
     outcome.issues.push({ kind: "rowProblem", index, problem });
@@ -381,10 +365,7 @@ function planRow(
     if (savingsAccountId === null) {
       throw new Error("A savings row without a savings account passed the check");
     }
-    const refusal = checkSavingsAccount(
-      request.accountId,
-      accountsById.get(savingsAccountId),
-    );
+    const refusal = checkSavingsAccount(request.accountId, accountsById.get(savingsAccountId));
     if (refusal !== null) {
       outcome.issues.push({ kind: "rowInvalid", index, ref: refusal });
       return;
@@ -490,7 +471,9 @@ function checkReplacements(
   replacements: readonly EntryReplacement[],
 ): { checked: CheckedReplacement[]; issues: ImportIssue[]; removed: AssertionMovement[] } {
   if (replacements.length === 0) return { checked: [], issues: [], removed: [] };
-  const fingerprintOf = new Map(outcome.fresh.map(({ index, fingerprint }) => [index, fingerprint]));
+  const fingerprintOf = new Map(
+    outcome.fresh.map(({ index, fingerprint }) => [index, fingerprint]),
+  );
   const rows: MatchTransaction[] = [
     ...outcome.fresh.map(({ index, input }) => ({ ...input, id: index })),
     ...outcome.movements.map((movement) => savingsRowTransaction(movement, accountId)),
@@ -533,7 +516,10 @@ function checkReplacements(
 }
 
 function sumOn(movements: readonly AssertionMovement[], accountId: number): number {
-  return movements.reduce((sum, movement) => (movement.accountId === accountId ? sum + movement.amount : sum), 0);
+  return movements.reduce(
+    (sum, movement) => (movement.accountId === accountId ? sum + movement.amount : sum),
+    0,
+  );
 }
 
 function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
@@ -591,17 +577,11 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
 }
 
 /** What an import would do, without writing anything. */
-export function previewImport(
-  db: AppDatabase,
-  request: ImportRequest,
-): ImportPreview {
+export function previewImport(db: AppDatabase, request: ImportRequest): ImportPreview {
   return planImport(db, request).preview;
 }
 
-function legColumns(
-  pair: FreshTransfer,
-  batchId: number,
-): [LegImportColumns, LegImportColumns] {
+function legColumns(pair: FreshTransfer, batchId: number): [LegImportColumns, LegImportColumns] {
   const columns: [LegImportColumns, LegImportColumns] = [
     { importBatchId: batchId },
     { importBatchId: batchId },
@@ -625,10 +605,7 @@ function legColumns(
  * queue. An archived account and a ceiling exceeded do not refuse the import
  * (DOMAIN, imports are the exception).
  */
-export function commitImport(
-  db: AppDatabase,
-  request: CommitImportRequest,
-): ImportResult {
+export function commitImport(db: AppDatabase, request: CommitImportRequest): ImportResult {
   const { fresh, pairs, replacements, preview } = planImport(db, request);
   if (preview.issues.length > 0) throw new ImportBlockedError(preview.issues);
   if (preview.newCount === 0) return { ...preview, batchId: null, ...NO_MATCHES, replacedCount: 0 };
@@ -643,8 +620,7 @@ export function commitImport(
         format: request.format,
         importedAt: request.now.toISOString(),
         fileName: request.fileName,
-        mapping:
-          request.mapping === null ? null : JSON.stringify(request.mapping),
+        mapping: request.mapping === null ? null : JSON.stringify(request.mapping),
       })
       .returning()
       .get();
@@ -675,16 +651,25 @@ export function commitImport(
     for (const replacement of replacements) {
       const { entryId } = replacement;
       if (replacement.kind === "transfer") {
-        replaceEnteredTransfer(tx, { outgoingLegIds: outgoingOf.get(replacement.index) ?? [], entryId });
+        replaceEnteredTransfer(tx, {
+          outgoingLegIds: outgoingOf.get(replacement.index) ?? [],
+          entryId,
+        });
         continue;
       }
       const { fingerprint } = replacement;
       const bankRow = tx
         .select({ id: transactions.id })
         .from(transactions)
-        .where(and(eq(transactions.importBatchId, batch.id), eq(transactions.importFingerprint, fingerprint)))
+        .where(
+          and(
+            eq(transactions.importBatchId, batch.id),
+            eq(transactions.importFingerprint, fingerprint),
+          ),
+        )
         .get();
-      if (bankRow === undefined) throw new Error(`No row of batch ${batch.id} has fingerprint ${fingerprint}`);
+      if (bankRow === undefined)
+        throw new Error(`No row of batch ${batch.id} has fingerprint ${fingerprint}`);
       replaceEnteredPayment(tx, { bankRowId: bankRow.id, entryId });
     }
 
@@ -693,16 +678,9 @@ export function commitImport(
 
     // Read back, not computed from the plan: the undo hashes what the rows hold.
     const contentDigest = digestBatchTransactions(
-      tx
-        .select()
-        .from(transactions)
-        .where(eq(transactions.importBatchId, batch.id))
-        .all(),
+      tx.select().from(transactions).where(eq(transactions.importBatchId, batch.id)).all(),
     );
-    tx.update(importBatches)
-      .set({ contentDigest })
-      .where(eq(importBatches.id, batch.id))
-      .run();
+    tx.update(importBatches).set({ contentDigest }).where(eq(importBatches.id, batch.id)).run();
     // A replaced entry leaves its occurrence settled by the bank row: it counts as matched.
     return {
       ...preview,
@@ -714,10 +692,7 @@ export function commitImport(
   });
 }
 
-export function listImportBatches(
-  db: AppDatabase,
-  accountId: number,
-): ImportBatch[] {
+export function listImportBatches(db: AppDatabase, accountId: number): ImportBatch[] {
   return db
     .select()
     .from(importBatches)
@@ -730,19 +705,11 @@ export function listImportBatches(
  * The mapping of the latest CSV import on the account. Stored data is
  * validated on load: a mapping that no longer fits is dropped, not trusted.
  */
-export function getLastCsvMapping(
-  db: AppDatabase,
-  accountId: number,
-): CsvMapping | null {
+export function getLastCsvMapping(db: AppDatabase, accountId: number): CsvMapping | null {
   const latest = db
     .select({ mapping: importBatches.mapping })
     .from(importBatches)
-    .where(
-      and(
-        eq(importBatches.accountId, accountId),
-        eq(importBatches.format, "csv"),
-      ),
-    )
+    .where(and(eq(importBatches.accountId, accountId), eq(importBatches.format, "csv")))
     .orderBy(desc(importBatches.id))
     .limit(1)
     .get();

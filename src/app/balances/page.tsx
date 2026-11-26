@@ -7,11 +7,7 @@ import { cache, Suspense } from "react";
 
 import { EmptyState } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
-import {
-  SkeletonDataTable,
-  SkeletonFields,
-  SkeletonRegion,
-} from "../../components/skeleton";
+import { SkeletonDataTable, SkeletonFields, SkeletonRegion } from "../../components/skeleton";
 import { todayIn } from "../../i18n/dates";
 import { listAccounts } from "../../ledger/accounts";
 import { listAllBalanceAssertions } from "../../ledger/balance-assertions";
@@ -48,10 +44,7 @@ async function readBalancesFromDatabase() {
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page.
 export default async function AllBalanceAssertionsPage() {
-  const [t, common] = await Promise.all([
-    getTranslations("balances"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("balances"), getTranslations("common")]);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 p-8">
@@ -156,11 +149,5 @@ async function AssertionList() {
       </EmptyState>
     );
   }
-  return (
-    <BalanceAssertionsTable
-      assertions={assertions}
-      caption={t("allCaption")}
-      showAccount
-    />
-  );
+  return <BalanceAssertionsTable assertions={assertions} caption={t("allCaption")} showAccount />;
 }

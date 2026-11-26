@@ -5,7 +5,12 @@ import { useState } from "react";
 
 import { failedStagedFile, type StagedFile } from "./import-form-data";
 import { stageFileAction } from "./stage-actions";
-import { stageSources, stagingForm, type ChoicesBySource, type SourceChoices } from "./stage-sources";
+import {
+  stageSources,
+  stagingForm,
+  type ChoicesBySource,
+  type SourceChoices,
+} from "./stage-sources";
 
 export interface Staging {
   current: number;
@@ -32,17 +37,12 @@ export function useStaging() {
     }
   }
 
-  async function stageFiles(
-    files: File[],
-    accountText: string,
-    choices: ChoicesBySource,
-  ) {
+  async function stageFiles(files: File[], accountText: string, choices: ChoicesBySource) {
     const staged = await stageSources(
       files,
       choices,
       (file, chosen) => stageOne(file, accountText, chosen),
-      (current, file) =>
-        setStaging({ current, total: files.length, name: file.name }),
+      (current, file) => setStaging({ current, total: files.length, name: file.name }),
     );
     setStaging(null);
     return staged;

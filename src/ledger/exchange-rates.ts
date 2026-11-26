@@ -15,8 +15,7 @@ export type StoredExchangeRate = typeof exchangeRates.$inferSelect;
 const REFERENCE_CURRENCY_KEY = "reference_currency";
 const DEFAULT_REFERENCE_CURRENCY = "EUR";
 const ECB_FETCH_ENABLED_KEY = "ecb_fetch_enabled";
-const ECB_FEED_URL =
-  "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
+const ECB_FEED_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
 const ECB_TIMEOUT_MS = 10_000;
 
 export function getReferenceCurrency(db: AppDatabase): string {
@@ -30,10 +29,7 @@ export function setReferenceCurrency(db: AppDatabase, currency: string): void {
 }
 
 /** Records a rate typed by the owner, replacing the one of the same pair and day. */
-export function saveExchangeRate(
-  db: AppDatabase,
-  input: ExchangeRateInput,
-): StoredExchangeRate {
+export function saveExchangeRate(db: AppDatabase, input: ExchangeRateInput): StoredExchangeRate {
   const valid = validateExchangeRateInput(input);
   return db
     .insert(exchangeRates)
@@ -50,11 +46,7 @@ export function listExchangeRates(db: AppDatabase): StoredExchangeRate[] {
   return db
     .select()
     .from(exchangeRates)
-    .orderBy(
-      asc(exchangeRates.base),
-      asc(exchangeRates.quote),
-      asc(exchangeRates.date),
-    )
+    .orderBy(asc(exchangeRates.base), asc(exchangeRates.quote), asc(exchangeRates.date))
     .all();
 }
 
@@ -90,10 +82,7 @@ export function setEcbFetchEnabled(db: AppDatabase, enabled: boolean): void {
  * nothing of the owner's data. A rate the owner typed for the same day is kept.
  * Returns how many rates were stored; nothing is stored when the feed is invalid.
  */
-export async function fetchEcbRates(
-  db: AppDatabase,
-  fetchFeed: typeof fetch,
-): Promise<number> {
+export async function fetchEcbRates(db: AppDatabase, fetchFeed: typeof fetch): Promise<number> {
   if (!isEcbFetchEnabled(db)) {
     throw new EcbFetchDisabledError();
   }

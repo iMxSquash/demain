@@ -53,8 +53,7 @@ const TRANSACTIONS_PATH = "/transactions";
 
 function loadCurrencies(): CurrencyByAccount {
   return withDatabase(
-    (db) =>
-      new Map(listAccounts(db).map((account) => [account.id, account.currency])),
+    (db) => new Map(listAccounts(db).map((account) => [account.id, account.currency])),
   );
 }
 
@@ -236,9 +235,7 @@ function askForDecision(
       depositedText: format(split.deposited),
       surplusText: format(split.surplus),
       suggestedAccountId:
-        split.suggestedOverflowAccountId === null
-          ? ""
-          : String(split.suggestedOverflowAccountId),
+        split.suggestedOverflowAccountId === null ? "" : String(split.suggestedOverflowAccountId),
     },
   };
 }

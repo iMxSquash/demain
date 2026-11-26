@@ -91,8 +91,7 @@ export function PlannedItemVersionForm({
 
   const isRolling = amountMode === ROLLING_AVERAGE_MODE;
   const numberUnit = REPETITION_NUMBER_UNIT[repetition];
-  const hasOwnControl =
-    state?.field !== undefined && !(isOneOff && state.field === "repetition");
+  const hasOwnControl = state?.field !== undefined && !(isOneOff && state.field === "repetition");
 
   return (
     <form ref={formRef} action={formAction} noValidate className="flex max-w-md flex-col gap-4">
@@ -181,7 +180,12 @@ export function PlannedItemVersionForm({
         </p>
       ) : null}
 
-      <Button type="submit" pending={isPending} pendingLabel={common("pending")} className="self-start">
+      <Button
+        type="submit"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
+      >
         {versionT("submit")}
       </Button>
     </form>

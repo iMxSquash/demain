@@ -103,13 +103,16 @@ function placeMonthLabels(
   const todayX = xs[todayIndex] ?? plot.left;
   const pill = { from: todayX - input.todayLabelHalfWidth, to: todayX + input.todayLabelHalfWidth };
   const every = Math.max(1, Math.ceil(minLabelGap / step));
-  const rhythm = xs.map((_, index) => index).filter((index) => Math.abs(index - todayIndex) % every === 0);
+  const rhythm = xs
+    .map((_, index) => index)
+    .filter((index) => Math.abs(index - todayIndex) % every === 0);
 
   const placed: { index: number; x: number; anchor: LabelAnchor; span: Span }[] = [];
   for (const index of [lastIndex, 0, ...rhythm]) {
     if (index === todayIndex || placed.some((label) => label.index === index)) continue;
     const anchor: LabelAnchor = index === 0 ? "start" : index === lastIndex ? "end" : "middle";
-    const x = anchor === "start" ? plot.left : anchor === "end" ? plot.right : (xs[index] ?? plot.left);
+    const x =
+      anchor === "start" ? plot.left : anchor === "end" ? plot.right : (xs[index] ?? plot.left);
     const from = anchor === "start" ? x : anchor === "end" ? x - minLabelGap : x - minLabelGap / 2;
     const span = { from, to: from + minLabelGap };
     if (overlaps(span, pill) || placed.some((label) => overlaps(span, label.span))) continue;

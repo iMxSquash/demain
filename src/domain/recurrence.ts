@@ -2,7 +2,14 @@
 // occurrences", steps 1 and 2). Pure: dates are "YYYY-MM-DD" strings and nothing reads a clock.
 
 import { isCalendarDate } from "./account";
-import { addDays, clampedDate, DAYS_IN_WEEK, MONTHS_IN_YEAR, parseDate, weekdayOf } from "./calendar-date";
+import {
+  addDays,
+  clampedDate,
+  DAYS_IN_WEEK,
+  MONTHS_IN_YEAR,
+  parseDate,
+  weekdayOf,
+} from "./calendar-date";
 
 export type Repetition =
   | { kind: "monthly_on_day"; day: number } // 1 to 31
@@ -113,7 +120,11 @@ function weeklyDates(weeks: number, anchor: string, range: DateRange): string[] 
  * a lower bound: the first date is the first one of the rule on or after it. A `null` repetition is
  * a one-off event on the anchor.
  */
-export function nominalDates(repetition: Repetition | null, anchor: string, range: DateRange): string[] {
+export function nominalDates(
+  repetition: Repetition | null,
+  anchor: string,
+  range: DateRange,
+): string[] {
   // Callers validate user input with `isValidRepetition` and `isCalendarDate` first: reaching one
   // of these throws is a programming error, so it carries no translatable message reference.
   if (repetition !== null && !isValidRepetition(repetition)) {
@@ -132,7 +143,10 @@ export function nominalDates(repetition: Repetition | null, anchor: string, rang
 }
 
 // Days to add to a Saturday or a Sunday to reach the Friday before or the Monday after.
-const WEEKEND_SHIFT_DAYS: Record<Exclude<BusinessDayRule, "none">, Readonly<Record<number, number>>> = {
+const WEEKEND_SHIFT_DAYS: Record<
+  Exclude<BusinessDayRule, "none">,
+  Readonly<Record<number, number>>
+> = {
   previous: { [SATURDAY]: -1, [SUNDAY]: -2 },
   next: { [SATURDAY]: 2, [SUNDAY]: 1 },
 };

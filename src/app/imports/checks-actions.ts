@@ -52,10 +52,7 @@ type GapTranslator = (
 
 /** The translators, the locale and the error builders every action of this file starts from. */
 async function loadActionContext(
-  namespace:
-    | "imports.staged.balanceCheck"
-    | "imports.staged.ruleProposals"
-    | "imports.staged.undo",
+  namespace: "imports.staged.balanceCheck" | "imports.staged.ruleProposals" | "imports.staged.undo",
 ) {
   const [t, translate, locale] = await Promise.all([
     getTranslations(namespace),
@@ -87,8 +84,7 @@ const requestSchema = z.object({
 /** Whether the batch is gone, or has no movement left, so no check can be made on it. */
 function isBatchGone(error: unknown): boolean {
   return (
-    error instanceof ImportBatchNotFoundError ||
-    error instanceof ImportBatchWithoutMovementError
+    error instanceof ImportBatchNotFoundError || error instanceof ImportBatchWithoutMovementError
   );
 }
 
@@ -110,9 +106,7 @@ export async function checkBatchBalanceAction(
   side: string,
 ): Promise<BalanceCheckState> {
   await requireSession();
-  const { t, translate, locale, fail } = await loadActionContext(
-    "imports.staged.balanceCheck",
-  );
+  const { t, translate, locale, fail } = await loadActionContext("imports.staged.balanceCheck");
 
   const parsed = requestSchema.safeParse({ batchId, realBalanceText });
   if (!parsed.success) return fail("balanceCheckFailed");
@@ -146,9 +140,7 @@ export async function recordBatchBalanceAssertionAction(
   side: string,
 ): Promise<BalanceCheckState> {
   await requireSession();
-  const { t, translate, locale, fail } = await loadActionContext(
-    "imports.staged.balanceCheck",
-  );
+  const { t, translate, locale, fail } = await loadActionContext("imports.staged.balanceCheck");
 
   const parsed = requestSchema.safeParse({ batchId, realBalanceText });
   if (!parsed.success) return fail("balanceAssertionNotSaved");
@@ -158,7 +150,11 @@ export async function recordBatchBalanceAssertionAction(
   try {
     const { check, realBalance } = withDatabase((db) => {
       const check = getBatchBalanceCheck(db, parsed.data.batchId);
-      const realBalance = parseRealBalance(parsed.data.realBalanceText, check.currency, balanceSide);
+      const realBalance = parseRealBalance(
+        parsed.data.realBalanceText,
+        check.currency,
+        balanceSide,
+      );
       recordBatchBalanceAssertion(db, check.batchId, realBalance);
       return { check, realBalance };
     });
@@ -188,9 +184,7 @@ const proposalSelectionSchema = z
   .max(MAX_SELECTED_PROPOSALS);
 
 /** The rules the categorized rows of a recorded file suggest. Nothing is written. */
-export async function listRuleProposalsAction(
-  batchId: number,
-): Promise<RuleProposalsState> {
+export async function listRuleProposalsAction(batchId: number): Promise<RuleProposalsState> {
   await requireSession();
   const { fail } = await loadActionContext("imports.staged.ruleProposals");
 
@@ -260,9 +254,7 @@ export async function saveRuleProposalsAction(
  * when the file changed since it was recorded, cannot be verified, or touches
  * an archived account.
  */
-export async function undoImportBatchAction(
-  batchId: number,
-): Promise<UndoImportState> {
+export async function undoImportBatchAction(batchId: number): Promise<UndoImportState> {
   await requireSession();
   const { t, fail } = await loadActionContext("imports.staged.undo");
 

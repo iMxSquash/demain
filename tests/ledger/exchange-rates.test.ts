@@ -17,11 +17,7 @@ import {
   setReferenceCurrency,
 } from "../../src/ledger/exchange-rates";
 import { getMonthlySynthesis } from "../../src/ledger/synthesis";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 describe("exchange rates", () => {
   let dataDir: string;
@@ -51,9 +47,7 @@ describe("exchange rates", () => {
     });
 
     it("refuses a code that is not an ISO 4217 currency", () => {
-      expect(() => setReferenceCurrency(db, "XYZ1")).toThrow(
-        ExchangeRateValidationError,
-      );
+      expect(() => setReferenceCurrency(db, "XYZ1")).toThrow(ExchangeRateValidationError);
       expect(getReferenceCurrency(db)).toBe("EUR");
     });
   });
@@ -168,9 +162,7 @@ describe("exchange rates", () => {
     it("makes no call while the owner has not enabled it", async () => {
       const fetchSpy = vi.fn();
 
-      await expect(fetchEcbRates(db, fetchSpy)).rejects.toThrow(
-        EcbFetchDisabledError,
-      );
+      await expect(fetchEcbRates(db, fetchSpy)).rejects.toThrow(EcbFetchDisabledError);
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
@@ -185,12 +177,12 @@ describe("exchange rates", () => {
       expect(fetchSpy.mock.calls[0]?.[0]).toBe(
         "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
       );
-      expect(
-        listExchangeRates(db).map((r) => [r.base, r.quote, r.date, r.rate, r.source]),
-      ).toEqual([
-        ["EUR", "JPY", "2026-03-02", 16_050_000_000, "ecb"],
-        ["EUR", "USD", "2026-03-02", 108_210_000, "ecb"],
-      ]);
+      expect(listExchangeRates(db).map((r) => [r.base, r.quote, r.date, r.rate, r.source])).toEqual(
+        [
+          ["EUR", "JPY", "2026-03-02", 16_050_000_000, "ecb"],
+          ["EUR", "USD", "2026-03-02", 108_210_000, "ecb"],
+        ],
+      );
     });
 
     it("keeps a rate the owner typed for the same day", async () => {
@@ -199,18 +191,19 @@ describe("exchange rates", () => {
 
       await fetchEcbRates(db, async () => new Response(ECB_XML));
 
-      expect(
-        listExchangeRates(db).find((r) => r.quote === "USD"),
-      ).toMatchObject({ rate: 150_000_000, source: "manual" });
+      expect(listExchangeRates(db).find((r) => r.quote === "USD")).toMatchObject({
+        rate: 150_000_000,
+        source: "manual",
+      });
     });
 
     it("stores nothing when the feed holds an invalid rate", async () => {
       setEcbFetchEnabled(db, true);
       const broken = ECB_XML.replace("rate='160.5'", "rate='n/a'");
 
-      await expect(
-        fetchEcbRates(db, async () => new Response(broken)),
-      ).rejects.toThrow(ExchangeRateValidationError);
+      await expect(fetchEcbRates(db, async () => new Response(broken))).rejects.toThrow(
+        ExchangeRateValidationError,
+      );
       expect(listExchangeRates(db)).toEqual([]);
     });
 

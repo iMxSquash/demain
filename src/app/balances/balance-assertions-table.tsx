@@ -28,11 +28,13 @@ export function BalanceAssertionsHead({ showAccount }: { showAccount: boolean })
     <thead>
       <tr>
         <th scope="col">{t("columns.date")}</th>
-        {showAccount ? (
-          <th scope="col">{t("accountColumn")}</th>
-        ) : null}
-        <th scope="col" className="text-right">{t("columns.asserted")}</th>
-        <th scope="col" className="text-right">{t("columns.computed")}</th>
+        {showAccount ? <th scope="col">{t("accountColumn")}</th> : null}
+        <th scope="col" className="text-right">
+          {t("columns.asserted")}
+        </th>
+        <th scope="col" className="text-right">
+          {t("columns.computed")}
+        </th>
         <th scope="col">{t("columns.gap")}</th>
         <th scope="col">{t("columns.note")}</th>
         <th scope="col">{t("columns.actions")}</th>
@@ -50,10 +52,7 @@ export async function BalanceAssertionsTable({
   caption,
   showAccount,
 }: BalanceAssertionsTableProps) {
-  const [t, locale] = await Promise.all([
-    getTranslations("balances"),
-    getLocale(),
-  ]);
+  const [t, locale] = await Promise.all([getTranslations("balances"), getLocale()]);
 
   return (
     <DataTable caption={caption} regionLabel={t("regionLabel")}>
@@ -62,10 +61,7 @@ export async function BalanceAssertionsTable({
         {assertions.map((assertion) => {
           const money = (minorUnits: number) =>
             formatAmount(minorUnits, assertion.accountCurrency, locale);
-          const direction = gapDirection(
-            assertion.computedBalance,
-            assertion.amount,
-          );
+          const direction = gapDirection(assertion.computedBalance, assertion.amount);
           return (
             <tr key={assertion.id}>
               <th scope="row" className="tabular-nums">
@@ -99,7 +95,9 @@ export async function BalanceAssertionsTable({
                       assertion.id,
                     )}
                     label={t("delete")}
-                    subject={showAccount ? `${assertion.accountName} ${assertion.date}` : assertion.date}
+                    subject={
+                      showAccount ? `${assertion.accountName} ${assertion.date}` : assertion.date
+                    }
                     title={t("deleteTitle", { date: assertion.date })}
                     message={t("deleteMessage")}
                     confirmLabel={t("deleteConfirm")}

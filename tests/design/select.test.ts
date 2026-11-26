@@ -35,7 +35,11 @@ describe("Select on the server", () => {
   });
 
   it("keeps the links to the hint and the error on the native select", () => {
-    const markup = render({ id: "letter", "aria-describedby": "letter-hint", "aria-invalid": true });
+    const markup = render({
+      id: "letter",
+      "aria-describedby": "letter-hint",
+      "aria-invalid": true,
+    });
 
     expect(markup).toContain('aria-describedby="letter-hint"');
     expect(markup).toContain('aria-invalid="true"');
@@ -48,7 +52,15 @@ describe("Select on the server", () => {
   it("refuses a child that is not an option, since the list could not show it", () => {
     const render = () =>
       renderToStaticMarkup(
-        createElement(Select, { id: "letter" }, createElement("optgroup", { label: "Group" }, createElement("option", { value: "a" }, "Alpha"))),
+        createElement(
+          Select,
+          { id: "letter" },
+          createElement(
+            "optgroup",
+            { label: "Group" },
+            createElement("option", { value: "a" }, "Alpha"),
+          ),
+        ),
       );
 
     expect(render).toThrow("Select only accepts <option> children");

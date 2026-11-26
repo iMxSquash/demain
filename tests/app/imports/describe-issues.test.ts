@@ -28,7 +28,10 @@ describe("where an issue is", () => {
 
   it("names the row of an issue and says where it is", () => {
     expect(
-      describeImportIssue({ kind: "rowInvalid", index: 1, ref: messageRef("importCategoryUnknown") }, say),
+      describeImportIssue(
+        { kind: "rowInvalid", index: 1, ref: messageRef("importCategoryUnknown") },
+        say,
+      ),
     ).toEqual({
       message: "CARD SHOP (Mar 2, 2026): <importCategoryUnknown>",
     });

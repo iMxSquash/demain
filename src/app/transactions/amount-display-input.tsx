@@ -27,7 +27,11 @@ const INPUT_CLASS =
   "@max-[759px]:min-w-11";
 
 export const SIGN = { out: "\u2212", in: "+", neutral: "" } as const;
-export const SIGN_TONE = { out: "text-negative", in: "text-positive", neutral: "text-text-muted" } as const;
+export const SIGN_TONE = {
+  out: "text-negative",
+  in: "text-positive",
+  neutral: "text-text-muted",
+} as const;
 
 // The figure grows with its content, so a press beside it (the sign, the symbol, the empty
 // space of the row) would miss the input: it focuses the input instead, as a label would.

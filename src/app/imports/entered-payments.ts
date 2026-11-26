@@ -38,7 +38,11 @@ export function choiceKey(line: number, { candidates }: Pick<EnteredMatch, "cand
  */
 export function enteredMatchesOf(
   rows: readonly (ReviewedRow & { problem: RowProblem | null })[],
-  { accountId, currency, defaultSavingsAccountId = null }: FileContext & { defaultSavingsAccountId?: number | null },
+  {
+    accountId,
+    currency,
+    defaultSavingsAccountId = null,
+  }: FileContext & { defaultSavingsAccountId?: number | null },
   entered: readonly EnteredPaymentEntry[],
   replacedIds: ReadonlySet<number> = new Set(),
 ): EnteredMatch[] {
@@ -56,7 +60,17 @@ export function enteredMatchesOf(
       return [savingsRowTransaction({ index, date, amount, savingsAccountId }, accountId)];
     }
     const signed = signedAmountForType(type, amount);
-    return [{ id: index, accountId, categoryId: row.details.categoryId, date, label, amount: signed, kind: type }];
+    return [
+      {
+        id: index,
+        accountId,
+        categoryId: row.details.categoryId,
+        date,
+        label,
+        amount: signed,
+        kind: type,
+      },
+    ];
   });
   return findEnteredPayments(candidates, available);
 }
@@ -98,7 +112,8 @@ export function settleEnteredChoices(
     chosen,
     replacements,
     unsettledCount: [...chosen.values()].filter((choice) => choice === undefined).length,
-    isEntryChosenTwice: new Set(replacements.map(({ entryId }) => entryId)).size < replacements.length,
+    isEntryChosenTwice:
+      new Set(replacements.map(({ entryId }) => entryId)).size < replacements.length,
   };
 }
 

@@ -14,11 +14,7 @@ import { parseOfx } from "../../src/domain/import-ofx";
 import { createAccount, getAccountBalance } from "../../src/ledger/accounts";
 import { commitImport } from "../../src/ledger/imports";
 import { listTransactions } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const FIXTURES = path.join(process.cwd(), "tests", "fixtures");
 

@@ -16,10 +16,7 @@ interface ReferenceCurrencyFormProps {
   currentCurrency: string;
 }
 
-export function ReferenceCurrencyForm({
-  action,
-  currentCurrency,
-}: ReferenceCurrencyFormProps) {
+export function ReferenceCurrencyForm({ action, currentCurrency }: ReferenceCurrencyFormProps) {
   const t = useTranslations("currencies");
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);

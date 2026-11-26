@@ -35,14 +35,35 @@ const LINKS: AssertionLinks = {
     {
       accountId: 1,
       links: [
-        { assertionId: 1, date: "2026-03-15", realBalance: 100_000, computedBalance: 100_000, gap: 0, direction: "equal" },
-        { assertionId: 2, date: "2026-03-31", realBalance: 95_000, computedBalance: 95_150, gap: 150, direction: "realBelow" },
+        {
+          assertionId: 1,
+          date: "2026-03-15",
+          realBalance: 100_000,
+          computedBalance: 100_000,
+          gap: 0,
+          direction: "equal",
+        },
+        {
+          assertionId: 2,
+          date: "2026-03-31",
+          realBalance: 95_000,
+          computedBalance: 95_150,
+          gap: 150,
+          direction: "realBelow",
+        },
       ],
     },
     {
       accountId: 2,
       links: [
-        { assertionId: 3, date: "2026-03-31", realBalance: 20_001, computedBalance: 20_000, gap: -1, direction: "realAbove" },
+        {
+          assertionId: 3,
+          date: "2026-03-31",
+          realBalance: 20_001,
+          computedBalance: 20_000,
+          gap: -1,
+          direction: "realAbove",
+        },
       ],
     },
   ],

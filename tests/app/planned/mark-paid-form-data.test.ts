@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseMarkPaidForm, readSubmittedMarkPaid } from "../../../src/app/planned/mark-paid-form-data";
+import {
+  parseMarkPaidForm,
+  readSubmittedMarkPaid,
+} from "../../../src/app/planned/mark-paid-form-data";
 import { translateKey } from "../translate-key";
 
 function formOf(fields: Record<string, string>): FormData {
@@ -36,7 +39,10 @@ describe("parseMarkPaidForm", () => {
       ok: false,
       error: { status: "error", field: "date", message: expect.any(String), values },
     });
-    expect(parse({ date: "", amount: "29.90" })).toMatchObject({ ok: false, error: { field: "date" } });
+    expect(parse({ date: "", amount: "29.90" })).toMatchObject({
+      ok: false,
+      error: { field: "date" },
+    });
   });
 
   it("refuses a signed, empty or malformed amount on its field and keeps the values", () => {

@@ -59,7 +59,12 @@ interface Resolution {
   remaining: number;
 }
 
-function resolveRegular(expectedAmount: number, matchWindowDays: number, date: string, today: string): Resolution {
+function resolveRegular(
+  expectedAmount: number,
+  matchWindowDays: number,
+  date: string,
+  today: string,
+): Resolution {
   const status = today > addDays(date, matchWindowDays) ? "overdue" : "planned";
   return { status, remaining: expectedAmount };
 }
@@ -86,7 +91,9 @@ function resolveProvision(
 ): Resolution {
   const isPeriodOver = today > period.to;
   if (!hasLinks) {
-    return isPeriodOver ? { status: "overdue", remaining: 0 } : { status: "planned", remaining: expectedAmount };
+    return isPeriodOver
+      ? { status: "overdue", remaining: 0 }
+      : { status: "planned", remaining: expectedAmount };
   }
   const remaining = isPeriodOver ? 0 : provisionRemaining(expectedAmount, linkedSum);
   return { status: remaining === 0 ? "confirmed" : "partial", remaining };
@@ -104,17 +111,25 @@ class RollingAverageState {
     if (version === undefined) throw new Error(`No version at index ${versionIndex}`);
     const window = (this.valuesByVersion.get(versionIndex) ?? []).slice(-version.averageWindow);
     if (window.length === 0) return version.amount;
-    return divideRound(window.reduce((sum, value) => sum + value, 0), window.length);
+    return divideRound(
+      window.reduce((sum, value) => sum + value, 0),
+      window.length,
+    );
   }
 
   add(versionIndex: number, value: number): void {
-    this.valuesByVersion.set(versionIndex, [...(this.valuesByVersion.get(versionIndex) ?? []), value]);
+    this.valuesByVersion.set(versionIndex, [
+      ...(this.valuesByVersion.get(versionIndex) ?? []),
+      value,
+    ]);
   }
 }
 
 // The version in effect on a date: the last one that started on or before it, else the first.
 function versionInEffect(schedule: PlannedSchedule, date: string): PlannedVersion | undefined {
-  return schedule.versions.findLast((version) => version.effectiveFrom <= date) ?? schedule.versions[0];
+  return (
+    schedule.versions.findLast((version) => version.effectiveFrom <= date) ?? schedule.versions[0]
+  );
 }
 
 // The pass must start where the window of the first occurrence of the range starts, so a rolling
@@ -123,8 +138,11 @@ function versionInEffect(schedule: PlannedSchedule, date: string): PlannedVersio
 function passRange(item: ResolutionItem, range: DateRange): DateRange {
   const { schedule } = item;
   // A provision needs the occurrence before the first of the range to know where its period starts.
-  const current = item.acceptsMultipleTransactions ? schedule.versions[0] : versionInEffect(schedule, range.from);
-  const needsEarlierOccurrences = item.acceptsMultipleTransactions || current?.amountMode === "rolling_average";
+  const current = item.acceptsMultipleTransactions
+    ? schedule.versions[0]
+    : versionInEffect(schedule, range.from);
+  const needsEarlierOccurrences =
+    item.acceptsMultipleTransactions || current?.amountMode === "rolling_average";
   if (current === undefined || !needsEarlierOccurrences) return range;
   const windowStart = addDays(current.effectiveFrom, -BUSINESS_DAY_SHIFT_MARGIN_DAYS);
   return { from: windowStart < range.from ? windowStart : range.from, to: range.to };
@@ -157,7 +175,8 @@ interface OccurrenceState {
 function resolveOccurrence(state: OccurrenceState): Resolution {
   const { occurrence, expectedAmount, linkedSum, hasLinks, period, matchWindowDays, today } = state;
   // A settled occurrence stays confirmed even if it is cancelled afterwards: confirmed wins.
-  if (!hasLinks && occurrence.isCancelled) return { status: "cancelled", remaining: expectedAmount };
+  if (!hasLinks && occurrence.isCancelled)
+    return { status: "cancelled", remaining: expectedAmount };
   if (period !== null) return resolveProvision(expectedAmount, linkedSum, hasLinks, period, today);
   if (hasLinks) return { status: "confirmed", remaining: 0 };
   return resolveRegular(expectedAmount, matchWindowDays, occurrence.date, today);
@@ -184,9 +203,12 @@ export function resolveOccurrences(
 ): ResolvedOccurrence[] {
   const linksByOccurrence = Map.groupBy(links, (link) => link.occurrenceDate);
   // generateOccurrences orders by effective date, which an override can move out of nominal order.
-  const occurrences = generateOccurrences(item.schedule, item.overrides, passRange(item, range), today).sort(
-    (a, b) => (a.nominalDate < b.nominalDate ? -1 : a.nominalDate > b.nominalDate ? 1 : 0),
-  );
+  const occurrences = generateOccurrences(
+    item.schedule,
+    item.overrides,
+    passRange(item, range),
+    today,
+  ).sort((a, b) => (a.nominalDate < b.nominalDate ? -1 : a.nominalDate > b.nominalDate ? 1 : 0));
 
   // One ordered pass over nominal dates: the rolling average needs each occurrence to see the ones
   // before it, including those before the range.
@@ -202,7 +224,8 @@ export function resolveOccurrences(
 
     const isRollingAverage = version?.amountMode === "rolling_average";
     const estimate = isRollingAverage ? average.estimate(occurrence.versionIndex) : null;
-    const expectedAmount = estimate !== null && !occurrence.isAmountOverridden ? estimate : occurrence.amount;
+    const expectedAmount =
+      estimate !== null && !occurrence.isAmountOverridden ? estimate : occurrence.amount;
 
     const period = periodOf(occurrence, occurrences[index - 1], version);
     const { status, remaining } = resolveOccurrence({
@@ -215,10 +238,19 @@ export function resolveOccurrences(
       today,
     });
 
-    if (estimate !== null) feedAverage(average, occurrence.versionIndex, status, linkedSum, estimate);
+    if (estimate !== null)
+      feedAverage(average, occurrence.versionIndex, status, linkedSum, estimate);
 
     if (occurrence.date >= range.from && occurrence.date <= range.to) {
-      resolved.push({ ...occurrence, expectedAmount, links: occurrenceLinks, linkedSum, remaining, status, period });
+      resolved.push({
+        ...occurrence,
+        expectedAmount,
+        links: occurrenceLinks,
+        linkedSum,
+        remaining,
+        status,
+        period,
+      });
     }
   }
   return resolved;
@@ -242,7 +274,11 @@ function boundsAroundLinks(links: readonly OccurrenceLink[]): DateRange {
  * The links whose nominal date no occurrence of the schedule has. A link on a date after the
  * cancellation of the item is reported too, since a cancelled schedule produces nothing after today.
  */
-export function findOrphanLinks(item: ResolutionItem, links: readonly OccurrenceLink[], today: string): OccurrenceLink[] {
+export function findOrphanLinks(
+  item: ResolutionItem,
+  links: readonly OccurrenceLink[],
+  today: string,
+): OccurrenceLink[] {
   if (links.length === 0) return [];
   const produced = new Set(
     generateOccurrences(item.schedule, [], boundsAroundLinks(links), today).map(

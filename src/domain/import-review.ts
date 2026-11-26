@@ -38,10 +38,7 @@ export type ConfirmReason =
   /** An explicit type contradicts the sign of the amount: the sign is taken from the type. */
   | { kind: "typeAgainstSign"; type: Exclude<MovementType, "savings"> };
 
-function reasonOfEvidence(
-  guess: TypeGuess,
-  evidence: TypeEvidence,
-): ConfirmReason {
+function reasonOfEvidence(guess: TypeGuess, evidence: TypeEvidence): ConfirmReason {
   const { conflict } = guess;
   switch (evidence.kind) {
     case "typeCell":
@@ -132,9 +129,11 @@ export function splitSegments(transfer: SavingsTransfer<AccountRef>): SplitSegme
   if (transfer.kind === "withdrawal") {
     return [{ direction: "from", accountId: transfer.accountId, amount: transfer.amount }];
   }
-  const segments = transfer.placements.map(
-    ({ accountId, amount }): SplitSegment => ({ direction: "to", accountId, amount }),
-  );
+  const segments = transfer.placements.map(({ accountId, amount }): SplitSegment => ({
+    direction: "to",
+    accountId,
+    amount,
+  }));
   if (transfer.unplaced > 0) {
     segments.push({ direction: "unplaced", accountId: null, amount: transfer.unplaced });
   }
@@ -156,10 +155,7 @@ const SETTLED_PHASES: readonly FilePhase[] = ["done", "cancelled", "failed"];
  * null when the file may be imported now. Files are recorded one after the
  * other because each is planned from the balances the previous one leaves.
  */
-export function nextFileToSettle(
-  phases: readonly FilePhase[],
-  index: number,
-): number | null {
+export function nextFileToSettle(phases: readonly FilePhase[], index: number): number | null {
   const found = phases.slice(0, index).findIndex((phase) => !SETTLED_PHASES.includes(phase));
   return found === -1 ? null : found;
 }
@@ -251,10 +247,7 @@ function savingsMovementsOf(
   const known = new Set(accounts.map(({ id }) => id));
   return rows.flatMap((row, index) => {
     if (row.isDuplicate || row.details.type !== "savings") return [];
-    const { savingsAccountId } = withDefaultSavingsAccount(
-      row.details,
-      defaultSavingsAccountId,
-    );
+    const { savingsAccountId } = withDefaultSavingsAccount(row.details, defaultSavingsAccountId);
     if (savingsAccountId === null || !known.has(savingsAccountId)) return [];
     const reading = readImportDraft(row.draft, currency);
     if (!reading.ok) return [];

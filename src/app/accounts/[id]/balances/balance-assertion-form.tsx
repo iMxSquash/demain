@@ -47,11 +47,7 @@ export function BalanceAssertionForm({
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       {accounts === undefined ? null : (
-        <FormField
-          id="accountId"
-          label={t("form.account")}
-          error={errorOf("accountId")}
-        >
+        <FormField id="accountId" label={t("form.account")} error={errorOf("accountId")}>
           <Select {...controlProps("accountId")} required>
             <option value="">{t("chooseAccount")}</option>
             {accounts.map((account) => (

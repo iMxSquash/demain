@@ -15,11 +15,7 @@ import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
-import {
-  parseRuleInput,
-  readRuleFormValues,
-  type RuleFormState,
-} from "./rule-form-data";
+import { parseRuleInput, readRuleFormValues, type RuleFormState } from "./rule-form-data";
 
 export async function createRuleAction(
   _previous: RuleFormState | null,
@@ -81,10 +77,7 @@ async function changeRules(
   refreshData();
 }
 
-export async function moveRuleAction(
-  id: number,
-  direction: "up" | "down",
-): Promise<void> {
+export async function moveRuleAction(id: number, direction: "up" | "down"): Promise<void> {
   await changeRules((db) => moveRule(db, id, direction));
 }
 

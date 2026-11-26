@@ -17,17 +17,18 @@ import {
   type PlannedItemKind,
   type PlannedItemVersionInput,
 } from "../../domain/planned-item";
-import {
-  isValidRepetition,
-  type BusinessDayRule,
-  type Repetition,
-} from "../../domain/recurrence";
+import { isValidRepetition, type BusinessDayRule, type Repetition } from "../../domain/recurrence";
 import { readAccount, type CurrencyByAccount } from "../transactions/transaction-form-data";
 
 /** The order of the type segments (DESIGN section 17): Out, In, Move, Interest. */
 export const DEFAULT_FORM_KIND = "expense";
 export const TRANSFER_KIND = "transfer";
-export const PLANNED_ITEM_FORM_KINDS = [DEFAULT_FORM_KIND, "income", TRANSFER_KIND, "interest"] as const;
+export const PLANNED_ITEM_FORM_KINDS = [
+  DEFAULT_FORM_KIND,
+  "income",
+  TRANSFER_KIND,
+  "interest",
+] as const;
 
 /** The choice of a one-off event: it has no repetition and no end date. */
 export const ONCE = "once";
@@ -51,11 +52,12 @@ export function repetitionChoiceOf(value: string): RepetitionChoice {
 }
 
 /** The repetitions that need a number next to them, and what the number counts. */
-export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "months" | "weeks">> = {
-  monthly_on_day: "day",
-  every_n_months: "months",
-  every_n_weeks: "weeks",
-};
+export const REPETITION_NUMBER_UNIT: Partial<Record<RepetitionChoice, "day" | "months" | "weeks">> =
+  {
+    monthly_on_day: "day",
+    every_n_months: "months",
+    every_n_weeks: "weeks",
+  };
 
 export const PROVISION_CHECKED = "true";
 
@@ -109,8 +111,7 @@ export interface PlannedItemFormState {
 }
 
 export type ParsedPlannedItemForm =
-  | { ok: true; input: PlannedItemInput }
-  | { ok: false; error: PlannedItemFormState };
+  { ok: true; input: PlannedItemInput } | { ok: false; error: PlannedItemFormState };
 
 export type PlannedItemDetailsFormValues = Pick<
   PlannedItemFormValues,
@@ -126,8 +127,7 @@ export interface PlannedItemDetailsFormState {
 }
 
 export type ParsedPlannedItemDetailsForm =
-  | { ok: true; details: PlannedItemDetails }
-  | { ok: false; error: PlannedItemDetailsFormState };
+  { ok: true; details: PlannedItemDetails } | { ok: false; error: PlannedItemDetailsFormState };
 
 /** The control that shows a refusal of the domain, when the form has one for that field. */
 const FORM_FIELD_OF: Record<PlannedItemField, PlannedItemFormField | undefined> = {
@@ -246,8 +246,7 @@ function candidateRepetition(choice: string, count: number): Repetition | null {
 }
 
 type RepetitionResult =
-  | { repetition: Repetition | null }
-  | { field: "repetition" | "repetitionValue"; ref: MessageRef };
+  { repetition: Repetition | null } | { field: "repetition" | "repetitionValue"; ref: MessageRef };
 
 function readRepetition(choice: string, valueText: string): RepetitionResult {
   if (choice === ONCE) return { repetition: null };
@@ -435,8 +434,7 @@ interface PlannedItemVersionFormContext {
 }
 
 type ParsedPlannedItemVersionForm =
-  | { ok: true; input: PlannedItemVersionInput }
-  | { ok: false; error: PlannedItemVersionFormState };
+  { ok: true; input: PlannedItemVersionInput } | { ok: false; error: PlannedItemVersionFormState };
 
 export interface PlannedItemEndDateFormValues {
   /** Blank clears the end date. */
@@ -450,8 +448,7 @@ export interface PlannedItemEndDateFormState {
 }
 
 type ParsedPlannedItemEndDateForm =
-  | { ok: true; endDate: string | null }
-  | { ok: false; error: PlannedItemEndDateFormState };
+  { ok: true; endDate: string | null } | { ok: false; error: PlannedItemEndDateFormState };
 
 export function readSubmittedVersion(formData: FormData): PlannedItemVersionFormValues {
   return {

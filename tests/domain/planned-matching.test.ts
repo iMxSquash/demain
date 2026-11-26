@@ -165,11 +165,36 @@ describe("decideMatches", () => {
 
   describe("window", () => {
     it.each([
-      { name: "accepts a transaction 5 days after the occurrence date", date: "2026-03-10", windowDays: 5, isMatched: true },
-      { name: "rejects a transaction 6 days after the occurrence date", date: "2026-03-11", windowDays: 5, isMatched: false },
-      { name: "accepts a transaction 5 days before the occurrence date", date: "2026-02-28", windowDays: 5, isMatched: true },
-      { name: "accepts the same day with a window of 0", date: DEFAULT_DATE, windowDays: 0, isMatched: true },
-      { name: "rejects the next day with a window of 0", date: "2026-03-06", windowDays: 0, isMatched: false },
+      {
+        name: "accepts a transaction 5 days after the occurrence date",
+        date: "2026-03-10",
+        windowDays: 5,
+        isMatched: true,
+      },
+      {
+        name: "rejects a transaction 6 days after the occurrence date",
+        date: "2026-03-11",
+        windowDays: 5,
+        isMatched: false,
+      },
+      {
+        name: "accepts a transaction 5 days before the occurrence date",
+        date: "2026-02-28",
+        windowDays: 5,
+        isMatched: true,
+      },
+      {
+        name: "accepts the same day with a window of 0",
+        date: DEFAULT_DATE,
+        windowDays: 0,
+        isMatched: true,
+      },
+      {
+        name: "rejects the next day with a window of 0",
+        date: "2026-03-06",
+        windowDays: 0,
+        isMatched: false,
+      },
     ])("$name", ({ date, windowDays, isMatched }) => {
       const result = decideMatches([transaction({ date })], [occurrence({ windowDays })]);
 
@@ -269,7 +294,11 @@ describe("decideMatches", () => {
 
       const result = decideMatches(transfers, occurrences);
 
-      expect(result).toEqual({ confirmed: [], proposed: [[pair(1, 4), pair(1, 5)]], unmatched: [] });
+      expect(result).toEqual({
+        confirmed: [],
+        proposed: [[pair(1, 4), pair(1, 5)]],
+        unmatched: [],
+      });
     });
 
     it("does not let a transfer make a regular match ambiguous", () => {
@@ -283,7 +312,11 @@ describe("decideMatches", () => {
 
   describe("with provisions", () => {
     it("confirms several fill-ups on one provision", () => {
-      const transactions = [fillUp(1), fillUp(2, { date: "2026-03-15" }), fillUp(3, { date: "2026-03-22" })];
+      const transactions = [
+        fillUp(1),
+        fillUp(2, { date: "2026-03-15" }),
+        fillUp(3, { date: "2026-03-22" }),
+      ];
 
       const result = decideMatches(transactions, [], [provision()]);
 
@@ -420,14 +453,20 @@ describe("decideMatches", () => {
 
       const result = decideMatches([transaction({ id: 1 })], occurrences);
 
-      expect(result.proposed).toEqual([[pair(1, 4, "2026-03-03"), pair(1, 4, "2026-03-07"), pair(1, 5, "2026-03-05")]]);
+      expect(result.proposed).toEqual([
+        [pair(1, 4, "2026-03-03"), pair(1, 4, "2026-03-07"), pair(1, 5, "2026-03-05")],
+      ]);
     });
   });
 });
 
 describe("provisionLinks", () => {
   it("links every fill-up of the period to its provision", () => {
-    const transactions = [fillUp(1), fillUp(2, { date: "2026-03-31" }), fillUp(3, { date: "2026-03-01" })];
+    const transactions = [
+      fillUp(1),
+      fillUp(2, { date: "2026-03-31" }),
+      fillUp(3, { date: "2026-03-01" }),
+    ];
 
     const links = provisionLinks(transactions, [provision()]);
 
@@ -476,13 +515,19 @@ describe("matchingRange", () => {
   const TRANSACTION_DATES: DateRange = { from: "2026-03-10", to: "2026-03-20" };
 
   it("widens a regular item by its matching window", () => {
-    const range = matchingRange(TRANSACTION_DATES, { matchWindowDays: 5, acceptsMultipleTransactions: false });
+    const range = matchingRange(TRANSACTION_DATES, {
+      matchWindowDays: 5,
+      acceptsMultipleTransactions: false,
+    });
 
     expect(range).toEqual({ from: "2026-03-05", to: "2026-03-25" });
   });
 
   it("widens a provision by more than a yearly period, whatever its window", () => {
-    const range = matchingRange(TRANSACTION_DATES, { matchWindowDays: 5, acceptsMultipleTransactions: true });
+    const range = matchingRange(TRANSACTION_DATES, {
+      matchWindowDays: 5,
+      acceptsMultipleTransactions: true,
+    });
 
     expect(range.from <= "2025-03-10" && range.to >= "2027-03-20").toBe(true);
   });
@@ -491,7 +536,11 @@ describe("matchingRange", () => {
 describe("dueOccurrences", () => {
   const TODAY = "2026-11-21";
 
-  function open(nominalDate: string, status: DueCandidate["status"], plannedItemId = 1): DueCandidate {
+  function open(
+    nominalDate: string,
+    status: DueCandidate["status"],
+    plannedItemId = 1,
+  ): DueCandidate {
     return { plannedItemId, nominalDate, date: nominalDate, status };
   }
 
@@ -513,7 +562,11 @@ describe("dueOccurrences", () => {
 
   it("leaves out confirmed and cancelled occurrences", () => {
     const result = dueOccurrences(
-      [open("2026-11-20", "confirmed"), open("2026-11-18", "cancelled", 2), open("2026-11-23", "cancelled", 3)],
+      [
+        open("2026-11-20", "confirmed"),
+        open("2026-11-18", "cancelled", 2),
+        open("2026-11-23", "cancelled", 3),
+      ],
       TODAY,
       DUE_SOON_DAYS,
     );
@@ -525,7 +578,10 @@ describe("dueOccurrences", () => {
     const inSeven = open("2026-11-28", "planned");
     const inEight = open("2026-11-29", "planned", 2);
 
-    expect(dueOccurrences([inEight, inSeven], TODAY, DUE_SOON_DAYS)).toEqual({ due: [], soon: [inSeven] });
+    expect(dueOccurrences([inEight, inSeven], TODAY, DUE_SOON_DAYS)).toEqual({
+      due: [],
+      soon: [inSeven],
+    });
   });
 
   it("reads the effective date, not the nominal one", () => {
@@ -537,7 +593,10 @@ describe("dueOccurrences", () => {
 
 describe("matchingWindow", () => {
   it("centres the window of a regular occurrence on its effective date", () => {
-    expect(matchingWindow({ date: "2026-03-05", period: null }, 5)).toEqual({ from: "2026-02-28", to: "2026-03-10" });
+    expect(matchingWindow({ date: "2026-03-05", period: null }, 5)).toEqual({
+      from: "2026-02-28",
+      to: "2026-03-10",
+    });
   });
 
   it("is the period of a provision", () => {
@@ -547,15 +606,21 @@ describe("matchingWindow", () => {
 
 describe("amountToSettle", () => {
   it("is the expected amount of a regular occurrence", () => {
-    expect(amountToSettle({ status: "planned", expectedAmount: -2_990, remaining: -2_990 })).toBe(-2_990);
+    expect(amountToSettle({ status: "planned", expectedAmount: -2_990, remaining: -2_990 })).toBe(
+      -2_990,
+    );
   });
 
   it("is what a partial provision still expects", () => {
-    expect(amountToSettle({ status: "partial", expectedAmount: -30_000, remaining: -1_500 })).toBe(-1_500);
+    expect(amountToSettle({ status: "partial", expectedAmount: -30_000, remaining: -1_500 })).toBe(
+      -1_500,
+    );
   });
 
   it("is the expected amount of an overdue provision that nothing settled", () => {
-    expect(amountToSettle({ status: "overdue", expectedAmount: -30_000, remaining: 0 })).toBe(-30_000);
+    expect(amountToSettle({ status: "overdue", expectedAmount: -30_000, remaining: 0 })).toBe(
+      -30_000,
+    );
   });
 });
 
@@ -622,7 +687,12 @@ describe("findEnteredPayments", () => {
 
   it("gives a choice, with nothing chosen, when two entries fit the row", () => {
     const rent = entered();
-    const parking = entered({ id: ENTRY_ID + 1, label: "Parking", plannedItemId: 4, date: "2026-03-06" });
+    const parking = entered({
+      id: ENTRY_ID + 1,
+      label: "Parking",
+      plannedItemId: 4,
+      date: "2026-03-06",
+    });
 
     const found = findEnteredPayments([bankRow()], [parking, rent]);
 
@@ -632,7 +702,10 @@ describe("findEnteredPayments", () => {
   it("chooses nothing when the entry also fits another row of the file", () => {
     const entry = entered();
 
-    const found = findEnteredPayments([bankRow({ id: 0 }), bankRow({ id: 1, date: "2026-03-06" })], [entry]);
+    const found = findEnteredPayments(
+      [bankRow({ id: 0 }), bankRow({ id: 1, date: "2026-03-06" })],
+      [entry],
+    );
 
     expect(found).toEqual([
       { rowId: 0, candidates: [entry], proposed: null },
@@ -650,7 +723,13 @@ describe("findEnteredPayments", () => {
 
     function savingsRow(overrides: Partial<SavingsMovement> = {}): MatchTransaction {
       return savingsRowTransaction(
-        { index: 0, date: DEFAULT_DATE, amount: -30000, savingsAccountId: SAVINGS_ID, ...overrides },
+        {
+          index: 0,
+          date: DEFAULT_DATE,
+          amount: -30000,
+          savingsAccountId: SAVINGS_ID,
+          ...overrides,
+        },
         ACCOUNT_ID,
       );
     }
@@ -663,7 +742,10 @@ describe("findEnteredPayments", () => {
     it("proposes the hand-entered transfer a savings row of the window and the tolerance can replace", () => {
       const entry = enteredTransfer();
 
-      const found = findEnteredPayments([savingsRow({ date: "2026-03-07", amount: -30500 })], [entry]);
+      const found = findEnteredPayments(
+        [savingsRow({ date: "2026-03-07", amount: -30500 })],
+        [entry],
+      );
 
       expect(found).toEqual([{ rowId: 0, candidates: [entry], proposed: entry }]);
     });

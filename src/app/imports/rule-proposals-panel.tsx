@@ -6,14 +6,8 @@ import { useEffect, useId, useState, useTransition } from "react";
 import { Button } from "../../components/button";
 import { Checkbox } from "../../components/checkbox";
 import { Notice } from "../../components/notice";
-import {
-  listRuleProposalsAction,
-  saveRuleProposalsAction,
-} from "./checks-actions";
-import type {
-  RuleProposalsSaveState,
-  RuleProposalsState,
-} from "./import-form-data";
+import { listRuleProposalsAction, saveRuleProposalsAction } from "./checks-actions";
+import type { RuleProposalsSaveState, RuleProposalsState } from "./import-form-data";
 
 /** Offers the rules suggested by a recorded file as unchecked boxes; only the checked ones are created. */
 export function RuleProposalsPanel({ batchId }: { batchId: number }) {
@@ -109,7 +103,12 @@ export function RuleProposalsPanel({ batchId }: { batchId: number }) {
               );
             })}
           </fieldset>
-          <Button type="submit" pending={isPending} pendingLabel={t("submitPending")} className="self-start">
+          <Button
+            type="submit"
+            pending={isPending}
+            pendingLabel={t("submitPending")}
+            className="self-start"
+          >
             {t("submit")}
           </Button>
         </form>

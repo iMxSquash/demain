@@ -101,9 +101,7 @@ function detectVocabularyColumn(
   }
 
   // Stable sort: the other columns keep their order.
-  matches.sort(
-    (a, b) => Number(b.column === named) - Number(a.column === named),
-  );
+  matches.sort((a, b) => Number(b.column === named) - Number(a.column === named));
   const [first, ...others] = matches;
   if (first === undefined) return null;
   return { ...first, alsoMatching: others.map((match) => match.column) };
@@ -166,9 +164,7 @@ export function detectCategoryColumn(
   let best: { column: number; distinctShare: number } | null = null;
   for (let column = 0; column < columnCount; column += 1) {
     if (taken.includes(column)) continue;
-    const cells = rows
-      .map((row) => (row[column] ?? "").trim())
-      .filter((cell) => cell !== "");
+    const cells = rows.map((row) => (row[column] ?? "").trim()).filter((cell) => cell !== "");
     const distinct = new Set(cells).size;
     if (cells.length === 0 || distinct === cells.length) continue;
 
@@ -217,10 +213,7 @@ export interface ColumnRoles {
   issues: ColumnIssue[];
 }
 
-function issuesOf(
-  role: VocabularyRole,
-  found: VocabularyColumn | null,
-): ColumnIssue[] {
+function issuesOf(role: VocabularyRole, found: VocabularyColumn | null): ColumnIssue[] {
   if (found === null) return [{ kind: "columnNotFound", role }];
   return [
     ...(found.alsoMatching.length === 0
@@ -245,14 +238,7 @@ function issuesOf(
 const TYPE_HEADER_WORDS = ["type"];
 const PAYMENT_MODE_HEADER_WORDS = ["paiement", "payment"];
 const CATEGORY_HEADER_WORDS = ["categor", "rubrique"];
-const DESCRIPTION_HEADER_WORDS = [
-  "description",
-  "note",
-  "comment",
-  "memo",
-  "detail",
-  "remarque",
-];
+const DESCRIPTION_HEADER_WORDS = ["description", "note", "comment", "memo", "detail", "remarque"];
 
 /** The first column whose header names the role, among those not `unavailable`. */
 function columnNamed(
@@ -260,9 +246,7 @@ function columnNamed(
   words: readonly string[],
   unavailable: readonly number[],
 ): number | null {
-  const available = headers.map((header, column) =>
-    unavailable.includes(column) ? "" : header,
-  );
+  const available = headers.map((header, column) => (unavailable.includes(column) ? "" : header));
   const column = findColumn(available, words);
   return column === -1 ? null : column;
 }

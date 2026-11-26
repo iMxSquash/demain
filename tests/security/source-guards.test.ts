@@ -18,15 +18,30 @@ const OUTBOUND_ALLOWED = new Set([
 /** Startup failure of a missing variable: it prints the names of the variables, never data. */
 const LOG_ALLOWED = new Set(["src/instrumentation-node.ts"]);
 
-// A constant message: nothing interpolated, so no label or amount can end up in a log.
-const CONSTANT_ERROR_LOG = /^console\.error\(\s*"[^"$`]*"/;
+// A constant message: nothing interpolated, so no label or amount can end up in a log. The
+// string must be the whole first argument, with no escaped quote that could end it early.
+const CONSTANT_ERROR_LOG = /^console\.error\(\s*"[^"\\$`]*"\s*[,)]/;
 
 const FILES = readSourceFiles("src");
 
-function offenders(allowed: Set<string>, isViolation: (text: string) => boolean): string[] {
+// A call broken over several lines (as Prettier prints a long one) ends its first line
+// with the parenthesis: its first argument is on the next code line.
+const OPEN_CALL = /^console\.\w+\($/;
+
+function isUnsafeLog(text: string, nextText: string): boolean {
+  const start = text.indexOf("console.");
+  if (start === -1) return false;
+  const call = text.slice(start);
+  return !CONSTANT_ERROR_LOG.test(OPEN_CALL.test(call) ? `${call}${nextText}` : call);
+}
+
+function offenders(
+  allowed: Set<string>,
+  isViolation: (text: string, nextText: string) => boolean,
+): string[] {
   return FILES.filter(({ relative }) => !allowed.has(relative)).flatMap(({ relative, codeLines }) =>
     codeLines
-      .filter(({ text }) => isViolation(text))
+      .filter(({ text }, index) => isViolation(text, codeLines[index + 1]?.text ?? ""))
       .map(({ line, text }) => `${relative}:${line}: ${text}`),
   );
 }
@@ -40,12 +55,25 @@ describe("source guards", () => {
     expect(offenders(OUTBOUND_ALLOWED, (text) => OUTBOUND_CALL.test(text))).toEqual([]);
   });
 
-  it("logs only errors, with a constant message", () => {
-    const isUnsafeLog = (text: string) => {
-      const start = text.indexOf("console.");
-      return start !== -1 && !CONSTANT_ERROR_LOG.test(text.slice(start));
-    };
+  it("accepts a constant error message, on one line or split over two", () => {
+    expect(isUnsafeLog('console.error("Import failed", error);', "")).toBe(false);
+    expect(isUnsafeLog('console.error("Import failed");', "")).toBe(false);
+    expect(isUnsafeLog("console.error(", '"Import failed:",')).toBe(false);
+  });
 
+  it("refuses a log that is not a constant error message", () => {
+    expect(isUnsafeLog('console.log("Import failed");', "")).toBe(true);
+    expect(isUnsafeLog("console.log(", '"Import failed",')).toBe(true);
+    expect(isUnsafeLog("console.error(", "label,")).toBe(true);
+    expect(isUnsafeLog("console.error(", "`Import of ${label} failed`,")).toBe(true);
+    expect(isUnsafeLog("console.error(", '"Import of " + label,')).toBe(true);
+    expect(isUnsafeLog('console.error("Import of " + label);', "")).toBe(true);
+    expect(isUnsafeLog('console.error("a".concat(label));', "")).toBe(true);
+    expect(isUnsafeLog('console.error("\\",", label);', "")).toBe(true);
+    expect(isUnsafeLog("console.error(", "")).toBe(true);
+  });
+
+  it("logs only errors, with a constant message", () => {
     expect(offenders(LOG_ALLOWED, isUnsafeLog)).toEqual([]);
   });
 });

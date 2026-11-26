@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Button, type ButtonVariant } from "../components/button";
 import { Modal } from "./modal";
 
-
 type ConfirmTarget =
   | {
       /** The server action to run once the user confirms. */
@@ -60,20 +59,10 @@ export function ConfirmActionButton({
       <p>{message}</p>
       <div className="flex justify-end gap-2">
         {/* Cancel takes the initial focus: the safe answer comes first. */}
-        <Button
-          type="button"
-          variant="secondary"
-          autoFocus
-          onClick={requestClose}
-        >
+        <Button type="button" variant="secondary" autoFocus onClick={requestClose}>
           {t("cancel")}
         </Button>
-        <Button
-          type="submit"
-          variant="destructive"
-          form={formId}
-          onClick={requestClose}
-        >
+        <Button type="submit" variant="destructive" form={formId} onClick={requestClose}>
           {confirmLabel}
         </Button>
       </div>
@@ -82,12 +71,7 @@ export function ConfirmActionButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant={variant}
-        onClick={() => setIsOpen(true)}
-        className={className}
-      >
+      <Button type="button" variant={variant} onClick={() => setIsOpen(true)} className={className}>
         {label}
         <span className="sr-only"> {subject}</span>
       </Button>

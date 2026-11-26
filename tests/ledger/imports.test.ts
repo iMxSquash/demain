@@ -8,11 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CsvMapping } from "../../src/domain/import-csv";
 import type { ImportedRow } from "../../src/domain/import-row";
 import { archiveAccount, createAccount } from "../../src/ledger/accounts";
-import {
-  archiveCategory,
-  createCategory,
-  reactivateCategory,
-} from "../../src/ledger/categories";
+import { archiveCategory, createCategory, reactivateCategory } from "../../src/ledger/categories";
 import { createRule, moveRule } from "../../src/ledger/categorization-rules";
 import {
   commitImport,
@@ -21,15 +17,8 @@ import {
   listImportBatches,
   previewImport,
 } from "../../src/ledger/imports";
-import {
-  listTransactions,
-  listUncategorizedTransactions,
-} from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { listTransactions, listUncategorizedTransactions } from "../../src/ledger/transactions";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { importBatches } from "../../src/storage/schema";
 
 const NOW = new Date("2026-03-01T10:00:00Z");
@@ -238,7 +227,9 @@ describe("imports", () => {
     });
 
     expect(result.newCount).toBe(1);
-    expect(result.ceilingWarnings).toEqual([{ label: "DEPOSIT", date: "2026-02-01", excess: 10_000 }]);
+    expect(result.ceilingWarnings).toEqual([
+      { label: "DEPOSIT", date: "2026-02-01", excess: 10_000 },
+    ]);
   });
 
   it("counts earlier rows of the file toward the ceiling", () => {
@@ -304,7 +295,10 @@ describe("imports", () => {
 
   it("ignores a stored mapping that no longer validates", () => {
     importRows([row()], MAPPING);
-    db.update(importBatches).set({ mapping: '{"delimiter":"|"}' }).where(eq(importBatches.accountId, accountId)).run();
+    db.update(importBatches)
+      .set({ mapping: '{"delimiter":"|"}' })
+      .where(eq(importBatches.accountId, accountId))
+      .run();
 
     expect(getLastCsvMapping(db, accountId)).toBeNull();
   });
@@ -326,15 +320,11 @@ describe("imports", () => {
 
     importRows([row(), row({ date: "2026-02-05", amount: 114_388, label: "SALARY" })]);
 
-    expect(
-      listTransactions(db).map((t) => [t.label, t.categoryId]),
-    ).toEqual([
+    expect(listTransactions(db).map((t) => [t.label, t.categoryId])).toEqual([
       ["CARD SHOP", shopping.id],
       ["SALARY", null],
     ]);
-    expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual([
-      "SALARY",
-    ]);
+    expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual(["SALARY"]);
   });
 
   it("gives the row to the first rule in the user-defined order", () => {
@@ -364,9 +354,7 @@ describe("imports", () => {
 
     importRows([row()]);
 
-    expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual([
-      "CARD SHOP",
-    ]);
+    expect(listUncategorizedTransactions(db).map((t) => t.label)).toEqual(["CARD SHOP"]);
   });
 
   it("applies again a rule whose category has been reactivated", () => {
@@ -398,10 +386,7 @@ describe("imports", () => {
     });
 
     it("flags nothing in an account that has no such movement", () => {
-      expect(findDuplicateRows(db, { accountId, rows: [row(), row()] })).toEqual([
-        false,
-        false,
-      ]);
+      expect(findDuplicateRows(db, { accountId, rows: [row(), row()] })).toEqual([false, false]);
     });
 
     it("writes nothing", () => {

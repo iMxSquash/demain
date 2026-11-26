@@ -76,14 +76,19 @@ describe("scheduleText across versions", () => {
   });
 
   it("refuses an item without any version, which is corrupted data", () => {
-    expect(() => scheduleText(translate, "en", { ...item, versions: [] }, TODAY)).toThrow(RangeError);
+    expect(() => scheduleText(translate, "en", { ...item, versions: [] }, TODAY)).toThrow(
+      RangeError,
+    );
   });
 });
 
 describe("versionScheduleText", () => {
   it("words a one-off version with the start date of the item", () => {
     expect(
-      versionScheduleText(translate, "en", "2027-03-05", { repetitionKind: null, repetitionValue: null }),
+      versionScheduleText(translate, "en", "2027-03-05", {
+        repetitionKind: null,
+        repetitionValue: null,
+      }),
     ).toBe("schedule.once:date=Mar 5, 2027");
   });
 });
@@ -96,9 +101,9 @@ describe("accountTextOf", () => {
   const transferText = ({ from, to }: { from: string; to: string }) => `${from} to ${to}`;
 
   it("names the account of an item that is not a transfer", () => {
-    expect(
-      accountTextOf({ accountId: 1, destinationAccountId: null }, names, transferText),
-    ).toBe("Current");
+    expect(accountTextOf({ accountId: 1, destinationAccountId: null }, names, transferText)).toBe(
+      "Current",
+    );
   });
 
   it("names both accounts of a transfer", () => {
@@ -117,9 +122,7 @@ describe("categoryOptionsOf", () => {
   const archivedName = (name: string) => `${name} (archived)`;
 
   it("offers the active categories and no archived one", () => {
-    expect(categoryOptionsOf(categories, null, archivedName)).toEqual([
-      { id: 1, name: "Housing" },
-    ]);
+    expect(categoryOptionsOf(categories, null, archivedName)).toEqual([{ id: 1, name: "Housing" }]);
   });
 
   it("keeps the archived category the item already has, worded as archived", () => {

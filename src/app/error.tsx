@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "../components/button";
 
-
 /**
  * Fallback for an unexpected failure while rendering a page. It never shows
  * the error: the detail is in the server log, matched by the digest Next.js

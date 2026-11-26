@@ -24,11 +24,7 @@ export interface SessionState {
  * Returns the token to put in the cookie. Only its hash is stored. A session
  * with `mfaPending` has passed the password step only and grants no access.
  */
-export function createSession(
-  db: AppDatabase,
-  now: Date,
-  { mfaPending }: SessionState,
-): string {
+export function createSession(db: AppDatabase, now: Date, { mfaPending }: SessionState): string {
   const token = randomBytes(TOKEN_BYTES).toString("base64url");
   const lifetime = mfaPending ? PENDING_LIFETIME_MS : ABSOLUTE_LIFETIME_MS;
   db.insert(sessions)
@@ -83,7 +79,9 @@ export function completeMfa(db: AppDatabase, token: string, now: Date): void {
 }
 
 export function revokeSession(db: AppDatabase, token: string): void {
-  db.delete(sessions).where(eq(sessions.id, hashToken(token))).run();
+  db.delete(sessions)
+    .where(eq(sessions.id, hashToken(token)))
+    .run();
 }
 
 export function revokeAllSessions(db: AppDatabase): void {

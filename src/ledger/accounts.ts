@@ -7,10 +7,7 @@ import {
   type AccountInput,
   type ValidAccountInput,
 } from "../domain/account";
-import {
-  assertOverflowTargetAllowed,
-  type OverflowAccount,
-} from "../domain/overflow";
+import { assertOverflowTargetAllowed, type OverflowAccount } from "../domain/overflow";
 import { messageRef } from "../domain/message";
 import type { AppDatabase } from "../storage/database";
 import { accounts, transactions } from "../storage/schema";
@@ -27,9 +24,7 @@ export class AccountNotFoundError extends Error {
 
 export class AccountInUseError extends Error {
   constructor(id: number, referrers: string[]) {
-    super(
-      `Account ${id} is the overflow account of ${referrers.join(", ")}: change those first`,
-    );
+    super(`Account ${id} is the overflow account of ${referrers.join(", ")}: change those first`);
     this.name = "AccountInUseError";
   }
 }
@@ -45,9 +40,7 @@ export class AccountInUseByPlannedItemError extends Error {
 
 export class AccountNotEmptyError extends Error {
   constructor(id: number, balance: number) {
-    super(
-      `Account ${id} has a balance of ${balance} minor units: empty it first, then archive it`,
-    );
+    super(`Account ${id} has a balance of ${balance} minor units: empty it first, then archive it`);
     this.name = "AccountNotEmptyError";
   }
 }
@@ -149,18 +142,12 @@ export function listAccounts(
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Account[] {
   const query = db.select().from(accounts);
-  const rows = includeArchived
-    ? query
-    : query.where(eq(accounts.archived, false));
+  const rows = includeArchived ? query : query.where(eq(accounts.archived, false));
   // SQLite gives no order guarantee without ORDER BY: keep creation order.
   return rows.orderBy(asc(accounts.id)).all();
 }
 
-export function updateAccount(
-  db: AppDatabase,
-  id: number,
-  input: AccountInput,
-): Account {
+export function updateAccount(db: AppDatabase, id: number, input: AccountInput): Account {
   const current = getAccount(db, id);
   const valid = validateAccountInput(input);
   assertOverflowAllowed(db, id, valid);
@@ -177,12 +164,7 @@ export function updateAccount(
   assertCurrencyChangeAllowed(current.currency, valid.currency, {
     hasTransactions: hasTransactions(db, id),
   });
-  return db
-    .update(accounts)
-    .set(toRow(valid))
-    .where(eq(accounts.id, id))
-    .returning()
-    .get();
+  return db.update(accounts).set(toRow(valid)).where(eq(accounts.id, id)).returning().get();
 }
 
 /** `today` decides which planned items are over: the ledger never reads the clock. */

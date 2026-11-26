@@ -112,6 +112,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Prettier formats the code (#195): `prettier` as a dev dependency with `printWidth: 100` as the only option, `npm run format` and `npm run format:check`, and a Format step in the CI after Lint. Markdown, migrations and generated files are not formatted (`.prettierignore`).
 - Notice after saving a transfer whose surplus fits nowhere (DESIGN.md section 10, "Above the ceiling"): it now names the source account that keeps the amount and the account whose ceiling is reached ("EUR 100.00 stays in Current: Savings B is full"), instead of a generic sentence. The split is still computed by the server.
 - Transactions leaves the phone tab bar for the More list of `/settings`, to make room for Calendar (#173). The tab bar is now Overview, Calendar, Accounts, Imports; the wide sidebar keeps Transactions, after Calendar.
 - Next.js is updated from 16.4.3 to 16.4.6, which includes the November 2026 security fixes (cache disclosure in `use cache`, SVG rejection bypass in image optimization, response forwarding in self-hosted apps).

@@ -4,10 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  commitStagedFileAction,
-  stageFileAction,
-} from "../../../src/app/imports/stage-actions";
+import { commitStagedFileAction, stageFileAction } from "../../../src/app/imports/stage-actions";
 import type { CommitStagedRequest } from "../../../src/app/imports/commit-request";
 import {
   createAccount,
@@ -22,11 +19,7 @@ import { createPlannedItem } from "../../../src/ledger/planned-items";
 import { markOccurrencePaid } from "../../../src/ledger/planned-matching";
 import { listTransactions } from "../../../src/ledger/transactions";
 import { removeVocabularyWord, setVocabularyWord } from "../../../src/ledger/type-vocabulary";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../../src/storage/database";
 import { translateKey } from "../translate-key";
 
 const holder = vi.hoisted(() => ({ db: null as unknown }));
@@ -236,17 +229,25 @@ describe("commitStagedFileAction", () => {
         repetition: null,
         amount: -1_250,
       });
-      markOccurrencePaid(db, { plannedItemId: item.id, nominalDate: "2026-03-02", date: "2026-03-02", amount: 1_250 }, "2026-03-02");
+      markOccurrencePaid(
+        db,
+        { plannedItemId: item.id, nominalDate: "2026-03-02", date: "2026-03-02", amount: 1_250 },
+        "2026-03-02",
+      );
       return listTransactions(db)[0]!.id;
     }
 
     it("is replaced by the row the review chose, and the state counts it", async () => {
       const entryId = markRentPaid();
 
-      const state = await commit([draft({ details: EXPENSE_DETAILS })], { replacements: [{ index: 0, entryId }] });
+      const state = await commit([draft({ details: EXPENSE_DETAILS })], {
+        replacements: [{ index: 0, entryId }],
+      });
 
       expect(state).toMatchObject({ status: "done", replacedCount: 1 });
-      expect(listTransactions(db)).toEqual([expect.objectContaining({ label: "CARD SHOP", occurrenceDate: "2026-03-02" })]);
+      expect(listTransactions(db)).toEqual([
+        expect.objectContaining({ label: "CARD SHOP", occurrenceDate: "2026-03-02" }),
+      ]);
     });
 
     it("blocks the file when the entry is not one the row can replace", async () => {
@@ -385,7 +386,9 @@ describe("commitStagedFileAction with an overflow account chosen in the review",
   });
 
   it("refuses a choice shaped otherwise, and records nothing", async () => {
-    const state = await commit([{ accountId: A_ID, target: { kind: "existing", id: B_ID }, extra: 1 }]);
+    const state = await commit([
+      { accountId: A_ID, target: { kind: "existing", id: B_ID }, extra: 1 },
+    ]);
 
     expect(state.status).toBe("error");
     expect(listTransactions(db)).toEqual([]);
@@ -546,7 +549,12 @@ VERSION:102
       const file = await stage(NOTES_CSV);
 
       expect(file.columns).toEqual({
-        roles: { typeColumn: null, paymentModeColumn: null, categoryColumn: 4, descriptionColumn: 3 },
+        roles: {
+          typeColumn: null,
+          paymentModeColumn: null,
+          categoryColumn: 4,
+          descriptionColumn: 3,
+        },
         available: [
           { column: 3, header: "Notes" },
           { column: 4, header: "Rubrique" },
@@ -614,7 +622,12 @@ VERSION:102
   it("types the rows of an OFX statement by the sign of their amount", async () => {
     const file = await stage(OFX, "statement.ofx");
 
-    expect(file).toMatchObject({ status: "ready", format: "ofx", mapping: null, firstDate: "2026-02-01" });
+    expect(file).toMatchObject({
+      status: "ready",
+      format: "ofx",
+      mapping: null,
+      firstDate: "2026-02-01",
+    });
     expect(file.rows.map((row) => [row.details.type, row.guess])).toEqual([
       ["expense", null],
       ["income", null],
@@ -685,7 +698,9 @@ VERSION:102
         const file = await stage(HEADERLESS, "2026-03.csv", CHECKING_ID, MAPPING_FIELDS);
 
         expect(file).toMatchObject({ status: "ready", mapping: HAND_MAPPING, columns: null });
-        expect(file.rows.map((row) => [row.draft.label, row.draft.amount, row.details.type])).toEqual([
+        expect(
+          file.rows.map((row) => [row.draft.label, row.draft.amount, row.details.type]),
+        ).toEqual([
           ["SHOP", "-12.50", "expense"],
           ["SALARY", "1500.00", "income"],
         ]);
@@ -762,7 +777,11 @@ VERSION:102
   it("says when the dates have no year, instead of showing an empty file", async () => {
     const file = await stage("Date;Label;Amount\n02/03;SHOP;-12,50", "statement.csv");
 
-    expect(file).toMatchObject({ status: "failed", message: "staged.yearMissing", needsMapping: false });
+    expect(file).toMatchObject({
+      status: "failed",
+      message: "staged.yearMissing",
+      needsMapping: false,
+    });
   });
 
   it("takes the year of the dates from the name of the file", async () => {

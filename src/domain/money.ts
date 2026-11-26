@@ -32,9 +32,7 @@ function getCurrencyFormatter(
  */
 export function divideRound(numerator: number, denominator: number): number {
   if (!Number.isSafeInteger(numerator) || !Number.isSafeInteger(denominator)) {
-    throw new RangeError(
-      `divideRound expects safe integers, got ${numerator} and ${denominator}`,
-    );
+    throw new RangeError(`divideRound expects safe integers, got ${numerator} and ${denominator}`);
   }
   if (denominator === 0) {
     throw new RangeError("divideRound cannot divide by zero");
@@ -62,10 +60,7 @@ export function currencySymbol(currency: string, locale: string): string {
 
 export function currencyDecimals(currency: string): number {
   // Intl carries the ISO 4217 minor units, which avoids maintaining our own table.
-  const { maximumFractionDigits } = getCurrencyFormatter(
-    "en",
-    currency,
-  ).resolvedOptions();
+  const { maximumFractionDigits } = getCurrencyFormatter("en", currency).resolvedOptions();
   if (maximumFractionDigits === undefined) {
     throw new RangeError(`No minor unit known for currency ${currency}`);
   }
@@ -83,11 +78,7 @@ export class MoneyParseError extends Error {
   }
 }
 
-function invalidAmount(
-  text: string,
-  reason: string,
-  ref: MessageRef,
-): MoneyParseError {
+function invalidAmount(text: string, reason: string, ref: MessageRef): MoneyParseError {
   return new MoneyParseError(`Invalid amount "${text}": ${reason}`, ref);
 }
 
@@ -109,10 +100,7 @@ const GROUPED_INTEGER_BY_MARK: Record<DecimalMark, RegExp> = {
   ".": /^(?:\d+|\d{1,3}(?:,\d{3})+)$/,
 };
 
-function splitSignAndBody(
-  text: string,
-  currency: string,
-): { isNegative: boolean; body: string } {
+function splitSignAndBody(text: string, currency: string): { isNegative: boolean; body: string } {
   const groups = AMOUNT_PATTERN.exec(text.trim())?.groups;
   const body = groups?.["body"];
   if (groups === undefined || body === undefined) {
@@ -124,11 +112,7 @@ function splitSignAndBody(
   }
 
   if (groups["signBefore"] !== undefined && groups["signAfter"] !== undefined) {
-    throw invalidAmount(
-      text,
-      "more than one sign",
-      messageRef("amountMoreThanOneSign", { text }),
-    );
+    throw invalidAmount(text, "more than one sign", messageRef("amountMoreThanOneSign", { text }));
   }
   const sign = groups["signBefore"] ?? groups["signAfter"];
 
@@ -202,21 +186,12 @@ function splitDecimal(
  * `decimalMark` is the one the whole file uses: it settles "1,234" (1234 with
  * the point, 1.234 with the comma) and rejects the other mark as a decimal one.
  */
-export function parseAmount(
-  text: string,
-  currency: string,
-  decimalMark?: DecimalMark,
-): number {
+export function parseAmount(text: string, currency: string, decimalMark?: DecimalMark): number {
   const decimals = currencyDecimals(currency);
   const { isNegative, body } = splitSignAndBody(text, currency);
-  const { integerPart, fractionPart, hasDecimalSeparator } = splitDecimal(
-    body,
-    decimalMark,
-  );
+  const { integerPart, fractionPart, hasDecimalSeparator } = splitDecimal(body, decimalMark);
   const groupedInteger =
-    decimalMark === undefined
-      ? GROUPED_INTEGER
-      : GROUPED_INTEGER_BY_MARK[decimalMark];
+    decimalMark === undefined ? GROUPED_INTEGER : GROUPED_INTEGER_BY_MARK[decimalMark];
 
   if (!groupedInteger.test(integerPart)) {
     throw invalidAmount(
@@ -240,15 +215,10 @@ export function parseAmount(
     );
   }
 
-  const digits =
-    integerPart.replace(/[.,]/g, "") + fractionPart.padEnd(decimals, "0");
+  const digits = integerPart.replace(/[.,]/g, "") + fractionPart.padEnd(decimals, "0");
   const value = BigInt(digits);
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw invalidAmount(
-      text,
-      "amount is too large",
-      messageRef("amountTooLarge", { text }),
-    );
+    throw invalidAmount(text, "amount is too large", messageRef("amountTooLarge", { text }));
   }
 
   // BigInt has no negative zero, so "-0,00" comes out as a plain 0.
@@ -280,9 +250,7 @@ export interface DecimalMarkDetection {
  * point to, the comma on a tie. Null when no cell tells (only whole amounts,
  * or "1,234" cells). Cells that are not amounts are ignored.
  */
-export function detectDecimalMark(
-  texts: readonly string[],
-): DecimalMarkDetection | null {
+export function detectDecimalMark(texts: readonly string[]): DecimalMarkDetection | null {
   const votes = { ",": 0, ".": 0 };
   for (const text of texts) {
     const body = AMOUNT_PATTERN.exec(text.trim())?.groups?.["body"];
@@ -325,9 +293,7 @@ export function formatAmount(
  */
 export function formatEditableAmount(minorUnits: number, currency: string): string {
   if (!Number.isSafeInteger(minorUnits)) {
-    throw new RangeError(
-      `formatEditableAmount expects a safe integer, got ${minorUnits}`,
-    );
+    throw new RangeError(`formatEditableAmount expects a safe integer, got ${minorUnits}`);
   }
 
   const decimals = currencyDecimals(currency);

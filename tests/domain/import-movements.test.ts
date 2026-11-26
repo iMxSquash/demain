@@ -95,9 +95,7 @@ describe("readMovementFile", () => {
     );
 
     expect(reading.rows.map((row) => row.label)).toEqual(["Carrefour", "Auchan"]);
-    expect(reading.issues.filter((issue) => issue.kind === "rowUnreadable")).toEqual(
-      [],
-    );
+    expect(reading.issues.filter((issue) => issue.kind === "rowUnreadable")).toEqual([]);
   });
 
   describe("a row with no label", () => {
@@ -132,10 +130,7 @@ describe("readMovementFile", () => {
     });
 
     it("is unreadable when the file has no category column", () => {
-      const reading = readMovementFile(
-        "Date;Description;Montant\n13/01/2026;;-12,50",
-        OPTIONS,
-      );
+      const reading = readMovementFile("Date;Description;Montant\n13/01/2026;;-12,50", OPTIONS);
 
       expect(reading.rows).toEqual([]);
       expect(reading.issues).toContainEqual(
@@ -311,9 +306,7 @@ describe("readMovementFile", () => {
       });
 
       expect(reading.rows[0]?.date).toBe("2026-01-13");
-      expect(reading.issues.map((issue) => issue.kind)).not.toContain(
-        "dateYearAssumed",
-      );
+      expect(reading.issues.map((issue) => issue.kind)).not.toContain("dateYearAssumed");
     });
 
     it("reads no row without any year", () => {
@@ -333,10 +326,10 @@ describe("readMovementFile", () => {
   });
 
   it("uses the delimiter the user chose", () => {
-    const reading = readMovementFile(
-      "Date,Libellé,Montant\n13/01/2026,Shop,-12.50",
-      { ...OPTIONS, delimiter: "," },
-    );
+    const reading = readMovementFile("Date,Libellé,Montant\n13/01/2026,Shop,-12.50", {
+      ...OPTIONS,
+      delimiter: ",",
+    });
 
     expect(reading.analysis.delimiter).toBe(",");
     expect(reading.rows).toHaveLength(1);

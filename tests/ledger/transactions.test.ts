@@ -22,11 +22,7 @@ import {
   recordManualTransfer,
   updateTransaction,
 } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const CHECKING_INPUT = {
   name: "Checking",
@@ -277,17 +273,13 @@ describe("transactions", () => {
     it("refuses to delete a transaction that belongs to an archived account", () => {
       const { income } = archivedWithHistory();
 
-      expect(() => deleteTransaction(db, income.id)).toThrow(
-        TransactionValidationError,
-      );
+      expect(() => deleteTransaction(db, income.id)).toThrow(TransactionValidationError);
     });
 
     it("refuses to delete the transfer from the other side when a leg is archived", () => {
       const { incoming } = archivedWithHistory();
 
-      expect(() => deleteTransaction(db, incoming.id)).toThrow(
-        TransactionValidationError,
-      );
+      expect(() => deleteTransaction(db, incoming.id)).toThrow(TransactionValidationError);
     });
 
     it("refuses to move a transaction out of an archived account", () => {
@@ -462,9 +454,9 @@ describe("transactions", () => {
         label: "Interest",
       });
 
-      expect(() =>
-        recordManualTransfer(db, request, { kind: "room-only" }),
-      ).toThrow(TransactionValidationError);
+      expect(() => recordManualTransfer(db, request, { kind: "room-only" })).toThrow(
+        TransactionValidationError,
+      );
       expect(listTransactions(db)).toHaveLength(1);
       expect(getAccountBalance(db, checking.id)).toBe(100_000);
     });

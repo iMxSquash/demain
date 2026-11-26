@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  digestBatchTransactions,
-  type DigestRow,
-} from "../../src/domain/import-digest";
+import { digestBatchTransactions, type DigestRow } from "../../src/domain/import-digest";
 
 const FIRST: DigestRow = {
   id: 1,
@@ -73,9 +70,7 @@ describe("digestBatchTransactions", () => {
   });
 
   it("does not depend on the order of the rows", () => {
-    expect(digestBatchTransactions([SECOND, FIRST])).toBe(
-      digestBatchTransactions([FIRST, SECOND]),
-    );
+    expect(digestBatchTransactions([SECOND, FIRST])).toBe(digestBatchTransactions([FIRST, SECOND]));
   });
 
   it.each(FIELD_CHANGES)("changes when the %s of a row changes", (_field, change) => {
@@ -85,9 +80,7 @@ describe("digestBatchTransactions", () => {
   });
 
   it("changes when a row is missing", () => {
-    expect(digestBatchTransactions([FIRST])).not.toBe(
-      digestBatchTransactions([FIRST, SECOND]),
-    );
+    expect(digestBatchTransactions([FIRST])).not.toBe(digestBatchTransactions([FIRST, SECOND]));
   });
 
   it("tells a null description from the text null", () => {
@@ -97,8 +90,8 @@ describe("digestBatchTransactions", () => {
   });
 
   it("does not let a text move into the next field", () => {
-    expect(
-      digestBatchTransactions([{ ...FIRST, label: "A", description: "B" }]),
-    ).not.toBe(digestBatchTransactions([{ ...FIRST, label: "A\",\"B", description: null }]));
+    expect(digestBatchTransactions([{ ...FIRST, label: "A", description: "B" }])).not.toBe(
+      digestBatchTransactions([{ ...FIRST, label: 'A","B', description: null }]),
+    );
   });
 });

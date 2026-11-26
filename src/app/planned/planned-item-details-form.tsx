@@ -66,10 +66,20 @@ export function PlannedItemDetailsForm({
       </FormField>
 
       {hasCategory ? (
-        <FormField id="categoryId" label={t("form.category")} optional error={errorOf("categoryId")}>
+        <FormField
+          id="categoryId"
+          label={t("form.category")}
+          optional
+          error={errorOf("categoryId")}
+        >
           {/* The key remounts the select: after the automatic form reset React does not
               re-apply a changed defaultValue to the options. */}
-          <Select key={values.categoryId} id="categoryId" name="categoryId" defaultValue={values.categoryId}>
+          <Select
+            key={values.categoryId}
+            id="categoryId"
+            name="categoryId"
+            defaultValue={values.categoryId}
+          >
             <option value="">{common("none")}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -119,7 +129,12 @@ export function PlannedItemDetailsForm({
         </p>
       ) : null}
 
-      <Button type="submit" pending={isPending} pendingLabel={common("pending")} className="self-start">
+      <Button
+        type="submit"
+        pending={isPending}
+        pendingLabel={common("pending")}
+        className="self-start"
+      >
         {t("saveDetails")}
       </Button>
     </form>

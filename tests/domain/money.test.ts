@@ -51,9 +51,7 @@ describe("divideRound", () => {
 
   it("stays exact on large safe integers", () => {
     expect(divideRound(Number.MAX_SAFE_INTEGER, 1)).toBe(Number.MAX_SAFE_INTEGER);
-    expect(divideRound(Number.MAX_SAFE_INTEGER - 1, 2)).toBe(
-      (Number.MAX_SAFE_INTEGER - 1) / 2,
-    );
+    expect(divideRound(Number.MAX_SAFE_INTEGER - 1, 2)).toBe((Number.MAX_SAFE_INTEGER - 1) / 2);
   });
 
   it("rejects a zero denominator", () => {
@@ -162,15 +160,11 @@ describe("parseAmount", () => {
   );
 
   it("rejects an amount above the safe integer range", () => {
-    expect(() => parseAmount("90 071 992 547 409,92", "EUR")).toThrow(
-      /too large/,
-    );
+    expect(() => parseAmount("90 071 992 547 409,92", "EUR")).toThrow(/too large/);
   });
 
   it("accepts the largest safe amount", () => {
-    expect(parseAmount("90 071 992 547 409,91", "EUR")).toBe(
-      Number.MAX_SAFE_INTEGER,
-    );
+    expect(parseAmount("90 071 992 547 409,91", "EUR")).toBe(Number.MAX_SAFE_INTEGER);
   });
 
   it("rejects an ISO code that differs from the expected currency", () => {
@@ -320,21 +314,16 @@ describe("formatAmount", () => {
 
   it("rejects an amount that is not a safe integer", () => {
     expect(() => formatAmount(12.5, "EUR", "fr-FR")).toThrow(RangeError);
-    expect(() => formatAmount(Number.MAX_SAFE_INTEGER + 1, "EUR", "fr-FR")).toThrow(
-      RangeError,
-    );
+    expect(() => formatAmount(Number.MAX_SAFE_INTEGER + 1, "EUR", "fr-FR")).toThrow(RangeError);
   });
 
-  it.each(["fr-FR", "en-US", "de-DE"])(
-    "round-trips through parseAmount in %s",
-    (locale) => {
-      for (const minor of [0, 7, 100, 114388, -114388, -5, 99999999]) {
-        const text = formatAmount(minor, "EUR", locale);
+  it.each(["fr-FR", "en-US", "de-DE"])("round-trips through parseAmount in %s", (locale) => {
+    for (const minor of [0, 7, 100, 114388, -114388, -5, 99999999]) {
+      const text = formatAmount(minor, "EUR", locale);
 
-        expect(parseAmount(text, "EUR")).toBe(minor);
-      }
-    },
-  );
+      expect(parseAmount(text, "EUR")).toBe(minor);
+    }
+  });
 });
 
 describe("formatEditableAmount", () => {

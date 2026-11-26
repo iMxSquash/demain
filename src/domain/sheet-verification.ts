@@ -20,10 +20,7 @@ export type VerifiedFigure = (typeof VERIFIED_FIGURES)[number];
 export type ComputedMonth = { month: Month } & Record<VerifiedFigure, number>;
 
 /** What the Summary tab shows for a month; null where its cell is empty. */
-export type SheetMonth = { month: Month } & Record<
-  VerifiedFigure,
-  number | null
->;
+export type SheetMonth = { month: Month } & Record<VerifiedFigure, number | null>;
 
 export interface FigureDifference {
   month: Month;
@@ -56,9 +53,7 @@ export function verifyAgainstSummary(
   computed: readonly ComputedMonth[],
   sheet: readonly SheetMonth[],
 ): SummaryVerification {
-  const computedByMonth = new Map(
-    computed.map((entry) => [entry.month, entry]),
-  );
+  const computedByMonth = new Map(computed.map((entry) => [entry.month, entry]));
   const sheetByMonth = new Map<Month, SheetMonth>();
   const duplicates = new Set<Month>();
   for (const entry of sheet) {
@@ -69,13 +64,10 @@ export function verifyAgainstSummary(
   const differences: FigureDifference[] = [];
   const issues: VerificationIssue[] = [];
   // "YYYY-MM" strings sort chronologically.
-  const months = [
-    ...new Set([...computedByMonth.keys(), ...sheetByMonth.keys()]),
-  ].sort();
+  const months = [...new Set([...computedByMonth.keys(), ...sheetByMonth.keys()])].sort();
 
   for (const month of months) {
-    if (duplicates.has(month))
-      issues.push({ kind: "duplicateSheetMonth", month });
+    if (duplicates.has(month)) issues.push({ kind: "duplicateSheetMonth", month });
     const demain = computedByMonth.get(month);
     const fromSheet = sheetByMonth.get(month);
     if (demain === undefined) {

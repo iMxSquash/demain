@@ -24,11 +24,7 @@ import {
 import { createCategory } from "../../src/ledger/categories";
 import { createRule, listRules } from "../../src/ledger/categorization-rules";
 import { createTransaction } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { balanceAssertions, transactions } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");
@@ -100,15 +96,33 @@ describe("import checks", () => {
 
   it("counts a manual movement dated before the end date and ignores a later one", () => {
     const batchId = importFile([row("2026-03-31", -500, "B")]);
-    createTransaction(db, { accountId, date: "2026-03-15", amount: 2_000, kind: "income", label: "Salary" });
-    createTransaction(db, { accountId, date: "2026-04-02", amount: -9_999, kind: "expense", label: "Later" });
+    createTransaction(db, {
+      accountId,
+      date: "2026-03-15",
+      amount: 2_000,
+      kind: "income",
+      label: "Salary",
+    });
+    createTransaction(db, {
+      accountId,
+      date: "2026-04-02",
+      amount: -9_999,
+      kind: "expense",
+      label: "Later",
+    });
 
     expect(getBatchBalanceCheck(db, batchId).computedBalance).toBe(OPENING_BALANCE + 2_000 - 500);
   });
 
   it("ignores the movements of other accounts", () => {
     const other = createAccount(db, { ...ACCOUNT, name: "Other", openingBalance: 777 }).id;
-    createTransaction(db, { accountId: other, date: "2026-06-01", amount: 5_000, kind: "income", label: "Elsewhere" });
+    createTransaction(db, {
+      accountId: other,
+      date: "2026-06-01",
+      amount: 5_000,
+      kind: "income",
+      label: "Elsewhere",
+    });
     const batchId = importFile([row("2026-03-31", -500, "B")]);
 
     const check = getBatchBalanceCheck(db, batchId);
@@ -185,7 +199,13 @@ describe("import checks", () => {
 
     it("refuses an archived account and writes nothing", () => {
       const batchId = importFile([row("2026-03-31", -500, "B")]);
-      createTransaction(db, { accountId, date: "2026-04-01", amount: -9_500, kind: "expense", label: "Empty" });
+      createTransaction(db, {
+        accountId,
+        date: "2026-04-01",
+        amount: -9_500,
+        kind: "expense",
+        label: "Empty",
+      });
       archiveAccount(db, accountId, "2026-06-15");
 
       expect(() => recordBatchBalanceAssertion(db, batchId, TYPED_BALANCE)).toThrow(
@@ -262,7 +282,9 @@ describe("import checks", () => {
 
       const proposals = listRuleProposals(db, proposalBatch());
 
-      expect(proposals).toContainEqual(expect.objectContaining({ label: "cinema", categoryId: leisure }));
+      expect(proposals).toContainEqual(
+        expect.objectContaining({ label: "cinema", categoryId: leisure }),
+      );
     });
 
     it("names the category of the rule that would hide a proposal", () => {
@@ -270,8 +292,12 @@ describe("import checks", () => {
 
       const proposals = listRuleProposals(db, proposalBatch());
 
-      expect(proposals.find(({ label }) => label === "cinema")?.shadowingCategoryName).toBe("Groceries");
-      expect(proposals.find(({ label }) => label === "card shop")?.shadowingCategoryName).toBeNull();
+      expect(proposals.find(({ label }) => label === "cinema")?.shadowingCategoryName).toBe(
+        "Groceries",
+      );
+      expect(
+        proposals.find(({ label }) => label === "card shop")?.shadowingCategoryName,
+      ).toBeNull();
     });
 
     it("ignores transfer rows and rows without a category", () => {

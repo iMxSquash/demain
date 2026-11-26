@@ -12,9 +12,7 @@ const FRAME = {
   margin: { top: 10, right: 50, bottom: 30, left: 50 },
 };
 
-function input(
-  overrides: Partial<LineChartGeometryInput> = {},
-): LineChartGeometryInput {
+function input(overrides: Partial<LineChartGeometryInput> = {}): LineChartGeometryInput {
   return {
     ...FRAME,
     categoryCount: 3,

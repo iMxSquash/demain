@@ -3,7 +3,11 @@
 import type { OverrideStatus } from "../../domain/occurrences";
 import type { PlannedItemField } from "../../domain/planned-item";
 import { getAccount } from "../../ledger/accounts";
-import { deleteOccurrenceOverride, getPlannedItem, saveOccurrenceOverride } from "../../ledger/planned-items";
+import {
+  deleteOccurrenceOverride,
+  getPlannedItem,
+  saveOccurrenceOverride,
+} from "../../ledger/planned-items";
 import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
@@ -57,7 +61,12 @@ export async function saveOccurrenceOverrideAction(
       // The kind gives the sign of the amount and the account its currency: neither comes from the form.
       const { kind, accountId } = getPlannedItem(db, target.itemId);
       const { currency } = getAccount(db, accountId);
-      const parsed = parseOccurrenceOverrideForm(formData, values, { ...target, kind, currency }, translate);
+      const parsed = parseOccurrenceOverrideForm(
+        formData,
+        values,
+        { ...target, kind, currency },
+        translate,
+      );
       if (!parsed.ok) return { rejected: parsed.error };
       saveOccurrenceOverride(db, target.itemId, parsed.input);
       return { status: parsed.input.status };
@@ -68,7 +77,9 @@ export async function saveOccurrenceOverrideAction(
   if ("rejected" in outcome) return outcome.rejected;
 
   refreshData();
-  await flashSuccess(outcome.status === "cancelled" ? "occurrenceSkipped" : "occurrenceOverrideSaved");
+  await flashSuccess(
+    outcome.status === "cancelled" ? "occurrenceSkipped" : "occurrenceOverrideSaved",
+  );
   return null;
 }
 

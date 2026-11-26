@@ -18,8 +18,7 @@ export const isChosenFile = (value: FormDataEntryValue): value is File =>
 export function withoutEmptyFilePlaceholders(formData: FormData): FormData {
   const cleaned = new FormData();
   for (const [name, value] of formData.entries()) {
-    const isPlaceholder =
-      typeof value !== "string" && value.name === "" && value.size === 0;
+    const isPlaceholder = typeof value !== "string" && value.name === "" && value.size === 0;
     if (!isPlaceholder) cleaned.append(name, value);
   }
   return cleaned;

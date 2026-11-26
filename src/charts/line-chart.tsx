@@ -73,13 +73,7 @@ function Marker({ kind, x, y, size, tone, seriesId }: MarkerProps) {
   // Outlined in the page ground the chart is drawn on, so that overlapping markers stay apart.
   const className = `${TONE_CLASSES[tone].fill} stroke-bg`;
   return kind === "circle" ? (
-    <circle
-      cx={x}
-      cy={y}
-      r={size / 2}
-      className={className}
-      data-series={seriesId}
-    />
+    <circle cx={x} cy={y} r={size / 2} className={className} data-series={seriesId} />
   ) : (
     <rect
       x={x - size / 2}
@@ -92,14 +86,7 @@ function Marker({ kind, x, y, size, tone, seriesId }: MarkerProps) {
   );
 }
 
-export function LineChart({
-  label,
-  hint,
-  currency,
-  locale,
-  categories,
-  series,
-}: LineChartProps) {
+export function LineChart({ label, hint, currency, locale, categories, series }: LineChartProps) {
   const hintId = useId();
   const [cursor, setCursor] = useState<number | null>(null);
   const lastIndex = categories.length - 1;
@@ -130,9 +117,7 @@ export function LineChart({
       ? ""
       : [
           categories[cursor]?.label,
-          ...series.map(
-            (entry) => `${entry.label} ${entry.valueLabels[cursor] ?? ""}`,
-          ),
+          ...series.map((entry) => `${entry.label} ${entry.valueLabels[cursor] ?? ""}`),
         ].join(", ");
 
   return (

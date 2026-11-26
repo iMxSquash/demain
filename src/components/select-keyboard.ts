@@ -86,13 +86,17 @@ export function findTypeaheadMatch(
 ): number {
   if (buffer === "" || options.length === 0) return -1;
   const repeated = isRepeatedLetter(buffer);
-  const needle = foldAccents(repeated ? [...buffer][0] ?? "" : buffer);
+  const needle = foldAccents(repeated ? ([...buffer][0] ?? "") : buffer);
   const firstOffset = repeated || [...buffer].length === 1 ? 1 : 0;
 
   for (let offset = firstOffset; offset < options.length + firstOffset; offset += 1) {
     const index = (((activeIndex + offset) % options.length) + options.length) % options.length;
     const option = options[index];
-    if (option !== undefined && option.disabled !== true && foldAccents(option.label).startsWith(needle)) {
+    if (
+      option !== undefined &&
+      option.disabled !== true &&
+      foldAccents(option.label).startsWith(needle)
+    ) {
       return index;
     }
   }
@@ -104,7 +108,9 @@ function isLetter(key: string): boolean {
 }
 
 function commit(activeIndex: number, preventDefault: boolean): SelectKeyAction {
-  return activeIndex < 0 ? { type: "close", preventDefault } : { type: "commit", activeIndex, preventDefault };
+  return activeIndex < 0
+    ? { type: "close", preventDefault }
+    : { type: "commit", activeIndex, preventDefault };
 }
 
 function resolveClosed(
@@ -124,9 +130,17 @@ function resolveClosed(
     case "End":
       return { type: "open", activeIndex: lastEnabled(options), preventDefault: true };
     case "PageDown":
-      return { type: "open", activeIndex: jump(options, Math.max(start, 0), PAGE_JUMP), preventDefault: true };
+      return {
+        type: "open",
+        activeIndex: jump(options, Math.max(start, 0), PAGE_JUMP),
+        preventDefault: true,
+      };
     case "PageUp":
-      return { type: "open", activeIndex: jump(options, Math.max(start, 0), -PAGE_JUMP), preventDefault: true };
+      return {
+        type: "open",
+        activeIndex: jump(options, Math.max(start, 0), -PAGE_JUMP),
+        preventDefault: true,
+      };
     default:
       return NONE;
   }
@@ -144,10 +158,14 @@ function resolveOpen(
 
   switch (key) {
     case "ArrowDown":
-      return move(activeIndex < 0 ? firstEnabled(options) : nearestEnabled(options, activeIndex, 1));
+      return move(
+        activeIndex < 0 ? firstEnabled(options) : nearestEnabled(options, activeIndex, 1),
+      );
     case "ArrowUp":
       if (modifiers.alt) return commit(activeIndex, true);
-      return move(activeIndex < 0 ? lastEnabled(options) : nearestEnabled(options, activeIndex, -1));
+      return move(
+        activeIndex < 0 ? lastEnabled(options) : nearestEnabled(options, activeIndex, -1),
+      );
     case "Home":
       return move(firstEnabled(options));
     case "End":
@@ -165,7 +183,9 @@ function resolveOpen(
       return { type: "close", preventDefault: false };
     case " ":
       // Typed in a search, a space is a letter of it; on its own it chooses the option the list points at.
-      return state.typeahead === "" ? commit(activeIndex, true) : resolveTypeahead(state, key, options);
+      return state.typeahead === ""
+        ? commit(activeIndex, true)
+        : resolveTypeahead(state, key, options);
     default:
       return isLetter(key) ? resolveTypeahead(state, key, options) : NONE;
   }
@@ -178,7 +198,12 @@ function resolveTypeahead(
 ): SelectKeyAction {
   const buffer = state.typeahead + key;
   const match = findTypeaheadMatch(options, state.activeIndex, buffer);
-  return { type: "typeahead", buffer, activeIndex: match >= 0 ? match : state.activeIndex, preventDefault: true };
+  return {
+    type: "typeahead",
+    buffer,
+    activeIndex: match >= 0 ? match : state.activeIndex,
+    preventDefault: true,
+  };
 }
 
 /** What a key press does to the select. `none` means the browser keeps the key. */

@@ -91,9 +91,7 @@ export function monthOf(date: string): Month {
 function shiftMonth(month: Month, offset: number): Month {
   // Date rolls the month over to the neighboring year when needed.
   const [year = 0, number = 1] = month.split("-").map(Number);
-  return new Date(Date.UTC(year, number - 1 + offset, 1))
-    .toISOString()
-    .slice(0, MONTH_LENGTH);
+  return new Date(Date.UTC(year, number - 1 + offset, 1)).toISOString().slice(0, MONTH_LENGTH);
 }
 
 /** The latest month that is over on `today` (YYYY-MM-DD). */
@@ -137,10 +135,7 @@ function isSavings(lookups: Lookups, accountId: number): boolean {
 
 // A flow is valued with the rate in force on its own date. Null: its currency
 // has no rate yet, or its account is unknown.
-function inReferenceCurrency(
-  lookups: Lookups,
-  transaction: SynthesisTransaction,
-): number | null {
+function inReferenceCurrency(lookups: Lookups, transaction: SynthesisTransaction): number | null {
   const currency = lookups.accountById.get(transaction.accountId)?.currency;
   return currency === undefined
     ? null
@@ -159,10 +154,7 @@ interface Flows {
   unconvertedCurrencies: string[];
 }
 
-function sumConverted(
-  lookups: Lookups,
-  transactions: Iterable<SynthesisTransaction>,
-): Flows {
+function sumConverted(lookups: Lookups, transactions: Iterable<SynthesisTransaction>): Flows {
   let total = 0;
   const unconverted = new Set<string>();
   for (const transaction of transactions) {
@@ -179,10 +171,7 @@ function sumConverted(
   return { total, unconvertedCurrencies: [...unconverted] };
 }
 
-function netOf(
-  lookups: Lookups,
-  inMonth: readonly SynthesisTransaction[],
-): Flows {
+function netOf(lookups: Lookups, inMonth: readonly SynthesisTransaction[]): Flows {
   return sumConverted(
     lookups,
     inMonth.filter((transaction) => transaction.kind !== "transfer"),
@@ -192,10 +181,7 @@ function netOf(
 // Only the legs on a savings account count, and only when the other end is
 // not a savings account: savings to savings moves nothing out of the pot. A
 // leg whose counterpart is unknown is left out rather than guessed.
-function savingsOf(
-  lookups: Lookups,
-  inMonth: readonly SynthesisTransaction[],
-): Flows {
+function savingsOf(lookups: Lookups, inMonth: readonly SynthesisTransaction[]): Flows {
   return sumConverted(
     lookups,
     inMonth.filter((leg) => {
@@ -234,14 +220,11 @@ function endOfMonth(month: Month): string {
 }
 
 // Balances are valued with the rate in force at the end of their month.
-function totalsOf(
-  balances: readonly AccountBalance[],
-  lookups: Lookups,
-  month: Month,
-) {
-  const totalByKind = Object.fromEntries(
-    ACCOUNT_KINDS.map((kind) => [kind, 0]),
-  ) as Record<AccountKind, number>;
+function totalsOf(balances: readonly AccountBalance[], lookups: Lookups, month: Month) {
+  const totalByKind = Object.fromEntries(ACCOUNT_KINDS.map((kind) => [kind, 0])) as Record<
+    AccountKind,
+    number
+  >;
   const unconverted = new Set<string>();
   for (const entry of balances) {
     const converted = convertAmount(
@@ -278,9 +261,7 @@ function buildLookups(input: SynthesisInput): Lookups {
 
 // Running balance of every account: seeded with its opening balance and moved
 // by each month's transactions, so no month is recomputed from the start.
-function seedBalances(
-  accounts: readonly SynthesisAccount[],
-): Map<number, number> {
+function seedBalances(accounts: readonly SynthesisAccount[]): Map<number, number> {
   return new Map(accounts.map((account) => [account.id, account.openingBalance]));
 }
 
@@ -307,9 +288,7 @@ function applyToBalances(
   }
 }
 
-export function computeMonthlySynthesis(
-  input: SynthesisInput,
-): MonthlySynthesis[] {
+export function computeMonthlySynthesis(input: SynthesisInput): MonthlySynthesis[] {
   const start = firstMonth(input);
   if (start === null) return [];
 

@@ -263,9 +263,7 @@ export const RowEditor = memo(function RowEditor({
           value={details.paymentMode ?? ""}
           onChange={(event) =>
             setDetails({
-              paymentMode:
-                PAYMENT_MODES.find((mode) => mode === event.currentTarget.value) ??
-                null,
+              paymentMode: PAYMENT_MODES.find((mode) => mode === event.currentTarget.value) ?? null,
             })
           }
         >
@@ -314,9 +312,7 @@ export const RowEditor = memo(function RowEditor({
             })}
           </p>
         ) : null}
-        {splitText === null ? null : (
-          <p>{t("splitLabel", { parts: splitText })}</p>
-        )}
+        {splitText === null ? null : <p>{t("splitLabel", { parts: splitText })}</p>}
       </td>
     </tr>
   );

@@ -51,7 +51,10 @@ function monthEnds(today: string, count: number): MonthEndDate[] {
     const endYear = date.getUTCFullYear();
     const endMonth = date.getUTCMonth() + 1;
     const key = `${endYear}-${String(endMonth).padStart(2, "0")}`;
-    return { month: key, date: `${key}-${String(daysInMonth(endYear, endMonth)).padStart(2, "0")}` };
+    return {
+      month: key,
+      date: `${key}-${String(daysInMonth(endYear, endMonth)).padStart(2, "0")}`,
+    };
   });
 }
 
@@ -80,7 +83,9 @@ export function linksByItem(db: AppDatabase, itemIds: number[]): Map<number, Occ
       amount: transactions.amount,
     })
     .from(transactions)
-    .where(and(inArray(transactions.plannedItemId, itemIds), isNotNull(transactions.occurrenceDate)))
+    .where(
+      and(inArray(transactions.plannedItemId, itemIds), isNotNull(transactions.occurrenceDate)),
+    )
     .all();
   // The where clause keeps linked transactions only, so the nullable columns are set.
   return Map.groupBy(
@@ -167,7 +172,9 @@ export function getPlannedTrajectory(
     db,
     plannedItems.map((item) => item.id),
   );
-  const items = plannedItems.map((item) => resolveItem(item, links.get(item.id) ?? [], today, lastEnd.date));
+  const items = plannedItems.map((item) =>
+    resolveItem(item, links.get(item.id) ?? [], today, lastEnd.date),
+  );
 
   // Flows dated before `from` weigh on its first day, so balances at each month end are exact.
   const rates = listExchangeRates(db);

@@ -10,13 +10,18 @@ export const EXPORT_SCHEMA_VERSION = 2;
 
 const id = z.int().positive();
 const calendarDate = z.iso.date().describe("Calendar date, YYYY-MM-DD, without time or timezone.");
-const currencyCode = z.string().regex(/^[A-Z]{3}$/).describe("ISO 4217 currency code.");
+const currencyCode = z
+  .string()
+  .regex(/^[A-Z]{3}$/)
+  .describe("ISO 4217 currency code.");
 
 const money = z
   .strictObject({
     minorUnits: z
       .int()
-      .describe("Signed integer in the minor unit of the currency (cents for EUR). Never a decimal."),
+      .describe(
+        "Signed integer in the minor unit of the currency (cents for EUR). Never a decimal.",
+      ),
     currency: currencyCode,
   })
   .describe("An amount with its currency.");
@@ -30,13 +35,15 @@ const account = z.strictObject({
   openingBalance: money,
   archived: z.boolean(),
   depositCeiling: money.nullable().describe("Null: no ceiling."),
-  overflowAccountId: id.nullable().describe("Account receiving what does not fit under the ceiling."),
+  overflowAccountId: id
+    .nullable()
+    .describe("Account receiving what does not fit under the ceiling."),
 });
 
 const category = z.strictObject({
   id,
   name: z.string(),
-  icon: z.string().describe("A key of the closed set of category icons, such as \"basket\"."),
+  icon: z.string().describe('A key of the closed set of category icons, such as "basket".'),
   archived: z.boolean(),
 });
 
@@ -67,7 +74,9 @@ const transaction = z.strictObject({
   label: z.string(),
   description: z.string().nullable(),
   paymentMode: z.enum(["card", "transfer", "direct_debit"]).nullable(),
-  categoryId: id.nullable().describe("Null: waiting in the to-categorize queue. A transfer has none."),
+  categoryId: id
+    .nullable()
+    .describe("Null: waiting in the to-categorize queue. A transfer has none."),
   transferCounterpartId: id.nullable().describe("The other leg of a transfer."),
   importBatchId: id.nullable(),
   plannedItemId: id
@@ -93,7 +102,9 @@ const plannedItem = z
     endDate: calendarDate.nullable().describe("Null: no end."),
     acceptsMultipleTransactions: z.boolean(),
     provisionLabelFilter: z.string().nullable(),
-    matchWindowDays: z.int().describe("Days around the nominal date in which a transaction may match."),
+    matchWindowDays: z
+      .int()
+      .describe("Days around the nominal date in which a transaction may match."),
     matchAmountToleranceBp: z
       .int()
       .describe("Amount tolerance of the matching in basis points, 500 is 5 percent."),

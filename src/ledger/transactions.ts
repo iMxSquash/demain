@@ -17,12 +17,7 @@ import { messageRef } from "../domain/message";
 import type { OverflowAccount } from "../domain/overflow";
 import type { AppDatabase } from "../storage/database";
 import { transactions } from "../storage/schema";
-import {
-  getAccount,
-  getAccountBalance,
-  listOverflowAccounts,
-  type Account,
-} from "./accounts";
+import { getAccount, getAccountBalance, listOverflowAccounts, type Account } from "./accounts";
 import { getCategory } from "./categories";
 import { insertRule } from "./categorization-rules";
 
@@ -36,11 +31,7 @@ export class TransactionNotFoundError extends Error {
 }
 
 export function getTransaction(db: AppDatabase, id: number): Transaction {
-  const transaction = db
-    .select()
-    .from(transactions)
-    .where(eq(transactions.id, id))
-    .get();
+  const transaction = db.select().from(transactions).where(eq(transactions.id, id)).get();
   if (transaction === undefined) {
     throw new TransactionNotFoundError(id);
   }
@@ -73,10 +64,7 @@ function assertCategoryChoice(
   assertCategoryAssignable(kind, getCategory(db, categoryId));
 }
 
-export function createTransaction(
-  db: AppDatabase,
-  input: TransactionInput,
-): Transaction {
+export function createTransaction(db: AppDatabase, input: TransactionInput): Transaction {
   const valid = validateTransactionInput(input);
   getOpenAccount(db, valid.accountId);
   assertCategoryChoice(db, valid.kind, valid.categoryId, null);
@@ -118,10 +106,7 @@ export interface LegImportColumns {
 export function insertTransferLegs(
   writer: Writer,
   [outgoingLeg, incomingLeg]: [TransferLeg, TransferLeg],
-  [outgoingColumns, incomingColumns]: [LegImportColumns, LegImportColumns] = [
-    {},
-    {},
-  ],
+  [outgoingColumns, incomingColumns]: [LegImportColumns, LegImportColumns] = [{}, {}],
 ): [outgoing: Transaction, incoming: Transaction] {
   const outgoing = writer
     .insert(transactions)
@@ -160,9 +145,7 @@ export function createTransfer(
   return db.transaction((tx) => insertTransferLegs(tx, legs));
 }
 
-export type SurplusDecision =
-  | { kind: "room-only" }
-  | { kind: "send-surplus"; accountId: number };
+export type SurplusDecision = { kind: "room-only" } | { kind: "send-surplus"; accountId: number };
 
 export interface ManualTransferResult {
   transfers: [outgoing: Transaction, incoming: Transaction][];
@@ -172,9 +155,7 @@ export interface ManualTransferResult {
 
 export class SurplusDecisionRequiredError extends Error {
   constructor(readonly split: ManualTransferSplit) {
-    super(
-      `${split.surplus} minor units do not fit under the ceiling: a decision is required`,
-    );
+    super(`${split.surplus} minor units do not fit under the ceiling: a decision is required`);
     this.name = "SurplusDecisionRequiredError";
   }
 }
@@ -389,8 +370,7 @@ export function deleteTransaction(db: AppDatabase, id: number): void {
   if (counterpartId !== null) {
     getOpenAccount(db, getTransaction(db, counterpartId).accountId);
   }
-  const ids =
-    counterpartId === null ? [transaction.id] : [transaction.id, counterpartId];
+  const ids = counterpartId === null ? [transaction.id] : [transaction.id, counterpartId];
   // One statement: the legs reference each other, and SQLite checks the
   // foreign key at the end of the statement.
   db.delete(transactions).where(inArray(transactions.id, ids)).run();
@@ -398,9 +378,5 @@ export function deleteTransaction(db: AppDatabase, id: number): void {
 
 export function listTransactions(db: AppDatabase): Transaction[] {
   // SQLite gives no order guarantee without ORDER BY.
-  return db
-    .select()
-    .from(transactions)
-    .orderBy(asc(transactions.date), asc(transactions.id))
-    .all();
+  return db.select().from(transactions).orderBy(asc(transactions.date), asc(transactions.id)).all();
 }

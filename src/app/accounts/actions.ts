@@ -20,11 +20,7 @@ import { requireSession } from "../auth/session";
 import { refreshData } from "../data-cache";
 import { flashError, flashSuccess, runWithNotice } from "../feedback/flash";
 import { getTranslator } from "../translator";
-import {
-  parseAccountForm,
-  readSubmittedValues,
-  type AccountFormState,
-} from "./account-form-data";
+import { parseAccountForm, readSubmittedValues, type AccountFormState } from "./account-form-data";
 
 const ACCOUNTS_PATH = "/accounts";
 

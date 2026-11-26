@@ -11,7 +11,10 @@ import {
 
 describe("the parameters of the Link a transaction page", () => {
   it("names the occurrence with its item and its nominal date", () => {
-    expect(parseOccurrenceRef("12", "2026-11-20")).toEqual({ plannedItemId: 12, nominalDate: "2026-11-20" });
+    expect(parseOccurrenceRef("12", "2026-11-20")).toEqual({
+      plannedItemId: 12,
+      nominalDate: "2026-11-20",
+    });
     expect(linkHref({ plannedItemId: 12, nominalDate: "2026-11-20" }, "lines")).toBe(
       "/planned/link?item=12&date=2026-11-20&back=lines",
     );
@@ -44,6 +47,10 @@ describe("the parameters of the Link a transaction page", () => {
     const { range } = parseLinkFilters({ from: "", to: "" });
 
     expect(range.from! < "1900-01-01" && range.to! > "2999-12-31").toBe(true);
-    expect([shownBound(range.from!), shownBound(range.to!), shownBound("2026-11-20")]).toEqual(["", "", "2026-11-20"]);
+    expect([shownBound(range.from!), shownBound(range.to!), shownBound("2026-11-20")]).toEqual([
+      "",
+      "",
+      "2026-11-20",
+    ]);
   });
 });

@@ -5,7 +5,10 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { decodeFlash, FLASH_COOKIE } from "../../../src/app/feedback/flash-codec";
-import { linkOccurrenceAction, unlinkOccurrenceAction } from "../../../src/app/transactions/actions";
+import {
+  linkOccurrenceAction,
+  unlinkOccurrenceAction,
+} from "../../../src/app/transactions/actions";
 import { createAccount } from "../../../src/ledger/accounts";
 import { createPlannedItem } from "../../../src/ledger/planned-items";
 import { createTransaction, getTransaction } from "../../../src/ledger/transactions";

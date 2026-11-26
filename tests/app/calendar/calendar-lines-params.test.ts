@@ -20,12 +20,19 @@ describe("month parameter", () => {
     expect(parseMonthParam(undefined, CURRENT_MONTH)).toBe(CURRENT_MONTH);
   });
 
-  it.each(["2026-13", "2026-00", "abcd", "2026-1", "2026-03-01", " 2026-03", "0000-05", "", "2026/03"])(
-    "falls back to the current month for %j",
-    (value) => {
-      expect(parseMonthParam(value, CURRENT_MONTH)).toBe(CURRENT_MONTH);
-    },
-  );
+  it.each([
+    "2026-13",
+    "2026-00",
+    "abcd",
+    "2026-1",
+    "2026-03-01",
+    " 2026-03",
+    "0000-05",
+    "",
+    "2026/03",
+  ])("falls back to the current month for %j", (value) => {
+    expect(parseMonthParam(value, CURRENT_MONTH)).toBe(CURRENT_MONTH);
+  });
 
   it("falls back to the current month when the parameter is repeated", () => {
     expect(parseMonthParam(["2026-03", "2026-04"], CURRENT_MONTH)).toBe(CURRENT_MONTH);
@@ -70,7 +77,11 @@ describe("selected accounts", () => {
   });
 
   it("takes one account in its own currency", () => {
-    expect(selectAccounts("2", accounts, "EUR")).toEqual({ key: "2", accountIds: [2], currency: "USD" });
+    expect(selectAccounts("2", accounts, "EUR")).toEqual({
+      key: "2",
+      accountIds: [2],
+      currency: "USD",
+    });
   });
 
   it("falls back to the checking accounts for an id that is not selectable", () => {

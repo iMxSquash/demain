@@ -2,7 +2,15 @@
 
 import { Coins, CreditCard, Plus, Tray } from "@phosphor-icons/react/ssr";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 
 import { useElementWidth } from "../../charts/use-element-width";
 import { Button } from "../../components/button";
@@ -22,7 +30,11 @@ import { CategoryForm } from "../categories/category-form";
 import type { CategoryFormState } from "../categories/category-form-data";
 import { Modal } from "../modal";
 import { useFocusFirstError } from "../use-focus-first-error";
-import { findCreatedCategory, resolveDestination, surplusTargets } from "./add-transaction-defaults";
+import {
+  findCreatedCategory,
+  resolveDestination,
+  surplusTargets,
+} from "./add-transaction-defaults";
 import {
   ADD_CARD_CLASS,
   WIDE_DIVIDER_CLASS,
@@ -229,7 +241,8 @@ export function AddTransactionForm({
   const shouldFocusSave = useRef(false);
 
   const state = result?.state ?? null;
-  const values = result?.mode === "transaction" && result.state ? result.state.values : initialValues;
+  const values =
+    result?.mode === "transaction" && result.state ? result.state.values : initialValues;
   const [draft, setDraft] = useState<Draft>(() => draftFromValues(initialValues));
   const [seenResult, setSeenResult] = useState(result);
   const [isSurplusOpen, setSurplusOpen] = useState(false);
@@ -280,7 +293,8 @@ export function AddTransactionForm({
     currency === undefined ? null : formatTypedAmount(draft.amount, currency, locale);
   const errorOf = (field: string) => {
     if (clientError?.field === field) return clientError.message;
-    if (state?.status !== "error" || state.field !== field || editedErrorField === field) return undefined;
+    if (state?.status !== "error" || state.field !== field || editedErrorField === field)
+      return undefined;
     return state.message;
   };
   // Any edit makes a split already asked for stale, so it also closes the surplus step.
@@ -352,7 +366,8 @@ export function AddTransactionForm({
     label: t(`paymentModes.${mode}`),
   }));
   const suggestions = filterLabelSuggestions(labelSuggestions, draft.label, SUGGESTION_LIMIT);
-  const hasDetailsError = errorOf("description") !== undefined || errorOf("paymentMode") !== undefined;
+  const hasDetailsError =
+    errorOf("description") !== undefined || errorOf("paymentMode") !== undefined;
   const isCustomDate = draft.date !== today && draft.date !== yesterday;
   const datePicker = (
     <DatePicker
@@ -365,14 +380,21 @@ export function AddTransactionForm({
     />
   );
   const choice = isSurplusOpen && isTransfer ? surplusChoiceOf(result) : undefined;
-  const stepDraft: StepDraft = { ...draft, destinationId: destinationId === null ? "" : String(destinationId) };
+  const stepDraft: StepDraft = {
+    ...draft,
+    destinationId: destinationId === null ? "" : String(destinationId),
+  };
   const stepContext = { locale, accounts };
   const decimals = currency === undefined ? 0 : currencyDecimals(currency);
 
   // The error shows on the field of its step, and the focus goes to it once the panel is in view.
   function showError({ field, step: errorStep, ref }: StepError) {
     const formField = field === "accountId" && isTransfer ? "sourceId" : field;
-    setClientError({ field: formField, step: errorStep, message: ref === undefined ? "" : feedback(ref.key, ref.values) });
+    setClientError({
+      field: formField,
+      step: errorStep,
+      message: ref === undefined ? "" : feedback(ref.key, ref.values),
+    });
     showStep(errorStep);
   }
   function goToNextStep() {
@@ -567,7 +589,11 @@ export function AddTransactionForm({
               />
             )}
             {isHydrated ? (
-              <StepNav step={step} onBack={() => moveTo(previousStep(step))} onNext={goToNextStep} />
+              <StepNav
+                step={step}
+                onBack={() => moveTo(previousStep(step))}
+                onNext={goToNextStep}
+              />
             ) : null}
           </StepPanel>
         </div>
@@ -644,7 +670,10 @@ export function AddTransactionForm({
                 name="destinationId"
                 value={destinationId === null ? "" : String(destinationId)}
                 onChange={(next) => changeDraft({ destinationId: next })}
-                options={accountOptions.map((option) => ({ ...option, disabled: option.value === draft.accountId }))}
+                options={accountOptions.map((option) => ({
+                  ...option,
+                  disabled: option.value === draft.accountId,
+                }))}
                 layout="row"
                 error={errorOf("destinationId")}
               />
@@ -664,7 +693,11 @@ export function AddTransactionForm({
           )}
 
           {isTransfer ? null : (
-            <Disclosure summary={add("moreDetails")} edges="top" open={hasDetailsError || undefined}>
+            <Disclosure
+              summary={add("moreDetails")}
+              edges="top"
+              open={hasDetailsError || undefined}
+            >
               <div className="flex flex-col gap-6 pt-2">
                 <FormField id="description" label={form("note")} error={errorOf("description")}>
                   <input
@@ -682,7 +715,9 @@ export function AddTransactionForm({
                   legend={form("paymentMode")}
                   name="paymentMode"
                   value={draft.paymentMode}
-                  onChange={(paymentMode) => changeDraft({ paymentMode: paymentModeOf(paymentMode) })}
+                  onChange={(paymentMode) =>
+                    changeDraft({ paymentMode: paymentModeOf(paymentMode) })
+                  }
                   options={paymentOptions}
                   layout="row"
                   error={errorOf("paymentMode")}

@@ -13,7 +13,9 @@ import {
 import { planSavingsTransfers, type SavingsAccountChoice } from "../../src/domain/import-savings";
 import type { AccountRef, OverflowAccount } from "../../src/domain/overflow";
 
-const account = (overrides: Partial<OverflowAccount> & { id: number | string }): OverflowAccount => ({
+const account = (
+  overrides: Partial<OverflowAccount> & { id: number | string },
+): OverflowAccount => ({
   currency: "EUR",
   archived: false,
   balance: 0,
@@ -30,7 +32,10 @@ describe("overflowDemands", () => {
   it("adds up what does not fit in one account, across rows and files", () => {
     expect(
       overflowDemands([
-        [{ accountId: 2, amount: 5_000 }, { accountId: 2, amount: 1_000 }],
+        [
+          { accountId: 2, amount: 5_000 },
+          { accountId: 2, amount: 1_000 },
+        ],
         [{ accountId: 2, amount: 500 }],
       ]),
     ).toEqual([{ accountId: 2, amount: 6_500, rows: 3 }]);
@@ -40,7 +45,10 @@ describe("overflowDemands", () => {
     expect(
       overflowDemands([
         [{ accountId: 4, amount: 100 }],
-        [{ accountId: 2, amount: 200 }, { accountId: 4, amount: 300 }],
+        [
+          { accountId: 2, amount: 200 },
+          { accountId: 4, amount: 300 },
+        ],
       ]),
     ).toEqual([
       { accountId: 4, amount: 400, rows: 2 },
@@ -62,9 +70,7 @@ describe("choicesForShortfalls", () => {
   it("keeps only the choices of the accounts where the file falls short", () => {
     const choices = [existing(2), existing(4)];
 
-    expect(choicesForShortfalls(choices, [{ accountId: 4, amount: 100 }])).toEqual([
-      existing(4),
-    ]);
+    expect(choicesForShortfalls(choices, [{ accountId: 4, amount: 100 }])).toEqual([existing(4)]);
   });
 });
 
@@ -72,7 +78,10 @@ describe("withOverflowChoice", () => {
   it("links the account to an existing one and leaves the input untouched", () => {
     const accounts = [account({ id: 2 }), account({ id: 3 })];
 
-    const result = withOverflowChoice(accounts, { accountId: 2, target: { kind: "existing", id: 3 } });
+    const result = withOverflowChoice(accounts, {
+      accountId: 2,
+      target: { kind: "existing", id: 3 },
+    });
 
     expect(result.find(({ id }) => id === 2)?.overflowAccountId).toBe(3);
     expect(accounts[0]?.overflowAccountId).toBeNull();
@@ -81,7 +90,10 @@ describe("withOverflowChoice", () => {
   it("adds an account to create under its own reference, in the currency of the account that overflows", () => {
     const accounts = [account({ id: 2, currency: "USD" })];
 
-    const result = withOverflowChoice(accounts, { accountId: 2, target: { kind: "new", name: "Spare" } });
+    const result = withOverflowChoice(accounts, {
+      accountId: 2,
+      target: { kind: "new", name: "Spare" },
+    });
 
     const ref = result.find(({ id }) => id === 2)?.overflowAccountId;
     expect(isPendingAccount(ref as AccountRef)).toBe(true);
@@ -97,15 +109,12 @@ describe("withOverflowChoice", () => {
 
   it("keeps one account to create per choice, even when two choices share a name", () => {
     const target = { kind: "new", name: "Spare" } as const;
-    const accounts = [
-      account({ id: 2, currency: "EUR" }),
-      account({ id: 3, currency: "USD" }),
-    ];
+    const accounts = [account({ id: 2, currency: "EUR" }), account({ id: 3, currency: "USD" })];
 
-    const result = withOverflowChoice(
-      withOverflowChoice(accounts, { accountId: 2, target }),
-      { accountId: 3, target },
-    );
+    const result = withOverflowChoice(withOverflowChoice(accounts, { accountId: 2, target }), {
+      accountId: 3,
+      target,
+    });
 
     const refOf = (accountId: number) =>
       result.find(({ id }) => id === accountId)?.overflowAccountId;
@@ -117,10 +126,10 @@ describe("withOverflowChoice", () => {
   });
 
   it("gives the name of an account to create back from its reference", () => {
-    const accounts = withOverflowChoice(
-      [account({ id: 2 })],
-      { accountId: 2, target: { kind: "new", name: "Spare: 2" } },
-    );
+    const accounts = withOverflowChoice([account({ id: 2 })], {
+      accountId: 2,
+      target: { kind: "new", name: "Spare: 2" },
+    });
 
     const ref = accounts.find(({ id }) => id === 2)?.overflowAccountId;
 
@@ -129,10 +138,10 @@ describe("withOverflowChoice", () => {
   });
 
   it("lets a deposit overflow into an account to create", () => {
-    const accounts = withOverflowChoice(
-      [account({ id: 2, ceiling: 1_000 })],
-      { accountId: 2, target: { kind: "new", name: "Spare" } },
-    );
+    const accounts = withOverflowChoice([account({ id: 2, ceiling: 1_000 })], {
+      accountId: 2,
+      target: { kind: "new", name: "Spare" },
+    });
 
     const plan = planSavingsTransfers(
       [{ index: 0, date: "2026-01-05", amount: -1_500, savingsAccountId: 2 }],
@@ -159,7 +168,9 @@ describe("withOverflowChoice", () => {
 describe("overflowTargetChoices", () => {
   const DEMAND_ID = 2;
   const RECEIVING_ID = 3;
-  const choice = (overrides: Partial<SavingsAccountChoice> & { id: number }): SavingsAccountChoice => ({
+  const choice = (
+    overrides: Partial<SavingsAccountChoice> & { id: number },
+  ): SavingsAccountChoice => ({
     kind: "savings",
     currency: "EUR",
     archived: false,

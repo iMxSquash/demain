@@ -50,34 +50,22 @@ describe("findMatchingRule", () => {
   it("applies an account-restricted rule to that account only", () => {
     const rules = [rule({ accountId: 2 })];
 
-    expect(
-      findMatchingRule(rules, { label: "Carrefour", accountId: 1 }),
-    ).toBeNull();
-    expect(
-      findMatchingRule(rules, { label: "Carrefour", accountId: 2 })?.id,
-    ).toBe(1);
+    expect(findMatchingRule(rules, { label: "Carrefour", accountId: 1 })).toBeNull();
+    expect(findMatchingRule(rules, { label: "Carrefour", accountId: 2 })?.id).toBe(1);
   });
 
   it("matches only the beginning of the label with starts_with", () => {
     const rules = [rule({ operator: "starts_with", value: "vir" })];
 
-    expect(
-      findMatchingRule(rules, { label: "VIR salary march", accountId: 1 }),
-    ).not.toBeNull();
-    expect(
-      findMatchingRule(rules, { label: "Refund VIR salary", accountId: 1 }),
-    ).toBeNull();
+    expect(findMatchingRule(rules, { label: "VIR salary march", accountId: 1 })).not.toBeNull();
+    expect(findMatchingRule(rules, { label: "Refund VIR salary", accountId: 1 })).toBeNull();
   });
 
   it("matches the whole label with equals, ignoring case and surrounding spaces", () => {
     const rules = [rule({ operator: "equals", value: "Netflix" })];
 
-    expect(
-      findMatchingRule(rules, { label: "  NETFLIX ", accountId: 1 }),
-    ).not.toBeNull();
-    expect(
-      findMatchingRule(rules, { label: "Netflix.com", accountId: 1 }),
-    ).toBeNull();
+    expect(findMatchingRule(rules, { label: "  NETFLIX ", accountId: 1 })).not.toBeNull();
+    expect(findMatchingRule(rules, { label: "Netflix.com", accountId: 1 })).toBeNull();
   });
 
   it("returns null when no rule matches", () => {
@@ -96,9 +84,7 @@ describe("validateRuleValue", () => {
   });
 
   it("rejects a blank value, which would match every label", () => {
-    expect(() => validateRuleValue("   ")).toThrow(
-      CategorizationRuleValidationError,
-    );
+    expect(() => validateRuleValue("   ")).toThrow(CategorizationRuleValidationError);
   });
 });
 

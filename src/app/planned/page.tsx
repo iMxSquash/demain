@@ -7,11 +7,7 @@ import { cache, Suspense } from "react";
 
 import { DataTable, EmptyState } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
-import {
-  SkeletonDataTable,
-  SkeletonFields,
-  SkeletonRegion,
-} from "../../components/skeleton";
+import { SkeletonDataTable, SkeletonFields, SkeletonRegion } from "../../components/skeleton";
 import { formatAmount } from "../../domain/money";
 import {
   DEFAULT_AVERAGE_WINDOW,
@@ -28,7 +24,11 @@ import { withDatabase } from "../../storage/with-database";
 import { requireSession } from "../auth/session";
 import { tagDataRead } from "../data-cache";
 import { createPlannedItemAction } from "./actions";
-import { DEFAULT_AMOUNT_MODE, DEFAULT_FORM_KIND, DEFAULT_REPETITION } from "./planned-item-form-data";
+import {
+  DEFAULT_AMOUNT_MODE,
+  DEFAULT_FORM_KIND,
+  DEFAULT_REPETITION,
+} from "./planned-item-form-data";
 import { PlannedItemForm } from "./planned-item-form";
 import { accountTextOf, scheduleText } from "./planned-item-view";
 
@@ -112,7 +112,9 @@ function PlannedHead() {
         <th scope="col">{t("columns.kind")}</th>
         <th scope="col">{t("columns.schedule")}</th>
         <th scope="col">{t("columns.account")}</th>
-        <th scope="col" className="text-right">{t("columns.amount")}</th>
+        <th scope="col" className="text-right">
+          {t("columns.amount")}
+        </th>
         <th scope="col">{common("actions")}</th>
       </tr>
     </thead>
@@ -147,7 +149,9 @@ async function PlannedList() {
 
   if (items.length === 0) {
     return (
-      <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>{t("empty")}</EmptyState>
+      <EmptyState action={{ href: "#new-heading", label: t("emptyAction") }}>
+        {t("empty")}
+      </EmptyState>
     );
   }
 

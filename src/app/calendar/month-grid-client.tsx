@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 import { DAY_HEADING_SELECTOR } from "./focus-targets";
 import { reduceGridKey } from "./month-grid-keyboard";
@@ -37,7 +44,13 @@ function setTabStop(root: HTMLElement, link: HTMLElement): void {
  * The behaviour of the month grid: roving focus, and the details of a day under the grid. The cells
  * are server markup that React never re-renders, so the selected state is written on them here.
  */
-export function MonthGridClient({ month, weekStart, entryDate, details, children }: MonthGridClientProps) {
+export function MonthGridClient({
+  month,
+  weekStart,
+  entryDate,
+  details,
+  children,
+}: MonthGridClientProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   // An object, so that opening the day that is already open still moves the focus to its heading.
   const [opened, setOpened] = useState<{ date: string } | null>(null);
@@ -83,12 +96,14 @@ export function MonthGridClient({ month, weekStart, entryDate, details, children
     if (!result.handled) return;
     event.preventDefault();
     if (result.focused !== focused) focusDay(result.focused);
-    if (result.opened !== null && ACTIVATION_KEYS.has(event.key)) setOpened({ date: result.opened });
+    if (result.opened !== null && ACTIVATION_KEYS.has(event.key))
+      setOpened({ date: result.opened });
   }
 
   function handleClick(event: MouseEvent<HTMLDivElement>): void {
     const date = dayLinkOf(event.target)?.dataset.date;
-    const isPlainClick = event.button === 0 && !(event.shiftKey || event.ctrlKey || event.metaKey || event.altKey);
+    const isPlainClick =
+      event.button === 0 && !(event.shiftKey || event.ctrlKey || event.metaKey || event.altKey);
     if (date === undefined || !isPlainClick) return;
     event.preventDefault();
     setOpened({ date });

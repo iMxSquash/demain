@@ -127,9 +127,7 @@ describe("planned items", () => {
   });
 
   it("writes nothing when the input is refused", () => {
-    expect(() => createPlannedItem(db, { ...rent, amount: 0 })).toThrow(
-      PlannedItemValidationError,
-    );
+    expect(() => createPlannedItem(db, { ...rent, amount: 0 })).toThrow(PlannedItemValidationError);
 
     expect(db.select().from(plannedItems).all()).toEqual([]);
     expect(db.select().from(plannedItemVersions).all()).toEqual([]);
@@ -156,7 +154,11 @@ describe("planned items", () => {
 
   it("refuses a second override on the same nominal date", () => {
     const item = createPlannedItem(db, rent);
-    const override = { plannedItemId: item.id, nominalDate: "2026-02-05", status: "cancelled" } as const;
+    const override = {
+      plannedItemId: item.id,
+      nominalDate: "2026-02-05",
+      status: "cancelled",
+    } as const;
     db.insert(occurrenceOverrides).values(override).run();
 
     expect(() => db.insert(occurrenceOverrides).values(override).run()).toThrow(/UNIQUE/);
@@ -230,7 +232,11 @@ describe("planned items", () => {
       matchAmountToleranceBp: 0,
     });
 
-    expect(updated).toMatchObject({ name: "Flat rent", matchWindowDays: 7, matchAmountToleranceBp: 0 });
+    expect(updated).toMatchObject({
+      name: "Flat rent",
+      matchWindowDays: 7,
+      matchAmountToleranceBp: 0,
+    });
     expect(updated.versions).toEqual(item.versions);
     expect(updated.startDate).toBe(item.startDate);
   });
@@ -439,14 +445,24 @@ describe("planned items", () => {
     it("refuses a zero amount", () => {
       const item = createPlannedItem(db, rent);
 
-      expectRefused(item.id, rentFrom("2026-04-01", { amount: 0 }), "amount", "transactionAmountNonZero");
+      expectRefused(
+        item.id,
+        rentFrom("2026-04-01", { amount: 0 }),
+        "amount",
+        "transactionAmountNonZero",
+      );
     });
 
     it("refuses a version on a cancelled item", () => {
       const item = createPlannedItem(db, rent);
       db.update(plannedItems).set({ cancelled: true }).where(eq(plannedItems.id, item.id)).run();
 
-      expectRefused(item.id, rentFrom("2026-04-01"), "effectiveFrom", "plannedItemVersionOnCancelled");
+      expectRefused(
+        item.id,
+        rentFrom("2026-04-01"),
+        "effectiveFrom",
+        "plannedItemVersionOnCancelled",
+      );
     });
 
     it("refuses a version on an item whose account is archived", () => {
@@ -733,7 +749,11 @@ describe("planned items", () => {
       const item = createPlannedItem(db, rent);
       settle(item.id, "2026-01-05");
 
-      const { item: changed, replaced } = addPlannedItemVersion(db, item.id, rentFrom("2026-02-01"));
+      const { item: changed, replaced } = addPlannedItemVersion(
+        db,
+        item.id,
+        rentFrom("2026-02-01"),
+      );
 
       expect(replaced).toBe(false);
       expect(changed.versions.map((version) => version.effectiveFrom)).toEqual([
@@ -745,7 +765,11 @@ describe("planned items", () => {
     it("replaces the first version when a version starts on the start date and nothing is settled", () => {
       const item = createPlannedItem(db, rent);
 
-      const { item: changed, replaced } = addPlannedItemVersion(db, item.id, rentFrom("2026-01-05"));
+      const { item: changed, replaced } = addPlannedItemVersion(
+        db,
+        item.id,
+        rentFrom("2026-01-05"),
+      );
 
       expect(replaced).toBe(true);
       expect(versionCount()).toBe(1);
@@ -794,7 +818,10 @@ describe("planned items", () => {
         rentFrom("2026-04-01", { amountMode: "rolling_average", averageWindow: 6 }),
       );
 
-      expect(changed.versions[1]).toMatchObject({ amountMode: "rolling_average", averageWindow: 6 });
+      expect(changed.versions[1]).toMatchObject({
+        amountMode: "rolling_average",
+        averageWindow: 6,
+      });
       expect(getPlannedItem(db, item.id)?.versions[1]).toMatchObject({
         amountMode: "rolling_average",
         averageWindow: 6,
@@ -828,7 +855,10 @@ describe("planned items", () => {
       overrideDate,
       overrideAmount: null,
     });
-    const changeAmount = (nominalDate: string, overrideAmount: number): OccurrenceOverrideInput => ({
+    const changeAmount = (
+      nominalDate: string,
+      overrideAmount: number,
+    ): OccurrenceOverrideInput => ({
       nominalDate,
       status: "modified",
       overrideDate: null,
@@ -841,9 +871,17 @@ describe("planned items", () => {
       overrideAmount: null,
     });
 
-    function occurrencesOf(item: PlannedItemWithDetails, range = { from: "2026-01-01", to: "2026-04-30" }) {
+    function occurrencesOf(
+      item: PlannedItemWithDetails,
+      range = { from: "2026-01-01", to: "2026-04-30" },
+    ) {
       return generateOccurrences(toPlannedSchedule(item), item.overrides, range, TODAY).map(
-        ({ nominalDate, date, amount, isCancelled }) => ({ nominalDate, date, amount, isCancelled }),
+        ({ nominalDate, date, amount, isCancelled }) => ({
+          nominalDate,
+          date,
+          amount,
+          isCancelled,
+        }),
       );
     }
 
@@ -903,9 +941,11 @@ describe("planned items", () => {
 
       const changed = saveOccurrenceOverride(db, item.id, changeAmount("2026-02-05", -95_000));
 
-      expect(occurrencesOf(changed, { from: "2026-01-01", to: "2026-03-31" }).map(({ amount }) => amount)).toEqual([
-        -80_000, -95_000, -80_000,
-      ]);
+      expect(
+        occurrencesOf(changed, { from: "2026-01-01", to: "2026-03-31" }).map(
+          ({ amount }) => amount,
+        ),
+      ).toEqual([-80_000, -95_000, -80_000]);
     });
 
     it("skips an occurrence and still produces the others", () => {
@@ -913,9 +953,11 @@ describe("planned items", () => {
 
       const skipped = saveOccurrenceOverride(db, item.id, skip("2026-02-05"));
 
-      expect(occurrencesOf(skipped, { from: "2026-01-01", to: "2026-03-31" }).map(({ isCancelled }) => isCancelled)).toEqual([
-        false, true, false,
-      ]);
+      expect(
+        occurrencesOf(skipped, { from: "2026-01-01", to: "2026-03-31" }).map(
+          ({ isCancelled }) => isCancelled,
+        ),
+      ).toEqual([false, true, false]);
       expect(skipped.overrides).toEqual([
         expect.objectContaining({ nominalDate: "2026-02-05", status: "cancelled" }),
       ]);
@@ -928,18 +970,26 @@ describe("planned items", () => {
       const restored = deleteOccurrenceOverride(db, item.id, "2026-02-05");
 
       expect(restored.overrides).toEqual([]);
-      expect(occurrencesOf(restored)[1]).toMatchObject({ nominalDate: "2026-02-05", date: "2026-02-05" });
+      expect(occurrencesOf(restored)[1]).toMatchObject({
+        nominalDate: "2026-02-05",
+        date: "2026-02-05",
+      });
     });
 
     it("treats the deletion of an override that does not exist as done", () => {
       const item = createPlannedItem(db, rent);
 
-      expect(deleteOccurrenceOverride(db, item.id, "2026-02-05")).toEqual(getPlannedItem(db, item.id));
+      expect(deleteOccurrenceOverride(db, item.id, "2026-02-05")).toEqual(
+        getPlannedItem(db, item.id),
+      );
     });
 
     it("replaces the first override saved on the same nominal date", () => {
       const item = createPlannedItem(db, rent);
-      saveOccurrenceOverride(db, item.id, { ...move("2026-02-05", "2026-02-12"), overrideAmount: -95_000 });
+      saveOccurrenceOverride(db, item.id, {
+        ...move("2026-02-05", "2026-02-12"),
+        overrideAmount: -95_000,
+      });
 
       const replaced = saveOccurrenceOverride(db, item.id, skip("2026-02-05"));
 
@@ -976,8 +1026,18 @@ describe("planned items", () => {
 
     it.each([
       ["a zero amount", changeAmount("2026-02-05", 0), "amount", "transactionAmountNonZero"],
-      ["a positive amount on an expense", changeAmount("2026-02-05", 5_000), "amount", "expenseMustBeNegative"],
-      ["an invalid override date", move("2026-02-05", "2026-02-30"), "overrideDate", "plannedItemDateInvalid"],
+      [
+        "a positive amount on an expense",
+        changeAmount("2026-02-05", 5_000),
+        "amount",
+        "expenseMustBeNegative",
+      ],
+      [
+        "an invalid override date",
+        move("2026-02-05", "2026-02-30"),
+        "overrideDate",
+        "plannedItemDateInvalid",
+      ],
       ["an empty nominal date", skip(""), "nominalDate", "plannedItemDateInvalid"],
       ["a garbage nominal date", skip("next month"), "nominalDate", "plannedItemDateInvalid"],
     ] as const)("refuses %s", (_label, input, field, key) => {
@@ -1039,8 +1099,12 @@ describe("planned items", () => {
     });
 
     it("throws for a missing item", () => {
-      expect(() => saveOccurrenceOverride(db, 999, skip("2026-02-05"))).toThrow(PlannedItemNotFoundError);
-      expect(() => deleteOccurrenceOverride(db, 999, "2026-02-05")).toThrow(PlannedItemNotFoundError);
+      expect(() => saveOccurrenceOverride(db, 999, skip("2026-02-05"))).toThrow(
+        PlannedItemNotFoundError,
+      );
+      expect(() => deleteOccurrenceOverride(db, 999, "2026-02-05")).toThrow(
+        PlannedItemNotFoundError,
+      );
     });
 
     it("shows an occurrence moved into the next month in that month", () => {
@@ -1048,7 +1112,10 @@ describe("planned items", () => {
       saveOccurrenceOverride(db, item.id, move("2026-03-05", "2026-04-02"));
 
       expect(plannedDatesIn("2026-03", item.id)).toEqual([]);
-      expect(plannedDatesIn("2026-04", item.id)).toEqual(["2026-03-05>2026-04-02", "2026-04-05>2026-04-05"]);
+      expect(plannedDatesIn("2026-04", item.id)).toEqual([
+        "2026-03-05>2026-04-02",
+        "2026-04-05>2026-04-05",
+      ]);
     });
 
     it("shows an occurrence moved past the end date of the item", () => {
@@ -1059,7 +1126,11 @@ describe("planned items", () => {
     });
 
     it("does not feed an override amount into the rolling average of the next occurrence", () => {
-      const item = createPlannedItem(db, { ...rent, amountMode: "rolling_average", averageWindow: 3 });
+      const item = createPlannedItem(db, {
+        ...rent,
+        amountMode: "rolling_average",
+        averageWindow: 3,
+      });
 
       const changed = saveOccurrenceOverride(db, item.id, changeAmount("2026-02-05", -200_000));
 

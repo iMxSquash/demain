@@ -52,9 +52,9 @@ describe("commitRequestSchema", () => {
 
   it("defaults the replacements to an empty list and keeps those given", () => {
     expect(parse(request()).data?.replacements).toEqual([]);
-    expect(parse(request({ replacements: [{ index: 0, entryId: 9 }] })).data?.replacements).toEqual([
-      { index: 0, entryId: 9 },
-    ]);
+    expect(parse(request({ replacements: [{ index: 0, entryId: 9 }] })).data?.replacements).toEqual(
+      [{ index: 0, entryId: 9 }],
+    );
   });
 
   it.each([
@@ -69,7 +69,10 @@ describe("commitRequestSchema", () => {
   });
 
   it("refuses more replacements than a file may have rows", () => {
-    const replacements = Array.from({ length: MAX_ROWS + 1 }, (_, index) => ({ index: 0, entryId: index + 1 }));
+    const replacements = Array.from({ length: MAX_ROWS + 1 }, (_, index) => ({
+      index: 0,
+      entryId: index + 1,
+    }));
 
     expect(parse(request({ replacements })).success).toBe(false);
   });
@@ -81,13 +84,21 @@ describe("commitRequestSchema", () => {
 
   it("accepts every type, payment mode and null that the details allow", () => {
     for (const type of ["expense", "income", "savings"]) {
-      expect(parse(request({ drafts: [{ ...DRAFT, details: { ...DETAILS, type } }] })).success).toBe(true);
+      expect(
+        parse(request({ drafts: [{ ...DRAFT, details: { ...DETAILS, type } }] })).success,
+      ).toBe(true);
     }
     for (const paymentMode of ["card", "transfer", "direct_debit", null]) {
-      expect(parse(request({ drafts: [{ ...DRAFT, details: { ...DETAILS, paymentMode } }] })).success).toBe(true);
+      expect(
+        parse(request({ drafts: [{ ...DRAFT, details: { ...DETAILS, paymentMode } }] })).success,
+      ).toBe(true);
     }
     expect(
-      parse(request({ drafts: [{ ...DRAFT, details: { ...DETAILS, categoryId: null, description: null } }] })).success,
+      parse(
+        request({
+          drafts: [{ ...DRAFT, details: { ...DETAILS, categoryId: null, description: null } }],
+        }),
+      ).success,
     ).toBe(true);
   });
 

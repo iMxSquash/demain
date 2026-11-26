@@ -18,8 +18,7 @@ const TOTP_CODE_PATTERN = /^\d{6}$/;
 
 export type PasswordIssue = "tooShort" | "tooLong";
 export type SetupResult =
-  | { ok: true }
-  | { ok: false; reason: "invalidToken" | "alreadyConfigured" | PasswordIssue };
+  { ok: true } | { ok: false; reason: "invalidToken" | "alreadyConfigured" | PasswordIssue };
 export type ResetResult = { ok: true } | { ok: false; reason: "noOwner" | PasswordIssue };
 
 export function hasOwner(db: AppDatabase): boolean {

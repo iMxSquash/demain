@@ -30,17 +30,14 @@ export interface BalanceAssertionFormState {
 }
 
 export type ParsedBalanceAssertionForm =
-  | { ok: true; input: BalanceAssertionInput }
-  | { ok: false; error: BalanceAssertionFormState };
+  { ok: true; input: BalanceAssertionInput } | { ok: false; error: BalanceAssertionFormState };
 
 function readText(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
 }
 
-export function readSubmittedValues(
-  formData: FormData,
-): BalanceAssertionFormValues {
+export function readSubmittedValues(formData: FormData): BalanceAssertionFormValues {
   return {
     accountId: readText(formData, "accountId"),
     date: readText(formData, "date"),

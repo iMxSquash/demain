@@ -36,7 +36,8 @@ export type SearchParams = Promise<Record<string, string | string[] | undefined>
 const ROUTES: Record<CalendarView, string> = { grid: "/calendar", lines: "/calendar/lines" };
 export const MONTH_HEADING_ID = "calendar-month";
 const ACCOUNT_FIELD_ID = "calendar-account";
-const LINK_CLASS = "inline-flex min-h-11 items-center rounded-pill px-3 font-medium hover:bg-control";
+const LINK_CLASS =
+  "inline-flex min-h-11 items-center rounded-pill px-3 font-medium hover:bg-control";
 const NAV_LINK_CLASS =
   "inline-flex size-11 items-center justify-center rounded-pill transition-colors hover:bg-control";
 const VIEW_ITEM_CLASS =
@@ -55,8 +56,15 @@ const monthOffset = (month: string, offset: number) => monthOf(addMonths(`${mont
 
 // The month depends on `searchParams`, which Cache Components only allows at request time: the
 // title is the static one when the month is missing or invalid, so that it never needs the clock.
-export async function calendarMetadata(searchParams: SearchParams, view: CalendarView): Promise<Metadata> {
-  const [t, locale, params] = await Promise.all([getTranslations("calendar"), getLocale(), searchParams]);
+export async function calendarMetadata(
+  searchParams: SearchParams,
+  view: CalendarView,
+): Promise<Metadata> {
+  const [t, locale, params] = await Promise.all([
+    getTranslations("calendar"),
+    getLocale(),
+    searchParams,
+  ]);
   const month = parseMonthParam(params.month, "");
   const { title, titleMonth } = META_KEYS[view];
   return { title: month === "" ? t(title) : t(titleMonth, { month: formatMonth(month, locale) }) };
@@ -77,7 +85,12 @@ async function readCalendar(month: string, today: string, accountKey: string) {
       calendar:
         selection.accountIds.length === 0
           ? null
-          : getCalendarMonth(db, { month, today, accountIds: selection.accountIds, currency: selection.currency }),
+          : getCalendarMonth(db, {
+              month,
+              today,
+              accountIds: selection.accountIds,
+              currency: selection.currency,
+            }),
       selectable,
       accountNames: accounts.map(({ id, name }) => ({ id, name })),
       referenceCurrency,
@@ -88,7 +101,12 @@ async function readCalendar(month: string, today: string, accountKey: string) {
 
 /** The month, the account and the data of the page, once the request is known. */
 export async function loadCalendarPage(searchParams: SearchParams) {
-  const [locale, timeZone, params] = await Promise.all([getLocale(), getTimeZone(), searchParams, requireRequest()]);
+  const [locale, timeZone, params] = await Promise.all([
+    getLocale(),
+    getTimeZone(),
+    searchParams,
+    requireRequest(),
+  ]);
   // Read after the request is known, and outside the cached read: a cached "today" would go stale.
   const today = todayIn(timeZone, new Date());
   const month = parseMonthParam(params.month, monthOf(today));
@@ -98,7 +116,11 @@ export async function loadCalendarPage(searchParams: SearchParams) {
 
 // The count of the "Due" section, on every width: a column without the sidebar still has it.
 async function ToPayLink() {
-  const [t, timeZone] = await Promise.all([getTranslations("calendar"), getTimeZone(), requireRequest()]);
+  const [t, timeZone] = await Promise.all([
+    getTranslations("calendar"),
+    getTimeZone(),
+    requireRequest(),
+  ]);
   const count = await readDueCount(todayIn(timeZone, new Date()));
 
   return (
@@ -145,7 +167,14 @@ interface CalendarControlsProps {
 }
 
 /** The month navigation, the switch between the views and the account form. */
-export function CalendarControls({ view, month, locale, selectedKey, selectable, referenceCurrency }: CalendarControlsProps) {
+export function CalendarControls({
+  view,
+  month,
+  locale,
+  selectedKey,
+  selectable,
+  referenceCurrency,
+}: CalendarControlsProps) {
   const t = useTranslations("calendar");
   const previous = monthOffset(month, -1);
   const next = monthOffset(month, 1);
@@ -203,8 +232,15 @@ export function CalendarControls({ view, month, locale, selectedKey, selectable,
         <input type="hidden" name="month" value={month} />
         <div className="min-w-0 flex-1 @min-[640px]:w-70 @min-[640px]:flex-none">
           <FormField id={ACCOUNT_FIELD_ID} label={t("accountLabel")} hint={t("accountHint")}>
-            <Select key={selectedKey} id={ACCOUNT_FIELD_ID} name="account" defaultValue={selectedKey}>
-              <option value={CHECKING_KEY}>{t("checkingOption", { currency: referenceCurrency })}</option>
+            <Select
+              key={selectedKey}
+              id={ACCOUNT_FIELD_ID}
+              name="account"
+              defaultValue={selectedKey}
+            >
+              <option value={CHECKING_KEY}>
+                {t("checkingOption", { currency: referenceCurrency })}
+              </option>
               {selectable.map((account) => (
                 <option key={account.id} value={String(account.id)}>
                   {t("accountOption", { name: account.name, currency: account.currency })}

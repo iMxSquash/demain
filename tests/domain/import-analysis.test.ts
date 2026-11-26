@@ -154,8 +154,7 @@ describe("analyzeCsv", () => {
   });
 
   describe("dates written without a year", () => {
-    const YEARLESS_FILE =
-      "Date;Description;Amount\n13/01;Carrefour;-12,50\n14/01;Auchan;-30,00";
+    const YEARLESS_FILE = "Date;Description;Amount\n13/01;Carrefour;-12,50\n14/01;Auchan;-30,00";
 
     it("asks for the year instead of guessing one, and still proposes a mapping", () => {
       const analysis = analyzeCsv(YEARLESS_FILE);
@@ -189,11 +188,7 @@ describe("analyzeCsv", () => {
     });
 
     it("ignores the year when the dates carry their own", () => {
-      const analysis = analyzeCsv(
-        "Date;Description;Amount\n13/01/2025;A;-1,00",
-        undefined,
-        2026,
-      );
+      const analysis = analyzeCsv("Date;Description;Amount\n13/01/2025;A;-1,00", undefined, 2026);
 
       expect(analysis.yearApplied).toBeNull();
     });
@@ -283,21 +278,15 @@ describe("analyzeCsv", () => {
       const analysis = analyzeCsv(SUMMARY_BESIDE);
 
       expect(analysis.typeColumn).toBe(3);
-      expect(analysis.issues.map((issue) => issue.kind)).not.toContain(
-        "ambiguousColumn",
-      );
+      expect(analysis.issues.map((issue) => issue.kind)).not.toContain("ambiguousColumn");
     });
 
     it("skips the lines that hold only the block, without reporting them", () => {
       const analysis = analyzeCsv(SUMMARY_BESIDE);
 
       expect(analysis.ignoredLines).toEqual([4]);
-      expect(analysis.issues.map((issue) => issue.kind)).not.toContain(
-        "rowsIgnored",
-      );
-      expect(analysis.issues.map((issue) => issue.kind)).not.toContain(
-        "dateFormatNotFound",
-      );
+      expect(analysis.issues.map((issue) => issue.kind)).not.toContain("rowsIgnored");
+      expect(analysis.issues.map((issue) => issue.kind)).not.toContain("dateFormatNotFound");
     });
 
     it("does not take a category from the block", () => {
@@ -332,9 +321,7 @@ describe("analyzeCsv", () => {
       );
 
       expect(analysis.typeColumn).toBe(4);
-      expect(analysis.issues.map((issue) => issue.kind)).not.toContain(
-        "columnsIgnored",
-      );
+      expect(analysis.issues.map((issue) => issue.kind)).not.toContain("columnsIgnored");
     });
   });
 
@@ -405,9 +392,7 @@ describe("analyzeCsv", () => {
       );
 
       expect(analysis.mapping?.decimalMark).toBe(".");
-      expect(analysis.issues.map((issue) => issue.kind)).not.toContain(
-        "numberFormatAmbiguous",
-      );
+      expect(analysis.issues.map((issue) => issue.kind)).not.toContain("numberFormatAmbiguous");
     });
 
     it("reads the amounts of the debit and credit columns", () => {
@@ -446,16 +431,10 @@ describe("analyzeCsv", () => {
 
     it("does not count the amounts of the lines it skips", () => {
       const analysis = analyzeCsv(
-        [
-          "Date;Description;Amount",
-          "13/02/2026;A;-12,50",
-          "Total;;1.5",
-        ].join("\n"),
+        ["Date;Description;Amount", "13/02/2026;A;-12,50", "Total;;1.5"].join("\n"),
       );
 
-      expect(analysis.issues.map((issue) => issue.kind)).not.toContain(
-        "numberFormatAmbiguous",
-      );
+      expect(analysis.issues.map((issue) => issue.kind)).not.toContain("numberFormatAmbiguous");
     });
   });
 
@@ -466,10 +445,7 @@ describe("analyzeCsv", () => {
       { length: ROW_COUNT },
       (_, index) => `13/02/2026;Shop ${index};-12,50;Expense;Card;Food`,
     );
-    const text = [
-      "Date;Description;Amount;Type;Payment mode;Category",
-      ...lines,
-    ].join("\n");
+    const text = ["Date;Description;Amount;Type;Payment mode;Category", ...lines].join("\n");
 
     const analysis = analyzeCsv(text);
 

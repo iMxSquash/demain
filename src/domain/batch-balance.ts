@@ -40,10 +40,7 @@ export function lastMovementDate(dates: readonly string[]): string | null {
 export function parseRealBalance(text: string, currency: string, side: BalanceSide): number {
   const trimmed = text.trim();
   if (trimmed === "") {
-    throw new RealBalanceError(
-      "The real balance is empty",
-      messageRef("realBalanceRequired"),
-    );
+    throw new RealBalanceError("The real balance is empty", messageRef("realBalanceRequired"));
   }
   if (containsTypedSign(trimmed)) {
     throw new RealBalanceError(

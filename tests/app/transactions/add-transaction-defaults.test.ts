@@ -166,7 +166,9 @@ describe("resolveDestination", () => {
   const ACCOUNT_IDS = [1, 2, 3];
 
   it("keeps the chosen destination while it differs from the source", () => {
-    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 1, destinationId: "3" })).toBe(3);
+    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 1, destinationId: "3" })).toBe(
+      3,
+    );
   });
 
   it("falls back to the first other account when none is chosen", () => {
@@ -174,7 +176,9 @@ describe("resolveDestination", () => {
   });
 
   it("moves away from the destination when the source becomes the same account", () => {
-    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 2, destinationId: "2" })).toBe(1);
+    expect(resolveDestination({ accountIds: ACCOUNT_IDS, sourceId: 2, destinationId: "2" })).toBe(
+      1,
+    );
   });
 
   it("is null with a single account", () => {
@@ -184,7 +188,9 @@ describe("resolveDestination", () => {
 
 describe("surplusTargets", () => {
   it("offers every account but the source and the destination", () => {
-    expect(surplusTargets({ accountIds: [1, 2, 3, 4], sourceId: 1, destinationId: 2 })).toEqual([3, 4]);
+    expect(surplusTargets({ accountIds: [1, 2, 3, 4], sourceId: 1, destinationId: 2 })).toEqual([
+      3, 4,
+    ]);
   });
 
   it("offers none when only the two accounts exist", () => {

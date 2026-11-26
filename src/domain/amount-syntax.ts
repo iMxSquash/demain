@@ -61,7 +61,10 @@ export function parseUnsignedAmount(text: string, currency: string): number {
   const trimmed = text.trim();
   const check = checkAmountSyntax(trimmed);
   if (!check.ok) {
-    throw new MoneyParseError(`Invalid amount "${trimmed}": digits and one separator only`, check.ref);
+    throw new MoneyParseError(
+      `Invalid amount "${trimmed}": digits and one separator only`,
+      check.ref,
+    );
   }
   return parseAmount(trimmed, currency, decimalMarkOf(trimmed));
 }

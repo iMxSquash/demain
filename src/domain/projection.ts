@@ -56,11 +56,16 @@ export interface PlannedTransferRouting {
   date: string;
   /** Absolute amount the transfer asked to move, in minor units. */
   amount: number;
-  routing: Extract<OverflowRouting, { status: "ok" }> | { status: "invalid"; reason: OverflowChainProblem };
+  routing:
+    | Extract<OverflowRouting, { status: "ok" }>
+    | { status: "invalid"; reason: OverflowChainProblem };
 }
 
 // Only what is still expected counts: a settled, overdue or cancelled occurrence has no remaining.
-const PROJECTED_STATUSES: ReadonlySet<ResolvedOccurrence["status"]> = new Set(["planned", "partial"]);
+const PROJECTED_STATUSES: ReadonlySet<ResolvedOccurrence["status"]> = new Set([
+  "planned",
+  "partial",
+]);
 
 function projectedOccurrences(item: PlannedItemOccurrences): ResolvedOccurrence[] {
   return item.occurrences.filter(
@@ -80,7 +85,11 @@ function transferDestination(item: PlannedItemOccurrences): number {
   return item.destinationAccountId;
 }
 
-function occurrenceFlows(item: PlannedItemOccurrences, occurrence: ResolvedOccurrence, today: string): ProjectionFlow[] {
+function occurrenceFlows(
+  item: PlannedItemOccurrences,
+  occurrence: ResolvedOccurrence,
+  today: string,
+): ProjectionFlow[] {
   const date = effectiveDate(occurrence, today);
   const source: FlowSource = {
     kind: "occurrence",
@@ -100,13 +109,20 @@ function occurrenceFlows(item: PlannedItemOccurrences, occurrence: ResolvedOccur
   ];
 }
 
-export function plannedFlows(items: readonly PlannedItemOccurrences[], today: string): ProjectionFlow[] {
+export function plannedFlows(
+  items: readonly PlannedItemOccurrences[],
+  today: string,
+): ProjectionFlow[] {
   return items.flatMap((item) =>
     projectedOccurrences(item).flatMap((occurrence) => occurrenceFlows(item, occurrence, today)),
   );
 }
 
-function snapshotDay(accounts: readonly ProjectionAccount[], totals: ReadonlyMap<number, number>, date: string): DailyBalance {
+function snapshotDay(
+  accounts: readonly ProjectionAccount[],
+  totals: ReadonlyMap<number, number>,
+  date: string,
+): DailyBalance {
   const balances = new Map<number, number>();
   for (const account of accounts) {
     if (account.openingDate <= date) {
@@ -157,7 +173,8 @@ function compareEvents(a: ProjectionEvent, b: ProjectionEvent): number {
   if (a.date !== b.date) return compareIsoDates(a.date, b.date);
   if (a.kind !== b.kind) return a.kind === "real" ? -1 : 1;
   if (a.kind === "real" || b.kind === "real") return 0;
-  if (a.item.plannedItemId !== b.item.plannedItemId) return a.item.plannedItemId - b.item.plannedItemId;
+  if (a.item.plannedItemId !== b.item.plannedItemId)
+    return a.item.plannedItemId - b.item.plannedItemId;
   return compareIsoDates(a.occurrence.nominalDate, b.occurrence.nominalDate);
 }
 
@@ -205,7 +222,11 @@ function routeTransfer(
   if (routing.status !== "ok") return routing;
 
   // The unplaced part never leaves the source account.
-  addToTotal(totals, item.accountId, -routing.placements.reduce((sum, { amount }) => sum + amount, 0));
+  addToTotal(
+    totals,
+    item.accountId,
+    -routing.placements.reduce((sum, { amount }) => sum + amount, 0),
+  );
   for (const { accountId, amount } of routing.placements) addToTotal(totals, accountId, amount);
   return routing;
 }
@@ -273,7 +294,10 @@ export function projectWithRouting(
   return { days, transfers };
 }
 
-export function firstDayBelowZero(days: readonly DailyBalance[], accountIds: readonly number[]): string | null {
+export function firstDayBelowZero(
+  days: readonly DailyBalance[],
+  accountIds: readonly number[],
+): string | null {
   for (const day of days) {
     let sum = 0;
     for (const accountId of accountIds) {

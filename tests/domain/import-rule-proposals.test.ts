@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CategorizationRule } from "../../src/domain/categorization-rule";
-import {
-  proposeRules,
-  type ProposalRow,
-} from "../../src/domain/import-rule-proposals";
+import { proposeRules, type ProposalRow } from "../../src/domain/import-rule-proposals";
 
 const ACCOUNT_ID = 1;
 const GROCERIES = 10;
@@ -43,7 +40,9 @@ describe("proposeRules", () => {
   });
 
   it("does not propose a pair already covered by a global rule", () => {
-    expect(propose([row()], [rule({ accountId: null, operator: "contains", value: "shop" })])).toEqual([]);
+    expect(
+      propose([row()], [rule({ accountId: null, operator: "contains", value: "shop" })]),
+    ).toEqual([]);
   });
 
   it("still proposes a pair covered only by a rule of another account", () => {
@@ -88,7 +87,13 @@ describe("proposeRules", () => {
 
     it("names the first matching rule when several match", () => {
       const first = rule({ id: 1, operator: "contains", value: "card", categoryId: LEISURE });
-      const second = rule({ id: 2, operator: "equals", value: "card shop", categoryId: 30, priority: 2 });
+      const second = rule({
+        id: 2,
+        operator: "equals",
+        value: "card shop",
+        categoryId: 30,
+        priority: 2,
+      });
 
       expect(propose([row()], [first, second])[0]?.shadowedBy).toEqual(first);
     });

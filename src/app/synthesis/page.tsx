@@ -27,10 +27,7 @@ const PAGE_GAP = "gap-6";
 // The title and the link show at once; the table, whose caption and columns hold the currency and the
 // names of the accounts, waits for the database.
 export default async function SynthesisPage() {
-  const [t, common] = await Promise.all([
-    getTranslations("synthesis"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("synthesis"), getTranslations("common")]);
 
   return (
     <main className={`mx-auto flex max-w-6xl flex-col ${PAGE_GAP} p-8`}>
@@ -82,88 +79,82 @@ async function Synthesis() {
   const { accounts, months, referenceCurrency } = await readSynthesis(throughMonth);
   const money = (minorUnits: number, currency = referenceCurrency) =>
     formatAmount(minorUnits, currency, locale);
-  const unconverted = [
-    ...new Set(months.flatMap((month) => month.unconvertedCurrencies)),
-  ].sort();
+  const unconverted = [...new Set(months.flatMap((month) => month.unconvertedCurrencies))].sort();
 
   return (
     <>
-    {unconverted.length > 0 ? (
-      <p role="status">
-        {t("unconverted", { currencies: unconverted.join(", ") })}
-      </p>
-    ) : null}
+      {unconverted.length > 0 ? (
+        <p role="status">{t("unconverted", { currencies: unconverted.join(", ") })}</p>
+      ) : null}
 
-    {months.length === 0 ? (
-      <EmptyState>
-        {t.rich("empty", {
-          link: (chunks) => (
-            <Link href="/accounts" className="underline">
-              {chunks}
-            </Link>
-          ),
-        })}
-      </EmptyState>
-    ) : (
-      <DataTable
-        caption={t("caption", { currency: referenceCurrency })}
-        regionLabel={t("regionLabel")}
-      >
-        <thead>
-          <tr>
-            <th scope="col">{t("columns.month")}</th>
-            <th scope="col" className="text-right">{t("columns.net")}</th>
-            <th scope="col" className="text-right">{t("columns.savings")}</th>
-            <th scope="col" className="text-right">{t("columns.cumulativeSavings")}</th>
-            <th scope="col" className="text-right">{t("columns.cumulativeAccount")}</th>
-            {accounts.map((account) => (
-              <th key={account.id} scope="col" className="text-right">
-                {account.name}
-                {account.archived ? ` ${t("archivedSuffix")}` : ""}
-              </th>
-            ))}
-            <th scope="col" className="text-right">{t("columns.total")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {months.map((month) => {
-            const balanceOf = new Map(
-              month.balances.map((entry) => [entry.accountId, entry]),
-            );
-            return (
-              <tr key={month.month}>
-                <th scope="row" className="tabular-nums">
-                  <time dateTime={month.month}>
-                    {formatMonth(month.month, locale)}
-                  </time>
-                </th>
-                <td className="text-right">{money(month.net)}</td>
-                <td className="text-right">{money(month.savings)}</td>
-                <td className="text-right">
-                  {money(month.cumulativeSavings)}
-                </td>
-                <td className="text-right">
-                  {money(month.cumulativeAccount)}
-                </td>
-                {accounts.map((account) => {
-                  const entry = balanceOf.get(account.id);
-                  return (
-                    <td key={account.id} className="text-right">
-                      {entry === undefined
-                        ? ""
-                        : money(entry.balance, entry.currency)}
-                    </td>
-                  );
-                })}
-                <td className="text-right font-medium">
-                  {money(month.total)}
-                </td>
-              </tr>
-            );
+      {months.length === 0 ? (
+        <EmptyState>
+          {t.rich("empty", {
+            link: (chunks) => (
+              <Link href="/accounts" className="underline">
+                {chunks}
+              </Link>
+            ),
           })}
-        </tbody>
-      </DataTable>
-    )}
+        </EmptyState>
+      ) : (
+        <DataTable
+          caption={t("caption", { currency: referenceCurrency })}
+          regionLabel={t("regionLabel")}
+        >
+          <thead>
+            <tr>
+              <th scope="col">{t("columns.month")}</th>
+              <th scope="col" className="text-right">
+                {t("columns.net")}
+              </th>
+              <th scope="col" className="text-right">
+                {t("columns.savings")}
+              </th>
+              <th scope="col" className="text-right">
+                {t("columns.cumulativeSavings")}
+              </th>
+              <th scope="col" className="text-right">
+                {t("columns.cumulativeAccount")}
+              </th>
+              {accounts.map((account) => (
+                <th key={account.id} scope="col" className="text-right">
+                  {account.name}
+                  {account.archived ? ` ${t("archivedSuffix")}` : ""}
+                </th>
+              ))}
+              <th scope="col" className="text-right">
+                {t("columns.total")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {months.map((month) => {
+              const balanceOf = new Map(month.balances.map((entry) => [entry.accountId, entry]));
+              return (
+                <tr key={month.month}>
+                  <th scope="row" className="tabular-nums">
+                    <time dateTime={month.month}>{formatMonth(month.month, locale)}</time>
+                  </th>
+                  <td className="text-right">{money(month.net)}</td>
+                  <td className="text-right">{money(month.savings)}</td>
+                  <td className="text-right">{money(month.cumulativeSavings)}</td>
+                  <td className="text-right">{money(month.cumulativeAccount)}</td>
+                  {accounts.map((account) => {
+                    const entry = balanceOf.get(account.id);
+                    return (
+                      <td key={account.id} className="text-right">
+                        {entry === undefined ? "" : money(entry.balance, entry.currency)}
+                      </td>
+                    );
+                  })}
+                  <td className="text-right font-medium">{money(month.total)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </DataTable>
+      )}
     </>
   );
 }

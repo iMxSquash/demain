@@ -29,7 +29,15 @@ interface SurplusStepProps {
  * destination (DESIGN section 10, "Above the ceiling"). Its heading takes the focus when it
  * opens. The buttons post the decision with the form; Cancel records nothing.
  */
-export function SurplusStep({ choice, sourceName, destinationName, targets, isPending, error, onCancel }: SurplusStepProps) {
+export function SurplusStep({
+  choice,
+  sourceName,
+  destinationName,
+  targets,
+  isPending,
+  error,
+  onCancel,
+}: SurplusStepProps) {
   const t = useTranslations("transactions.add");
   const common = useTranslations("common");
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -64,7 +72,9 @@ export function SurplusStep({ choice, sourceName, destinationName, targets, isPe
         })}
       </Notice>
       {/* Only a surplus sent elsewhere names an account: keeping it posts none. */}
-      {target === undefined ? null : <input type="hidden" name="surplusAccountId" value={target.id} />}
+      {target === undefined ? null : (
+        <input type="hidden" name="surplusAccountId" value={target.id} />
+      )}
       <ChoiceChips
         id="surplusAccountId"
         legend={t("surplusWhere")}

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  findHeaderIndex,
-  isTotalRow,
-  movementColumns,
-} from "../../src/domain/import-blocks";
+import { findHeaderIndex, isTotalRow, movementColumns } from "../../src/domain/import-blocks";
 
 describe("findHeaderIndex", () => {
   it("is the first line when it names the date, the label and the amount", () => {
@@ -37,16 +33,17 @@ describe("findHeaderIndex", () => {
   });
 
   it("is also found when the amount is split in debit and credit", () => {
-    expect(
-      findHeaderIndex([
-        ["Export"],
-        ["Date", "Label", "Debit", "Credit"],
-      ]),
-    ).toBe(1);
+    expect(findHeaderIndex([["Export"], ["Date", "Label", "Debit", "Credit"]])).toBe(1);
   });
 
   it("falls back on the first line when no line names the three", () => {
-    expect(findHeaderIndex([["a", "b"], ["Date", "Label"], ["1", "2"]])).toBe(0);
+    expect(
+      findHeaderIndex([
+        ["a", "b"],
+        ["Date", "Label"],
+        ["1", "2"],
+      ]),
+    ).toBe(0);
     expect(findHeaderIndex([])).toBe(0);
   });
 });

@@ -23,11 +23,7 @@ import {
   reactivateCategory,
   updateCategory,
 } from "../../src/ledger/categories";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 describe("categories", () => {
   let dataDir: string;
@@ -118,9 +114,7 @@ describe("categories", () => {
   it("makes the database itself refuse two names that differ only by case", () => {
     db.insert(categories).values({ name: "Rent" }).run();
 
-    expect(() =>
-      db.insert(categories).values({ name: "RENT" }).run(),
-    ).toThrow();
+    expect(() => db.insert(categories).values({ name: "RENT" }).run()).toThrow();
     expect(listCategories(db, { includeArchived: true })).toHaveLength(1);
   });
 
@@ -236,10 +230,7 @@ describe("categories", () => {
       const checking = createAccount(db, ACCOUNT_INPUT);
       const groceries = createCategory(db, { name: "Groceries" });
 
-      const created = createTransaction(
-        db,
-        entry(checking.id, { categoryId: groceries.id }),
-      );
+      const created = createTransaction(db, entry(checking.id, { categoryId: groceries.id }));
 
       expect(created.categoryId).toBe(groceries.id);
     });
@@ -249,12 +240,12 @@ describe("categories", () => {
       const old = createCategory(db, { name: "Old" });
       archiveCategory(db, old.id);
 
-      expect(() =>
-        createTransaction(db, entry(checking.id, { categoryId: 999 })),
-      ).toThrow(expect.objectContaining({ name: "CategoryNotFoundError" }));
-      expect(() =>
-        createTransaction(db, entry(checking.id, { categoryId: old.id })),
-      ).toThrow(expect.objectContaining({ field: "categoryId" }));
+      expect(() => createTransaction(db, entry(checking.id, { categoryId: 999 }))).toThrow(
+        expect.objectContaining({ name: "CategoryNotFoundError" }),
+      );
+      expect(() => createTransaction(db, entry(checking.id, { categoryId: old.id }))).toThrow(
+        expect.objectContaining({ field: "categoryId" }),
+      );
     });
 
     it("queues only the entered transactions that have no category", () => {
@@ -336,10 +327,7 @@ describe("categories", () => {
       const checking = createAccount(db, ACCOUNT_INPUT);
       const old = createCategory(db, { name: "Old" });
       const other = createCategory(db, { name: "Other" });
-      const created = createTransaction(
-        db,
-        entry(checking.id, { categoryId: old.id }),
-      );
+      const created = createTransaction(db, entry(checking.id, { categoryId: old.id }));
       archiveCategory(db, old.id);
 
       const edited = updateTransaction(
@@ -347,11 +335,7 @@ describe("categories", () => {
         created.id,
         entry(checking.id, { amount: -2_000, categoryId: old.id }),
       );
-      const moved = updateTransaction(
-        db,
-        created.id,
-        entry(checking.id, { categoryId: other.id }),
-      );
+      const moved = updateTransaction(db, created.id, entry(checking.id, { categoryId: other.id }));
 
       expect(edited).toMatchObject({ amount: -2_000, categoryId: old.id });
       expect(moved.categoryId).toBe(other.id);
@@ -385,18 +369,13 @@ describe("categories", () => {
     it("keeps the category of its transactions when a category is archived, and refuses its deletion", () => {
       const checking = createAccount(db, ACCOUNT_INPUT);
       const groceries = createCategory(db, { name: "Groceries" });
-      const created = createTransaction(
-        db,
-        entry(checking.id, { categoryId: groceries.id }),
-      );
+      const created = createTransaction(db, entry(checking.id, { categoryId: groceries.id }));
 
       archiveCategory(db, groceries.id);
 
       expect(listUncategorizedTransactions(db)).toEqual([]);
       expect(created.categoryId).toBe(groceries.id);
-      expect(() =>
-        db.delete(categories).where(eq(categories.id, groceries.id)).run(),
-      ).toThrow();
+      expect(() => db.delete(categories).where(eq(categories.id, groceries.id)).run()).toThrow();
     });
   });
 });

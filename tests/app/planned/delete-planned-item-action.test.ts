@@ -96,7 +96,11 @@ describe("deleting a planned item from its edit page", () => {
       kind: "expense",
       label: "Gym",
     });
-    linkTransactionToOccurrence(db, { transactionId: transaction.id, plannedItemId: itemId, nominalDate: "2026-01-05" });
+    linkTransactionToOccurrence(db, {
+      transactionId: transaction.id,
+      plannedItemId: itemId,
+      nominalDate: "2026-01-05",
+    });
 
     const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
 

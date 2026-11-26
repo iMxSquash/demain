@@ -12,11 +12,7 @@ import {
   NO_CATEGORY_CHOICE,
   type BulkChoice,
 } from "./review-state";
-import {
-  NO_COLUMN_CHOICE,
-  type ColumnChoiceFields,
-  type StagedColumns,
-} from "./import-form-data";
+import { NO_COLUMN_CHOICE, type ColumnChoiceFields, type StagedColumns } from "./import-form-data";
 import { columnChoicesOf } from "./reread-file";
 import type { RowLookups } from "./staged-row-editor";
 import type { RowDetails } from "../../domain/import-draft";

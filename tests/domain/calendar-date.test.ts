@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, addMonths, clampedDate, daysInMonth, weekdayOf } from "../../src/domain/calendar-date";
+import {
+  addDays,
+  addMonths,
+  clampedDate,
+  daysInMonth,
+  weekdayOf,
+} from "../../src/domain/calendar-date";
 
 const SATURDAY = 6;
 const SUNDAY = 0;

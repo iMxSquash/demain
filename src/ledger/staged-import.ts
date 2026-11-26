@@ -51,10 +51,7 @@ export type CommitDraftsResult =
  * as the file: a file that is not recorded leaves no account and no link behind,
  * and a choice the ledger refuses refuses the file (the error is thrown).
  */
-export function commitDrafts(
-  db: AppDatabase,
-  request: CommitDraftsRequest,
-): CommitDraftsResult {
+export function commitDrafts(db: AppDatabase, request: CommitDraftsRequest): CommitDraftsResult {
   const { overflow, ...file } = request;
   if (overflow === undefined) {
     return commitReviewedDrafts(db, file);
@@ -104,9 +101,7 @@ function commitReviewedDrafts(
     // Same fallback as planRow: a row that names no savings account takes the
     // one of the request, so the check sees the account that will be used.
     const details: RowDetails | undefined =
-      given === undefined
-        ? undefined
-        : withDefaultSavingsAccount(given, rest.savingsAccountId);
+      given === undefined ? undefined : withDefaultSavingsAccount(given, rest.savingsAccountId);
     const problem = details === undefined ? null : checkRowDetails(details);
     if (problem !== null) {
       problems.push({ index, problem });

@@ -6,11 +6,7 @@ import Database from "better-sqlite3";
 import { revokeAllSessions } from "../auth/sessions";
 import { AccountValidationError } from "../domain/account";
 import { assertOverflowTargetAllowed, type OverflowLink } from "../domain/overflow";
-import {
-  type AppDatabase,
-  latestKnownMigrationTime,
-  migrateDatabase,
-} from "../storage/database";
+import { type AppDatabase, latestKnownMigrationTime, migrateDatabase } from "../storage/database";
 import { BackupError } from "./backup-error";
 import { decryptPayload, encryptPayload } from "./envelope";
 
@@ -77,7 +73,9 @@ function assertRestorable(file: string): void {
       (candidate.pragma("foreign_key_check") as unknown[]).length === 0;
     // Only a database made by Demain has the table drizzle keeps its migrations in.
     const latest = candidate
-      .prepare<[], { latest: number | null }>("select max(created_at) as latest from __drizzle_migrations")
+      .prepare<[], { latest: number | null }>(
+        "select max(created_at) as latest from __drizzle_migrations",
+      )
       .get()?.latest;
     if (!isIntact) {
       throw new BackupError("invalidDatabase");
@@ -103,9 +101,16 @@ function assertRestorable(file: string): void {
  */
 function assertOverflowChainsValid(candidate: Database.Database): void {
   const rows = candidate
-    .prepare<[], { id: number; currency: string; kind: string; archived: number; overflowAccountId: number | null }>(
-      "select id, kind, currency, archived, overflow_account_id as overflowAccountId from accounts",
-    )
+    .prepare<
+      [],
+      {
+        id: number;
+        currency: string;
+        kind: string;
+        archived: number;
+        overflowAccountId: number | null;
+      }
+    >("select id, kind, currency, archived, overflow_account_id as overflowAccountId from accounts")
     .all();
   const links: OverflowLink[] = rows.map((row) => ({ ...row, archived: row.archived === 1 }));
   try {

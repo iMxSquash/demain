@@ -21,7 +21,9 @@ describe("every select of the app is the picker", () => {
     const offenders = files
       .filter(({ relative }) => relative !== FALLBACK_FILE)
       .flatMap(({ relative, codeLines }) =>
-        codeLines.filter(({ text }) => NATIVE_SELECT.test(text)).map(({ line }) => `${relative}:${line}`),
+        codeLines
+          .filter(({ text }) => NATIVE_SELECT.test(text))
+          .map(({ line }) => `${relative}:${line}`),
       );
 
     expect(offenders).toEqual([]);

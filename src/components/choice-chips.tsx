@@ -116,7 +116,9 @@ export function ChoiceChips({
               {icon && !isIconOnly ? (
                 <span
                   className={`${CHIP_DISC_CLASS} group-has-[:checked]/chip:bg-surface group-has-[:disabled]/chip:bg-surface-sunken group-has-[:disabled]/chip:text-text-muted ${
-                    isLater ? "bg-warning-tint text-warning group-has-[:checked]/chip:text-warning" : ""
+                    isLater
+                      ? "bg-warning-tint text-warning group-has-[:checked]/chip:text-warning"
+                      : ""
                   }`}
                 >
                   <Icon icon={icon} />

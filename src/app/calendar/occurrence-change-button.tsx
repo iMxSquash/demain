@@ -110,12 +110,15 @@ function OccurrenceChangeForms({
   );
   // Either form running holds every submit button; only the button that was clicked says so.
   const isBusy = isPending || isRestoring;
-  const [submittedIntent, setSubmittedIntent] = useState<typeof SAVE_INTENT | typeof SKIP_INTENT>(SAVE_INTENT);
+  const [submittedIntent, setSubmittedIntent] = useState<typeof SAVE_INTENT | typeof SKIP_INTENT>(
+    SAVE_INTENT,
+  );
   const pendingLabelWhile = (isRunning: boolean) => (isRunning ? common("pending") : undefined);
   const formRef = useFocusFirstError(state);
   const values = state?.values ?? initialValues;
   const idOf = (field: OccurrenceOverrideFormField) => `${baseId}-${field}`;
-  const errorOf = (field: OccurrenceOverrideFormField) => (state?.field === field ? state.message : undefined);
+  const errorOf = (field: OccurrenceOverrideFormField) =>
+    state?.field === field ? state.message : undefined;
   const target = (
     <>
       <input type="hidden" name="itemId" value={itemId} />
@@ -137,7 +140,11 @@ function OccurrenceChangeForms({
           hint={t("newDateHint")}
           error={errorOf("overrideDate")}
         >
-          <DatePicker id={idOf("overrideDate")} name="overrideDate" defaultValue={values.overrideDate} />
+          <DatePicker
+            id={idOf("overrideDate")}
+            name="overrideDate"
+            defaultValue={values.overrideDate}
+          />
         </FormField>
         <FormField
           id={idOf("overrideAmount")}

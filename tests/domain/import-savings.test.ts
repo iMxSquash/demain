@@ -18,9 +18,7 @@ import type { OverflowAccount } from "../../src/domain/overflow";
 const A_ID = 2;
 const B_ID = 3;
 
-function account(
-  overrides: Partial<OverflowAccount> & { id: number },
-): OverflowAccount {
+function account(overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount {
   return {
     currency: "EUR",
     archived: false,
@@ -98,10 +96,7 @@ describe("planSavingsTransfers", () => {
 
   it("keeps the order of the file for the movements of one day", () => {
     const plan = planSavingsTransfers(
-      [
-        movement({ index: 0, amount: -2_000 }),
-        movement({ index: 1, amount: -1_000 }),
-      ],
+      [movement({ index: 0, amount: -2_000 }), movement({ index: 1, amount: -1_000 })],
       chain(),
     );
 
@@ -263,14 +258,26 @@ describe("files in date order", () => {
   });
 
   it("gives the ceiling to the file that is first in time, whatever the order chosen", () => {
-    const earlier = { name: "earlier.csv", firstDate: "2026-03-02", movements: [movement({ date: "2026-03-02", amount: -10_000 })] };
-    const later = { name: "later.csv", firstDate: "2026-03-10", movements: [movement({ date: "2026-03-10", amount: -10_000 })] };
+    const earlier = {
+      name: "earlier.csv",
+      firstDate: "2026-03-02",
+      movements: [movement({ date: "2026-03-02", amount: -10_000 })],
+    };
+    const later = {
+      name: "later.csv",
+      firstDate: "2026-03-10",
+      movements: [movement({ date: "2026-03-10", amount: -10_000 })],
+    };
 
     const [first, second] = planFilesInDateOrder([later, earlier], chain());
 
     expect(first?.file.name).toBe("earlier.csv");
-    expect(first?.plan.transfers[0]).toMatchObject({ placements: [{ accountId: A_ID, amount: 10_000 }] });
-    expect(second?.plan.transfers[0]).toMatchObject({ placements: [{ accountId: B_ID, amount: 10_000 }] });
+    expect(first?.plan.transfers[0]).toMatchObject({
+      placements: [{ accountId: A_ID, amount: 10_000 }],
+    });
+    expect(second?.plan.transfers[0]).toMatchObject({
+      placements: [{ accountId: B_ID, amount: 10_000 }],
+    });
   });
 
   it("plans each file on the balances left by the previous one", () => {
@@ -305,9 +312,7 @@ describe("files in date order", () => {
 describe("checkSavingsAccount", () => {
   const RECEIVING_ID = 1;
 
-  function candidate(
-    overrides: Partial<SavingsAccountCandidate> = {},
-  ): SavingsAccountCandidate {
+  function candidate(overrides: Partial<SavingsAccountCandidate> = {}): SavingsAccountCandidate {
     return { id: A_ID, kind: "savings", archived: false, currency: "EUR", ...overrides };
   }
 
@@ -344,9 +349,7 @@ describe("savings account choices", () => {
   const RECEIVING = { id: 1, currency: "EUR" };
   const C_ID = 4;
 
-  function choice(
-    overrides: Partial<SavingsAccountChoice> & { id: number },
-  ): SavingsAccountChoice {
+  function choice(overrides: Partial<SavingsAccountChoice> & { id: number }): SavingsAccountChoice {
     return {
       kind: "savings",
       archived: false,
@@ -376,9 +379,7 @@ describe("savings account choices", () => {
       ["a checking account", { kind: "checking" as const }],
       ["the account of the file", { id: RECEIVING.id }],
     ])("refuses %s", (_name, overrides) => {
-      expect(
-        isSelectableSavingsAccount(RECEIVING, choice({ id: A_ID, ...overrides })),
-      ).toBe(false);
+      expect(isSelectableSavingsAccount(RECEIVING, choice({ id: A_ID, ...overrides }))).toBe(false);
     });
   });
 
@@ -406,10 +407,7 @@ describe("savings account choices", () => {
     });
 
     it("leaves out the accounts of another currency", () => {
-      const accounts = [
-        ...sheetAccounts(),
-        choice({ id: C_ID, currency: "USD" }),
-      ];
+      const accounts = [...sheetAccounts(), choice({ id: C_ID, currency: "USD" })];
 
       expect(defaultSavingsAccountId(accounts, RECEIVING)).toBe(A_ID);
     });

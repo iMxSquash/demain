@@ -13,9 +13,7 @@ import { mappingToFields, type MappingFields } from "./import-form-data";
 
 const RAW_ROW_COUNT = 5;
 
-const emptyMappingFields = (
-  delimiter: CsvMapping["delimiter"],
-): MappingFields => ({
+const emptyMappingFields = (delimiter: CsvMapping["delimiter"]): MappingFields => ({
   delimiter,
   hasHeader: true,
   dateColumn: "",
@@ -64,9 +62,7 @@ export function readCsv(
   const parsed = parseCsv(text, delimiter);
   const rawRows = parsed.slice(0, RAW_ROW_COUNT);
 
-  const saved = submitted
-    ? null
-    : withDatabase((db) => getLastCsvMapping(db, accountId));
+  const saved = submitted ? null : withDatabase((db) => getLastCsvMapping(db, accountId));
   const candidates = submitted
     ? [submitted]
     : [

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { choiceKey, enteredMatchesOf, settleEnteredChoices } from "../../../src/app/imports/entered-payments";
+import {
+  choiceKey,
+  enteredMatchesOf,
+  settleEnteredChoices,
+} from "../../../src/app/imports/entered-payments";
 import { detailsFromSign } from "../../../src/domain/import-draft";
 import type { EnteredPaymentEntry } from "../../../src/ledger/planned-matching";
 
@@ -23,12 +27,19 @@ function entry(overrides: Partial<EnteredPaymentEntry> = {}): EnteredPaymentEntr
     toleranceBasisPoints: 500,
     ...overrides,
   };
-  return { movements: [{ accountId: base.accountId, date: base.date, amount: base.amount }], ...base };
+  return {
+    movements: [{ accountId: base.accountId, date: base.date, amount: base.amount }],
+    ...base,
+  };
 }
 
 function row(
   amount: string,
-  overrides: { isDuplicate?: boolean; type?: "expense" | "income" | "savings"; savingsAccountId?: number | null } = {},
+  overrides: {
+    isDuplicate?: boolean;
+    type?: "expense" | "income" | "savings";
+    savingsAccountId?: number | null;
+  } = {},
 ) {
   return {
     draft: { date: "2026-12-05", label: "RENT DECEMBER", amount, externalId: null },
@@ -87,12 +98,18 @@ describe("enteredMatchesOf", () => {
       const fromSavings = entry({ ...saving, accountId: SAVINGS_ID });
 
       expect(
-        enteredMatchesOf([row("300,00", { type: "savings", savingsAccountId: SAVINGS_ID })], CONTEXT, [fromSavings]),
+        enteredMatchesOf(
+          [row("300,00", { type: "savings", savingsAccountId: SAVINGS_ID })],
+          CONTEXT,
+          [fromSavings],
+        ),
       ).toHaveLength(1);
     });
 
     it("leaves out a savings row with no savings account", () => {
-      expect(enteredMatchesOf([row("-300,00", { type: "savings" })], CONTEXT, [saving])).toEqual([]);
+      expect(enteredMatchesOf([row("-300,00", { type: "savings" })], CONTEXT, [saving])).toEqual(
+        [],
+      );
     });
   });
 });
@@ -111,7 +128,9 @@ describe("settleEnteredChoices", () => {
       unsettledCount: 0,
       isEntryChosenTwice: false,
     });
-    expect(settleEnteredChoices(matches, new Map([[choiceKey(2, matches[0]!), null]]), lineOf)).toMatchObject({
+    expect(
+      settleEnteredChoices(matches, new Map([[choiceKey(2, matches[0]!), null]]), lineOf),
+    ).toMatchObject({
       replacements: [],
       unsettledCount: 0,
     });
@@ -122,14 +141,19 @@ describe("settleEnteredChoices", () => {
 
     expect(settleEnteredChoices(matches, new Map(), lineOf).unsettledCount).toBe(1);
     expect(
-      settleEnteredChoices(matches, new Map([[choiceKey(2, matches[0]!), garage.id]]), lineOf).replacements,
+      settleEnteredChoices(matches, new Map([[choiceKey(2, matches[0]!), garage.id]]), lineOf)
+        .replacements,
     ).toEqual([{ index: 0, entryId: garage.id }]);
   });
 
   it("follows the line of its row when the rows move", () => {
     const keepRent = new Map([[choiceKey(2, { candidates: [rent] }), null]]);
 
-    const moved = settleEnteredChoices([{ rowId: 1, candidates: [rent], proposed: rent }], keepRent, (rowId) => rowId + 1);
+    const moved = settleEnteredChoices(
+      [{ rowId: 1, candidates: [rent], proposed: rent }],
+      keepRent,
+      (rowId) => rowId + 1,
+    );
 
     expect(moved.replacements).toEqual([]);
   });
@@ -137,7 +161,11 @@ describe("settleEnteredChoices", () => {
   it("gives way to the proposal once the row offers other entries", () => {
     const keepRent = new Map([[choiceKey(2, { candidates: [rent] }), null]]);
 
-    const changed = settleEnteredChoices([{ rowId: 0, candidates: [garage], proposed: garage }], keepRent, lineOf);
+    const changed = settleEnteredChoices(
+      [{ rowId: 0, candidates: [garage], proposed: garage }],
+      keepRent,
+      lineOf,
+    );
 
     expect(changed.replacements).toEqual([{ index: 0, entryId: garage.id }]);
   });

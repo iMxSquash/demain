@@ -382,7 +382,9 @@ function batchCandidatesOf(
   const candidateRows = rows.filter(({ representative }) => representative.plannedItemId === null);
   return {
     transactions: [...nonTransfers, ...candidateRows.map((row) => row.representative)],
-    legIdsOf: new Map(candidateRows.map(({ representative, legIds }) => [representative.id, legIds])),
+    legIdsOf: new Map(
+      candidateRows.map(({ representative, legIds }) => [representative.id, legIds]),
+    ),
   };
 }
 
@@ -474,11 +476,7 @@ export function applyImportMatches(
   { batchId, today }: ImportMatchRequest,
 ): ImportMatchOutcome {
   const rows = transferRowsOf(db, batchId);
-  const result = decideBatchMatches(
-    db,
-    batchCandidatesOf(db, batchId, rows),
-    today,
-  );
+  const result = decideBatchMatches(db, batchCandidatesOf(db, batchId, rows), today);
   if (result === null) return NO_MATCHES;
 
   for (const pair of result.decisions.confirmed) writeDecidedLink(db, result, pair);
@@ -532,11 +530,7 @@ function proposedGroupsOf(
   rows: readonly TransferRow[],
   today: string,
 ): BatchLookups & { groups: MatchPair[][] } {
-  const result = decideBatchMatches(
-    db,
-    batchCandidatesOf(db, batchId, rows),
-    today,
-  );
+  const result = decideBatchMatches(db, batchCandidatesOf(db, batchId, rows), today);
   if (result === null) return { groups: [], ...NO_LOOKUPS };
   const { decisions, ...lookups } = result;
   const groups = [...decisions.confirmed.map((pair) => [pair]), ...decisions.proposed];
@@ -843,7 +837,11 @@ export interface EnteredPaymentEntry extends EnteredPayment {
  * The linked transactions entered by hand on an open account that settle a regular occurrence:
  * of an expense or an income, or the outgoing legs of a planned transfer. In id order.
  */
-function listEnteredLinks(db: Pick<AppDatabase, "select">, isTransfer: boolean, accountIds?: readonly number[]) {
+function listEnteredLinks(
+  db: Pick<AppDatabase, "select">,
+  isTransfer: boolean,
+  accountIds?: readonly number[],
+) {
   return (
     db
       .select({
@@ -866,7 +864,10 @@ function listEnteredLinks(db: Pick<AppDatabase, "select">, isTransfer: boolean, 
       // outgoing legs of a transfer are on the account of its item, and only they carry the link.
       .innerJoin(
         plannedItems,
-        and(eq(plannedItems.id, transactions.plannedItemId), eq(plannedItems.accountId, transactions.accountId)),
+        and(
+          eq(plannedItems.id, transactions.plannedItemId),
+          eq(plannedItems.accountId, transactions.accountId),
+        ),
       )
       .innerJoin(accounts, eq(accounts.id, transactions.accountId))
       .where(
@@ -883,7 +884,10 @@ function listEnteredLinks(db: Pick<AppDatabase, "select">, isTransfer: boolean, 
       .orderBy(asc(transactions.id))
       .all()
       // The where clause keeps linked transactions only, so the occurrence date is set.
-      .map(({ nominalDate, counterpartId, ...row }) => ({ entry: { ...row, nominalDate: nominalDate! }, counterpartId }))
+      .map(({ nominalDate, counterpartId, ...row }) => ({
+        entry: { ...row, nominalDate: nominalDate! },
+        counterpartId,
+      }))
   );
 }
 
@@ -892,10 +896,15 @@ function listEnteredLinks(db: Pick<AppDatabase, "select">, isTransfer: boolean, 
  * lowest id, their summed amount), as an imported savings row is matched. A transfer with a leg
  * on an archived account is left out: none of its legs can be deleted (DOMAIN, invariant 12).
  */
-function listEnteredTransfers(db: Pick<AppDatabase, "select">, accountIds?: readonly number[]): EnteredPaymentEntry[] {
+function listEnteredTransfers(
+  db: Pick<AppDatabase, "select">,
+  accountIds?: readonly number[],
+): EnteredPaymentEntry[] {
   const outgoing = listEnteredLinks(db, true, accountIds);
   if (outgoing.length === 0) return [];
-  const counterpartIds = outgoing.flatMap(({ counterpartId }) => (counterpartId === null ? [] : [counterpartId]));
+  const counterpartIds = outgoing.flatMap(({ counterpartId }) =>
+    counterpartId === null ? [] : [counterpartId],
+  );
   const counterparts = new Map(
     db
       .select({
@@ -911,7 +920,10 @@ function listEnteredTransfers(db: Pick<AppDatabase, "select">, accountIds?: read
       .all()
       .map((leg) => [leg.id, leg]),
   );
-  const occurrences = Map.groupBy(outgoing, ({ entry }) => `${entry.plannedItemId}|${entry.nominalDate}`);
+  const occurrences = Map.groupBy(
+    outgoing,
+    ({ entry }) => `${entry.plannedItemId}|${entry.nominalDate}`,
+  );
   return [...occurrences.values()].flatMap((links) => {
     const legs = links.map(({ entry }) => entry);
     const ins = links.flatMap(({ counterpartId }) => {
@@ -919,7 +931,11 @@ function listEnteredTransfers(db: Pick<AppDatabase, "select">, accountIds?: read
       return leg === undefined || leg.archived ? [] : [leg];
     });
     if (ins.length !== legs.length) return [];
-    const movements = [...legs, ...ins].map(({ accountId, date, amount }) => ({ accountId, date, amount }));
+    const movements = [...legs, ...ins].map(({ accountId, date, amount }) => ({
+      accountId,
+      date,
+      amount,
+    }));
     // In id order, so the first leg names the entry, as the first leg of an imported row does.
     return [{ ...legs[0]!, amount: legs.reduce((sum, leg) => sum + leg.amount, 0), movements }];
   });
@@ -954,7 +970,11 @@ export function replaceEnteredPayment(
 ): void {
   const entry = readTransactionOrThrow(db, entryId);
   const bankRow = readTransactionOrThrow(db, bankRowId);
-  if (entry.plannedItemId === null || entry.occurrenceDate === null || entry.importBatchId !== null) {
+  if (
+    entry.plannedItemId === null ||
+    entry.occurrenceDate === null ||
+    entry.importBatchId !== null
+  ) {
     throw new Error(`Transaction ${entryId} is not an entered payment`);
   }
   assertNotTransfer(entry);
@@ -964,14 +984,20 @@ export function replaceEnteredPayment(
     ...(bankRow.categoryId === null && entry.categoryId !== null
       ? { categoryId: entry.categoryId, categoryFromPlannedItem: entry.categoryFromPlannedItem }
       : {}),
-    ...(bankRow.description === null && entry.description !== null ? { description: entry.description } : {}),
+    ...(bankRow.description === null && entry.description !== null
+      ? { description: entry.description }
+      : {}),
   };
   if (Object.keys(taken).length > 0) {
     db.update(transactions).set(taken).where(eq(transactions.id, bankRowId)).run();
   }
   linkTransactionToOccurrence(
     db,
-    { transactionId: bankRowId, plannedItemId: entry.plannedItemId, nominalDate: entry.occurrenceDate },
+    {
+      transactionId: bankRowId,
+      plannedItemId: entry.plannedItemId,
+      nominalDate: entry.occurrenceDate,
+    },
     { inheritCategory: false },
   );
 }
@@ -1010,7 +1036,9 @@ export function replaceEnteredTransfer(
       ),
     )
     .all();
-  const legIds = outgoing.flatMap(({ id, counterpartId }) => (counterpartId === null ? [id] : [id, counterpartId]));
+  const legIds = outgoing.flatMap(({ id, counterpartId }) =>
+    counterpartId === null ? [id] : [id, counterpartId],
+  );
   const legs = db
     .select({ accountId: transactions.accountId })
     .from(transactions)
@@ -1027,7 +1055,10 @@ export function replaceEnteredTransfer(
       messageRef("matchOccurrenceTaken"),
     );
   }
-  db.update(transactions).set(occurrence).where(inArray(transactions.id, [...outgoingLegIds])).run();
+  db.update(transactions)
+    .set(occurrence)
+    .where(inArray(transactions.id, [...outgoingLegIds]))
+    .run();
 }
 
 /** An occurrence still waiting for a transaction, as the "To pay" and "Link a transaction" pages show it. */
@@ -1052,7 +1083,8 @@ export interface OpenOccurrence {
 
 /** The effective dates an occurrence can have: around its nominal date, or where an override moved it. */
 function rangeAround(item: PlannedItemWithDetails, nominalDate: string): DateRange {
-  const moved = item.overrides.find((override) => override.nominalDate === nominalDate)?.overrideDate ?? null;
+  const moved =
+    item.overrides.find((override) => override.nominalDate === nominalDate)?.overrideDate ?? null;
   const from = addDays(nominalDate, -MAX_BUSINESS_DAY_SHIFT_DAYS);
   const to = addDays(nominalDate, MAX_BUSINESS_DAY_SHIFT_DAYS);
   if (moved === null) return { from, to };
@@ -1085,11 +1117,17 @@ export interface OccurrenceRef {
   nominalDate: string;
 }
 
-function refuse(message: string, key: "markPaidOccurrenceUnknown" | "markPaidOccurrenceSettled" | "markPaidOccurrenceCancelled"): never {
+function refuse(
+  message: string,
+  key: "markPaidOccurrenceUnknown" | "markPaidOccurrenceSettled" | "markPaidOccurrenceCancelled",
+): never {
   throw new PlannedLinkError(message, messageRef(key));
 }
 
-function readItemOrThrow(db: Pick<AppDatabase, "select">, plannedItemId: number): PlannedItemWithDetails {
+function readItemOrThrow(
+  db: Pick<AppDatabase, "select">,
+  plannedItemId: number,
+): PlannedItemWithDetails {
   try {
     return getPlannedItem(db, plannedItemId);
   } catch (error) {
@@ -1114,13 +1152,23 @@ function readOpenOccurrence(
   const occurrence = resolveOver(item, links, rangeAround(item, nominalDate), today).find(
     (candidate) => candidate.nominalDate === nominalDate,
   );
-  if (occurrence === undefined) refuse(`No occurrence of item ${item.id} on ${nominalDate}`, "markPaidOccurrenceUnknown");
-  if (occurrence.status === "cancelled") refuse("The occurrence is cancelled", "markPaidOccurrenceCancelled");
-  if (occurrence.status === "confirmed") refuse("The occurrence is already settled", "markPaidOccurrenceSettled");
+  if (occurrence === undefined)
+    refuse(`No occurrence of item ${item.id} on ${nominalDate}`, "markPaidOccurrenceUnknown");
+  if (occurrence.status === "cancelled")
+    refuse("The occurrence is cancelled", "markPaidOccurrenceCancelled");
+  if (occurrence.status === "confirmed")
+    refuse("The occurrence is already settled", "markPaidOccurrenceSettled");
   // Nothing is entered on an archived account: the occurrence is refused there too.
   const { currency } = getOpenAccount(db, item.accountId);
   // The narrowing of `status` is lost through the checks above.
-  return { item, occurrence: toOpenOccurrence(item, { ...occurrence, status: occurrence.status as OpenStatus }, currency) };
+  return {
+    item,
+    occurrence: toOpenOccurrence(
+      item,
+      { ...occurrence, status: occurrence.status as OpenStatus },
+      currency,
+    ),
+  };
 }
 
 export interface MarkPaidRequest extends OccurrenceRef {
@@ -1157,7 +1205,14 @@ function recordPlannedTransfer(
   );
   // Every outgoing leg settles the occurrence, as the import does for a split row (#175).
   const outgoing = transfers.map(([leg]) => leg);
-  writeLink(db, outgoing[0]!, item, request.nominalDate, false, outgoing.map((leg) => leg.id));
+  writeLink(
+    db,
+    outgoing[0]!,
+    item,
+    request.nominalDate,
+    false,
+    outgoing.map((leg) => leg.id),
+  );
   return { unplaced, ceilingExcess: 0 };
 }
 
@@ -1216,11 +1271,15 @@ function accountFacts(db: Pick<AppDatabase, "select">) {
  * the next `DUE_SOON_DAYS` days. Items of an archived account are left out, since nothing can be
  * entered there; so are cancelled items. The navigation counts `due`.
  */
-export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: string): DueOccurrences<OpenOccurrence> {
+export function listDueOccurrences(
+  db: Pick<AppDatabase, "select">,
+  today: string,
+): DueOccurrences<OpenOccurrence> {
   const { currencyOf, archived } = accountFacts(db);
   const items = listPlannedItems(db, { includeCancelled: false }).filter(
     (item) =>
-      !archived.has(item.accountId) && (item.destinationAccountId === null || !archived.has(item.destinationAccountId)),
+      !archived.has(item.accountId) &&
+      (item.destinationAccountId === null || !archived.has(item.destinationAccountId)),
   );
   if (items.length === 0) return { due: [], soon: [] };
   const links = linksOf(
@@ -1231,15 +1290,24 @@ export function listDueOccurrences(db: Pick<AppDatabase, "select">, today: strin
   const open = items.flatMap((item) => {
     // Every occurrence since the start can still be overdue; an override may move one earlier.
     const from = item.overrides.reduce(
-      (earliest, { overrideDate }) => (overrideDate !== null && overrideDate < earliest ? overrideDate : earliest),
+      (earliest, { overrideDate }) =>
+        overrideDate !== null && overrideDate < earliest ? overrideDate : earliest,
       addDays(item.startDate, -MAX_BUSINESS_DAY_SHIFT_DAYS),
     );
-    return resolveOver(item, links.get(item.id) ?? [], { from, to }, today).flatMap((occurrence) => {
-      const { status } = occurrence;
-      return isOpenStatus(status)
-        ? [toOpenOccurrence(item, { ...occurrence, status }, currencyOf.get(item.accountId) ?? "")]
-        : [];
-    });
+    return resolveOver(item, links.get(item.id) ?? [], { from, to }, today).flatMap(
+      (occurrence) => {
+        const { status } = occurrence;
+        return isOpenStatus(status)
+          ? [
+              toOpenOccurrence(
+                item,
+                { ...occurrence, status },
+                currencyOf.get(item.accountId) ?? "",
+              ),
+            ]
+          : [];
+      },
+    );
   });
   return dueOccurrences(open, today, DUE_SOON_DAYS);
 }

@@ -2,24 +2,14 @@ import { parseUnsignedAmount } from "../../domain/amount-syntax";
 import { messageRef, type Translate } from "../../domain/message";
 import { MoneyParseError } from "../../domain/money";
 import type { TransactionInput } from "../../domain/transaction";
-import type {
-  SurplusDecision,
-  TransferRequest,
-} from "../../ledger/transactions";
+import type { SurplusDecision, TransferRequest } from "../../ledger/transactions";
 import { TRANSFER_DECISION } from "./transfer-decision";
 
 /** Currency of each known account, so that text amounts are read exactly. */
 export type CurrencyByAccount = ReadonlyMap<number, string>;
 
 export type TransactionFormField =
-  | "accountId"
-  | "date"
-  | "kind"
-  | "amount"
-  | "label"
-  | "description"
-  | "paymentMode"
-  | "categoryId";
+  "accountId" | "date" | "kind" | "amount" | "label" | "description" | "paymentMode" | "categoryId";
 
 export interface TransactionFormValues {
   accountId: string;
@@ -51,12 +41,7 @@ export type TransactionFormState =
   | { status: "saved"; values: TransactionFormValues };
 
 export type TransferFormField =
-  | "sourceId"
-  | "destinationId"
-  | "date"
-  | "amount"
-  | "label"
-  | "surplusAccountId";
+  "sourceId" | "destinationId" | "date" | "amount" | "label" | "surplusAccountId";
 
 export interface TransferFormValues {
   sourceId: string;
@@ -90,8 +75,7 @@ export type TransferFormState =
   | { status: "saved"; values: TransferFormValues };
 
 export type ParsedTransactionForm =
-  | { ok: true; input: TransactionInput }
-  | { ok: false; error: TransactionFormState };
+  { ok: true; input: TransactionInput } | { ok: false; error: TransactionFormState };
 
 export type ParsedTransferForm =
   | {
@@ -144,11 +128,7 @@ type AmountResult = { value: number } | { message: string };
 // "expense" and "-" would otherwise contradict each other.
 const SIGN_CHARACTERS = /^[+\-\u2212]/;
 
-function readUnsignedAmount(
-  text: string,
-  currency: string,
-  translate: Translate,
-): AmountResult {
+function readUnsignedAmount(text: string, currency: string, translate: Translate): AmountResult {
   // The sign gets its own message: the type, not the text, gives the direction.
   if (SIGN_CHARACTERS.test(text.trim())) {
     return { message: translate(messageRef("amountUnsigned")) };
@@ -210,13 +190,14 @@ export function parseTransactionForm(
  * The account that could not take the rest of a transfer: the one the user chose for the surplus,
  * or the destination when only its room was deposited. The notice after saving names it.
  */
-export function fullAccountIdOf(request: TransferRequest, decision: SurplusDecision | null): number {
+export function fullAccountIdOf(
+  request: TransferRequest,
+  decision: SurplusDecision | null,
+): number {
   return decision?.kind === "send-surplus" ? decision.accountId : request.destinationId;
 }
 
-type DecisionResult =
-  | { value: SurplusDecision | null }
-  | { message: string };
+type DecisionResult = { value: SurplusDecision | null } | { message: string };
 
 /** The decision posted by the surplus step. No decision is the normal first submit: the form then shows the split. */
 export function readDecision(
@@ -254,10 +235,7 @@ export function parseTransferForm(
   }
   const destination = readAccount(values.destinationId, currencies);
   if (destination === null) {
-    return fail(
-      "destinationId",
-      translate(messageRef("transferDestinationUnknown")),
-    );
+    return fail("destinationId", translate(messageRef("transferDestinationUnknown")));
   }
 
   const amount = readUnsignedAmount(values.amount, source.currency, translate);

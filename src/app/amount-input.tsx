@@ -5,11 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ComponentPropsWithoutRef } from "react";
 
 import { Icon } from "../components/icon";
-import {
-  checkAmountSyntax,
-  isAmountDraft,
-  stripAmountSpaces,
-} from "../domain/amount-syntax";
+import { checkAmountSyntax, isAmountDraft, stripAmountSpaces } from "../domain/amount-syntax";
 import { type MessageRef, messageRef } from "../domain/message";
 
 type AmountInputProps = Omit<
@@ -68,7 +64,10 @@ export function AmountInput({ id, inputMode = "decimal", onBlur, ...rest }: Amou
 
       if (refused !== null) {
         event.preventDefault();
-        setMessage({ kind: "refusal", ref: messageRef("amountCharacterRefused", { character: refused }) });
+        setMessage({
+          kind: "refusal",
+          ref: messageRef("amountCharacterRefused", { character: refused }),
+        });
         return;
       }
       setMessage(null);

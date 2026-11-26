@@ -62,10 +62,22 @@ describe("monthly line view of real and planned movements", () => {
   const balancesOf = (result: CalendarMonth) => result.days.map(({ balance }) => balance);
 
   function spend(date: string, amount: number, label = "SHOP", categoryId: number | null = null) {
-    return createTransaction(db, { accountId: checkingId, date, amount, kind: "expense", label, categoryId });
+    return createTransaction(db, {
+      accountId: checkingId,
+      date,
+      amount,
+      kind: "expense",
+      label,
+      categoryId,
+    });
   }
 
-  function planExpense(name: string, amount: number, day: number, categoryId: number | null = null) {
+  function planExpense(
+    name: string,
+    amount: number,
+    day: number,
+    categoryId: number | null = null,
+  ) {
     return createPlannedItem(db, {
       name,
       kind: "expense",
@@ -90,10 +102,9 @@ describe("monthly line view of real and planned movements", () => {
     expect(result.days).toHaveLength(30);
     expect(result.days[0]?.date).toBe("2026-11-01");
     expect(result.days.at(-1)?.date).toBe("2026-11-30");
-    expect(result.days.filter(({ entries }) => entries.length > 0).map(({ date }) => date)).toEqual([
-      "2026-11-03",
-      "2026-11-15",
-    ]);
+    expect(result.days.filter(({ entries }) => entries.length > 0).map(({ date }) => date)).toEqual(
+      ["2026-11-03", "2026-11-15"],
+    );
     expect(dayOf(result, 3).entries).toEqual([
       {
         id: `t${groceries.id}`,
@@ -235,7 +246,9 @@ describe("monthly line view of real and planned movements", () => {
 
     const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
 
-    expect(entries.map(({ id, date, override }) => ({ id, date, status: override?.status ?? null }))).toEqual([
+    expect(
+      entries.map(({ id, date, override }) => ({ id, date, status: override?.status ?? null })),
+    ).toEqual([
       { id: `t${groceries.id}`, date: "2026-11-03", status: null },
       { id: `p${rent.id}:2026-11-15`, date: "2026-11-18", status: "modified" },
       { id: `p${gym.id}:2026-11-20`, date: "2026-11-20", status: "cancelled" },
@@ -265,11 +278,21 @@ describe("monthly line view of real and planned movements", () => {
       { id: `t${groceries.id}`, override: null },
       {
         id: `p${rent.id}:2026-11-15`,
-        override: { nominalDate: "2026-11-15", status: "modified", overrideDate: null, overrideAmount: -62_000 },
+        override: {
+          nominalDate: "2026-11-15",
+          status: "modified",
+          overrideDate: null,
+          overrideAmount: -62_000,
+        },
       },
       {
         id: `p${gym.id}:2026-11-20`,
-        override: { nominalDate: "2026-11-20", status: "modified", overrideDate: "2026-11-22", overrideAmount: null },
+        override: {
+          nominalDate: "2026-11-20",
+          status: "modified",
+          overrideDate: "2026-11-22",
+          overrideAmount: null,
+        },
       },
     ]);
   });
@@ -297,7 +320,12 @@ describe("monthly line view of real and planned movements", () => {
     const entries = month(NOVEMBER).days.flatMap((day) => day.entries);
 
     expect(
-      entries.map(({ id, status, isEditable, canSettle }) => ({ id, status, isEditable, canSettle })),
+      entries.map(({ id, status, isEditable, canSettle }) => ({
+        id,
+        status,
+        isEditable,
+        canSettle,
+      })),
     ).toEqual([
       { id: `t${shopping.id}`, status: "confirmed", isEditable: false, canSettle: false },
       { id: `p${rent.id}:2026-11-15`, status: "planned", isEditable: true, canSettle: true },
@@ -307,7 +335,12 @@ describe("monthly line view of real and planned movements", () => {
   });
 
   it("an occurrence of an item whose account is archived cannot be changed nor settled", () => {
-    const cardId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Old card", kind: "checking", openingBalance: 0 }).id;
+    const cardId = createAccount(db, {
+      ...ACCOUNT_DETAILS,
+      name: "Old card",
+      kind: "checking",
+      openingBalance: 0,
+    }).id;
     const subscription = createPlannedItem(db, {
       name: "Subscription",
       kind: "expense",
@@ -320,12 +353,16 @@ describe("monthly line view of real and planned movements", () => {
     const rent = planExpense("Rent", -60_000, 15);
     archiveAccount(db, cardId, TODAY);
 
-    const entries = month(NOVEMBER, { accountIds: [checkingId, cardId] }).days.flatMap((day) => day.entries);
+    const entries = month(NOVEMBER, { accountIds: [checkingId, cardId] }).days.flatMap(
+      (day) => day.entries,
+    );
 
-    expect(entries.map(({ id, isEditable, canSettle }) => ({ id, isEditable, canSettle }))).toEqual([
-      { id: `p${subscription.id}:2026-11-05`, isEditable: false, canSettle: false },
-      { id: `p${rent.id}:2026-11-15`, isEditable: true, canSettle: true },
-    ]);
+    expect(entries.map(({ id, isEditable, canSettle }) => ({ id, isEditable, canSettle }))).toEqual(
+      [
+        { id: `p${subscription.id}:2026-11-05`, isEditable: false, canSettle: false },
+        { id: `p${rent.id}:2026-11-15`, isEditable: true, canSettle: true },
+      ],
+    );
   });
 
   it("the balance of each day comes from real transactions and planned occurrences only", () => {

@@ -75,16 +75,14 @@ export function toImportView(
   overflowAccounts: readonly OverflowAccount[],
 ): ImportView {
   return {
-    accounts: accounts.map(
-      ({ id, name, kind, currency, archived, overflowAccountId }) => ({
-        id,
-        name,
-        kind,
-        currency,
-        archived,
-        overflowAccountId,
-      }),
-    ),
+    accounts: accounts.map(({ id, name, kind, currency, archived, overflowAccountId }) => ({
+      id,
+      name,
+      kind,
+      currency,
+      archived,
+      overflowAccountId,
+    })),
     categories: categories.map(({ id, name }) => ({ id, name })),
     overflowAccounts: overflowAccounts.map((account) => ({ ...account })),
   };

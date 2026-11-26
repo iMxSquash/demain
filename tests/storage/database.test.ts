@@ -4,11 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  DATABASE_FILE_NAME,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { DATABASE_FILE_NAME, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { settings } from "../../src/storage/schema";
 
 describe("database migrations", () => {
@@ -39,9 +35,7 @@ describe("database migrations", () => {
     migrateDatabase(db);
     db.insert(settings).values({ key: "locale", value: "fr" }).run();
 
-    expect(db.select().from(settings).all()).toEqual([
-      { key: "locale", value: "fr" },
-    ]);
+    expect(db.select().from(settings).all()).toEqual([{ key: "locale", value: "fr" }]);
     db.$client.close();
   });
 
@@ -54,9 +48,7 @@ describe("database migrations", () => {
     const second = openDatabase(dataDir);
     migrateDatabase(second);
 
-    expect(second.select().from(settings).all()).toEqual([
-      { key: "locale", value: "en" },
-    ]);
+    expect(second.select().from(settings).all()).toEqual([{ key: "locale", value: "en" }]);
     second.$client.close();
   });
 

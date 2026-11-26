@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  StagedFile,
-  StagedRowView,
-} from "../../../src/app/imports/import-form-data";
+import type { StagedFile, StagedRowView } from "../../../src/app/imports/import-form-data";
 import {
   bulkPatch,
   canImportFile,
@@ -206,9 +203,7 @@ describe("reviewReducer", () => {
 
   it("shows the amount that will be recorded for a staged expense on an incoming amount", () => {
     const state = start([
-      stagedFile("march.csv", [
-        stagedRow({ draft: { ...stagedRow().draft, amount: "+50,00" } }),
-      ]),
+      stagedFile("march.csv", [stagedRow({ draft: { ...stagedRow().draft, amount: "+50,00" } })]),
     ]);
 
     const row = state.files[0]?.rows[0];
@@ -219,9 +214,7 @@ describe("reviewReducer", () => {
 
   it("gives back the amount of the file when the type is changed back", () => {
     const state = start([
-      stagedFile("march.csv", [
-        stagedRow({ draft: { ...stagedRow().draft, amount: "+50,00" } }),
-      ]),
+      stagedFile("march.csv", [stagedRow({ draft: { ...stagedRow().draft, amount: "+50,00" } })]),
     ]);
     const toIncome = reviewReducer(state, {
       type: "setDetails",
@@ -314,7 +307,14 @@ describe("reviewReducer", () => {
   });
 
   it("keeps the outcome of an import until the file is edited", () => {
-    const outcome = { message: "Blocked", warnings: [], issues: [{ index: 1, message: "x" }], batchId: null, endDate: null, replacedCount: 0 };
+    const outcome = {
+      message: "Blocked",
+      warnings: [],
+      issues: [{ index: 1, message: "x" }],
+      batchId: null,
+      endDate: null,
+      replacedCount: 0,
+    };
     const blocked = reviewReducer(start(), {
       type: "setPhase",
       file: 0,
@@ -462,7 +462,12 @@ describe("reviewReducer on several rows", () => {
     const state = startMany();
 
     expect(
-      reviewReducer(state, { type: "setDetailsMany", file: 0, rows: [], details: { categoryId: 9 } }),
+      reviewReducer(state, {
+        type: "setDetailsMany",
+        file: 0,
+        rows: [],
+        details: { categoryId: 9 },
+      }),
     ).toBe(state);
   });
 
@@ -491,12 +496,22 @@ describe("reviewReducer on several rows", () => {
 describe("reviewReducer when a file is read again", () => {
   it("replaces the rows of the file with the new reading and drops the outcome", () => {
     const imported = reviewReducer(
-      start([stagedFile("march.csv", [stagedRow()]), stagedFile("april.csv", [stagedRow()], { firstDate: "2026-04-01" })]),
+      start([
+        stagedFile("march.csv", [stagedRow()]),
+        stagedFile("april.csv", [stagedRow()], { firstDate: "2026-04-01" }),
+      ]),
       {
         type: "setPhase",
         file: 0,
         phase: "reviewing",
-        outcome: { message: "blocked", warnings: [], issues: [], batchId: null, endDate: null, replacedCount: 0 },
+        outcome: {
+          message: "blocked",
+          warnings: [],
+          issues: [],
+          batchId: null,
+          endDate: null,
+          replacedCount: 0,
+        },
       },
     );
 

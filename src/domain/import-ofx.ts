@@ -6,12 +6,7 @@
  */
 
 import { isCalendarDate } from "./account";
-import {
-  importParseError,
-  parseRowAmount,
-  requireRowLabel,
-  type ImportedRow,
-} from "./import-row";
+import { importParseError, parseRowAmount, requireRowLabel, type ImportedRow } from "./import-row";
 
 const OFX_ROOT = /<OFX[\s>]/i;
 // Built once: a statement of 100k movements would otherwise compile them 500k times.
@@ -21,8 +16,7 @@ const TAG_PATTERNS = Object.fromEntries(
     new RegExp(`<${tag}>([^<\\r\\n]*)`, "i"),
   ]),
 ) as Record<string, RegExp>;
-const STATEMENT_TRANSACTION =
-  /<STMTTRN>([\s\S]*?)(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>|$)/gi;
+const STATEMENT_TRANSACTION = /<STMTTRN>([\s\S]*?)(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>|$)/gi;
 const POSTED_DATE = /^(\d{4})(\d{2})(\d{2})/;
 
 // Only the five entities XML defines are decoded, in a single pass so that
@@ -36,10 +30,7 @@ const ENTITIES: Readonly<Record<string, string>> = {
 };
 
 function decodeEntities(value: string): string {
-  return value.replace(
-    /&(amp|lt|gt|quot|apos);/g,
-    (_, name: string) => ENTITIES[name] ?? "",
-  );
+  return value.replace(/&(amp|lt|gt|quot|apos);/g, (_, name: string) => ENTITIES[name] ?? "");
 }
 
 // An SGML value ends at the line break, an XML value at the next tag.
@@ -94,17 +85,11 @@ function readLabel(block: string, line: number): string {
 /** Reads every transaction of an OFX statement; the first invalid one rejects the file. */
 export function parseOfx(text: string, currency: string): ImportedRow[] {
   if (!looksLikeOfx(text)) {
-    throw importParseError(
-      "The file is not an OFX statement",
-      "importOfxNotOfx",
-    );
+    throw importParseError("The file is not an OFX statement", "importOfxNotOfx");
   }
 
   const statementCurrency = readTag(text, "CURDEF");
-  if (
-    statementCurrency !== null &&
-    statementCurrency.toUpperCase() !== currency.toUpperCase()
-  ) {
+  if (statementCurrency !== null && statementCurrency.toUpperCase() !== currency.toUpperCase()) {
     throw importParseError(
       `The statement is in ${statementCurrency}, the account in ${currency}`,
       "importOfxCurrencyMismatch",
@@ -134,10 +119,7 @@ export function parseOfx(text: string, currency: string): ImportedRow[] {
   });
 
   if (rows.length === 0) {
-    throw importParseError(
-      "The statement contains no transaction",
-      "importOfxNoTransaction",
-    );
+    throw importParseError("The statement contains no transaction", "importOfxNoTransaction");
   }
   return rows;
 }

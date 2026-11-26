@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  lastDayOfMonth,
-  planSummaryAssertions,
-} from "../../src/domain/summary-assertions";
+import { lastDayOfMonth, planSummaryAssertions } from "../../src/domain/summary-assertions";
 
 const ACCOUNT = { id: 7, openingDate: "2025-03-15", archived: false };
 const TODAY = "2026-05-10";
@@ -44,11 +41,7 @@ describe("planSummaryAssertions", () => {
   });
 
   it("names the months without a balance and creates nothing for them", () => {
-    const plan = planSummaryAssertions(
-      [{ month: "2025-04", amount: null }],
-      ACCOUNT,
-      TODAY,
-    );
+    const plan = planSummaryAssertions([{ month: "2025-04", amount: null }], ACCOUNT, TODAY);
 
     expect(plan).toEqual({
       assertions: [],
@@ -101,11 +94,7 @@ describe("planSummaryAssertions", () => {
   });
 
   it("accepts a month ending today", () => {
-    const plan = planSummaryAssertions(
-      [{ month: "2026-05", amount: 1 }],
-      ACCOUNT,
-      "2026-05-31",
-    );
+    const plan = planSummaryAssertions([{ month: "2026-05", amount: 1 }], ACCOUNT, "2026-05-31");
 
     expect(plan.assertions).toHaveLength(1);
   });

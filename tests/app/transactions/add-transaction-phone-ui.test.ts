@@ -50,7 +50,9 @@ describe("AddTransactionKeypad", () => {
       createElement(AddTransactionKeypad, { onKey: noop, separator: ".", hasDecimals: false }),
     );
 
-    expect(withoutDecimals).toMatch(/<button[^>]*disabled=""[^>]*aria-label="Decimal separator"|<button[^>]*aria-label="Decimal separator"[^>]*disabled=""/);
+    expect(withoutDecimals).toMatch(
+      /<button[^>]*disabled=""[^>]*aria-label="Decimal separator"|<button[^>]*aria-label="Decimal separator"[^>]*disabled=""/,
+    );
   });
 
   it("keeps every key a 44 px target at least", () => {
@@ -62,7 +64,9 @@ describe("StepProgress", () => {
   it("hides the three segments from assistive technology", () => {
     const markup = render(createElement(StepProgress, { step: 2 }));
 
-    expect(markup).toMatch(/<div aria-hidden="true"[^>]*>(<span[^>]*><span[^>]*><\/span><\/span>){3}<\/div>/);
+    expect(markup).toMatch(
+      /<div aria-hidden="true"[^>]*>(<span[^>]*><span[^>]*><\/span><\/span>){3}<\/div>/,
+    );
   });
 
   it("announces the step politely", () => {

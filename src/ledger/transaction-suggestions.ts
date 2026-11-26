@@ -58,10 +58,7 @@ export function getLastUsedAccountId(db: Reader): number | null {
   const last = db
     .select({ accountId: transactions.accountId })
     .from(transactions)
-    .innerJoin(
-      accounts,
-      and(eq(accounts.id, transactions.accountId), eq(accounts.archived, false)),
-    )
+    .innerJoin(accounts, and(eq(accounts.id, transactions.accountId), eq(accounts.archived, false)))
     .where(ne(transactions.kind, "transfer"))
     .orderBy(desc(transactions.id))
     .limit(1)

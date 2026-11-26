@@ -76,12 +76,17 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose, noteIds }:
       <p id={textId}>
         {single !== undefined
           ? t(isTransfer(single) ? "oneTransfer" : "one", describe(single))
-          : t(match.candidates.some(isTransfer) ? "severalTransfer" : "several", { count: match.candidates.length })}
+          : t(match.candidates.some(isTransfer) ? "severalTransfer" : "several", {
+              count: match.candidates.length,
+            })}
       </p>
       {single !== undefined
         ? option(String(single.id), t("replace"), single.id)
         : match.candidates.map((entry) => {
-            const label = t(isTransfer(entry) ? "replaceThisTransfer" : "replaceThis", describe(entry));
+            const label = t(
+              isTransfer(entry) ? "replaceThisTransfer" : "replaceThis",
+              describe(entry),
+            );
             return option(String(entry.id), label, entry.id);
           })}
       {option(KEEP_BOTH, t("keepBoth"), null)}
@@ -120,7 +125,10 @@ export function EnteredPaymentsPanel({
   const hasPayment = offered.some((entry) => !isTransfer(entry));
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col items-start gap-3 border-t border-border-control pt-3">
+    <section
+      aria-labelledby={headingId}
+      className="flex flex-col items-start gap-3 border-t border-border-control pt-3"
+    >
       <h3 id={headingId} className="font-medium">
         {t(hasTransfer ? "headingWithTransfers" : "heading")}
       </h3>
@@ -142,7 +150,9 @@ export function EnteredPaymentsPanel({
         );
       })}
       <p id={takesId} className="max-w-prose">
-        {[hasPayment ? t("takes") : null, hasTransfer ? t("takesTransfer") : null].filter(Boolean).join(" ")}
+        {[hasPayment ? t("takes") : null, hasTransfer ? t("takesTransfer") : null]
+          .filter(Boolean)
+          .join(" ")}
       </p>
       {settled.replacements.length > 0 ? (
         <p id={undoNoteId} className="max-w-prose">

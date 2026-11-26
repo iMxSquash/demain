@@ -342,7 +342,13 @@ describe("matching planned occurrences when a file is imported", () => {
       ]);
       const [firstLeg] = savingsTransactions();
       if (batchId === null || firstLeg === undefined) throw new Error("No savings row imported");
-      return { batchId, matchedCount, proposedCount, otherId: other.id, transactionId: firstLeg.id };
+      return {
+        batchId,
+        matchedCount,
+        proposedCount,
+        otherId: other.id,
+        transactionId: firstLeg.id,
+      };
     }
 
     it("two planned transfers of the same amount are proposed, not confirmed", () => {
@@ -385,7 +391,12 @@ describe("matching planned occurrences when a file is imported", () => {
     it("confirming a proposed transfer row links every outgoing leg of the row and no incoming leg", () => {
       const { batchId, otherId, transactionId } = importAmbiguousRow();
 
-      confirmMatch(db, batchId, { transactionId, plannedItemId: otherId, nominalDate: "2026-03-10" }, TODAY);
+      confirmMatch(
+        db,
+        batchId,
+        { transactionId, plannedItemId: otherId, nominalDate: "2026-03-10" },
+        TODAY,
+      );
 
       expect(savingsLegs()).toEqual([
         [checkingId, -10_000, otherId, "2026-03-10"],
@@ -397,7 +408,12 @@ describe("matching planned occurrences when a file is imported", () => {
 
     it("a confirmed transfer row is listed once, with the row sum", () => {
       const { batchId, otherId, transactionId } = importAmbiguousRow();
-      confirmMatch(db, batchId, { transactionId, plannedItemId: otherId, nominalDate: "2026-03-10" }, TODAY);
+      confirmMatch(
+        db,
+        batchId,
+        { transactionId, plannedItemId: otherId, nominalDate: "2026-03-10" },
+        TODAY,
+      );
 
       const matches = listBatchMatches(db, batchId, TODAY);
 
@@ -428,7 +444,11 @@ describe("matching planned occurrences when a file is imported", () => {
         {
           options: [
             expect.objectContaining({
-              pair: { transactionId: outgoing!.transactionId, plannedItemId: item.id, nominalDate: "2026-03-10" },
+              pair: {
+                transactionId: outgoing!.transactionId,
+                plannedItemId: item.id,
+                nominalDate: "2026-03-10",
+              },
               transactionAmount: -30_000,
             }),
           ],

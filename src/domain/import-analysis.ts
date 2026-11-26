@@ -5,17 +5,8 @@
  * never dropped: the preview shows each one and the user decides.
  */
 
-import {
-  findHeaderIndex,
-  isTotalRow,
-  movementColumns,
-  widestRowLength,
-} from "./import-blocks";
-import {
-  detectColumnRoles,
-  type ColumnChoices,
-  type ColumnIssue,
-} from "./import-columns";
+import { findHeaderIndex, isTotalRow, movementColumns, widestRowLength } from "./import-blocks";
+import { detectColumnRoles, type ColumnChoices, type ColumnIssue } from "./import-columns";
 import {
   CSV_DATE_FORMATS,
   completeDateYear,
@@ -30,11 +21,7 @@ import {
   type CsvFileIssue,
   type CsvMapping,
 } from "./import-csv";
-import {
-  detectDecimalMark,
-  type DecimalMark,
-  type DecimalMarkDetection,
-} from "./money";
+import { detectDecimalMark, type DecimalMark, type DecimalMarkDetection } from "./money";
 
 export type AnalysisIssue =
   | { kind: "mappingColumnNotFound"; role: "date" | "label" | "amount" }
@@ -82,13 +69,10 @@ export interface CsvAnalysis {
 
 function amountColumns(amount: CsvAmountMapping | null): number[] {
   if (amount === null) return [];
-  return amount.kind === "single"
-    ? [amount.column]
-    : [amount.debitColumn, amount.creditColumn];
+  return amount.kind === "single" ? [amount.column] : [amount.debitColumn, amount.creditColumn];
 }
 
-const isBlank = (cells: readonly string[]): boolean =>
-  cells.every((cell) => cell.trim() === "");
+const isBlank = (cells: readonly string[]): boolean => cells.every((cell) => cell.trim() === "");
 
 interface TableLayout {
   /** The header and the lines under it with what is out of the table emptied, not removed: line numbers stay right. */
@@ -141,9 +125,7 @@ function layoutTable(
   const fromHeader = table.slice(headerIndex);
   const columnCount = widestRowLength(fromHeader);
   const ignoredColumns = Array.from({ length: columnCount }, (_, column) => column).filter(
-    (column) =>
-      !inBlock(column) &&
-      fromHeader.some((cells) => (cells[column] ?? "").trim() !== ""),
+    (column) => !inBlock(column) && fromHeader.some((cells) => (cells[column] ?? "").trim() !== ""),
   );
   const tableColumns = Array.from({ length: columnCount }, (_, column) => column)
     .filter(inBlock)
@@ -194,16 +176,13 @@ function analyzeTable(
   choices: ColumnChoices,
 ): CsvAnalysis {
   const headerIndex = findHeaderIndex(table);
-  const { dateColumn, labelColumn, amount } = suggestMappingColumns(
-    table[headerIndex] ?? [],
-  );
+  const { dateColumn, labelColumn, amount } = suggestMappingColumns(table[headerIndex] ?? []);
   const mappedColumns = [
     ...(dateColumn === null ? [] : [dateColumn]),
     ...(labelColumn === null ? [] : [labelColumn]),
     ...amountColumns(amount),
   ];
-  const isEssentialFound =
-    dateColumn !== null && labelColumn !== null && amount !== null;
+  const isEssentialFound = dateColumn !== null && labelColumn !== null && amount !== null;
   const layout = layoutTable(
     table,
     headerIndex,
@@ -213,14 +192,11 @@ function analyzeTable(
   // Lines emptied by the layout hold no movement, whatever they were.
   const rows = layout.rows.filter((cells) => !isBlank(cells));
 
-  const dateCells =
-    dateColumn === null ? [] : rows.map((row) => row[dateColumn] ?? "");
+  const dateCells = dateColumn === null ? [] : rows.map((row) => row[dateColumn] ?? "");
   const lacksYear = datesLackYear(dateCells);
   const yearApplied = lacksYear && year !== undefined ? year : null;
   const dates =
-    yearApplied === null
-      ? dateCells
-      : dateCells.map((cell) => completeDateYear(cell, yearApplied));
+    yearApplied === null ? dateCells : dateCells.map((cell) => completeDateYear(cell, yearApplied));
   // Without a year the format cannot be read yet: the missing year is the issue to report.
   const dateFormat = lacksYear && year === undefined ? null : detectDateFormat(dates);
   const amountCells = amountColumns(amount);
@@ -255,10 +231,10 @@ function analyzeTable(
       : lacksYear && year === undefined
         ? [{ kind: "dateYearMissing" }]
         : dateFormat === null
-        ? [{ kind: "dateFormatNotFound" }]
-        : dateFormat.isAmbiguous
-          ? [{ kind: "dateFormatAmbiguous", format: dateFormat.format }]
-          : [];
+          ? [{ kind: "dateFormatNotFound" }]
+          : dateFormat.isAmbiguous
+            ? [{ kind: "dateFormatAmbiguous", format: dateFormat.format }]
+            : [];
 
   const roles = detectColumnRoles(
     layout.rows,
@@ -323,10 +299,6 @@ export function analyzeCsvFile(
  * it, the delimiter is detected from the file. `year` completes dates written
  * without one; without it they are reported as `dateYearMissing`.
  */
-export function analyzeCsv(
-  text: string,
-  delimiter?: CsvDelimiter,
-  year?: number,
-): CsvAnalysis {
+export function analyzeCsv(text: string, delimiter?: CsvDelimiter, year?: number): CsvAnalysis {
   return analyzeCsvFile(parseCsvFile(text, delimiter), year);
 }

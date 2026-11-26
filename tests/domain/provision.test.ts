@@ -9,7 +9,9 @@ import {
 
 describe("provisionPeriod", () => {
   it("the period of a monthly provision is its calendar month", () => {
-    expect(provisionPeriod("2028-02-15", "2028-01-15", { kind: "monthly_on_day", day: 15 })).toEqual({
+    expect(
+      provisionPeriod("2028-02-15", "2028-01-15", { kind: "monthly_on_day", day: 15 }),
+    ).toEqual({
       from: "2028-02-01",
       to: "2028-02-29",
     });
@@ -30,21 +32,27 @@ describe("provisionPeriod", () => {
   });
 
   it("every 1 month counts as monthly", () => {
-    expect(provisionPeriod("2026-03-15", "2026-02-15", { kind: "every_n_months", months: 1 })).toEqual({
+    expect(
+      provisionPeriod("2026-03-15", "2026-02-15", { kind: "every_n_months", months: 1 }),
+    ).toEqual({
       from: "2026-03-01",
       to: "2026-03-31",
     });
   });
 
   it("every 2 months does not count as monthly", () => {
-    expect(provisionPeriod("2026-03-15", "2026-01-15", { kind: "every_n_months", months: 2 })).toEqual({
+    expect(
+      provisionPeriod("2026-03-15", "2026-01-15", { kind: "every_n_months", months: 2 }),
+    ).toEqual({
       from: "2026-01-16",
       to: "2026-03-15",
     });
   });
 
   it("the period of an every-2-weeks provision starts the day after the previous date", () => {
-    expect(provisionPeriod("2026-03-20", "2026-03-06", { kind: "every_n_weeks", weeks: 2 })).toEqual({
+    expect(
+      provisionPeriod("2026-03-20", "2026-03-06", { kind: "every_n_weeks", weeks: 2 }),
+    ).toEqual({
       from: "2026-03-07",
       to: "2026-03-20",
     });
@@ -111,9 +119,15 @@ describe("provisionPeriod", () => {
 
 describe("isProvisionCandidate", () => {
   const PERIOD = { from: "2026-03-01", to: "2026-03-31" };
-  const provision: ProvisionItem = { accountId: 1, categoryId: 10, provisionLabelFilter: "carburant" };
+  const provision: ProvisionItem = {
+    accountId: 1,
+    categoryId: 10,
+    provisionLabelFilter: "carburant",
+  };
 
-  function transaction(overrides: Partial<ProvisionCandidateTransaction> = {}): ProvisionCandidateTransaction {
+  function transaction(
+    overrides: Partial<ProvisionCandidateTransaction> = {},
+  ): ProvisionCandidateTransaction {
     return {
       accountId: 1,
       categoryId: 10,
@@ -141,11 +155,15 @@ describe("isProvisionCandidate", () => {
   });
 
   it("refuses a date before the period", () => {
-    expect(isProvisionCandidate(transaction({ date: "2026-02-28" }), provision, PERIOD)).toBe(false);
+    expect(isProvisionCandidate(transaction({ date: "2026-02-28" }), provision, PERIOD)).toBe(
+      false,
+    );
   });
 
   it("refuses a date after the period", () => {
-    expect(isProvisionCandidate(transaction({ date: "2026-04-01" }), provision, PERIOD)).toBe(false);
+    expect(isProvisionCandidate(transaction({ date: "2026-04-01" }), provision, PERIOD)).toBe(
+      false,
+    );
   });
 
   it("refuses a label without the filter", () => {
@@ -167,14 +185,22 @@ describe("isProvisionCandidate", () => {
   });
 
   it("the filter ignores case", () => {
-    expect(isProvisionCandidate(transaction({ label: "PLEIN CARBURANT" }), provision, PERIOD)).toBe(true);
+    expect(isProvisionCandidate(transaction({ label: "PLEIN CARBURANT" }), provision, PERIOD)).toBe(
+      true,
+    );
     expect(
-      isProvisionCandidate(transaction(), { ...provision, provisionLabelFilter: "CARBURANT" }, PERIOD),
+      isProvisionCandidate(
+        transaction(),
+        { ...provision, provisionLabelFilter: "CARBURANT" },
+        PERIOD,
+      ),
     ).toBe(true);
   });
 
   it("the filter does not fold accents, like the contains rule", () => {
-    expect(isProvisionCandidate(transaction({ label: "Carbürant" }), provision, PERIOD)).toBe(false);
+    expect(isProvisionCandidate(transaction({ label: "Carbürant" }), provision, PERIOD)).toBe(
+      false,
+    );
   });
 
   it("a transfer is never a candidate", () => {

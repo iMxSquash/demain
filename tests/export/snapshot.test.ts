@@ -1,4 +1,12 @@
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -14,11 +22,7 @@ import {
   createSnapshot,
   restoreSnapshot,
 } from "../../src/export/snapshot";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { accounts, settings } from "../../src/storage/schema";
 
 const PASSWORD = "a long enough backup passphrase";
@@ -161,7 +165,11 @@ describe("encrypted snapshot", () => {
   it("changes nothing when the file is not a database", async () => {
     const { db } = newInstance();
     insertAccount(db, "Checking");
-    const notADatabase = await encryptPayload(Buffer.from("plain text, not SQLite"), PASSWORD, "snapshot");
+    const notADatabase = await encryptPayload(
+      Buffer.from("plain text, not SQLite"),
+      PASSWORD,
+      "snapshot",
+    );
 
     await expect(restoreSnapshot(db, notADatabase, PASSWORD)).rejects.toMatchObject({
       code: "invalidDatabase",
@@ -189,19 +197,31 @@ describe("encrypted snapshot", () => {
   it.each([
     [
       "loops back to its account",
-      ["update accounts set overflow_account_id = 2 where id = 1", "update accounts set overflow_account_id = 1 where id = 2"],
+      [
+        "update accounts set overflow_account_id = 2 where id = 1",
+        "update accounts set overflow_account_id = 1 where id = 2",
+      ],
     ],
     [
       "crosses currencies",
-      ["update accounts set currency = 'USD' where id = 2", "update accounts set overflow_account_id = 2 where id = 1"],
+      [
+        "update accounts set currency = 'USD' where id = 2",
+        "update accounts set overflow_account_id = 2 where id = 1",
+      ],
     ],
     [
       "ends on an archived account",
-      ["update accounts set archived = 1 where id = 2", "update accounts set overflow_account_id = 2 where id = 1"],
+      [
+        "update accounts set archived = 1 where id = 2",
+        "update accounts set overflow_account_id = 2 where id = 1",
+      ],
     ],
     [
       "ends on a checking account",
-      ["update accounts set kind = 'checking' where id = 2", "update accounts set overflow_account_id = 2 where id = 1"],
+      [
+        "update accounts set kind = 'checking' where id = 2",
+        "update accounts set overflow_account_id = 2 where id = 1",
+      ],
     ],
   ])("changes nothing when an overflow chain %s", async (_problem, statements) => {
     const source = newInstance();

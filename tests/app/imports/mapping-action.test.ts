@@ -8,11 +8,7 @@ import { readMappingAction } from "../../../src/app/imports/actions";
 import { createAccount } from "../../../src/ledger/accounts";
 import { listImportBatches } from "../../../src/ledger/imports";
 import { listTransactions } from "../../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../../src/storage/database";
 import { translateKey } from "../translate-key";
 
 const holder = vi.hoisted(() => ({ db: null as unknown }));
@@ -91,7 +87,13 @@ describe("readMappingAction", () => {
     expect(state).toMatchObject({
       status: "error",
       message: "mappingUnreadable",
-      mapping: { dateColumn: "1", dateFormat: "ymd", labelColumn: "2", amountColumn: "3", hasHeader: false },
+      mapping: {
+        dateColumn: "1",
+        dateFormat: "ymd",
+        labelColumn: "2",
+        amountColumn: "3",
+        hasHeader: false,
+      },
     });
   });
 

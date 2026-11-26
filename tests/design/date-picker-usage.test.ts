@@ -21,7 +21,9 @@ describe("every date field of the app is the picker", () => {
     const offenders = files
       .filter(({ relative }) => relative !== FALLBACK_FILE)
       .flatMap(({ relative, codeLines }) =>
-        codeLines.filter(({ text }) => NATIVE_DATE_INPUT.test(text)).map(({ line }) => `${relative}:${line}`),
+        codeLines
+          .filter(({ text }) => NATIVE_DATE_INPUT.test(text))
+          .map(({ line }) => `${relative}:${line}`),
       );
 
     expect(offenders).toEqual([]);

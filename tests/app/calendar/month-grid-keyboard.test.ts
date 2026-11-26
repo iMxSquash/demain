@@ -34,8 +34,16 @@ const press = (
 
 describe("month grid keyboard", () => {
   it("moves the focus without opening a day", () => {
-    expect(press("2026-11-10", "ArrowRight")).toEqual({ focused: "2026-11-11", opened: null, handled: true });
-    expect(press("2026-11-10", "ArrowDown")).toEqual({ focused: "2026-11-17", opened: null, handled: true });
+    expect(press("2026-11-10", "ArrowRight")).toEqual({
+      focused: "2026-11-11",
+      opened: null,
+      handled: true,
+    });
+    expect(press("2026-11-10", "ArrowDown")).toEqual({
+      focused: "2026-11-17",
+      opened: null,
+      handled: true,
+    });
   });
 
   it("keeps the day that is already open while the focus moves", () => {
@@ -47,11 +55,19 @@ describe("month grid keyboard", () => {
   });
 
   it("opens the focused day with Enter", () => {
-    expect(press("2026-11-12", "Enter")).toEqual({ focused: "2026-11-12", opened: "2026-11-12", handled: true });
+    expect(press("2026-11-12", "Enter")).toEqual({
+      focused: "2026-11-12",
+      opened: "2026-11-12",
+      handled: true,
+    });
   });
 
   it("opens the focused day with Space", () => {
-    expect(press("2026-11-12", " ")).toEqual({ focused: "2026-11-12", opened: "2026-11-12", handled: true });
+    expect(press("2026-11-12", " ")).toEqual({
+      focused: "2026-11-12",
+      opened: "2026-11-12",
+      handled: true,
+    });
   });
 
   it("replaces the open day when another one is opened", () => {
@@ -59,12 +75,20 @@ describe("month grid keyboard", () => {
   });
 
   it("stays on the first day of the month when going before it", () => {
-    expect(press("2026-11-01", "ArrowLeft")).toEqual({ focused: "2026-11-01", opened: null, handled: true });
+    expect(press("2026-11-01", "ArrowLeft")).toEqual({
+      focused: "2026-11-01",
+      opened: null,
+      handled: true,
+    });
     expect(press("2026-11-03", "ArrowUp").focused).toBe("2026-11-01");
   });
 
   it("stays on the last day of the month when going past it", () => {
-    expect(press("2026-11-30", "ArrowRight")).toEqual({ focused: "2026-11-30", opened: null, handled: true });
+    expect(press("2026-11-30", "ArrowRight")).toEqual({
+      focused: "2026-11-30",
+      opened: null,
+      handled: true,
+    });
     expect(press("2026-11-28", "ArrowDown").focused).toBe("2026-11-30");
     expect(press("2026-11-30", "PageDown").focused).toBe("2026-11-30");
   });
@@ -85,7 +109,11 @@ describe("month grid keyboard", () => {
   });
 
   it("leaves the state unchanged on a key it does not know", () => {
-    expect(press("2026-11-10", "a")).toEqual({ focused: "2026-11-10", opened: null, handled: false });
+    expect(press("2026-11-10", "a")).toEqual({
+      focused: "2026-11-10",
+      opened: null,
+      handled: false,
+    });
   });
 
   it("does not handle a key combined with Ctrl", () => {

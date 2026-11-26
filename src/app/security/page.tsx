@@ -84,7 +84,12 @@ async function Totp() {
       <AuthForm
         action={disableTotpAction}
         fields={[
-          { name: "password", label: t("password"), type: "password", autoComplete: "current-password" },
+          {
+            name: "password",
+            label: t("password"),
+            type: "password",
+            autoComplete: "current-password",
+          },
         ]}
         submitLabel={t("disable")}
       />

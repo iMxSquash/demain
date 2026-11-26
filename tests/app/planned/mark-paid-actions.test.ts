@@ -32,7 +32,10 @@ vi.mock("next/navigation", () => ({
     throw new Error(`redirect:${location}`);
   },
 }));
-vi.mock("next-intl/server", () => ({ getLocale: async () => "en", getTimeZone: async () => "Europe/Paris" }));
+vi.mock("next-intl/server", () => ({
+  getLocale: async () => "en",
+  getTimeZone: async () => "Europe/Paris",
+}));
 vi.mock("../../../src/app/data-cache", () => ({ refreshData: holder.refreshData }));
 vi.mock("../../../src/app/auth/session", () => ({ requireSession: async () => undefined }));
 vi.mock("../../../src/app/translator", () => ({ getTranslator: async () => translateKey }));
@@ -57,7 +60,13 @@ describe("marking an occurrence as paid from a form", () => {
   const mark = (fields: Record<string, string>) =>
     markOccurrencePaidAction(
       null,
-      formOf({ itemId: String(transferId), nominalDate: NOMINAL_DATE, date: NOMINAL_DATE, amount: "800.00", ...fields }),
+      formOf({
+        itemId: String(transferId),
+        nominalDate: NOMINAL_DATE,
+        date: NOMINAL_DATE,
+        amount: "800.00",
+        ...fields,
+      }),
     );
 
   beforeEach(() => {
@@ -70,7 +79,12 @@ describe("marking an occurrence as paid from a form", () => {
     migrateDatabase(db);
     holder.db = db;
     const details = { currency: "EUR", openingDate: "2026-01-01" };
-    const checkingId = createAccount(db, { ...details, name: "Checking", kind: "checking", openingBalance: 100_000 }).id;
+    const checkingId = createAccount(db, {
+      ...details,
+      name: "Checking",
+      kind: "checking",
+      openingBalance: 100_000,
+    }).id;
     const savingsId = createAccount(db, {
       ...details,
       name: "Savings",
@@ -98,12 +112,19 @@ describe("marking an occurrence as paid from a form", () => {
   it("shows the surplus step first, with the values its split was computed for", async () => {
     const state = await mark({});
 
-    expect(state).toMatchObject({ status: "surplus", values: { date: NOMINAL_DATE, amount: "800.00" } });
+    expect(state).toMatchObject({
+      status: "surplus",
+      values: { date: NOMINAL_DATE, amount: "800.00" },
+    });
     expect(listTransactions(db)).toEqual([]);
   });
 
   it("applies a decision taken on the values the step showed", async () => {
-    const state = await mark({ decision: "room-only", decidedDate: NOMINAL_DATE, decidedAmount: "800.00" });
+    const state = await mark({
+      decision: "room-only",
+      decidedDate: NOMINAL_DATE,
+      decidedAmount: "800.00",
+    });
 
     expect(state).toBeNull();
     expect(listTransactions(db).map(({ amount }) => amount)).toEqual([-50_000, 50_000]);
@@ -111,7 +132,11 @@ describe("marking an occurrence as paid from a form", () => {
   });
 
   it("does not apply a decision taken on another amount: the step is shown again", async () => {
-    const state = await mark({ decision: "room-only", decidedDate: NOMINAL_DATE, decidedAmount: "300.00" });
+    const state = await mark({
+      decision: "room-only",
+      decidedDate: NOMINAL_DATE,
+      decidedAmount: "300.00",
+    });
 
     expect(state).toMatchObject({ status: "surplus", values: { amount: "800.00" } });
     expect(listTransactions(db)).toEqual([]);

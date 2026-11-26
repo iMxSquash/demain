@@ -24,9 +24,7 @@ export interface OverflowDemand {
 }
 
 /** The account that will take the surplus: one that exists, or one to create with the import. */
-export type OverflowTarget =
-  | { kind: "existing"; id: number }
-  | { kind: "new"; name: string };
+export type OverflowTarget = { kind: "existing"; id: number } | { kind: "new"; name: string };
 
 /** A choice made in the review. It is only saved together with the file it lets through. */
 export interface PendingOverflow {

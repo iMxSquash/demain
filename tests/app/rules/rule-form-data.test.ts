@@ -65,16 +65,14 @@ describe("parseRuleInput", () => {
   });
 });
 
-const parseRuleSuggestion = (formData: FormData) =>
-  parseSuggestion(formData, translateKey);
+const parseRuleSuggestion = (formData: FormData) => parseSuggestion(formData, translateKey);
 
 describe("parseRuleSuggestion", () => {
   it("offers no rule when the box is not ticked", () => {
-    expect(
-      parseRuleSuggestion(
-        formOf({ ruleOperator: "contains", ruleValue: "shop" }),
-      ),
-    ).toEqual({ ok: true, rule: null });
+    expect(parseRuleSuggestion(formOf({ ruleOperator: "contains", ruleValue: "shop" }))).toEqual({
+      ok: true,
+      rule: null,
+    });
   });
 
   it("reads the operator and the trimmed text of a ticked suggestion", () => {
@@ -91,17 +89,13 @@ describe("parseRuleSuggestion", () => {
 
   it("refuses a ticked suggestion without text", () => {
     expect(
-      parseRuleSuggestion(
-        formOf({ createRule: "on", ruleOperator: "contains", ruleValue: " " }),
-      ),
+      parseRuleSuggestion(formOf({ createRule: "on", ruleOperator: "contains", ruleValue: " " })),
     ).toMatchObject({ ok: false });
   });
 
   it("refuses a ticked suggestion with an unknown operator", () => {
     expect(
-      parseRuleSuggestion(
-        formOf({ createRule: "on", ruleOperator: "regex", ruleValue: "x" }),
-      ),
+      parseRuleSuggestion(formOf({ createRule: "on", ruleOperator: "regex", ruleValue: "x" })),
     ).toMatchObject({ ok: false });
   });
 });

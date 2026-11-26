@@ -31,8 +31,12 @@ export function withoutMovements<Id extends AccountRef, T extends OverflowAccoun
 ): T[] {
   if (removed.length === 0) return [...accounts];
   const totals = new Map<Id, number>();
-  for (const { accountId, amount } of removed) totals.set(accountId, (totals.get(accountId) ?? 0) + amount);
-  return accounts.map((account) => ({ ...account, balance: account.balance - (totals.get(account.id) ?? 0) }));
+  for (const { accountId, amount } of removed)
+    totals.set(accountId, (totals.get(accountId) ?? 0) + amount);
+  return accounts.map((account) => ({
+    ...account,
+    balance: account.balance - (totals.get(account.id) ?? 0),
+  }));
 }
 
 export interface OverflowAccount<Id extends AccountRef = number> {
@@ -72,9 +76,7 @@ export type OverflowRouting<Id extends AccountRef = number> =
  * Room left under the ceiling, never below zero. Interest may leave the
  * balance above the ceiling, which simply means no room. Infinity: no ceiling.
  */
-export function depositRoom(
-  account: Pick<OverflowAccount, "balance" | "ceiling">,
-): number {
+export function depositRoom(account: Pick<OverflowAccount, "balance" | "ceiling">): number {
   if (account.ceiling === null) return Number.POSITIVE_INFINITY;
   return Math.max(0, account.ceiling - account.balance);
 }
@@ -92,10 +94,7 @@ export function depositRoom(
 function walkOverflowChain<
   Id extends AccountRef,
   T extends Pick<OverflowAccount<Id>, "id" | "overflowAccountId">,
->(
-  startId: Id,
-  byId: ReadonlyMap<Id, T>,
-): { accounts: T[]; hasLoop: boolean } {
+>(startId: Id, byId: ReadonlyMap<Id, T>): { accounts: T[]; hasLoop: boolean } {
   const accounts: T[] = [];
   const visited = new Set<Id>();
   let current = byId.get(startId);
@@ -103,10 +102,7 @@ function walkOverflowChain<
     if (visited.has(current.id)) return { accounts, hasLoop: true };
     visited.add(current.id);
     accounts.push(current);
-    current =
-      current.overflowAccountId === null
-        ? undefined
-        : byId.get(current.overflowAccountId);
+    current = current.overflowAccountId === null ? undefined : byId.get(current.overflowAccountId);
   }
   return { accounts, hasLoop: false };
 }

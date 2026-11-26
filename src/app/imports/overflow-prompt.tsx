@@ -4,7 +4,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { useId, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "../../components/button";
-import { overflowTargetChoices, type OverflowDemand, type OverflowTarget } from "../../domain/import-overflow";
+import {
+  overflowTargetChoices,
+  type OverflowDemand,
+  type OverflowTarget,
+} from "../../domain/import-overflow";
 import { formatAmount } from "../../domain/money";
 import { CONTROL_CLASS } from "../form-field";
 import type { ImportAccountOption } from "./import-form-data";
@@ -93,7 +97,10 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
   }
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3 rounded-control border border-border-control p-4">
+    <section
+      aria-labelledby={headingId}
+      className="flex flex-col gap-3 rounded-control border border-border-control p-4"
+    >
       <h2 id={headingId} className="text-title font-medium">
         {t("heading", { account: accountName })}
       </h2>
@@ -129,7 +136,13 @@ function DemandCard({ demand, accounts, receivingAccountId, isBusy, onChosen }: 
         </p>
         {selectError.errorParagraph}
       </div>
-      <Button type="button" variant="secondary" pending={isBusy} onClick={choose} className="self-start">
+      <Button
+        type="button"
+        variant="secondary"
+        pending={isBusy}
+        onClick={choose}
+        className="self-start"
+      >
         {t("choose")}
       </Button>
       <form onSubmit={create} className="flex flex-col gap-2">

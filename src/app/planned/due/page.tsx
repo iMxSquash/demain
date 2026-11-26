@@ -74,15 +74,28 @@ interface CardText {
   nameOf: (accountId: number) => string;
 }
 
-function buttonTextOf(occurrence: OpenOccurrence, subject: string, text: CardText): MarkPaidButtonText {
+function buttonTextOf(
+  occurrence: OpenOccurrence,
+  subject: string,
+  text: CardText,
+): MarkPaidButtonText {
   const kind = markPaidKindOf(occurrence.kind);
   const label = text.actions(kind);
   return { label, ariaLabel: `${label}, ${subject}`, pendingLabel: text.actions(`${kind}Pending`) };
 }
 
-const buttonIdOf = ({ plannedItemId, nominalDate }: OpenOccurrence) => `to-pay-${plannedItemId}-${nominalDate}`;
+const buttonIdOf = ({ plannedItemId, nominalDate }: OpenOccurrence) =>
+  `to-pay-${plannedItemId}-${nominalDate}`;
 
-function DueCard({ occurrence, next, text }: { occurrence: OpenOccurrence; next: OpenOccurrence | undefined; text: CardText }) {
+function DueCard({
+  occurrence,
+  next,
+  text,
+}: {
+  occurrence: OpenOccurrence;
+  next: OpenOccurrence | undefined;
+  text: CardText;
+}) {
   const { due, statuses, locale, nameOf } = text;
   const date = formatCalendarDate(occurrence.date, locale);
   const subject = due("subject", { name: occurrence.name, date });
@@ -110,7 +123,9 @@ function DueCard({ occurrence, next, text }: { occurrence: OpenOccurrence; next:
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{occurrence.name}</span>
-          <Pill tone={occurrence.status === "overdue" ? "warning" : "neutral"}>{statuses(occurrence.status)}</Pill>
+          <Pill tone={occurrence.status === "overdue" ? "warning" : "neutral"}>
+            {statuses(occurrence.status)}
+          </Pill>
         </div>
         <p className="mt-1 text-caption text-text-muted">
           {due("where", { account, due: due("dueOn", { date }) })}
@@ -189,7 +204,13 @@ async function DueSections() {
 
   return (
     <>
-      <DueSection id="due" heading={due("dueHeading")} occurrences={data.due} nextOf={nextOf} text={text} />
+      <DueSection
+        id="due"
+        heading={due("dueHeading")}
+        occurrences={data.due}
+        nextOf={nextOf}
+        text={text}
+      />
       <DueSection
         id="due-soon"
         heading={due("soonHeading", { count: DUE_SOON_DAYS })}

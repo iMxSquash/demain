@@ -7,10 +7,7 @@ import { Button } from "../../components/button";
 import { BalanceSideField } from "../balance-side-field";
 import { CONTROL_CLASS } from "../form-field";
 import { formatCalendarDate } from "../../i18n/dates";
-import {
-  checkBatchBalanceAction,
-  recordBatchBalanceAssertionAction,
-} from "./checks-actions";
+import { checkBatchBalanceAction, recordBatchBalanceAssertionAction } from "./checks-actions";
 import type { BalanceCheckState } from "./import-form-data";
 
 const SIDE_FIELD = "side";
@@ -23,13 +20,7 @@ function sideOf(form: HTMLFormElement | null): string {
 }
 
 /** Asks for the real balance at the end of a recorded file and tells the gap in text. */
-export function BalanceCheckPanel({
-  batchId,
-  endDate,
-}: {
-  batchId: number;
-  endDate: string;
-}) {
+export function BalanceCheckPanel({ batchId, endDate }: { batchId: number; endDate: string }) {
   const t = useTranslations("imports.staged.balanceCheck");
   const locale = useLocale();
   const headingId = useId();
@@ -75,9 +66,7 @@ export function BalanceCheckPanel({
         }}
         className="flex w-full flex-col items-start gap-2"
       >
-        <label htmlFor={inputId}>
-          {t("label", { date: formatCalendarDate(endDate, locale) })}
-        </label>
+        <label htmlFor={inputId}>{t("label", { date: formatCalendarDate(endDate, locale) })}</label>
         <p id={hintId}>{t("hint")}</p>
         <input
           id={inputId}

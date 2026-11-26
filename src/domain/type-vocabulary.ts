@@ -6,11 +6,7 @@
  */
 
 import type { MovementType } from "./import-columns";
-import {
-  tokenize,
-  type TypeVocabulary,
-  type VocabularyEntry,
-} from "./import-guess";
+import { tokenize, type TypeVocabulary, type VocabularyEntry } from "./import-guess";
 
 /** A word longer than this is not a word of a category. */
 export const MAX_VOCABULARY_WORD_LENGTH = 40;

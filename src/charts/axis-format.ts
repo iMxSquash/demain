@@ -23,11 +23,7 @@ function getCompactFormatter(locale: string, currency: string): Intl.NumberForma
   return formatter;
 }
 
-export function formatAxisAmount(
-  minorUnits: number,
-  currency: string,
-  locale: string,
-): string {
+export function formatAxisAmount(minorUnits: number, currency: string, locale: string): string {
   if (!Number.isSafeInteger(minorUnits)) {
     throw new RangeError(`formatAxisAmount expects a safe integer, got ${minorUnits}`);
   }

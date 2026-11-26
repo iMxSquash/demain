@@ -29,16 +29,16 @@ interface DataTableProps {
  * A table in its card. The card scrolls sideways when the table is wider than a phone, so
  * the page never does. The region is focusable and named: keyboard users must reach it.
  */
-export function DataTable({ caption, regionLabel = caption, hideCaption = false, children }: DataTableProps) {
+export function DataTable({
+  caption,
+  regionLabel = caption,
+  hideCaption = false,
+  children,
+}: DataTableProps) {
   return (
     <div className="rounded-card bg-surface p-4 @3xl:p-6">
       {/* `relative`: the sr-only text of the cells is absolutely positioned and must be clipped here. */}
-      <div
-        role="region"
-        aria-label={regionLabel}
-        tabIndex={0}
-        className="relative overflow-x-auto"
-      >
+      <div role="region" aria-label={regionLabel} tabIndex={0} className="relative overflow-x-auto">
         <table className={TABLE_CLASS}>
           <caption className={hideCaption ? "sr-only" : undefined}>{caption}</caption>
           {children}

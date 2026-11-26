@@ -42,8 +42,7 @@ export type MarkPaidFormState =
   | { status: "cancelled"; values: MarkPaidFormValues };
 
 type ParsedMarkPaidForm =
-  | { ok: true; input: { date: string; amount: number } }
-  | { ok: false; error: MarkPaidFormState };
+  { ok: true; input: { date: string; amount: number } } | { ok: false; error: MarkPaidFormState };
 
 export function readSubmittedMarkPaid(formData: FormData): MarkPaidFormValues {
   return { date: readText(formData, "date"), amount: readText(formData, "amount") };

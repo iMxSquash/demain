@@ -64,24 +64,14 @@ export function parseRowAmount(
     throw error;
   }
   if (amount === 0) {
-    throw importParseError(
-      `Row ${line} has a zero amount`,
-      "importAmountZero",
-      undefined,
-      line,
-    );
+    throw importParseError(`Row ${line} has a zero amount`, "importAmountZero", undefined, line);
   }
   return amount;
 }
 
 export function requireRowLabel(label: string, line: number): string {
   if (label === "") {
-    throw importParseError(
-      `Row ${line} has no label`,
-      "importLabelRequired",
-      undefined,
-      line,
-    );
+    throw importParseError(`Row ${line} has no label`, "importLabelRequired", undefined, line);
   }
   return label;
 }
@@ -97,9 +87,7 @@ export function normalizeLabel(label: string): string {
  * numbered within the file so that two genuine identical movements (two coffees
  * the same day) both survive.
  */
-export function fingerprintRows(
-  rows: readonly ImportedRow[],
-): FingerprintedRow[] {
+export function fingerprintRows(rows: readonly ImportedRow[]): FingerprintedRow[] {
   const seen = new Map<string, number>();
   return rows.map((row) => {
     const base = `${row.date}|${row.amount}|${normalizeLabel(row.label)}`;
@@ -108,8 +96,7 @@ export function fingerprintRows(
     const contentKey = `row:${base}|${occurrence}`;
     return {
       ...row,
-      fingerprint:
-        row.externalId === null ? contentKey : `id:${row.externalId}`,
+      fingerprint: row.externalId === null ? contentKey : `id:${row.externalId}`,
       contentKey,
     };
   });

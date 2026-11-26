@@ -20,7 +20,13 @@ import { CONTROL_CLASS } from "../app/form-field";
 import { CHIP_CHOSEN_CLASS, CHIP_DISC_CLASS, CHIP_PILL_CLASS, CHIP_WITH_DISC_CLASS } from "./chip";
 import { useMotion } from "../app/motion-provider";
 import { isCalendarDate } from "../domain/account";
-import { formatCalendarDate, formatFullCalendarDate, formatMonth, formatWeekday, todayIn } from "../i18n/dates";
+import {
+  formatCalendarDate,
+  formatFullCalendarDate,
+  formatMonth,
+  formatWeekday,
+  todayIn,
+} from "../i18n/dates";
 import {
   addMonths,
   buildMonthGrid,
@@ -90,7 +96,10 @@ function placeDialog(trigger: HTMLElement): Anchor {
   const rect = trigger.getBoundingClientRect();
   const width = Math.min(DIALOG_WIDTH, window.innerWidth - 2 * VIEWPORT_MARGIN);
   const centred = rect.left + rect.width / 2 - width / 2;
-  const left = Math.max(VIEWPORT_MARGIN, Math.min(centred, window.innerWidth - width - VIEWPORT_MARGIN));
+  const left = Math.max(
+    VIEWPORT_MARGIN,
+    Math.min(centred, window.innerWidth - width - VIEWPORT_MARGIN),
+  );
   const spaceBelow = window.innerHeight - rect.bottom;
   const isAbove = spaceBelow < DIALOG_HEIGHT + POPOVER_GAP && rect.top > spaceBelow;
   return isAbove
@@ -159,12 +168,20 @@ export function DatePicker({
 
   const closeDialog = useCallback(() => setIsOpen(false), []);
 
-  useImperativeHandle(ref, () => ({
-    focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
-  }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
+    }),
+    [],
+  );
 
   // A form reset (React 19 resets the form after an action) puts the native input back on its default.
-  useFormReset(nativeRef, () => setUncontrolledValue(nativeRef.current?.value ?? ""), isEnhanced && !isControlled);
+  useFormReset(
+    nativeRef,
+    () => setUncontrolledValue(nativeRef.current?.value ?? ""),
+    isEnhanced && !isControlled,
+  );
 
   // A pointer press outside closes the dialog; the focus is not moved.
   useEffect(() => {
@@ -363,7 +380,10 @@ export function DatePicker({
                 aria-modal="true"
                 aria-label={t("dialog")}
                 style={anchor}
-                initial={{ opacity: 0, y: "top" in anchor ? motion.offset.rise : -motion.offset.rise }}
+                initial={{
+                  opacity: 0,
+                  y: "top" in anchor ? motion.offset.rise : -motion.offset.rise,
+                }}
                 animate={{
                   opacity: 1,
                   y: 0,
@@ -420,7 +440,12 @@ export function DatePicker({
                         const isChosen = date === chosenDate;
                         const isToday = date === today;
                         return (
-                          <div key={date} role="gridcell" aria-selected={isChosen} className="flex justify-center">
+                          <div
+                            key={date}
+                            role="gridcell"
+                            aria-selected={isChosen}
+                            className="flex justify-center"
+                          >
                             <button
                               type="button"
                               data-date={date}

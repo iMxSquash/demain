@@ -46,10 +46,7 @@ function ofRow(say: ImportSay, index: number, text: string): ReportedImportIssue
 }
 
 /** Everything the ledger reports stops the file: it is recorded whole or not at all. */
-export function describeImportIssue(
-  issue: ImportIssue,
-  say: ImportSay,
-): ReportedImportIssue {
+export function describeImportIssue(issue: ImportIssue, say: ImportSay): ReportedImportIssue {
   const { t } = say;
 
   switch (issue.kind) {

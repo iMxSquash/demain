@@ -34,10 +34,12 @@ describe("encrypted envelope", () => {
   it("refuses a wrong password", async () => {
     const file = await encryptPayload(Buffer.from("secret"), PASSWORD, "snapshot");
 
-    await expect(decryptPayload(file, "another long passphrase", "snapshot")).rejects.toMatchObject({
-      name: "BackupError",
-      code: "wrongPasswordOrCorrupt",
-    });
+    await expect(decryptPayload(file, "another long passphrase", "snapshot")).rejects.toMatchObject(
+      {
+        name: "BackupError",
+        code: "wrongPasswordOrCorrupt",
+      },
+    );
   });
 
   it.each([
@@ -65,7 +67,11 @@ describe("encrypted envelope", () => {
 
   it("refuses a file that is not a backup", async () => {
     await expect(
-      decryptPayload(Buffer.from("just some text that is long enough to have a header....."), PASSWORD, "snapshot"),
+      decryptPayload(
+        Buffer.from("just some text that is long enough to have a header....."),
+        PASSWORD,
+        "snapshot",
+      ),
     ).rejects.toMatchObject({ code: "notABackup" });
     await expect(decryptPayload(Buffer.alloc(0), PASSWORD, "snapshot")).rejects.toMatchObject({
       code: "notABackup",

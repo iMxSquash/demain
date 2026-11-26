@@ -61,10 +61,7 @@ export async function summaryBalancesAction(
   const accounts = withDatabase((db) => listAccounts(db));
   const reading = readSummaryBalancesForm(formData, accounts);
   if ("error" in reading) {
-    return fail(
-      t(`errors.${reading.error.key}`, reading.error.values),
-      reading.error.field,
-    );
+    return fail(t(`errors.${reading.error.key}`, reading.error.values), reading.error.field);
   }
   const { form } = reading;
   const account = accounts.find(({ id }) => id === form.accountId);
@@ -100,9 +97,7 @@ export async function summaryBalancesAction(
     const shown = buildSummaryBalancesState(summary, context);
     if (!form.isCommit || !shown.canCommit) return shown;
 
-    const { saved } = withDatabase((db) =>
-      saveSummaryAssertions(db, account.id, balances, today),
-    );
+    const { saved } = withDatabase((db) => saveSummaryAssertions(db, account.id, balances, today));
     refreshData();
     await flashSuccess("summaryBalancesSaved", { count: saved.length });
     return buildSummaryBalancesState(summary, { ...context, phase: "done" });
