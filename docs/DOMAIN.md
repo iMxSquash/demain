@@ -242,6 +242,7 @@ The `/balances/summary` screen does this in two steps: the file, the account (ac
 | --- | --- |
 | id, name | Identifier and display name. |
 | status | `draft` or `validated`. |
+| created_at | When the scenario was created. |
 | validated_at | Date of validation, if any. |
 
 The constant-pace simulation is not a stored scenario: it is the evaluation with an empty list of modifications, always available.
@@ -250,8 +251,20 @@ The constant-pace simulation is not a stored scenario: it is the evaluation with
 | --- | --- |
 | id, scenario_id | Identifier and owner. |
 | type | One of the 8 types listed in [Scenario evaluation](#scenario-evaluation-pipeline). |
+| position | Order of the modification in its list: the modifications of the scenario, or the children of its composite ([D5](#scenario-evaluation-pipeline)). |
+| label | 1 to 80 characters: the name of the planned item it creates, and its name in the tables ([D7](#inputs-of-each-modification-type)). |
 | parameters | Type-specific parameters, validated by a schema per type. |
 | parent_id | For a composite life event, the group modification that contains it. |
+
+| Estimate override field | Description |
+| --- | --- |
+| account_id | The account of the estimate line. |
+| category_id | The category of the line, or null for the uncategorized line of the account. |
+| monthly_amount | The monthly amount set by the user for the line, in minor units. |
+
+Estimate overrides are simulation settings shared by every simulation, stored once ([D3](#estimated-variable-spending)).
+
+**Life of a scenario (D14, owner, 26 Nov 2026).** A draft scenario can be renamed, edited, duplicated, deleted, compared and validated. A validated scenario is read-only: it shows its modifications, its validation date and the planned items it created; it can be duplicated into a new draft named `<name> (copy)` and deleted. Deleting a scenario keeps the planned items it created and sets their `source_scenario_id` to null. A scenario name has 1 to 80 characters once trimmed.
 
 ### Currency and exchange rate
 
@@ -535,31 +548,36 @@ Decisions of the owner on the routing of planned transfers (issue #170):
 
 This applies **only to simulations**. The real trajectory and the calendar never use it.
 
-Categories driven by planned items (subscriptions, rent, salary, provisions) are projected from their rules. Variable spending that the user has not planned (groceries, leisure) is estimated from history:
+Categories driven by planned items (subscriptions, rent, salary, provisions) are projected from their rules. Variable spending that the user has not planned (groceries, leisure) is estimated from history. The rules below were decided by the owner on 26 Nov 2026 (issue #217); D1 to D15 are the numbers later issues cite.
 
-- For each category, the estimated monthly amount is the average of the last 3 complete months (configurable to 6 or 12).
-- Only transactions **not** linked to a planned item are included, so a subscription or a provision is never counted twice.
-- The user can override the estimated amount of any category inside a simulation.
-- For the current month, only what remains is estimated: the monthly estimate minus what was already spent this month, never below zero.
-- The monthly estimate is spread **evenly over the remaining days** of the month, which only matters for the daily minimum balance indicator.
+- **Estimate line (D1).** The estimate is computed per estimate line: one account and one category, or the uncategorized spending of one account. Only transactions of type `expense`, on active accounts, **not** linked to a planned item, enter it, so a subscription or a provision is never counted twice. Incomes, interest and transfers never do. A line whose average spending is zero produces no estimate. The estimated flows of a line leave its own account, in that account's currency; they are converted to the reference currency at step 3 of the [pipeline](#scenario-evaluation-pipeline).
+- **Short history (D2).** The estimated monthly amount of a line is the average of the complete months of the estimation window. The window counts the complete months before the current month that start on or after the opening date of the account. When fewer complete months exist than the window, the average is taken over those that exist, and the number of months used is shown. With no complete month, the line has no estimate and the screen says so in words.
+- **Shared settings (D3).** The estimation window (3, 6 or 12 months, 3 by default) and the estimate overrides (a monthly amount for one estimate line, see [Estimate override](#scenario-and-modification)) are simulation settings shared by every simulation, the constant-pace simulation included. They are stored once. A change that belongs to one scenario is a category budget change (type 7).
+- **Line average (D4, rule 1).** `divideRound(total spending, months used)`, to the nearest minor unit, ties away from zero, as for rolling averages.
+- **Daily spread (D4, rule 2).** A monthly amount is spread over the days of its month: each day gets `floor(amount / days)`, and the remainder goes one minor unit at a time to the first days, so the days add up to the amount exactly. For the current month, only what remains is estimated: the amount spread is the monthly estimate minus what the line already spent this month, never below zero, over the days from today to the end of the month, today included.
+- **Percentage change (D4, rule 5).** A category budget change in percent scales each estimated flow on its own, rounded to the nearest minor unit, ties away from zero.
 
 ## Scenario evaluation pipeline
 
-A simulation is evaluated in four steps, the same for every scenario (and for the constant-pace simulation) so that comparisons are fair.
+A simulation is evaluated in four steps, the same for every scenario (and for the constant-pace simulation) so that comparisons are fair. The rules marked D5 to D13 were decided by the owner on 26 Nov 2026 (issue #217).
 
 1. **Build the constant-pace cash flows** over the horizon: real history up to today, then current computed balances, planned item occurrences (with their fixed or rolling-average amounts) and estimated variable spending, all as dated flows per account.
-2. **Apply modifications** in order. Every modification type is a transformation of future cash flows: it adds flows, removes flows, or scales flows. The 8 types differ only by their input form:
+2. **Apply modifications.** Every modification type is a transformation of future cash flows: it adds flows, removes flows, or scales flows. The 8 types differ by their inputs, listed in [Inputs of each modification type](#inputs-of-each-modification-type):
 
-   | # | Type | Inputs | Transformation |
-   | --- | --- | --- | --- |
-   | 1 | Subscription change | Planned item or new subscription, mode (monthly, yearly, none), amount, start date | Removes the existing flows from the start date, adds the new ones. |
-   | 2 | One-off purchase | Date, amount, account | Adds one flow. |
-   | 3 | Instalments or loan | Principal, duration, annual rate, start date | Adds the principal as an inflow if it is a loan (optional), then constant periodic payments computed with the standard amortization formula (zero rate gives equal instalments). |
-   | 4 | Income change | Planned income item or new income, new amount or end date, effective date | Modifies or ends income flows, or adds new ones. |
-   | 5 | Savings goal | Target amount, target date, savings account; or monthly amount | Adds monthly transfers to the savings account, split along the overflow chain when a ceiling is reached (the result reports any surplus that fits nowhere, and goals that cannot be reached). Inverse mode computes the monthly amount needed to reach the target by the date, rounded up to the minor unit. |
-   | 6 | Interest projection | Savings account, annual rate entered by the user, crediting frequency | Adds interest flows computed on the projected balance. Interest is not limited by the deposit ceiling. The calculation method of regulated French accounts (fortnight rules) is not reproduced in V1; this is an estimate. |
-   | 7 | Category budget change | Category, percentage or new monthly amount, start date | Scales the estimated variable flows of that category. |
-   | 8 | Composite life event | Name, list of modifications of types 1 to 7 | Applies its children in order. |
+   | # | Type | Transformation |
+   | --- | --- | --- |
+   | 1 | Subscription change | Removes the flows of the target from the start date, adds the new ones. |
+   | 2 | One-off purchase | Adds one outflow. |
+   | 3 | Instalments or loan | Adds the principal as an inflow when a receiving account is set, then periodic payments computed with the standard amortization formula ([rounding](#rounding-of-the-engine), rule 3). |
+   | 4 | Income change | Changes or ends income flows, or adds new ones. |
+   | 5 | Savings goal | Adds monthly transfers to the savings account, split along the overflow chain when a ceiling is reached (the result reports any surplus that fits nowhere, and goals that cannot be reached, D8). Inverse mode computes the monthly amount needed to reach the target by the date. |
+   | 6 | Interest projection | Adds interest flows computed on the projected balance (D9). Interest is not limited by the deposit ceiling. The calculation method of regulated French accounts (fortnight rules) is not reproduced in V1; this is an estimate. |
+   | 7 | Category budget change | Scales the estimated flows of one estimate line, or replaces its monthly estimate. |
+   | 8 | Composite life event | Applies its children in order. |
+
+   **Order of the engine (D5).** Stage A: the modifications of types 1, 2, 3, 4 and 7, in list order (the children of a composite life event expanded in place, in their own order), transform the list of flows. Stage B: one day-by-day loop, the routing loop of the projection, generates the flows of types 5 and 6 from the running balances. On one day, flows apply in this order: real transactions, planned occurrences (by planned item id, then nominal date), estimated flows (by account id, then category id, the uncategorized line last), the flows of stage A (by modification position), the transfers of savings goals (by position), then the interest credited, last.
+
+   **Invalid modification (D6).** A modification whose planned item, account or category no longer exists, whose account is archived, or whose stored parameters no longer pass their schema, is reported as invalid with its reason and applies no flow; the rest of the scenario is still evaluated.
 
 3. **Convert and aggregate.** Flows are converted to the reference currency with the latest known rate and aggregated into daily and monthly balances.
 4. **Compute indicators** for the horizon:
@@ -570,16 +588,57 @@ A simulation is evaluated in four steps, the same for every scenario (and for th
    | Minimum balance and its date | Lowest daily total balance and the first day it is reached. |
    | Savings at a date | Total of savings accounts on a user-chosen date. |
    | Month-end curves | Month-end checking total and month-end savings total, for each month of the horizon. |
-   | Total cost | Sum of outflows added or changed by the scenario minus the constant-pace equivalent, over the horizon. |
+   | Total cost | Outflows to outside the user's accounts over the horizon, for the scenario minus the constant-pace simulation (D10). |
 
-2 to 4 scenarios are evaluated with the same real history, horizon and settings, and displayed side by side.
+   **Indicators (D10).** Every total is the sum of the active accounts in the reference currency, converted with the latest known rate; an account whose currency has no known rate is left out of the totals and named. The minimum balance is searched from today to the end of the horizon, and its date is the first day it is reached. The month-end checking curve is the total of accounts of kind `checking`, the savings curve the total of kind `savings`; accounts of kind `other` count only in the totals. Total cost is the sum of the outflows to outside the user's accounts (expenses and loan payments, never a transfer between the user's accounts, never an income, interest or a received principal), dated from today to the end of the horizon, for the scenario minus the same sum for the constant-pace simulation. A positive total cost means the scenario costs more; the constant-pace simulation has a total cost of zero.
+
+The simulations of a comparison (D11) are evaluated with the same real history, horizon and settings, and displayed side by side.
+
+### Inputs of each modification type
+
+**D7.** Every modification has a `label` of 1 to 80 characters, used as the name of the planned item it creates and in the tables. Amounts are typed without a sign and stored as positive minor units; the type gives the direction.
+
+1. **Subscription change:** a target (an existing planned item of kind `expense`, or a new subscription with an account and an optional category), a mode (`monthly`, `yearly` or `none`), an amount (not for `none`) and a start date. Every occurrence of the target whose nominal date is on or after the start date is removed. `monthly` adds a repetition `monthly_on_day` on the day of the start date, `yearly` adds a repetition `yearly` anchored on the start date, `none` adds nothing.
+2. **One-off purchase:** an account, a date after today, an amount and an optional category. It adds one outflow.
+3. **Instalments or loan:** a principal, a duration of 1 to 600 months, an annual rate of 0 to 10000 basis points, the date the principal is received, the account that pays the instalments, an optional account that receives the principal, and an optional category. Payments repeat `monthly_on_day` on the day of the date received, starting the month after it (clamped to the end of shorter months).
+4. **Income change:** a target (an existing planned item of kind `income`, or a new income with an account and an optional category), a change (a new amount, or an end) and an effective date. For an existing item, every occurrence whose nominal date is on or after the effective date takes the new fixed amount, or is removed for an end; an item in rolling-average mode becomes fixed from that date. A new income repeats `monthly_on_day` on the day of the effective date; an end has no meaning for a new income and is refused.
+5. **Savings goal:** a source account, a savings account, the date of the first transfer, then either a monthly amount with an optional end date (the end of the horizon by default), or a target amount and a target date. Transfers repeat `monthly_on_day` on the day of the first transfer, the last one on or before the end date or the target date.
+6. **Interest projection:** a savings account, an annual rate of 0 to 10000 basis points, a crediting frequency (`monthly`, credited on the last day of each month; `yearly`, credited on 31 December) and a start date.
+7. **Category budget change:** an estimate line (an account and a category, or the uncategorized line of the account), a start month, and either a percentage in basis points (from -10000 to 100000) or a new monthly amount (zero or more). From the start month, a percentage scales the estimated flows of the line, and a new monthly amount replaces the monthly estimate of the line, with the current-month rule of D4 (2) ([daily spread](#estimated-variable-spending)).
+8. **Composite life event:** a label and 1 to 20 children of types 1 to 7. A composite never contains another composite.
+
+### Savings goals and interest
+
+- **Savings goal target (D8).** The target of a savings goal is the total of the savings account and of every account of its overflow chain on the target date. The inverse mode returns the smallest whole amount in minor units whose monthly transfers reach the target, found by bisection between 1 and the target amount; 0 when the target is already reached without transfer. The goal is unreachable when monthly transfers equal to the target amount do not reach it (the ceilings of the chain are too low); the result says so and the goal applies no flow. Any surplus that fits nowhere stays in the source account and is reported per transfer.
+- **Interest (D9).** The interest of a period is `round(sum of the end-of-day balances of the account over the days of the period, a negative balance counting as zero, x annual rate in basis points / (10000 x 365))`. The first period starts on the start date and may be partial. Interest is never limited by a ceiling and joins the balance once credited.
+
+### Rounding of the engine
+
+Rules 1, 2 and 5 of D4 are in [Estimated variable spending](#estimated-variable-spending). The others:
+
+- **Loan payment (D4, rule 3).** The annuity formula is computed in floating point and rounded once to the nearest minor unit; each payment's interest is `divideRound(remaining principal x annual rate in basis points, 120000)`, in integers; the last payment absorbs the gap, so that the principal parts add up to the principal exactly. With a zero rate, each payment is `floor(principal / months)` and the last one takes the remainder.
+- **Interest (D4, rule 4).** Interest is rounded to the nearest minor unit at each crediting, with the products computed with `BigInt`.
+- **Inverse savings goal (D4, rule 6).** The inverse savings goal amount is rounded up to the minor unit.
 
 ### Comparison and diagrams
 
+- **Comparison (D11).** A comparison holds 2 to 4 simulations in total: the constant-pace simulation, always first, and 1 to 3 draft scenarios. A validated scenario is never compared: its effects are already real.
+- **Horizon (D12).** A horizon starts today. The presets 6, 12 and 24 end on the last day of the month that comes 6, 12 or 24 months after the current month. A custom horizon is an end date from `addMonths(today, 1)` to `addMonths(today, 120)`, both included, checked with the same rule in the browser and on the server. The real months drawn before today are the ones of the real chart of the app.
 - **Shared real history.** All simulations share the same real months up to today, drawn once. Each simulation diverges from today, including the constant-pace simulation, which is always present as the fair reference. The real chart of the app is therefore the left part of every simulation chart.
 - **Diagrams** available for a simulation and in the comparison: (1) the month-end checking and savings curves, the main one; (2) income and expenses per month as bars; (3) breakdown of expenses by category; (4) a comparison table (final balance, minimum balance and its date, total cost). Every diagram has an equivalent data table and never relies on color alone.
 
-**Validation.** Validating a scenario converts each modification into planned item changes (new planned items, new versions, end dates). Modifications that do not describe a future flow by themselves (type 7 changes an estimate, not a planned item) are listed to the user with how they will be applied, before confirmation.
+**Validation (D13).** Validating a scenario is refused as a whole, with every reason listed, if one of its modifications is invalid (D6) or if a savings goal is unreachable (D8). Otherwise each modification becomes:
+
+- type 1, an end date the day before the start date on an existing target, then, unless the mode is `none`, a new planned item with a fixed amount;
+- type 2, a one-off planned item;
+- type 3, a monthly planned item from the first to the last payment with the regular payment, an occurrence override on the last payment when its amount differs, and a one-off income on the date received when a receiving account is set;
+- type 4, a new version of the existing item from the effective date (fixed amount), or its end date the day before the effective date, or a new planned item for a new income;
+- type 5, a monthly planned transfer with a fixed amount (the monthly amount, or the one the inverse mode computed);
+- type 6, nothing: it is listed as "not converted, interest stays an estimate";
+- type 7, the estimate override of its line in the shared settings (for a percentage, the current monthly estimate of the line scaled with rule 5 of D4);
+- type 8, its children.
+
+Every planned item created carries the `source_scenario_id` of the scenario. The list of changes and of what is not converted is shown before the confirmation.
 
 ## Guessing the type of an imported row
 
