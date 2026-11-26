@@ -88,7 +88,7 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 **Scope.**
 
 - The constant-pace simulation, always available as the reference.
-- Estimated variable spending: average of the last 3 complete months per account and category (configurable to 6 or 12), with estimate overrides shared by every simulation, current month estimated for what remains, spread evenly over the remaining days.
+- Estimated variable spending: average of the last 3 complete months per account and category, uncategorized spending included (configurable to 6 or 12), with estimate overrides shared by every simulation, current month estimated for what remains, spread evenly over the remaining days.
 - Scenarios as named lists of modifications on top of the constant-pace simulation.
 - The 8 modification types handled by one cash flow engine: subscription change, one-off purchase, instalments or loan, income change, savings goal (and the inverse computation, following overflow chains), interest projection with a user-entered rate, category budget change, composite life event.
 - Comparison of the constant-pace simulation with 1 to 3 draft scenarios over 6, 12, 24 months or a custom horizon, with the real history shared and drawn once.
