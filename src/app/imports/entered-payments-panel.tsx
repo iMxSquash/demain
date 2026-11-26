@@ -80,9 +80,10 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose, noteIds }:
       </p>
       {single !== undefined
         ? option(String(single.id), t("replace"), single.id)
-        : match.candidates.map((entry) =>
-            option(String(entry.id), t(isTransfer(entry) ? "replaceThisTransfer" : "replaceThis", describe(entry)), entry.id),
-          )}
+        : match.candidates.map((entry) => {
+            const label = t(isTransfer(entry) ? "replaceThisTransfer" : "replaceThis", describe(entry));
+            return option(String(entry.id), label, entry.id);
+          })}
       {option(KEEP_BOTH, t("keepBoth"), null)}
     </fieldset>
   );

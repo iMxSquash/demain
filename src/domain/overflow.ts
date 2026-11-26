@@ -14,6 +14,27 @@ const SAVINGS_KIND: AccountKind = "savings";
  */
 export type AccountRef = number | string;
 
+/** An amount that leaves or reaches the balance of an account. */
+export interface AccountMovement<Id extends AccountRef = number> {
+  accountId: Id;
+  /** Signed integer in minor units. */
+  amount: number;
+}
+
+/**
+ * The balances once the movements are gone: the legs entered by hand that an import replaces
+ * must not fill an account that the imported row then overflows (#210).
+ */
+export function withoutMovements<Id extends AccountRef, T extends OverflowAccount<Id>>(
+  accounts: readonly T[],
+  removed: readonly AccountMovement<Id>[],
+): T[] {
+  if (removed.length === 0) return [...accounts];
+  const totals = new Map<Id, number>();
+  for (const { accountId, amount } of removed) totals.set(accountId, (totals.get(accountId) ?? 0) + amount);
+  return accounts.map((account) => ({ ...account, balance: account.balance - (totals.get(account.id) ?? 0) }));
+}
+
 export interface OverflowAccount<Id extends AccountRef = number> {
   id: Id;
   currency: string;

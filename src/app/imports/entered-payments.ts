@@ -13,7 +13,6 @@ import {
   type EnteredPaymentMatch,
   type MatchTransaction,
 } from "../../domain/planned-matching";
-import type { AccountRef, OverflowAccount } from "../../domain/overflow";
 import type { EntryReplacement } from "../../ledger/imports";
 import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 
@@ -54,7 +53,7 @@ export function enteredMatchesOf(
     if (type === "savings") {
       const { savingsAccountId } = withDefaultSavingsAccount(row.details, defaultSavingsAccountId);
       if (savingsAccountId === null) return [];
-      return [savingsRowTransaction({ index, date, amount, savingsAccountId }, { accountId, label })];
+      return [savingsRowTransaction({ index, date, amount, savingsAccountId }, accountId)];
     }
     const signed = signedAmountForType(type, amount);
     return [{ id: index, accountId, categoryId: row.details.categoryId, date, label, amount: signed, kind: type }];
@@ -103,28 +102,22 @@ export function settleEnteredChoices(
   };
 }
 
-/** What the chosen replacements take out of the balances, every leg of a transfer included. */
-export function replacedMovementsOf(
-  { replacements }: Pick<SettledEnteredChoices, "replacements">,
-  entered: readonly EnteredPaymentEntry[],
-): AssertionMovement[] {
-  const entriesById = new Map(entered.map((entry) => [entry.id, entry]));
-  return replacements.flatMap(({ entryId }) => entriesById.get(entryId)?.movements ?? []);
-}
-
 /**
- * The balances of the chain without the replaced entries, as the import plans the split of its
- * savings rows: legs entered by hand must not fill an account the bank row then overflows.
+ * By file, what its chosen replacements take out of the balances, every leg of a transfer
+ * included. An entry two files would replace leaves with the first one only: the import refuses
+ * it in the other.
  */
-export function withoutReplaced<T extends OverflowAccount<AccountRef>>(
-  accounts: readonly T[],
-  removed: readonly AssertionMovement[],
-): T[] {
-  if (removed.length === 0) return [...accounts];
-  return accounts.map((account) => ({
-    ...account,
-    balance:
-      account.balance -
-      removed.reduce((sum, movement) => (movement.accountId === account.id ? sum + movement.amount : sum), 0),
-  }));
+export function replacedMovementsByFile(
+  settledByFile: readonly Pick<SettledEnteredChoices, "replacements">[],
+  entered: readonly EnteredPaymentEntry[],
+): AssertionMovement[][] {
+  const entriesById = new Map(entered.map((entry) => [entry.id, entry]));
+  const seen = new Set<number>();
+  return settledByFile.map(({ replacements }) =>
+    replacements.flatMap(({ entryId }) => {
+      if (seen.has(entryId)) return [];
+      seen.add(entryId);
+      return entriesById.get(entryId)?.movements ?? [];
+    }),
+  );
 }

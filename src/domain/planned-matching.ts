@@ -259,19 +259,19 @@ export interface EnteredPaymentMatch<T extends EnteredPayment> {
 /**
  * A savings row of a file as one matchable transfer, before the import splits it into legs: the
  * outgoing side, from the account it leaves (the savings account for a withdrawal), whatever its
- * split along the overflow chain.
+ * split along the overflow chain. No label or category selects a transfer, so none is kept.
  */
 export function savingsRowTransaction(
   { index, date, amount, savingsAccountId }: SavingsMovement,
-  file: { accountId: number; label: string },
+  fileAccountId: number,
 ): MatchTransaction {
   const isDeposit = amount < 0;
   return {
     id: index,
-    accountId: isDeposit ? file.accountId : savingsAccountId,
+    accountId: isDeposit ? fileAccountId : savingsAccountId,
     categoryId: null,
     date,
-    label: file.label,
+    label: "",
     kind: "transfer",
     amount: isDeposit ? amount : -amount,
   };

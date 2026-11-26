@@ -914,9 +914,12 @@ function listEnteredTransfers(db: Pick<AppDatabase, "select">, accountIds?: read
   const occurrences = Map.groupBy(outgoing, ({ entry }) => `${entry.plannedItemId}|${entry.nominalDate}`);
   return [...occurrences.values()].flatMap((links) => {
     const legs = links.map(({ entry }) => entry);
-    const ins = links.map(({ counterpartId }) => (counterpartId === null ? undefined : counterparts.get(counterpartId)));
-    if (ins.some((leg) => leg === undefined || leg.archived)) return [];
-    const movements = [...legs, ...ins].map((leg) => ({ accountId: leg!.accountId, date: leg!.date, amount: leg!.amount }));
+    const ins = links.flatMap(({ counterpartId }) => {
+      const leg = counterpartId === null ? undefined : counterparts.get(counterpartId);
+      return leg === undefined || leg.archived ? [] : [leg];
+    });
+    if (ins.length !== legs.length) return [];
+    const movements = [...legs, ...ins].map(({ accountId, date, amount }) => ({ accountId, date, amount }));
     // In id order, so the first leg names the entry, as the first leg of an imported row does.
     return [{ ...legs[0]!, amount: legs.reduce((sum, leg) => sum + leg.amount, 0), movements }];
   });
@@ -984,6 +987,7 @@ export function replaceEnteredTransfer(
   db: Pick<AppDatabase, "select" | "update" | "delete">,
   { outgoingLegIds, entryId }: { outgoingLegIds: readonly number[]; entryId: number },
 ): void {
+  if (outgoingLegIds.length === 0) throw new Error("A savings row has at least one outgoing leg");
   const entry = readTransactionOrThrow(db, entryId);
   if (
     entry.kind !== "transfer" ||
@@ -993,21 +997,20 @@ export function replaceEnteredTransfer(
   ) {
     throw new Error(`Transaction ${entryId} is not an entered transfer`);
   }
+  const occurrence = { plannedItemId: entry.plannedItemId, occurrenceDate: entry.occurrenceDate };
   const outgoing = db
-    .select()
+    .select({ id: transactions.id, counterpartId: transactions.transferCounterpartId })
     .from(transactions)
     .where(
       and(
-        eq(transactions.plannedItemId, entry.plannedItemId),
-        eq(transactions.occurrenceDate, entry.occurrenceDate),
+        eq(transactions.plannedItemId, occurrence.plannedItemId),
+        eq(transactions.occurrenceDate, occurrence.occurrenceDate),
         isNull(transactions.importBatchId),
         eq(transactions.kind, "transfer"),
       ),
     )
     .all();
-  const legIds = outgoing.flatMap((leg) =>
-    leg.transferCounterpartId === null ? [leg.id] : [leg.id, leg.transferCounterpartId],
-  );
+  const legIds = outgoing.flatMap(({ id, counterpartId }) => (counterpartId === null ? [id] : [id, counterpartId]));
   const legs = db
     .select({ accountId: transactions.accountId })
     .from(transactions)
@@ -1016,11 +1019,15 @@ export function replaceEnteredTransfer(
   for (const accountId of new Set(legs.map((leg) => leg.accountId))) getOpenAccount(db, accountId);
   // One statement: the legs reference each other, and SQLite checks the foreign key at its end.
   db.delete(transactions).where(inArray(transactions.id, legIds)).run();
-  const item = db.select().from(plannedItems).where(eq(plannedItems.id, entry.plannedItemId)).get();
-  if (item === undefined) throw new Error(`Planned item ${entry.plannedItemId} does not exist`);
-  const [first] = outgoingLegIds;
-  if (first === undefined) throw new Error("A savings row has at least one outgoing leg");
-  writeLink(db, readTransactionOrThrow(db, first), item, entry.occurrenceDate, false, outgoingLegIds);
+  // Defensive, as `linkTransactionToOccurrence`: nothing else may still settle the occurrence.
+  const { plannedItemId, occurrenceDate: nominalDate } = occurrence;
+  if (isOccurrenceTaken(db, { transactionId: entryId, plannedItemId, nominalDate })) {
+    throw new PlannedLinkError(
+      "Another transaction already settles this occurrence",
+      messageRef("matchOccurrenceTaken"),
+    );
+  }
+  db.update(transactions).set(occurrence).where(inArray(transactions.id, [...outgoingLegIds])).run();
 }
 
 /** An occurrence still waiting for a transaction, as the "To pay" and "Link a transaction" pages show it. */

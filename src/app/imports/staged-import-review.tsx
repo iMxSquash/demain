@@ -43,9 +43,8 @@ import {
   choiceKey,
   enteredMatchesOf,
   NO_ENTERED_CHOICES,
-  replacedMovementsOf,
+  replacedMovementsByFile,
   settleEnteredChoices,
-  withoutReplaced,
   type EnteredChoices,
   type EnteredMatch,
 } from "./entered-payments";
@@ -191,19 +190,17 @@ function ReviewBody({
     );
   }
   const replacedByEachFile = useMemo(
-    () => settledEntered.map((settled) => replacedMovementsOf(settled, enteredPayments)),
+    () => replacedMovementsByFile(settledEntered, enteredPayments),
     [settledEntered, enteredPayments],
   );
-  // Every file's replacements at once, against the snapshot taken before any file was recorded.
-  const replacedMovements = useMemo(() => replacedByEachFile.flat(), [replacedByEachFile]);
   const plans = useMemo(
     () =>
-      planReview(state.files, {
-        currency,
-        defaultSavingsAccountId: savingsAccountId,
-        accounts: withoutReplaced(overflowAccounts, replacedMovements),
-      }),
-    [state.files, currency, savingsAccountId, overflowAccounts, replacedMovements],
+      planReview(
+        state.files,
+        { currency, defaultSavingsAccountId: savingsAccountId, accounts: overflowAccounts },
+        replacedByEachFile,
+      ),
+    [state.files, currency, savingsAccountId, overflowAccounts, replacedByEachFile],
   );
   // Computed from the plans of the review, so that the figures agree with what the import records.
   const assertionLinks = useMemo(
@@ -217,12 +214,12 @@ function ReviewBody({
     () =>
       overflowChoices.length === 0
         ? plans
-        : planReview(state.files, {
-            currency,
-            defaultSavingsAccountId: savingsAccountId,
-            accounts: withoutReplaced(storedOverflowAccounts, replacedMovements),
-          }),
-    [plans, overflowChoices.length, state.files, currency, savingsAccountId, storedOverflowAccounts, replacedMovements],
+        : planReview(
+            state.files,
+            { currency, defaultSavingsAccountId: savingsAccountId, accounts: storedOverflowAccounts },
+            replacedByEachFile,
+          ),
+    [plans, overflowChoices.length, state.files, currency, savingsAccountId, storedOverflowAccounts, replacedByEachFile],
   );
   const phases = state.files.map((file) => file.phase);
   const order = useMemo(

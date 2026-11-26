@@ -34,7 +34,7 @@ import {
   type SavingsTransfer,
 } from "../domain/import-savings";
 import { messageRef, type MessageRef } from "../domain/message";
-import type { OverflowAccount } from "../domain/overflow";
+import { withoutMovements, type OverflowAccount } from "../domain/overflow";
 import { findEnteredPayments, savingsRowTransaction, type MatchTransaction } from "../domain/planned-matching";
 import {
   buildTransferLegs,
@@ -186,12 +186,10 @@ interface FreshTransfer {
   keyedLeg: 0 | 1;
 }
 
-interface CheckedReplacement {
-  index: number;
-  fingerprint: string;
-  entryId: number;
-  isTransfer: boolean;
-}
+/** A payment is replaced by the bank row of its fingerprint, a transfer by the legs of its savings row. */
+type CheckedReplacement =
+  | { kind: "payment"; fingerprint: string; entryId: number }
+  | { kind: "transfer"; index: number; entryId: number };
 
 interface ImportPlan {
   preview: ImportPreview;
@@ -488,20 +486,14 @@ function buildSavingsPairs(
 function checkReplacements(
   db: AppDatabase,
   accountId: number,
-  outcome: Pick<RowOutcome, "fresh" | "movements" | "savingsRows">,
+  outcome: Pick<RowOutcome, "fresh" | "movements">,
   replacements: readonly EntryReplacement[],
 ): { checked: CheckedReplacement[]; issues: ImportIssue[]; removed: AssertionMovement[] } {
   if (replacements.length === 0) return { checked: [], issues: [], removed: [] };
-  const fingerprintOf = new Map<number, string>([
-    ...outcome.fresh.map(({ index, fingerprint }) => [index, fingerprint] as const),
-    ...[...outcome.savingsRows].map(([index, row]) => [index, row.fingerprint] as const),
-  ]);
+  const fingerprintOf = new Map(outcome.fresh.map(({ index, fingerprint }) => [index, fingerprint]));
   const rows: MatchTransaction[] = [
     ...outcome.fresh.map(({ index, input }) => ({ ...input, id: index })),
-    ...outcome.movements.map((movement) =>
-      // A savings row with a movement is a known row.
-      savingsRowTransaction(movement, { accountId, label: outcome.savingsRows.get(movement.index)!.label }),
-    ),
+    ...outcome.movements.map((movement) => savingsRowTransaction(movement, accountId)),
   ];
   const entered = listEnteredPayments(db, [...new Set(rows.map((row) => row.accountId))]);
   const enteredById = new Map(entered.map((entry) => [entry.id, entry]));
@@ -517,10 +509,9 @@ function checkReplacements(
   const issues: ImportIssue[] = [];
   const removed: AssertionMovement[] = [];
   for (const { index, entryId } of replacements) {
-    const fingerprint = fingerprintOf.get(index);
     const entry = enteredById.get(entryId);
+    // A candidate of a row is a listed entry, and the row is new: its fingerprint is known.
     const holds =
-      fingerprint !== undefined &&
       entry !== undefined &&
       candidates.get(index)?.has(entryId) === true &&
       !usedRows.has(index) &&
@@ -531,7 +522,11 @@ function checkReplacements(
     }
     usedRows.add(index);
     usedEntries.add(entryId);
-    checked.push({ index, fingerprint, entryId, isTransfer: entry.kind === "transfer" });
+    checked.push(
+      entry.kind === "transfer"
+        ? { kind: "transfer", index, entryId }
+        : { kind: "payment", fingerprint: fingerprintOf.get(index)!, entryId },
+    );
     removed.push(...entry.movements);
   }
   return { checked, issues, removed };
@@ -567,11 +562,7 @@ function planImport(db: AppDatabase, request: ImportRequest): ImportPlan {
   const replacements = checkReplacements(db, account.id, outcome, request.replacements ?? []);
   const issues = [...outcome.issues, ...replacements.issues];
   if (outcome.movements.length > 0) {
-    // Split as if the replaced legs were already gone: they must not fill the chain (#210).
-    const accounts = listOverflowAccounts(db).map((stored) => ({
-      ...stored,
-      balance: stored.balance - sumOn(replacements.removed, stored.id),
-    }));
+    const accounts = withoutMovements(listOverflowAccounts(db), replacements.removed);
     const plan = planSavingsTransfers(outcome.movements, accounts);
     const built = buildSavingsPairs(account.id, plan.transfers, accounts, outcome.savingsRows);
     transfers = plan.transfers;
@@ -681,11 +672,13 @@ export function commitImport(
 
     // Before the matching, which leaves the linked rows alone, and before the digest, which must
     // hash what the bank rows took from the entries they replace.
-    for (const { index, fingerprint, entryId, isTransfer } of replacements) {
-      if (isTransfer) {
-        replaceEnteredTransfer(tx, { outgoingLegIds: outgoingOf.get(index) ?? [], entryId });
+    for (const replacement of replacements) {
+      const { entryId } = replacement;
+      if (replacement.kind === "transfer") {
+        replaceEnteredTransfer(tx, { outgoingLegIds: outgoingOf.get(replacement.index) ?? [], entryId });
         continue;
       }
+      const { fingerprint } = replacement;
       const bankRow = tx
         .select({ id: transactions.id })
         .from(transactions)

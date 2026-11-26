@@ -8,6 +8,8 @@ import { isCalendarDate, type AccountKind } from "./account";
 import { messageRef, type MessageRef } from "./message";
 import {
   routeAlongOverflowChain,
+  withoutMovements,
+  type AccountMovement,
   type AccountRef,
   type OverflowAccount,
   type Placement,
@@ -245,17 +247,20 @@ export function orderFilesByDate<T extends DatedFile>(files: readonly T[]): T[] 
   });
 }
 
-/** Plans each file in date order, on the balances the previous file leaves. */
+/**
+ * Plans each file in date order, on the balances the previous file leaves, less what the file
+ * removes when it is recorded (the entries it replaces), as the import does.
+ */
 export function planFilesInDateOrder<
   Id extends AccountRef,
-  T extends DatedFile & { movements: readonly SavingsMovement<Id>[] },
+  T extends DatedFile & { movements: readonly SavingsMovement<Id>[]; removed?: readonly AccountMovement<Id>[] },
 >(
   files: readonly T[],
   accounts: readonly OverflowAccount<Id>[],
 ): { file: T; plan: SavingsPlan<Id> }[] {
   let current = accounts;
   return orderFilesByDate(files).map((file) => {
-    const plan = planSavingsTransfers(file.movements, current);
+    const plan = planSavingsTransfers(file.movements, withoutMovements(current, file.removed ?? []));
     current = plan.accounts;
     return { file, plan };
   });

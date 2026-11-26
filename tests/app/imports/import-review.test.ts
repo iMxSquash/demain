@@ -161,6 +161,49 @@ describe("ImportReview", () => {
     expect(markup).toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/);
   });
 
+  it("flags a savings row that matches a planned transfer marked as transferred, worded as a transfer", () => {
+    const savingsRow = {
+      line: 4,
+      rawDate: null,
+      draft: { date: "2026-03-05", label: "SYNTHETIC SAVINGS", amount: "-300,00", externalId: null },
+      details: {
+        type: "savings" as const,
+        categoryId: null,
+        paymentMode: "transfer" as const,
+        description: null,
+        savingsAccountId: 4,
+      },
+      guess: null,
+      isDuplicate: false,
+    };
+    const transferEntry: EnteredPaymentEntry = {
+      ...PAID_ENTRY,
+      id: 11,
+      date: "2026-03-05",
+      label: "Synthetic saving",
+      kind: "transfer",
+      amount: -30_000,
+      plannedItemId: 5,
+      plannedItemName: "Synthetic saving",
+      nominalDate: "2026-03-05",
+      movements: [
+        { accountId: 1, date: "2026-03-05", amount: -30_000 },
+        { accountId: 4, date: "2026-03-05", amount: 30_000 },
+      ],
+    };
+
+    const markup = render({
+      ...REVIEW,
+      files: [{ ...FILE, rows: [...FILE.rows, savingsRow] }],
+      enteredPayments: [PAID_ENTRY, transferEntry],
+    });
+
+    expect(markup).toContain("Entries already marked as paid or transferred");
+    expect(markup).toContain("You marked Synthetic saving of Mar 5, 2026 as transferred on Mar 5, 2026 (€300.00).");
+    expect(markup).toContain("Replacing a transfer deletes every leg you entered for it");
+    expect(markup).toContain("The bank row takes the occurrence of the entry");
+  });
+
   it("renders no dialog", () => {
     expect(render(REVIEW)).not.toContain("<dialog");
   });

@@ -651,7 +651,7 @@ describe("findEnteredPayments", () => {
     function savingsRow(overrides: Partial<SavingsMovement> = {}): MatchTransaction {
       return savingsRowTransaction(
         { index: 0, date: DEFAULT_DATE, amount: -30000, savingsAccountId: SAVINGS_ID, ...overrides },
-        { accountId: ACCOUNT_ID, label: "SAVINGS TRANSFER" },
+        ACCOUNT_ID,
       );
     }
 
