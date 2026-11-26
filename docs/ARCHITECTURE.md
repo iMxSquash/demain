@@ -214,7 +214,7 @@ Each record follows the same structure: context, decision, alternatives rejected
 
 **Context.** The owner wants the main views to show only what is real or explicitly planned and dated ("no guess that I might go out this month"). At the same time, a simulation is only useful if it can say what happens if life continues at the same pace.
 
-**Decision.** The real trajectory (chart, calendar, monthly lines) contains real transactions and explicitly dated planned items, never an estimation of unplanned spending. Estimation (rolling average of recent months per category) exists only in simulations, starting with the constant-pace simulation that is always present as a reference. A planned item may follow a rolling average of its own previous occurrences, but only because the user chose that mode for that item.
+**Decision.** The real trajectory (chart, calendar, monthly lines) contains real transactions and explicitly dated planned items, never an estimation of unplanned spending. Estimation (rolling average of recent months per account and category) exists only in simulations, starting with the constant-pace simulation that is always present as a reference. A planned item may follow a rolling average of its own previous occurrences, but only because the user chose that mode for that item.
 
 **Alternatives rejected.**
 
