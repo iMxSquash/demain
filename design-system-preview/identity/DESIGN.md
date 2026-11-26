@@ -197,11 +197,12 @@ These tokens have no utility; they are read by CSS (modules, the `holo` utility,
   - left sidebar, icon and label per item;
   - the selected item raised on white with `aria-current="page"`;
   - "To categorize" with its count;
-  - Settings at the foot.
+  - Settings at the foot;
+  - Imports stays in the sidebar, and Simulations is added when it lands (owner, 26 Nov 2026, #217 D15).
 - **Navigation, narrow:**
   - the logo and a round "Add transaction" button at the top;
   - a floating tab bar at the bottom, four destinations (Overview, Calendar, Accounts, Simulations), in a 343 px pill track with 52 px items and the selected item in ink.
-  - **Until Simulations (M3) exists:** the tab bar holds Overview, Calendar, Accounts and Imports (owner, 12 Nov 2026; Calendar took the place of Transactions with #173). Simulations takes the place of Imports when it lands.
+  - **Until Simulations (M3) exists:** the tab bar holds Overview, Calendar, Accounts and Imports (owner, 12 Nov 2026; Calendar took the place of Transactions with #173). When Simulations lands, its tab (icon `ArrowsSplit`) takes the place of Imports, and Imports becomes the first row of the More list of `/settings`, with its icon `TrayArrowDown` (owner, 26 Nov 2026, #217 D15).
   - **The other pages on a phone** (owner, 12 Nov 2026): a 44 px icon button with `GearSix` and the label "Settings" sits in the top bar next to "Add transaction". `/settings` ends with a "More" list of the pages that have no tab: Transactions, Balances, Categories, Rules, Currencies, Backup, Security, each with its icon.
 - **Settings** (`/settings`, owner, 12 Nov 2026): one page that holds Appearance (the theme setting of section 3) and Language, then links to Security and Backup. Both controls live on this page only. Sign out sits at the end of this page, an interim place until the owner decides one.
 
