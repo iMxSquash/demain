@@ -71,14 +71,14 @@ Demain is built in four milestones. Each one delivers something usable and ends 
 
 **Definition of done.**
 
-- [ ] All recurrence patterns generate correct dates across month ends, leap years and business-day adjustments, covered by unit tests.
+- [x] All recurrence patterns generate correct dates across month ends, leap years and business-day adjustments, covered by unit tests.
 - [x] A price or schedule change with an effective date affects only occurrences on or after that date (tested with the salary example 1143.88 to 1171.47 and a rent moved from the 5th to the 1st).
-- [ ] The rolling average reproduces the documented example, including the restart on a new version and the exclusion of cancelled and overdue occurrences.
-- [ ] A single occurrence can be moved or changed from the calendar and from the monthly line view without altering the others.
-- [ ] A provision of 90 settled by several transactions shows the remaining amount, never negative, and drops its leftover after its period.
-- [ ] After an import, unambiguous matches are confirmed, ambiguous ones are proposed, and no ambiguous match is applied without validation.
-- [ ] Unmatched occurrences become overdue after their window.
-- [ ] The calendar and the monthly line view are usable by keyboard.
+- [x] The rolling average reproduces the documented example, including the restart on a new version and the exclusion of cancelled and overdue occurrences.
+- [x] A single occurrence can be moved or changed from the calendar and from the monthly line view without altering the others.
+- [x] A provision of 90 settled by several transactions shows the remaining amount, never negative, and drops its leftover after its period.
+- [x] After an import, unambiguous matches are confirmed, ambiguous ones are proposed, and no ambiguous match is applied without validation.
+- [x] Unmatched occurrences become overdue after their window.
+- [x] The calendar and the monthly line view are usable by keyboard.
 - [ ] The owner runs a full month in Demain without opening the sheet ([success criterion](PRODUCT.md#success-criteria)).
 
 ## M3: Simulations
