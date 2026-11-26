@@ -20,7 +20,7 @@ The underlying need is simple: see ahead, compare possible futures, and keep the
 Demain is a budget app that looks forward, not only backward. Three ideas define it:
 
 1. **See ahead, without guessing.** The main views show what is real and what you have explicitly planned and dated: your balances, your recurring income and expenses, your one-off events. They never guess, for instance, that you might go out this month. The estimation of your usual spending lives in simulations only, where it belongs.
-2. **Compare possible futures.** Express a decision as a scenario (monthly vs yearly subscription vs none, a loan, a raise, moving out) and compare 2 to 4 scenarios side by side, on the same real history, with the indicators that matter: final balance, lowest balance and when it happens, savings at a date, total cost.
+2. **Compare possible futures.** Express a decision as a scenario (monthly vs yearly subscription vs none, a loan, a raise, moving out) and compare up to 3 scenarios side by side with the constant-pace simulation, on the same real history, with the indicators that matter: final balance, lowest balance and when it happens, savings at a date, total cost.
 3. **Stay at home.** Demain runs on your own server. Data is stored locally and nothing is sent anywhere by default. Every feature that needs an outbound connection (exchange rate fetch, bank sync) is optional, disabled by default, and documented with what it sends.
 
 ## Target user
