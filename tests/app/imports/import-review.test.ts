@@ -204,6 +204,59 @@ describe("ImportReview", () => {
     expect(markup).toContain("The bank row takes the occurrence of the entry");
   });
 
+  it("flags a savings row that matches two planned transfers marked as transferred, without pre-selecting Replace", () => {
+    const savingsRow = {
+      line: 4,
+      rawDate: null,
+      draft: { date: "2026-03-05", label: "SYNTHETIC SAVINGS", amount: "-300,00", externalId: null },
+      details: {
+        type: "savings" as const,
+        categoryId: null,
+        paymentMode: "transfer" as const,
+        description: null,
+        savingsAccountId: 4,
+      },
+      guess: null,
+      isDuplicate: false,
+    };
+    const firstTransfer: EnteredPaymentEntry = {
+      ...PAID_ENTRY,
+      id: 11,
+      date: "2026-03-05",
+      label: "Synthetic saving A",
+      kind: "transfer",
+      amount: -30_000,
+      plannedItemId: 5,
+      plannedItemName: "Synthetic saving A",
+      nominalDate: "2026-03-05",
+      movements: [
+        { accountId: 1, date: "2026-03-05", amount: -30_000 },
+        { accountId: 4, date: "2026-03-05", amount: 30_000 },
+      ],
+    };
+    const secondTransfer: EnteredPaymentEntry = {
+      ...firstTransfer,
+      id: 12,
+      label: "Synthetic saving B",
+      plannedItemId: 6,
+      plannedItemName: "Synthetic saving B",
+    };
+
+    const markup = render({
+      ...REVIEW,
+      files: [{ ...FILE, rows: [...FILE.rows, savingsRow] }],
+      enteredPayments: [firstTransfer, secondTransfer],
+    });
+
+    expect(markup).toContain(
+      "This row may be one of 2 transfers marked as transferred. Choose the one to replace, or keep both.",
+    );
+    expect(markup).toContain("Replace my transfer Synthetic saving A of Mar 5, 2026, transferred on Mar 5, 2026 (€300.00)");
+    expect(markup).toContain("Replace my transfer Synthetic saving B of Mar 5, 2026, transferred on Mar 5, 2026 (€300.00)");
+    expect(markup).toContain("Choose what to do with the row that may be an entry you recorded by hand.");
+    expect(markup).not.toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace/);
+  });
+
   it("renders no dialog", () => {
     expect(render(REVIEW)).not.toContain("<dialog");
   });

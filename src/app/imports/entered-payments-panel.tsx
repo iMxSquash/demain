@@ -76,7 +76,7 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose, noteIds }:
       <p id={textId}>
         {single !== undefined
           ? t(isTransfer(single) ? "oneTransfer" : "one", describe(single))
-          : t("several", { count: match.candidates.length })}
+          : t(match.candidates.some(isTransfer) ? "severalTransfer" : "several", { count: match.candidates.length })}
       </p>
       {single !== undefined
         ? option(String(single.id), t("replace"), single.id)
