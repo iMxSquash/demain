@@ -168,6 +168,12 @@ export function estimatedFlows(
 
 /** Spreads `amount` (zero or more) over `days` dates: floor per day, remainder to the first days. */
 export function spreadEvenly(amount: number, days: readonly string[]): number[] {
-  void [amount, days];
-  throw new Error("not implemented");
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new RangeError(`spreadEvenly expects a safe integer of zero or more, got ${amount}`);
+  }
+  if (days.length === 0) return [];
+  const remainder = amount % days.length;
+  // The difference is a multiple of the number of days, so this division is exact.
+  const share = (amount - remainder) / days.length;
+  return days.map((_, index) => (index < remainder ? share + 1 : share));
 }

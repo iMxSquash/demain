@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { addDays } from "../../src/domain/calendar-date";
+
 import {
   estimateLines,
+  spreadEvenly,
   type EstimateAccount,
   type EstimateTransaction,
 } from "../../src/domain/variable-estimate";
@@ -239,5 +242,39 @@ describe("estimateLines", () => {
         overridden: true,
       },
     ]);
+  });
+});
+
+function daysFrom(first: string, count: number): string[] {
+  return Array.from({ length: count }, (_, index) => addDays(first, index));
+}
+
+describe("spreadEvenly", () => {
+  it("gives the remainder one minor unit at a time to the first days", () => {
+    expect(spreadEvenly(10, daysFrom("2027-02-01", 4))).toEqual([3, 3, 2, 2]);
+  });
+
+  it("spreads nothing over no day", () => {
+    expect(spreadEvenly(500, [])).toEqual([]);
+  });
+
+  it("the days of a spread add up to the amount exactly", () => {
+    for (let days = 28; days <= 31; days += 1) {
+      const dates = daysFrom("2027-01-01", days);
+      for (let amount = 0; amount <= 400; amount += 1) {
+        const shares = spreadEvenly(amount, dates);
+
+        expect(shares).toHaveLength(days);
+        expect(shares.reduce((sum, share) => sum + share, 0)).toBe(amount);
+        expect(Math.max(...shares) - Math.min(...shares)).toBeLessThanOrEqual(1);
+        shares.forEach((share, index) => {
+          expect(share).toBeLessThanOrEqual(shares[index - 1] ?? share);
+        });
+      }
+    }
+  });
+
+  it("refuses a negative amount", () => {
+    expect(() => spreadEvenly(-1, daysFrom("2027-01-01", 2))).toThrow(RangeError);
   });
 });
