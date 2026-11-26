@@ -76,6 +76,8 @@ The interface is available in French and English. The language is the one chosen
 | `npm run build` | Build the production bundle. |
 | `npm start` | Serve the production build. |
 | `npm run lint` | Run ESLint. |
+| `npm run format` | Format the files with Prettier. |
+| `npm run format:check` | Check that the files are formatted with Prettier, as the CI does. |
 | `npm run typecheck` | Run the TypeScript compiler without emitting files. |
 | `npm test` | Run the Vitest suite once. |
 | `npm run auth:reset-password` | Reset the password of the single account (see above). |
@@ -165,6 +167,7 @@ demain/
 ├── package.json
 ├── tsconfig.json
 ├── eslint.config.mjs
+├── .prettierrc.json          Prettier options (print width 100); .prettierignore lists what is not formatted
 ├── vitest.config.ts
 ├── postcss.config.mjs        Tailwind CSS v4 PostCSS plugin
 ├── src/

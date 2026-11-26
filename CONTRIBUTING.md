@@ -36,13 +36,16 @@ Pull request titles follow the same format.
 
 ## Tests, lint and typecheck
 
-Lint, typecheck and tests must pass locally before you open a pull request, and they are run by the CI:
+Lint, format, typecheck and tests must pass locally before you open a pull request, and they are run by the CI:
 
 ```
 npm run lint
+npm run format:check
 npm run typecheck
 npm test
 ```
+
+Run `npm run format` before you push: it formats the code with Prettier, and the CI fails when `npm run format:check` finds a file that is not formatted. Markdown files are not formatted.
 
 Tests live in `tests/` and match `*.test.ts`. The testing approach is described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing-strategy).
 
