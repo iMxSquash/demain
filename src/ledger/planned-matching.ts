@@ -1,5 +1,6 @@
 import { and, asc, between, desc, eq, gt, inArray, isNotNull, isNull, lt, ne } from "drizzle-orm";
 
+import type { AssertionMovement } from "../domain/balance-assertion";
 import { addDays, daysBetween } from "../domain/calendar-date";
 import { labelContains } from "../domain/categorization-rule";
 import { compareDates } from "../domain/import-savings";
@@ -831,54 +832,111 @@ export function unlinkByHand(db: AppDatabase, transactionId: number): void {
 /** An entry an import review may offer to replace, with the name the review shows. */
 export interface EnteredPaymentEntry extends EnteredPayment {
   plannedItemName: string;
+  /**
+   * What leaves the balances when the entry is replaced: the entry itself, or every leg of the
+   * pairs of a planned transfer, both sides, so that the review counts each account of the chain.
+   */
+  movements: AssertionMovement[];
 }
 
 /**
- * The transactions entered by hand (no import batch) that settle a regular occurrence of an
- * expense or an income: what a bank row of a file may replace (DOMAIN, "Importing files").
- * Provisions, planned transfers and archived accounts are left out. In id order.
+ * The linked transactions entered by hand on an open account that settle a regular occurrence:
+ * of an expense or an income, or the outgoing legs of a planned transfer. In id order.
+ */
+function listEnteredLinks(db: Pick<AppDatabase, "select">, isTransfer: boolean, accountIds?: readonly number[]) {
+  return (
+    db
+      .select({
+        id: transactions.id,
+        accountId: transactions.accountId,
+        categoryId: transactions.categoryId,
+        date: transactions.date,
+        label: transactions.label,
+        kind: transactions.kind,
+        amount: transactions.amount,
+        plannedItemId: plannedItems.id,
+        plannedItemName: plannedItems.name,
+        nominalDate: transactions.occurrenceDate,
+        windowDays: plannedItems.matchWindowDays,
+        toleranceBasisPoints: plannedItems.matchAmountToleranceBp,
+        counterpartId: transactions.transferCounterpartId,
+      })
+      .from(transactions)
+      // An entry moved to another account than its item could not take the link back. The
+      // outgoing legs of a transfer are on the account of its item, and only they carry the link.
+      .innerJoin(
+        plannedItems,
+        and(eq(plannedItems.id, transactions.plannedItemId), eq(plannedItems.accountId, transactions.accountId)),
+      )
+      .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+      .where(
+        and(
+          isNull(transactions.importBatchId),
+          isTransfer ? eq(transactions.kind, "transfer") : ne(transactions.kind, "transfer"),
+          isNotNull(transactions.occurrenceDate),
+          eq(plannedItems.acceptsMultipleTransactions, false),
+          isTransfer ? eq(plannedItems.kind, "transfer") : ne(plannedItems.kind, "transfer"),
+          eq(accounts.archived, false),
+          accountIds === undefined ? undefined : inArray(transactions.accountId, [...accountIds]),
+        ),
+      )
+      .orderBy(asc(transactions.id))
+      .all()
+      // The where clause keeps linked transactions only, so the occurrence date is set.
+      .map(({ nominalDate, counterpartId, ...row }) => ({ entry: { ...row, nominalDate: nominalDate! }, counterpartId }))
+  );
+}
+
+/**
+ * The hand-entered planned transfers, one entry per occurrence for all its outgoing legs (the
+ * lowest id, their summed amount), as an imported savings row is matched. A transfer with a leg
+ * on an archived account is left out: none of its legs can be deleted (DOMAIN, invariant 12).
+ */
+function listEnteredTransfers(db: Pick<AppDatabase, "select">, accountIds?: readonly number[]): EnteredPaymentEntry[] {
+  const outgoing = listEnteredLinks(db, true, accountIds);
+  if (outgoing.length === 0) return [];
+  const counterpartIds = outgoing.flatMap(({ counterpartId }) => (counterpartId === null ? [] : [counterpartId]));
+  const counterparts = new Map(
+    db
+      .select({
+        id: transactions.id,
+        accountId: transactions.accountId,
+        date: transactions.date,
+        amount: transactions.amount,
+        archived: accounts.archived,
+      })
+      .from(transactions)
+      .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+      .where(inArray(transactions.id, counterpartIds))
+      .all()
+      .map((leg) => [leg.id, leg]),
+  );
+  const occurrences = Map.groupBy(outgoing, ({ entry }) => `${entry.plannedItemId}|${entry.nominalDate}`);
+  return [...occurrences.values()].flatMap((links) => {
+    const legs = links.map(({ entry }) => entry);
+    const ins = links.map(({ counterpartId }) => (counterpartId === null ? undefined : counterparts.get(counterpartId)));
+    if (ins.some((leg) => leg === undefined || leg.archived)) return [];
+    const movements = [...legs, ...ins].map((leg) => ({ accountId: leg!.accountId, date: leg!.date, amount: leg!.amount }));
+    // In id order, so the first leg names the entry, as the first leg of an imported row does.
+    return [{ ...legs[0]!, amount: legs.reduce((sum, leg) => sum + leg.amount, 0), movements }];
+  });
+}
+
+/**
+ * The transactions entered by hand (no import batch) that settle a regular occurrence: what a
+ * bank row of a file may replace (DOMAIN, "Importing files"). An expense or an income is one
+ * entry; a planned transfer marked as transferred is one entry for all its legs. Provisions and
+ * archived accounts are left out. In id order.
  */
 export function listEnteredPayments(
   db: Pick<AppDatabase, "select">,
   accountIds?: readonly number[],
 ): EnteredPaymentEntry[] {
-  const rows = db
-    .select({
-      id: transactions.id,
-      accountId: transactions.accountId,
-      categoryId: transactions.categoryId,
-      date: transactions.date,
-      label: transactions.label,
-      kind: transactions.kind,
-      amount: transactions.amount,
-      plannedItemId: plannedItems.id,
-      plannedItemName: plannedItems.name,
-      nominalDate: transactions.occurrenceDate,
-      windowDays: plannedItems.matchWindowDays,
-      toleranceBasisPoints: plannedItems.matchAmountToleranceBp,
-    })
-    .from(transactions)
-    // An entry moved to another account than its item could not take the link back.
-    .innerJoin(
-      plannedItems,
-      and(eq(plannedItems.id, transactions.plannedItemId), eq(plannedItems.accountId, transactions.accountId)),
-    )
-    .innerJoin(accounts, eq(accounts.id, transactions.accountId))
-    .where(
-      and(
-        isNull(transactions.importBatchId),
-        ne(transactions.kind, "transfer"),
-        isNotNull(transactions.occurrenceDate),
-        eq(plannedItems.acceptsMultipleTransactions, false),
-        ne(plannedItems.kind, "transfer"),
-        eq(accounts.archived, false),
-        accountIds === undefined ? undefined : inArray(transactions.accountId, [...accountIds]),
-      ),
-    )
-    .orderBy(asc(transactions.id))
-    .all();
-  // The where clause keeps linked transactions only, so the occurrence date is set.
-  return rows.map(({ nominalDate, ...row }) => ({ ...row, nominalDate: nominalDate! }));
+  const payments = listEnteredLinks(db, false, accountIds).map(({ entry }) => ({
+    ...entry,
+    movements: [{ accountId: entry.accountId, date: entry.date, amount: entry.amount }],
+  }));
+  return [...payments, ...listEnteredTransfers(db, accountIds)].sort((a, b) => a.id - b.id);
 }
 
 /**
@@ -913,6 +971,56 @@ export function replaceEnteredPayment(
     { transactionId: bankRowId, plannedItemId: entry.plannedItemId, nominalDate: entry.occurrenceDate },
     { inheritCategory: false },
   );
+}
+
+/**
+ * Replaces a planned transfer marked as transferred by the savings row of an import, in the
+ * transaction of the import (#210): every pair entered by hand for the occurrence is deleted,
+ * both legs in one statement (invariant 3), and every outgoing leg of the row takes the link
+ * (invariant 5), whatever either split along the overflow chain. The caller checked that the
+ * entry is a candidate of the row (`findEnteredPayments`).
+ */
+export function replaceEnteredTransfer(
+  db: Pick<AppDatabase, "select" | "update" | "delete">,
+  { outgoingLegIds, entryId }: { outgoingLegIds: readonly number[]; entryId: number },
+): void {
+  const entry = readTransactionOrThrow(db, entryId);
+  if (
+    entry.kind !== "transfer" ||
+    entry.plannedItemId === null ||
+    entry.occurrenceDate === null ||
+    entry.importBatchId !== null
+  ) {
+    throw new Error(`Transaction ${entryId} is not an entered transfer`);
+  }
+  const outgoing = db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.plannedItemId, entry.plannedItemId),
+        eq(transactions.occurrenceDate, entry.occurrenceDate),
+        isNull(transactions.importBatchId),
+        eq(transactions.kind, "transfer"),
+      ),
+    )
+    .all();
+  const legIds = outgoing.flatMap((leg) =>
+    leg.transferCounterpartId === null ? [leg.id] : [leg.id, leg.transferCounterpartId],
+  );
+  const legs = db
+    .select({ accountId: transactions.accountId })
+    .from(transactions)
+    .where(inArray(transactions.id, legIds))
+    .all();
+  for (const accountId of new Set(legs.map((leg) => leg.accountId))) getOpenAccount(db, accountId);
+  // One statement: the legs reference each other, and SQLite checks the foreign key at its end.
+  db.delete(transactions).where(inArray(transactions.id, legIds)).run();
+  const item = db.select().from(plannedItems).where(eq(plannedItems.id, entry.plannedItemId)).get();
+  if (item === undefined) throw new Error(`Planned item ${entry.plannedItemId} does not exist`);
+  const [first] = outgoingLegIds;
+  if (first === undefined) throw new Error("A savings row has at least one outgoing leg");
+  writeLink(db, readTransactionOrThrow(db, first), item, entry.occurrenceDate, false, outgoingLegIds);
 }
 
 /** An occurrence still waiting for a transaction, as the "To pay" and "Link a transaction" pages show it. */

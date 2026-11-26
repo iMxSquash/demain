@@ -8,7 +8,7 @@ const ACCOUNT_ID = 1;
 const CONTEXT = { accountId: ACCOUNT_ID, currency: "EUR" };
 
 function entry(overrides: Partial<EnteredPaymentEntry> = {}): EnteredPaymentEntry {
-  return {
+  const base: Omit<EnteredPaymentEntry, "movements"> = {
     id: 30,
     accountId: ACCOUNT_ID,
     categoryId: null,
@@ -23,12 +23,20 @@ function entry(overrides: Partial<EnteredPaymentEntry> = {}): EnteredPaymentEntr
     toleranceBasisPoints: 500,
     ...overrides,
   };
+  return { movements: [{ accountId: base.accountId, date: base.date, amount: base.amount }], ...base };
 }
 
-function row(amount: string, overrides: { isDuplicate?: boolean; type?: "expense" | "income" | "savings" } = {}) {
+function row(
+  amount: string,
+  overrides: { isDuplicate?: boolean; type?: "expense" | "income" | "savings"; savingsAccountId?: number | null } = {},
+) {
   return {
     draft: { date: "2026-12-05", label: "RENT DECEMBER", amount, externalId: null },
-    details: { ...detailsFromSign(-1), type: overrides.type ?? "expense" },
+    details: {
+      ...detailsFromSign(-1),
+      type: overrides.type ?? "expense",
+      savingsAccountId: overrides.savingsAccountId ?? null,
+    },
     isDuplicate: overrides.isDuplicate ?? false,
     problem: null,
   };
@@ -49,12 +57,43 @@ describe("enteredMatchesOf", () => {
     expect(enteredMatchesOf([row("650,00")], CONTEXT, [rent])).toHaveLength(1);
   });
 
-  it("leaves out duplicates, savings rows and entries replaced by a file already imported", () => {
+  it("leaves out duplicates, savings rows against payments and entries replaced by a file already imported", () => {
     const rent = entry();
 
     expect(enteredMatchesOf([row("-650,00", { isDuplicate: true })], CONTEXT, [rent])).toEqual([]);
     expect(enteredMatchesOf([row("-650,00", { type: "savings" })], CONTEXT, [rent])).toEqual([]);
     expect(enteredMatchesOf([row("-650,00")], CONTEXT, [rent], new Set([rent.id]))).toEqual([]);
+  });
+
+  describe("a savings row against a planned transfer marked as transferred", () => {
+    const SAVINGS_ID = 4;
+    const saving = entry({
+      id: 40,
+      kind: "transfer",
+      label: "Monthly saving",
+      amount: -30_000,
+      plannedItemName: "Monthly saving",
+    });
+
+    it("flags a deposit to the default savings account, compared as a whole", () => {
+      const context = { ...CONTEXT, defaultSavingsAccountId: SAVINGS_ID };
+
+      expect(enteredMatchesOf([row("-300,00", { type: "savings" })], context, [saving])).toEqual([
+        { rowId: 0, candidates: [saving], proposed: saving },
+      ]);
+    });
+
+    it("flags a withdrawal against a transfer leaving the savings account it names", () => {
+      const fromSavings = entry({ ...saving, accountId: SAVINGS_ID });
+
+      expect(
+        enteredMatchesOf([row("300,00", { type: "savings", savingsAccountId: SAVINGS_ID })], CONTEXT, [fromSavings]),
+      ).toHaveLength(1);
+    });
+
+    it("leaves out a savings row with no savings account", () => {
+      expect(enteredMatchesOf([row("-300,00", { type: "savings" })], CONTEXT, [saving])).toEqual([]);
+    });
   });
 });
 

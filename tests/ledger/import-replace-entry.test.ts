@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { detailsFromSign, type ReviewedDraft, type RowDetails } from "../../src/domain/import-draft";
 import type { PlannedItemInput } from "../../src/domain/planned-item";
-import { createAccount } from "../../src/ledger/accounts";
+import { createAccount, getAccountBalance } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
 import { createRule } from "../../src/ledger/categorization-rules";
 import { undoImportBatch } from "../../src/ledger/import-undo";
@@ -118,27 +118,14 @@ describe("replacing an entry marked as paid by its bank row", () => {
           nominalDate: RENT_DATE,
           windowDays: 3,
           toleranceBasisPoints: 200,
+          movements: [{ accountId: checkingId, date: RENT_DATE, amount: -RENT_AMOUNT }],
         },
       ]);
     });
 
-    it("leaves out imported rows, unlinked entries, provisions and transfers", () => {
-      const savingsId = createAccount(db, {
-        name: "Savings",
-        kind: "savings",
-        currency: "EUR",
-        openingDate: "2026-01-01",
-        openingBalance: 0,
-      }).id;
+    it("leaves out imported rows, unlinked entries and provisions", () => {
       const groceries = rentItem({ name: "Groceries", acceptsMultipleTransactions: true });
-      const saving = rentItem({
-        name: "Monthly saving",
-        kind: "transfer",
-        categoryId: null,
-        destinationAccountId: savingsId,
-      });
       markPaid(groceries.id, RENT_DATE, 4_000);
-      markPaid(saving.id, RENT_DATE, 10_000);
       createTransaction(db, { accountId: checkingId, date: RENT_DATE, amount: -2_000, kind: "expense", label: "Cafe" });
       const imported = rentItem({ name: "Phone", amount: -2_500 });
       commit([draft({ label: "PHONE", amount: "-25,00" })]);
@@ -311,5 +298,193 @@ describe("replacing an entry marked as paid by its bank row", () => {
 
     expect(listTransactions(db)).toEqual([]);
     expect(isOpen(item.id, RENT_DATE)).toBe(true);
+  });
+
+  describe("a planned transfer marked as transferred", () => {
+    const SAVING_AMOUNT = 30_000;
+    const FIRST_CEILING = 20_000;
+    let firstSavingsId: number;
+    let secondSavingsId: number;
+
+    beforeEach(() => {
+      secondSavingsId = createAccount(db, {
+        name: "Second savings",
+        kind: "savings",
+        currency: "EUR",
+        openingDate: "2026-01-01",
+        openingBalance: 0,
+      }).id;
+      firstSavingsId = createAccount(db, {
+        name: "First savings",
+        kind: "savings",
+        currency: "EUR",
+        openingDate: "2026-01-01",
+        openingBalance: 0,
+        depositCeiling: FIRST_CEILING,
+        overflowAccountId: secondSavingsId,
+      }).id;
+    });
+
+    function savingItem(overrides: Partial<PlannedItemInput> = {}) {
+      return rentItem({
+        name: "Monthly saving",
+        kind: "transfer",
+        categoryId: null,
+        destinationAccountId: firstSavingsId,
+        amount: -SAVING_AMOUNT,
+        ...overrides,
+      });
+    }
+
+    function markTransferred(plannedItemId: number): void {
+      markOccurrencePaid(
+        db,
+        { plannedItemId, nominalDate: RENT_DATE, date: RENT_DATE, amount: SAVING_AMOUNT },
+        TODAY,
+        { kind: "send-surplus", accountId: secondSavingsId },
+      );
+    }
+
+    function savingsDraft(amount = "-300,00", savingsAccountId = firstSavingsId): ReviewedDraft {
+      return draft({ label: "TRANSFER TO SAVINGS", amount }, { type: "savings", savingsAccountId });
+    }
+
+    function balances() {
+      return [checkingId, firstSavingsId, secondSavingsId].map((id) => getAccountBalance(db, id));
+    }
+
+    function enteredTransferId(): number {
+      const [entry] = listEnteredPayments(db);
+      if (entry?.kind !== "transfer") throw new Error("The transfer is not offered");
+      return entry.id;
+    }
+
+    it("is offered as one entry for all its legs, compared as a whole", () => {
+      const item = savingItem();
+      markTransferred(item.id);
+      const [firstOutgoing] = listTransactions(db).filter((leg) => leg.amount < 0);
+
+      expect(listEnteredPayments(db)).toEqual([
+        expect.objectContaining({
+          id: firstOutgoing?.id,
+          accountId: checkingId,
+          kind: "transfer",
+          amount: -SAVING_AMOUNT,
+          plannedItemId: item.id,
+          nominalDate: RENT_DATE,
+          movements: expect.arrayContaining([
+            { accountId: checkingId, date: RENT_DATE, amount: -FIRST_CEILING },
+            { accountId: checkingId, date: RENT_DATE, amount: -(SAVING_AMOUNT - FIRST_CEILING) },
+            { accountId: firstSavingsId, date: RENT_DATE, amount: FIRST_CEILING },
+            { accountId: secondSavingsId, date: RENT_DATE, amount: SAVING_AMOUNT - FIRST_CEILING },
+          ]),
+        }),
+      ]);
+    });
+
+    it("leaves out a transfer with a leg on an archived account", () => {
+      markTransferred(savingItem().id);
+      db.$client.prepare("UPDATE accounts SET archived = 1 WHERE id = ?").run(secondSavingsId);
+
+      expect(listEnteredPayments(db)).toEqual([]);
+    });
+
+    it("replace deletes both legs of every pair entered by hand and links the imported outgoing legs", () => {
+      const item = savingItem();
+      markTransferred(item.id);
+
+      const result = commit([savingsDraft()], [{ index: 0, entryId: enteredTransferId() }]);
+
+      expect(result).toMatchObject({ status: "done", replacedCount: 1 });
+      const legs = listTransactions(db);
+      expect(legs).toHaveLength(4);
+      expect(legs.every((leg) => leg.importBatchId !== null)).toBe(true);
+      // Split as a fresh import would: the hand legs no longer fill the first account.
+      expect(legs.filter((leg) => leg.amount > 0).map(({ accountId, amount }) => ({ accountId, amount }))).toEqual([
+        { accountId: firstSavingsId, amount: FIRST_CEILING },
+        { accountId: secondSavingsId, amount: SAVING_AMOUNT - FIRST_CEILING },
+      ]);
+      expect(legs.filter((leg) => leg.amount < 0)).toEqual([
+        expect.objectContaining({ plannedItemId: item.id, occurrenceDate: RENT_DATE }),
+        expect.objectContaining({ plannedItemId: item.id, occurrenceDate: RENT_DATE }),
+      ]);
+      expect(legs.filter((leg) => leg.amount > 0).every((leg) => leg.plannedItemId === null)).toBe(true);
+      expect(balances()).toEqual([100_000 - SAVING_AMOUNT, FIRST_CEILING, SAVING_AMOUNT - FIRST_CEILING]);
+      expect(isOpen(item.id, RENT_DATE)).toBe(false);
+    });
+
+    it("is offered and replaced even when the hand entry was split another way (Q1 of #210)", () => {
+      db.$client.prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?").run(50_000, firstSavingsId);
+      const item = savingItem();
+      markTransferred(item.id);
+      db.$client.prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?").run(FIRST_CEILING, firstSavingsId);
+
+      const result = commit([savingsDraft()], [{ index: 0, entryId: enteredTransferId() }]);
+
+      expect(result).toMatchObject({ status: "done", replacedCount: 1 });
+      expect(listTransactions(db)).toHaveLength(4);
+      expect(balances()).toEqual([100_000 - SAVING_AMOUNT, FIRST_CEILING, SAVING_AMOUNT - FIRST_CEILING]);
+    });
+
+    it("replace works for a withdrawal, from the savings account it leaves", () => {
+      db.$client.prepare("UPDATE accounts SET opening_balance = ? WHERE id = ?").run(SAVING_AMOUNT, secondSavingsId);
+      const item = savingItem({ accountId: secondSavingsId, destinationAccountId: checkingId });
+      markTransferred(item.id);
+
+      const result = commit([savingsDraft("300,00", secondSavingsId)], [{ index: 0, entryId: enteredTransferId() }]);
+
+      expect(result).toMatchObject({ status: "done", replacedCount: 1 });
+      expect(listTransactions(db)).toEqual([
+        expect.objectContaining({ accountId: secondSavingsId, amount: -SAVING_AMOUNT, plannedItemId: item.id }),
+        expect.objectContaining({ accountId: checkingId, amount: SAVING_AMOUNT, plannedItemId: null }),
+      ]);
+      expect(balances()).toEqual([100_000 + SAVING_AMOUNT, 0, 0]);
+    });
+
+    it("keep both keeps the hand legs settling the occurrence and records the imported ones", () => {
+      const item = savingItem();
+      markTransferred(item.id);
+      const handLegs = listTransactions(db);
+
+      const result = commit([savingsDraft()]);
+
+      expect(result).toMatchObject({ status: "done", replacedCount: 0 });
+      const after = listTransactions(db);
+      expect(after).toEqual(expect.arrayContaining(handLegs));
+      expect(after.filter((leg) => leg.importBatchId !== null)).not.toHaveLength(0);
+      expect(after.filter((leg) => leg.plannedItemId === item.id)).toEqual(
+        handLegs.filter((leg) => leg.plannedItemId === item.id),
+      );
+    });
+
+    it("a refused file deletes nothing", () => {
+      markTransferred(savingItem().id);
+      const handLegs = listTransactions(db);
+      const entryId = enteredTransferId();
+
+      const outside = commit([savingsDraft("-900,00")], [{ index: 0, entryId }]);
+      const badRow = commit(
+        [savingsDraft(), draft({ label: "BAD ROW", amount: "-3,00" }, { categoryId: 999 })],
+        [{ index: 0, entryId }],
+      );
+
+      expect(outside).toMatchObject({ status: "blocked", issues: [{ kind: "replacementRefused", index: 0 }] });
+      expect(badRow.status).toBe("blocked");
+      expect(listTransactions(db)).toEqual(handLegs);
+      expect(listImportBatches(db, checkingId)).toEqual([]);
+    });
+
+    it("the undo of the file restores nothing it did not create", () => {
+      const item = savingItem();
+      markTransferred(item.id);
+      const result = commit([savingsDraft()], [{ index: 0, entryId: enteredTransferId() }]);
+      if (result.status !== "done" || result.batchId === null) throw new Error("The file was not recorded");
+
+      expect(undoImportBatch(db, result.batchId)).toBe(4);
+
+      expect(listTransactions(db)).toEqual([]);
+      expect(balances()).toEqual([100_000, 0, 0]);
+      expect(isOpen(item.id, RENT_DATE)).toBe(true);
+    });
   });
 });

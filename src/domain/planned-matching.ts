@@ -3,7 +3,7 @@
 // unambiguous; every other candidate is proposed to the owner, never applied silently.
 
 import { addDays } from "./calendar-date";
-import { compareDates } from "./import-savings";
+import { compareDates, type SavingsMovement } from "./import-savings";
 import type { OccurrenceStatus } from "./occurrence-resolution";
 import { isProvisionCandidate, type ProvisionCandidateTransaction, type ProvisionItem } from "./provision";
 import type { DateRange } from "./recurrence";
@@ -240,6 +240,8 @@ export function decideMatches(
 /**
  * A transaction entered by hand (no import batch) that settles a regular occurrence, with the
  * window and tolerance of its planned item: a bank row may turn out to be the same movement.
+ * A planned transfer marked as transferred is one entry for all its outgoing legs: the lowest id,
+ * the source account and the sum of their amounts, as an imported savings row is matched (#175).
  */
 export type EnteredPayment = MatchTransaction &
   Pick<MatchOccurrence, "plannedItemId" | "nominalDate" | "windowDays" | "toleranceBasisPoints">;
@@ -254,10 +256,31 @@ export interface EnteredPaymentMatch<T extends EnteredPayment> {
   proposed: T | null;
 }
 
+/**
+ * A savings row of a file as one matchable transfer, before the import splits it into legs: the
+ * outgoing side, from the account it leaves (the savings account for a withdrawal), whatever its
+ * split along the overflow chain.
+ */
+export function savingsRowTransaction(
+  { index, date, amount, savingsAccountId }: SavingsMovement,
+  file: { accountId: number; label: string },
+): MatchTransaction {
+  const isDeposit = amount < 0;
+  return {
+    id: index,
+    accountId: isDeposit ? file.accountId : savingsAccountId,
+    categoryId: null,
+    date,
+    label: file.label,
+    kind: "transfer",
+    amount: isDeposit ? amount : -amount,
+  };
+}
+
 // Centered on the entry rather than on its occurrence: the entry already says when and how much
-// was paid, and the bank row is the same movement.
+// was paid, and the bank row is the same movement. A savings row only replaces a transfer.
 function isEnteredCandidate(row: MatchTransaction, entry: EnteredPayment): boolean {
-  if (row.kind === "transfer" || entry.kind === "transfer") return false;
+  if ((row.kind === "transfer") !== (entry.kind === "transfer")) return false;
   if (row.accountId !== entry.accountId) return false;
   const window = matchingWindow({ date: entry.date, period: null }, entry.windowDays);
   if (row.date < window.from || row.date > window.to) return false;

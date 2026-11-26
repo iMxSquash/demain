@@ -17,7 +17,9 @@ import {
   type MatchPair,
   type MatchTransaction,
   type ProvisionOccurrence,
+  savingsRowTransaction,
 } from "../../src/domain/planned-matching";
+import type { SavingsMovement } from "../../src/domain/import-savings";
 import type { DateRange } from "../../src/domain/recurrence";
 
 const ACCOUNT_ID = 1;
@@ -638,8 +640,68 @@ describe("findEnteredPayments", () => {
     ]);
   });
 
-  it("never proposes a transfer, on either side", () => {
+  it("never pairs a transfer with a payment, on either side", () => {
     expect(findEnteredPayments([bankRow({ kind: "transfer" })], [entered()])).toEqual([]);
     expect(findEnteredPayments([bankRow()], [entered({ kind: "transfer" })])).toEqual([]);
+  });
+
+  describe("planned transfers marked as transferred", () => {
+    const SAVINGS_ID = 5;
+
+    function savingsRow(overrides: Partial<SavingsMovement> = {}): MatchTransaction {
+      return savingsRowTransaction(
+        { index: 0, date: DEFAULT_DATE, amount: -30000, savingsAccountId: SAVINGS_ID, ...overrides },
+        { accountId: ACCOUNT_ID, label: "SAVINGS TRANSFER" },
+      );
+    }
+
+    // The sum of the outgoing legs entered by hand, whatever their split along the chain.
+    function enteredTransfer(overrides: Partial<EnteredPayment> = {}): EnteredPayment {
+      return entered({ kind: "transfer", label: "Monthly savings", amount: -30000, ...overrides });
+    }
+
+    it("proposes the hand-entered transfer a savings row of the window and the tolerance can replace", () => {
+      const entry = enteredTransfer();
+
+      const found = findEnteredPayments([savingsRow({ date: "2026-03-07", amount: -30500 })], [entry]);
+
+      expect(found).toEqual([{ rowId: 0, candidates: [entry], proposed: entry }]);
+    });
+
+    it("compares the whole row with the whole entry, whatever either split", () => {
+      // Entered as 20000 to the first savings account and 10000 down the chain; the file brings
+      // one row of 30000 that the import may split another way (owner, Q1 of #210).
+      const entry = enteredTransfer({ amount: -20000 + -10000 });
+
+      const found = findEnteredPayments([savingsRow({ amount: -30000 })], [entry]);
+
+      expect(found.map(({ proposed }) => proposed)).toEqual([entry]);
+    });
+
+    it("reads a withdrawal from the savings account it leaves", () => {
+      const row = savingsRow({ amount: 30000 });
+      const entry = enteredTransfer({ accountId: SAVINGS_ID });
+
+      expect(row).toMatchObject({ accountId: SAVINGS_ID, amount: -30000, kind: "transfer" });
+      expect(findEnteredPayments([row], [entry]).map(({ proposed }) => proposed)).toEqual([entry]);
+    });
+
+    it("does not propose a transfer from another account or outside the tolerance", () => {
+      const found = findEnteredPayments(
+        [savingsRow({ index: 0, amount: -40000 }), savingsRow({ index: 1, amount: 30000 })],
+        [enteredTransfer()],
+      );
+
+      expect(found).toEqual([]);
+    });
+
+    it("gives a choice when two hand-entered transfers fit the row", () => {
+      const first = enteredTransfer();
+      const second = enteredTransfer({ id: ENTRY_ID + 1, plannedItemId: 4, date: "2026-03-06" });
+
+      const found = findEnteredPayments([savingsRow()], [second, first]);
+
+      expect(found).toEqual([{ rowId: 0, candidates: [first, second], proposed: null }]);
+    });
   });
 });

@@ -67,6 +67,7 @@ const PAID_ENTRY: EnteredPaymentEntry = {
   nominalDate: "2026-03-01",
   windowDays: 5,
   toleranceBasisPoints: 500,
+  movements: [{ accountId: 1, date: "2026-03-02", amount: -1_250 }],
 };
 
 // The mapping of a headerless file, set by hand in the mapping form.
