@@ -213,6 +213,18 @@ describe("estimateLines", () => {
     ]);
   });
 
+  it("refuses an override below zero", () => {
+    expect(() =>
+      estimateLines(
+        [account(CHECKING)],
+        [],
+        [{ accountId: CHECKING, categoryId: GROCERIES, monthlyAmount: -25000 }],
+        3,
+        TODAY,
+      ),
+    ).toThrow(RangeError);
+  });
+
   it("an override replaces the monthly spending and keeps the average", () => {
     const lines = estimateLines(
       [account(CHECKING)],
@@ -308,6 +320,8 @@ describe("estimatedFlows", () => {
         expense("2026-12-04", -5000, { categoryId: LEISURE }),
         expense("2026-12-04", -5000, { accountId: SAVINGS }),
         expense("2026-11-28", -5000),
+        expense("2026-12-05", 40000, { type: "income" }),
+        expense("2026-12-06", 300, { type: "interest" }),
       ],
       DECEMBER,
       TODAY,
@@ -347,6 +361,7 @@ describe("estimatedFlows", () => {
         expense("2026-12-05", 8000),
         expense("2026-12-06", -30000, { linkedToPlannedItem: true }),
         expense("2026-12-07", 50000, { type: "income" }),
+        expense("2026-12-08", -10000, { type: "transfer" }),
         expense("2026-12-15", -10000),
       ],
       DECEMBER,
@@ -443,5 +458,33 @@ describe("estimatedFlows", () => {
       ...order.map((key) => [TODAY, ...key]),
       ...order.map((key) => ["2026-12-11", ...key]),
     ]);
+  });
+
+  it("produces no flow for a range that ends before today", () => {
+    expect(
+      estimatedFlows([line(33000)], [], { from: "2026-11-01", to: "2026-12-09" }, TODAY),
+    ).toEqual([]);
+  });
+
+  it("stops at the last supported day", () => {
+    const flows = estimatedFlows(
+      [line(2200)],
+      [],
+      { from: "9999-12-10", to: "9999-12-31" },
+      "9999-12-10",
+    );
+
+    expect(flows).toHaveLength(22);
+  });
+
+  it("refuses a monthly spending below zero", () => {
+    expect(() => estimatedFlows([line(-1)], [], DECEMBER, TODAY)).toThrow(RangeError);
+  });
+
+  it("refuses dates that are not calendar dates", () => {
+    expect(() => estimatedFlows([line(2200)], [], DECEMBER, "1abc")).toThrow(RangeError);
+    expect(() =>
+      estimatedFlows([line(2200)], [], { from: TODAY, to: "2026-12-32" }, TODAY),
+    ).toThrow(RangeError);
   });
 });

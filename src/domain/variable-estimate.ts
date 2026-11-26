@@ -1,6 +1,8 @@
+import { isCalendarDate } from "./account";
 import { addDays, addMonths, clampedDate, daysInMonth, parseDate } from "./calendar-date";
 import { divideRound } from "./money";
 import type { DateRange } from "./recurrence";
+import type { EnteredTransactionKind } from "./transaction";
 
 export type EstimationWindow = 3 | 6 | 12;
 export const ESTIMATION_WINDOWS: readonly EstimationWindow[] = [3, 6, 12];
@@ -17,7 +19,7 @@ export interface EstimateTransaction {
   date: string;
   /** Signed minor units, as stored. */
   amount: number;
-  type: "expense" | "income" | "interest" | "transfer";
+  type: EnteredTransactionKind | "transfer";
   /** True when the transaction settles an occurrence of a planned item. */
   linkedToPlannedItem: boolean;
 }
@@ -91,6 +93,16 @@ function usedMonthStarts(
   return starts;
 }
 
+function assertMonthlyAmount(amount: number, name: string): void {
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new RangeError(`${name} expects a safe integer of zero or more, got ${amount}`);
+  }
+}
+
+function assertCalendarDate(date: string, name: string): void {
+  if (!isCalendarDate(date)) throw new RangeError(`${name} expects a calendar date, got ${date}`);
+}
+
 /**
  * The estimate lines of the active accounts (D1 to D3): the average spending of each line over the
  * complete months of the window, replaced by its override when the user set one.
@@ -102,58 +114,56 @@ export function estimateLines(
   window: EstimationWindow,
   today: string,
 ): EstimateLine[] {
+  assertCalendarDate(today, "estimateLines");
   const currentMonthStart = firstDayOfMonth(today);
   const windowStart = addMonths(currentMonthStart, -window);
-  const activeAccounts = new Map(
-    accounts.filter((account) => !account.archived).map((account) => [account.id, account]),
+  const usedMonths = new Map(
+    accounts
+      .filter((account) => !account.archived)
+      .map((account) => {
+        const starts = usedMonthStarts(account.openingDate, window, currentMonthStart);
+        return [account.id, { from: starts[0], count: starts.length }];
+      }),
   );
-  const lines = new Map<string, LineKey & { total: number }>();
-  const lineOf = (key: LineKey) => {
-    const id = keyOf(key);
-    const line = lines.get(id) ?? {
-      accountId: key.accountId,
-      categoryId: key.categoryId,
-      total: 0,
-    };
-    lines.set(id, line);
+  const lines = new Map<string, LineKey & { total: number; override?: number }>();
+  const lineOf = ({ accountId, categoryId }: LineKey) => {
+    const id = keyOf({ accountId, categoryId });
+    let line = lines.get(id);
+    if (!line) {
+      line = { accountId, categoryId, total: 0 };
+      lines.set(id, line);
+    }
     return line;
   };
 
-  const usedFrom = new Map(
-    [...activeAccounts.values()].map((account) => {
-      const starts = usedMonthStarts(account.openingDate, window, currentMonthStart);
-      return [account.id, { from: starts[0], monthsUsed: starts.length }];
-    }),
-  );
-
   for (const transaction of transactions) {
-    const used = usedFrom.get(transaction.accountId);
+    const used = usedMonths.get(transaction.accountId);
     if (!used || !isEstimatedSpending(transaction)) continue;
     if (transaction.date < windowStart || transaction.date >= currentMonthStart) continue;
     const line = lineOf(transaction);
     if (used.from !== undefined && transaction.date >= used.from) line.total += transaction.amount;
   }
 
-  const overrideByLine = new Map<string, number>();
   for (const override of overrides) {
-    if (!activeAccounts.has(override.accountId)) continue;
-    lineOf(override);
-    overrideByLine.set(keyOf(override), override.monthlyAmount);
+    if (!usedMonths.has(override.accountId)) continue;
+    assertMonthlyAmount(override.monthlyAmount, "estimateLines");
+    lineOf(override).override = override.monthlyAmount;
   }
 
-  return [...lines.values()].sort(compareLines).map(({ accountId, categoryId, total }) => {
-    const monthsUsed = usedFrom.get(accountId)?.monthsUsed ?? 0;
-    const averageSpending = monthsUsed === 0 ? 0 : Math.max(0, divideRound(-total, monthsUsed));
-    const override = overrideByLine.get(keyOf({ accountId, categoryId }));
-    return {
-      accountId,
-      categoryId,
-      monthlySpending: override ?? averageSpending,
-      monthsUsed,
-      averageSpending,
-      overridden: override !== undefined,
-    };
-  });
+  return [...lines.values()]
+    .sort(compareLines)
+    .map(({ accountId, categoryId, total, override }) => {
+      const monthsUsed = usedMonths.get(accountId)?.count ?? 0;
+      const averageSpending = monthsUsed === 0 ? 0 : Math.max(0, divideRound(-total, monthsUsed));
+      return {
+        accountId,
+        categoryId,
+        monthlySpending: override ?? averageSpending,
+        monthsUsed,
+        averageSpending,
+        overridden: override !== undefined,
+      };
+    });
 }
 
 function lastDayOfMonth(date: string): string {
@@ -161,31 +171,30 @@ function lastDayOfMonth(date: string): string {
   return clampedDate(year, month, daysInMonth(year, month));
 }
 
-function datesFrom(first: string, last: string): string[] {
-  const dates: string[] = [];
-  for (let date = first; date <= last; date = addDays(date, 1)) dates.push(date);
-  return dates;
+/** The dates from `first` to the end of its month, both included. */
+function datesToMonthEnd(first: string): string[] {
+  const { year, month, day } = parseDate(first);
+  const count = daysInMonth(year, month) - day + 1;
+  return Array.from({ length: count }, (_, index) => clampedDate(year, month, day + index));
 }
 
-/** What the line spent from the first day of the month of `today` to `today` included, zero or more. */
-function spentThisMonth(
-  line: LineKey,
+/**
+ * What each line spent from the first day of the month of `today` to `today` included, keyed by
+ * line. Net refunds count as nothing spent, so they never raise the estimate of the month.
+ */
+function spentThisMonthByLine(
   transactions: readonly EstimateTransaction[],
   today: string,
-): number {
+): Map<string, number> {
   const monthStart = firstDayOfMonth(today);
-  const total = transactions
-    .filter(
-      (transaction) =>
-        transaction.accountId === line.accountId &&
-        transaction.categoryId === line.categoryId &&
-        isEstimatedSpending(transaction) &&
-        transaction.date >= monthStart &&
-        transaction.date <= today,
-    )
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  // Net refunds never raise the estimate of the month above the monthly one.
-  return Math.max(0, -total);
+  const totals = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (!isEstimatedSpending(transaction)) continue;
+    if (transaction.date < monthStart || transaction.date > today) continue;
+    const id = keyOf(transaction);
+    totals.set(id, (totals.get(id) ?? 0) + transaction.amount);
+  }
+  return new Map([...totals].map(([id, total]) => [id, Math.max(0, -total)]));
 }
 
 function compareFlows(a: EstimatedFlow, b: EstimatedFlow): number {
@@ -204,20 +213,41 @@ export function estimatedFlows(
   range: DateRange,
   today: string,
 ): EstimatedFlow[] {
+  for (const date of [today, range.from, range.to]) assertCalendarDate(date, "estimatedFlows");
+  for (const line of lines) assertMonthlyAmount(line.monthlySpending, "estimatedFlows");
+
+  // Each month starts on its first day, except the current one, which starts today. Months that end
+  // before the range give nothing, so the walk starts at the month of the range when it is later.
+  const months: string[] = [];
+  const startsAfterToday = range.from > lastDayOfMonth(today);
+  let first = startsAfterToday ? firstDayOfMonth(range.from) : today;
+  while (first <= range.to) {
+    months.push(first);
+    const last = lastDayOfMonth(first);
+    const next = addDays(last, 1);
+    // `addDays` stays on the last supported day instead of passing it.
+    if (next === last) break;
+    first = next;
+  }
+
+  const spent = spentThisMonthByLine(transactions, today);
   const flows: EstimatedFlow[] = [];
   for (const line of lines) {
-    const { accountId, categoryId } = line;
-    let amount = Math.max(0, line.monthlySpending - spentThisMonth(line, transactions, today));
-    for (let first = today; first <= range.to; first = addDays(lastDayOfMonth(first), 1)) {
-      const days = datesFrom(first, lastDayOfMonth(first));
+    const { accountId, categoryId, monthlySpending } = line;
+    months.forEach((monthFirst) => {
+      const isCurrentMonth = monthFirst === today;
+      const amount = isCurrentMonth
+        ? Math.max(0, monthlySpending - (spent.get(keyOf(line)) ?? 0))
+        : monthlySpending;
+      if (amount === 0) return;
+      const days = datesToMonthEnd(monthFirst);
       const shares = spreadEvenly(amount, days);
       days.forEach((date, index) => {
         const share = shares[index] ?? 0;
         if (share === 0 || date < range.from || date > range.to) return;
         flows.push({ accountId, categoryId, date, amount: -share });
       });
-      amount = line.monthlySpending;
-    }
+    });
   }
   return flows.sort(compareFlows);
 }
