@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { addDays } from "../../src/domain/calendar-date";
 
 import {
+  estimatedFlows,
   estimateLines,
   spreadEvenly,
   type EstimateAccount,
+  type EstimateLine,
   type EstimateTransaction,
 } from "../../src/domain/variable-estimate";
 
@@ -276,5 +278,170 @@ describe("spreadEvenly", () => {
 
   it("refuses a negative amount", () => {
     expect(() => spreadEvenly(-1, daysFrom("2027-01-01", 2))).toThrow(RangeError);
+  });
+});
+
+function line(monthlySpending: number, overrides: Partial<EstimateLine> = {}): EstimateLine {
+  return {
+    accountId: CHECKING,
+    categoryId: GROCERIES,
+    monthlySpending,
+    monthsUsed: 3,
+    averageSpending: monthlySpending,
+    overridden: false,
+    ...overrides,
+  };
+}
+
+const DECEMBER = { from: TODAY, to: "2026-12-31" };
+
+function amountsByDate(flows: readonly { date: string; amount: number }[]): Record<string, number> {
+  return Object.fromEntries(flows.map(({ date, amount }) => [date, amount]));
+}
+
+describe("estimatedFlows", () => {
+  it("estimates the rest of the current month over the remaining days, today included", () => {
+    const flows = estimatedFlows(
+      [line(33000)],
+      [
+        expense("2026-12-03", -12000),
+        expense("2026-12-04", -5000, { categoryId: LEISURE }),
+        expense("2026-12-04", -5000, { accountId: SAVINGS }),
+        expense("2026-11-28", -5000),
+      ],
+      DECEMBER,
+      TODAY,
+    );
+
+    const byDate = amountsByDate(flows);
+    expect(flows).toHaveLength(22);
+    expect(flows[0]).toEqual({
+      accountId: CHECKING,
+      categoryId: GROCERIES,
+      date: TODAY,
+      amount: -955,
+    });
+    expect(byDate["2026-12-21"]).toBe(-955);
+    expect(byDate["2026-12-22"]).toBe(-954);
+    expect(byDate["2026-12-31"]).toBe(-954);
+    expect(flows.filter((flow) => flow.amount === -955)).toHaveLength(12);
+    expect(flows.reduce((sum, flow) => sum + flow.amount, 0)).toBe(-21000);
+  });
+
+  it("estimates nothing more for the current month when the line already spent more than its estimate", () => {
+    const flows = estimatedFlows(
+      [line(33000)],
+      [expense("2026-12-02", -20000), expense(TODAY, -14000)],
+      DECEMBER,
+      TODAY,
+    );
+
+    expect(flows).toEqual([]);
+  });
+
+  it("does not raise the current month estimate when refunds exceed spending", () => {
+    const flows = estimatedFlows(
+      [line(33000)],
+      [
+        expense("2026-12-02", -5000),
+        expense("2026-12-05", 8000),
+        expense("2026-12-06", -30000, { linkedToPlannedItem: true }),
+        expense("2026-12-07", 50000, { type: "income" }),
+        expense("2026-12-15", -10000),
+      ],
+      DECEMBER,
+      TODAY,
+    );
+
+    expect(flows).toHaveLength(22);
+    expect(flows.every((flow) => flow.amount === -1500)).toBe(true);
+  });
+
+  it("spreads a later month over all its days", () => {
+    const flows = estimatedFlows(
+      [line(31000)],
+      [],
+      { from: "2027-01-01", to: "2027-01-31" },
+      TODAY,
+    );
+
+    expect(flows).toHaveLength(31);
+    expect(flows[0]?.date).toBe("2027-01-01");
+    expect(flows.at(-1)?.date).toBe("2027-01-31");
+    expect(flows.every((flow) => flow.amount === -1000)).toBe(true);
+  });
+
+  it("a range that cuts a month keeps the daily amounts", () => {
+    const january = estimatedFlows(
+      [line(31015)],
+      [],
+      { from: "2027-01-10", to: "2027-01-20" },
+      TODAY,
+    );
+    const december = estimatedFlows(
+      [line(33000)],
+      [expense("2026-12-03", -12000)],
+      { from: "2026-12-20", to: "2026-12-23" },
+      TODAY,
+    );
+
+    expect(amountsByDate(january)).toEqual({
+      "2027-01-10": -1001,
+      "2027-01-11": -1001,
+      "2027-01-12": -1001,
+      "2027-01-13": -1001,
+      "2027-01-14": -1001,
+      "2027-01-15": -1001,
+      "2027-01-16": -1000,
+      "2027-01-17": -1000,
+      "2027-01-18": -1000,
+      "2027-01-19": -1000,
+      "2027-01-20": -1000,
+    });
+    expect(amountsByDate(december)).toEqual({
+      "2026-12-20": -955,
+      "2026-12-21": -955,
+      "2026-12-22": -954,
+      "2026-12-23": -954,
+    });
+  });
+
+  it("produces no flow for a day with nothing to spread, nor before today", () => {
+    const flows = estimatedFlows(
+      [line(10), line(0, { categoryId: LEISURE })],
+      [],
+      { from: "2026-12-01", to: "2026-12-31" },
+      TODAY,
+    );
+
+    expect(flows.map((flow) => flow.date)).toEqual(daysFrom(TODAY, 10));
+    expect(flows.every((flow) => flow.amount === -1)).toBe(true);
+  });
+
+  it("orders flows by date, account, then category with uncategorized last", () => {
+    const flows = estimatedFlows(
+      [
+        line(2200, { accountId: SAVINGS, categoryId: null }),
+        line(2200, { categoryId: null }),
+        line(2200, { categoryId: LEISURE }),
+        line(2200),
+        line(2200, { accountId: SAVINGS }),
+      ],
+      [],
+      { from: TODAY, to: "2026-12-11" },
+      TODAY,
+    );
+
+    const order = [
+      [CHECKING, GROCERIES],
+      [CHECKING, LEISURE],
+      [CHECKING, null],
+      [SAVINGS, GROCERIES],
+      [SAVINGS, null],
+    ];
+    expect(flows.map(({ date, accountId, categoryId }) => [date, accountId, categoryId])).toEqual([
+      ...order.map((key) => [TODAY, ...key]),
+      ...order.map((key) => ["2026-12-11", ...key]),
+    ]);
   });
 });

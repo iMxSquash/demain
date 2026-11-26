@@ -1,4 +1,4 @@
-import { addMonths, clampedDate, parseDate } from "./calendar-date";
+import { addDays, addMonths, clampedDate, daysInMonth, parseDate } from "./calendar-date";
 import { divideRound } from "./money";
 import type { DateRange } from "./recurrence";
 
@@ -156,14 +156,70 @@ export function estimateLines(
   });
 }
 
+function lastDayOfMonth(date: string): string {
+  const { year, month } = parseDate(date);
+  return clampedDate(year, month, daysInMonth(year, month));
+}
+
+function datesFrom(first: string, last: string): string[] {
+  const dates: string[] = [];
+  for (let date = first; date <= last; date = addDays(date, 1)) dates.push(date);
+  return dates;
+}
+
+/** What the line spent from the first day of the month of `today` to `today` included, zero or more. */
+function spentThisMonth(
+  line: LineKey,
+  transactions: readonly EstimateTransaction[],
+  today: string,
+): number {
+  const monthStart = firstDayOfMonth(today);
+  const total = transactions
+    .filter(
+      (transaction) =>
+        transaction.accountId === line.accountId &&
+        transaction.categoryId === line.categoryId &&
+        isEstimatedSpending(transaction) &&
+        transaction.date >= monthStart &&
+        transaction.date <= today,
+    )
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  // Net refunds never raise the estimate of the month above the monthly one.
+  return Math.max(0, -total);
+}
+
+function compareFlows(a: EstimatedFlow, b: EstimatedFlow): number {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  return compareLines(a, b);
+}
+
+/**
+ * The daily estimated flows of the lines over `range` (D4 rule 2): what remains of the current month
+ * from `today` to its end, then each later month in full. Each month is spread before the days outside
+ * `range` are dropped, so cutting a month does not change the amount of a day.
+ */
 export function estimatedFlows(
   lines: readonly EstimateLine[],
   transactions: readonly EstimateTransaction[],
   range: DateRange,
   today: string,
 ): EstimatedFlow[] {
-  void [lines, transactions, range, today];
-  throw new Error("not implemented");
+  const flows: EstimatedFlow[] = [];
+  for (const line of lines) {
+    const { accountId, categoryId } = line;
+    let amount = Math.max(0, line.monthlySpending - spentThisMonth(line, transactions, today));
+    for (let first = today; first <= range.to; first = addDays(lastDayOfMonth(first), 1)) {
+      const days = datesFrom(first, lastDayOfMonth(first));
+      const shares = spreadEvenly(amount, days);
+      days.forEach((date, index) => {
+        const share = shares[index] ?? 0;
+        if (share === 0 || date < range.from || date > range.to) return;
+        flows.push({ accountId, categoryId, date, amount: -share });
+      });
+      amount = line.monthlySpending;
+    }
+  }
+  return flows.sort(compareFlows);
 }
 
 /** Spreads `amount` (zero or more) over `days` dates: floor per day, remainder to the first days. */
