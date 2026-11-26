@@ -49,9 +49,7 @@ export function computedBalancesAt(
   movements: readonly AssertionMovement[],
   date: string,
 ): Map<number, number> {
-  const balances = new Map(
-    accounts.map((account) => [account.id, account.openingBalance]),
-  );
+  const balances = new Map(accounts.map((account) => [account.id, account.openingBalance]));
   for (const movement of movements) {
     const balance = balances.get(movement.accountId);
     // "YYYY-MM-DD" strings sort chronologically, and the day itself is included.
@@ -76,10 +74,7 @@ export function computeUnexplainedGap(
 export type GapDirection = "realAbove" | "realBelow" | "equal";
 
 /** Where the real balance stands against the computed one, to write the gap in text. */
-export function gapDirection(
-  computedBalance: number,
-  realBalance: number,
-): GapDirection {
+export function gapDirection(computedBalance: number, realBalance: number): GapDirection {
   if (realBalance === computedBalance) return "equal";
   return realBalance > computedBalance ? "realAbove" : "realBelow";
 }

@@ -7,10 +7,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
-import {
-  CategoryNotFoundError,
-  getCategory,
-} from "../../../../ledger/categories";
+import { CategoryNotFoundError, getCategory } from "../../../../ledger/categories";
 import { withDatabase } from "../../../../storage/with-database";
 import { updateCategoryAction } from "../../actions";
 import { CategoryForm } from "../../category-form";
@@ -25,11 +22,7 @@ const PAGE_GAP = "gap-6";
 
 // The back link shows at once; the title holds the name of the category, so it waits for the
 // database with the form.
-export default async function RenameCategoryPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function RenameCategoryPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("categories");
 
   return (
@@ -63,10 +56,7 @@ async function RenameCategory({ params }: { params: Promise<{ id: string }> }) {
   if (!Number.isSafeInteger(id)) notFound();
   // The page reads the database: it must run per request, never at build time.
   await connection();
-  const [t, common] = await Promise.all([
-    getTranslations("categories"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("categories"), getTranslations("common")]);
 
   let category;
   try {
@@ -80,15 +70,13 @@ async function RenameCategory({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <h1 className="text-heading font-medium">
-        {t("renameTitle", { name: category.name })}
-      </h1>
-    <CategoryForm
-      action={updateCategoryAction.bind(null, category.id)}
-      initialName={category.name}
-      initialIcon={category.icon}
-      submitLabel={common("saveChanges")}
-    />
+      <h1 className="text-heading font-medium">{t("renameTitle", { name: category.name })}</h1>
+      <CategoryForm
+        action={updateCategoryAction.bind(null, category.id)}
+        initialName={category.name}
+        initialIcon={category.icon}
+        submitLabel={common("saveChanges")}
+      />
     </>
   );
 }

@@ -137,9 +137,13 @@ function convertDays(
   return { days: converted, unconvertedCurrencies: [...unconverted].sort() };
 }
 
-const routingKey = (plannedItemId: number, nominalDate: string) => `${plannedItemId}:${nominalDate}`;
+const routingKey = (plannedItemId: number, nominalDate: string) =>
+  `${plannedItemId}:${nominalDate}`;
 
-function categoryNameOf(categoryId: number | null, names: ReadonlyMap<number, string>): string | null {
+function categoryNameOf(
+  categoryId: number | null,
+  names: ReadonlyMap<number, string>,
+): string | null {
   return categoryId === null ? null : (names.get(categoryId) ?? null);
 }
 
@@ -148,7 +152,8 @@ function buildRealEntry(
   account: Account,
   categoryNames: ReadonlyMap<number, string>,
 ): CalendarEntry {
-  const settlesOccurrence = transaction.plannedItemId !== null && transaction.occurrenceDate !== null;
+  const settlesOccurrence =
+    transaction.plannedItemId !== null && transaction.occurrenceDate !== null;
   return {
     id: `t${transaction.id}`,
     date: transaction.date,
@@ -182,10 +187,15 @@ function buildPlannedEntry(
   categoryNames: ReadonlyMap<number, string>,
   transfers: ReadonlyMap<string, PlannedTransferRouting>,
 ): CalendarEntry {
-  const isOpen = occurrence.status === "planned" || occurrence.status === "partial" || occurrence.status === "overdue";
+  const isOpen =
+    occurrence.status === "planned" ||
+    occurrence.status === "partial" ||
+    occurrence.status === "overdue";
   // The projection only applies a pending occurrence, so the routing means nothing for the others.
   const isPending = occurrence.status === "planned" || occurrence.status === "partial";
-  const routing = isPending ? transfers.get(routingKey(item.id, occurrence.nominalDate))?.routing : undefined;
+  const routing = isPending
+    ? transfers.get(routingKey(item.id, occurrence.nominalDate))?.routing
+    : undefined;
   const unplaced = routing?.status === "ok" ? routing.unplaced : 0;
   return {
     id: `p${item.id}:${occurrence.nominalDate}`,
@@ -248,10 +258,12 @@ function plannedEntries(
     if (account === undefined || !isSelected) return [];
     // Only the fields of the domain: the row ids of the store stay on the server.
     const overrides = new Map(
-      item.overrides.map(({ nominalDate, status, overrideDate, overrideAmount }): [string, OccurrenceOverride] => [
-        nominalDate,
-        { nominalDate, status, overrideDate, overrideAmount },
-      ]),
+      item.overrides.map(
+        ({ nominalDate, status, overrideDate, overrideAmount }): [string, OccurrenceOverride] => [
+          nominalDate,
+          { nominalDate, status, overrideDate, overrideAmount },
+        ],
+      ),
     );
     // Resolved over the month itself rather than from today, so that a past month still shows
     // what was overdue or cancelled. A confirmed occurrence is listed through its transaction.
@@ -268,7 +280,9 @@ function plannedEntries(
     )
       .filter(
         (occurrence) =>
-          occurrence.status !== "confirmed" && occurrence.date >= range.from && occurrence.date <= range.to,
+          occurrence.status !== "confirmed" &&
+          occurrence.date >= range.from &&
+          occurrence.date <= range.to,
       )
       .map((occurrence) =>
         buildPlannedEntry(
@@ -276,7 +290,8 @@ function plannedEntries(
           occurrence,
           overrides.get(occurrence.nominalDate),
           account,
-          item.destinationAccountId !== null && (accountsById.get(item.destinationAccountId)?.archived ?? false),
+          item.destinationAccountId !== null &&
+            (accountsById.get(item.destinationAccountId)?.archived ?? false),
           categoryNames,
           routings,
         ),
@@ -328,20 +343,40 @@ export function getCalendarMonth(
     range,
   );
   const routings = new Map(
-    transfers.map((transfer) => [routingKey(transfer.plannedItemId, transfer.nominalDate), transfer]),
+    transfers.map((transfer) => [
+      routingKey(transfer.plannedItemId, transfer.nominalDate),
+      transfer,
+    ]),
   );
-  const balances = convertDays(accountsById, projected, accountIds, currency, listExchangeRates(db));
+  const balances = convertDays(
+    accountsById,
+    projected,
+    accountIds,
+    currency,
+    listExchangeRates(db),
+  );
 
   const entries = [
     ...realEntries(transactions, accountsById, selected, range, categoryNames),
-    ...plannedEntries(plannedItems, accountsById, selected, links, routings, range, today, categoryNames),
+    ...plannedEntries(
+      plannedItems,
+      accountsById,
+      selected,
+      links,
+      routings,
+      range,
+      today,
+      categoryNames,
+    ),
   ];
 
   const entriesByDate = Map.groupBy(entries, (entry) => entry.date);
   const totalByDate = new Map(
     balances.days.map(({ date, balances: dayBalances }) => [
       date,
-      dayBalances.size === 0 ? null : [...dayBalances.values()].reduce((sum, amount) => sum + amount, 0),
+      dayBalances.size === 0
+        ? null
+        : [...dayBalances.values()].reduce((sum, amount) => sum + amount, 0),
     ]),
   );
   return {

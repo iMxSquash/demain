@@ -1,8 +1,5 @@
 import { formatAmount } from "../../../domain/money";
-import type {
-  SummaryBalance,
-  SummaryBalancesIssue,
-} from "../../../domain/sheet-summary";
+import type { SummaryBalance, SummaryBalancesIssue } from "../../../domain/sheet-summary";
 import type { LedgerComparison } from "../../../domain/sheet-verification";
 import { lastDayOfMonth } from "../../../domain/summary-assertions";
 import { formatCalendarDate, formatMonth } from "../../../i18n/dates";
@@ -73,44 +70,41 @@ function describeRows(
   const planned = new Map(
     reading.preview.assertions.map((assertion) => [assertion.date, assertion]),
   );
-  const refused = new Map(
-    reading.preview.refused.map(({ month, reason }) => [month, reason]),
-  );
+  const refused = new Map(reading.preview.refused.map(({ month, reason }) => [month, reason]));
   const isDone = phase === "done";
 
-  return [...reading.balances]
-    // "YYYY-MM" strings sort chronologically.
-    .sort((a, b) => a.month.localeCompare(b.month))
-    .map(({ month, amount }) => {
-      const date = lastDayOfMonth(month);
-      const assertion = planned.get(date);
-      const reason = refused.get(month);
-      let status: string;
-      if (assertion !== undefined) {
-        status =
-          assertion.replacedAmount === null
-            ? t(isDone ? "status.created" : "status.willCreate")
-            : t(isDone ? "status.replaced" : "status.willReplace", {
-                previous: money(assertion.replacedAmount),
-              });
-      } else if (reason !== undefined) {
-        status = t(`status.refused.${reason}`);
-      } else {
-        status = t("status.noBalance");
-      }
-      return {
-        month: formatMonth(month, say.locale),
-        date: formatCalendarDate(date, say.locale),
-        balance: amount === null ? t("noBalance") : money(amount),
-        status,
-      };
-    });
+  return (
+    [...reading.balances]
+      // "YYYY-MM" strings sort chronologically.
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(({ month, amount }) => {
+        const date = lastDayOfMonth(month);
+        const assertion = planned.get(date);
+        const reason = refused.get(month);
+        let status: string;
+        if (assertion !== undefined) {
+          status =
+            assertion.replacedAmount === null
+              ? t(isDone ? "status.created" : "status.willCreate")
+              : t(isDone ? "status.replaced" : "status.willReplace", {
+                  previous: money(assertion.replacedAmount),
+                });
+        } else if (reason !== undefined) {
+          status = t(`status.refused.${reason}`);
+        } else {
+          status = t("status.noBalance");
+        }
+        return {
+          month: formatMonth(month, say.locale),
+          date: formatCalendarDate(date, say.locale),
+          balance: amount === null ? t("noBalance") : money(amount),
+          status,
+        };
+      })
+  );
 }
 
-function describeNotes(
-  reading: SummaryBalancesReading,
-  { say }: SummaryBalancesContext,
-): string[] {
+function describeNotes(reading: SummaryBalancesReading, { say }: SummaryBalancesContext): string[] {
   const { t } = say;
   const month = (value: string) => formatMonth(value, say.locale);
   const { futureMonths } = reading.comparison;
@@ -120,9 +114,7 @@ function describeNotes(
         ? t("issues.monthDuplicated", { month: month(issue.month) })
         : describeSummaryIssue(reading.source, issue, say),
     ),
-    ...reading.comparison.issues.map((issue) =>
-      describeVerificationIssue(issue, say),
-    ),
+    ...reading.comparison.issues.map((issue) => describeVerificationIssue(issue, say)),
     ...(futureMonths.length === 0
       ? []
       : [t("issues.futureMonths", { months: futureMonths.map(month).join(", ") })]),
@@ -135,10 +127,7 @@ function signed(amount: number, say: Say): string {
   return amount > 0 ? `+${text}` : text;
 }
 
-function describeDifferences(
-  comparison: LedgerComparison,
-  say: Say,
-): SummaryDifferenceRow[] {
+function describeDifferences(comparison: LedgerComparison, say: Say): SummaryDifferenceRow[] {
   const money = (amount: number) => formatAmount(amount, say.currency, say.locale);
   return comparison.differences.map((difference) => ({
     month: formatMonth(difference.month, say.locale),
@@ -182,9 +171,7 @@ export function buildSummaryBalancesState(
     differences: describeDifferences(comparison, context.say),
     isMatching: comparison.isMatching,
     hasComparison:
-      comparison.isMatching ||
-      comparison.differences.length > 0 ||
-      comparison.issues.length > 0,
+      comparison.isMatching || comparison.differences.length > 0 || comparison.issues.length > 0,
     canCommit: preview.assertions.length > 0 && context.phase === "preview",
   };
 }

@@ -13,10 +13,7 @@ import type { CategorizeState } from "./category-form-data";
 import { Select } from "../../components/select";
 
 interface CategorizeFormProps {
-  action: (
-    previous: CategorizeState | null,
-    formData: FormData,
-  ) => Promise<CategorizeState | null>;
+  action: (previous: CategorizeState | null, formData: FormData) => Promise<CategorizeState | null>;
   /** Label of the transaction, to name the controls for screen readers. */
   transactionLabel: string;
   /** Unique per row: the queue shows many of these forms on one page. */
@@ -68,7 +65,8 @@ export function CategorizeForm({
           pending={isPending}
           pendingLabel={t("categorizePending")}
         >
-          {t("categorize")}<span className="sr-only"> {transactionLabel}</span>
+          {t("categorize")}
+          <span className="sr-only"> {transactionLabel}</span>
         </Button>
       </div>
       <Disclosure summary={t("ruleSummary")} open={state?.field === "rule"}>

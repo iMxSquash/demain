@@ -39,7 +39,8 @@ import { LinkTransactionList } from "./link-transaction-list";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-const LINK_CLASS = "inline-flex min-h-11 items-center gap-2 rounded-pill px-2 font-medium hover:bg-control";
+const LINK_CLASS =
+  "inline-flex min-h-11 items-center gap-2 rounded-pill px-2 font-medium hover:bg-control";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("planned.link");
@@ -57,7 +58,8 @@ async function readCandidates(ref: OccurrenceRef, today: string, filters: Requir
       return { ...result, accountName: name };
     } catch (error) {
       // A settled, cancelled or unknown occurrence, or one of an archived account, takes no link.
-      if (error instanceof PlannedLinkError || error instanceof TransactionValidationError) return null;
+      if (error instanceof PlannedLinkError || error instanceof TransactionValidationError)
+        return null;
       throw error;
     }
   });
@@ -106,10 +108,16 @@ async function readParams(searchParams: SearchParams): Promise<PageParams> {
 }
 
 async function BackLink({ searchParams }: { searchParams: SearchParams }) {
-  const [t, { ref, back }] = await Promise.all([getTranslations("planned.link"), readParams(searchParams)]);
+  const [t, { ref, back }] = await Promise.all([
+    getTranslations("planned.link"),
+    readParams(searchParams),
+  ]);
 
   return (
-    <Link href={calendarHref(back, monthOf(ref.nominalDate))} className={`${LINK_CLASS} self-start`}>
+    <Link
+      href={calendarHref(back, monthOf(ref.nominalDate))}
+      className={`${LINK_CLASS} self-start`}
+    >
       <Icon icon={CaretLeft} />
       {t("back")}
     </Link>
@@ -145,7 +153,13 @@ async function LinkContent({ searchParams }: { searchParams: SearchParams }) {
       label: transaction.label,
       account: accountName,
       amount,
-      buttonLabel: t("linkLabel", { transaction: transaction.label, date, amount, name: occurrence.name, due }),
+      buttonLabel: t("linkLabel", {
+        transaction: transaction.label,
+        date,
+        amount,
+        name: occurrence.name,
+        due,
+      }),
     };
   });
 
@@ -155,7 +169,9 @@ async function LinkContent({ searchParams }: { searchParams: SearchParams }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{occurrence.name}</span>
-            <Pill tone={occurrence.status === "overdue" ? "warning" : "neutral"}>{statuses(occurrence.status)}</Pill>
+            <Pill tone={occurrence.status === "overdue" ? "warning" : "neutral"}>
+              {statuses(occurrence.status)}
+            </Pill>
           </div>
           <p className="mt-1 text-caption text-text-muted">
             {t("where", {

@@ -10,10 +10,7 @@ import { useFocusFirstError } from "../use-focus-first-error";
 import type { RateFormState, RateFormValues } from "./currency-form-data";
 
 interface RateFormProps {
-  action: (
-    previous: RateFormState | null,
-    formData: FormData,
-  ) => Promise<RateFormState | null>;
+  action: (previous: RateFormState | null, formData: FormData) => Promise<RateFormState | null>;
   initialValues: RateFormValues;
 }
 
@@ -38,13 +35,15 @@ export function RateForm({ action, initialValues }: RateFormProps) {
         <DatePicker {...controlProps("date")} required />
       </FormField>
 
-      <FormField
-        id="base"
-        label={t("form.base")}
-        hint={t("form.baseHint")}
-        error={errorOf("base")}
-      >
-        <input {...controlProps("base")} className={CONTROL_CLASS} type="text" maxLength={3} required autoComplete="off" />
+      <FormField id="base" label={t("form.base")} hint={t("form.baseHint")} error={errorOf("base")}>
+        <input
+          {...controlProps("base")}
+          className={CONTROL_CLASS}
+          type="text"
+          maxLength={3}
+          required
+          autoComplete="off"
+        />
       </FormField>
 
       <FormField
@@ -53,16 +52,25 @@ export function RateForm({ action, initialValues }: RateFormProps) {
         hint={t("form.quoteHint")}
         error={errorOf("quote")}
       >
-        <input {...controlProps("quote")} className={CONTROL_CLASS} type="text" maxLength={3} required autoComplete="off" />
+        <input
+          {...controlProps("quote")}
+          className={CONTROL_CLASS}
+          type="text"
+          maxLength={3}
+          required
+          autoComplete="off"
+        />
       </FormField>
 
-      <FormField
-        id="rate"
-        label={t("form.rate")}
-        hint={t("form.rateHint")}
-        error={errorOf("rate")}
-      >
-        <input {...controlProps("rate")} className={CONTROL_CLASS} type="text" inputMode="decimal" required autoComplete="off" />
+      <FormField id="rate" label={t("form.rate")} hint={t("form.rateHint")} error={errorOf("rate")}>
+        <input
+          {...controlProps("rate")}
+          className={CONTROL_CLASS}
+          type="text"
+          inputMode="decimal"
+          required
+          autoComplete="off"
+        />
       </FormField>
 
       <Button

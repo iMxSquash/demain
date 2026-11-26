@@ -13,10 +13,7 @@ import type { StagedFile } from "../../../src/app/imports/import-form-data";
 import { ImportReview } from "../../../src/app/imports/import-review";
 import type { EnteredPaymentEntry } from "../../../src/ledger/planned-matching";
 import { ReviewHeading } from "../../../src/app/imports/review/review-heading";
-import {
-  ReviewSessionProvider,
-  type Review,
-} from "../../../src/app/imports/review-session";
+import { ReviewSessionProvider, type Review } from "../../../src/app/imports/review-session";
 import { loadMessages } from "../../../src/i18n/message-files";
 
 vi.mock("next/navigation", () => ({
@@ -39,7 +36,13 @@ const FILE: StagedFile = {
       line: 2,
       rawDate: null,
       draft: { date: "2026-03-02", label: "SYNTHETIC SHOP", amount: "-12,50", externalId: null },
-      details: { type: "expense", categoryId: null, paymentMode: "card", description: null, savingsAccountId: null },
+      details: {
+        type: "expense",
+        categoryId: null,
+        paymentMode: "card",
+        description: null,
+        savingsAccountId: null,
+      },
       guess: null,
       isDuplicate: false,
     },
@@ -47,7 +50,13 @@ const FILE: StagedFile = {
       line: 3,
       rawDate: null,
       draft: { date: "2026-03-03", label: "SYNTHETIC SALARY", amount: "1000,00", externalId: null },
-      details: { type: "income", categoryId: null, paymentMode: "transfer", description: null, savingsAccountId: null },
+      details: {
+        type: "income",
+        categoryId: null,
+        paymentMode: "transfer",
+        description: null,
+        savingsAccountId: null,
+      },
       guess: null,
       isDuplicate: false,
     },
@@ -81,7 +90,14 @@ const HAND_MAPPING = {
 } as const;
 
 const ACCOUNTS = [
-  { id: 1, name: "Synthetic current", kind: "checking" as const, archived: false, currency: "EUR", overflowAccountId: null },
+  {
+    id: 1,
+    name: "Synthetic current",
+    kind: "checking" as const,
+    archived: false,
+    currency: "EUR",
+    overflowAccountId: null,
+  },
 ];
 
 const REVIEW: Review = {
@@ -144,7 +160,9 @@ describe("ImportReview", () => {
 
     expect(markup).toContain("Entries already marked as paid");
     expect(markup).toContain("You marked Synthetic shop of");
-    expect(markup).toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/);
+    expect(markup).toMatch(
+      /checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/,
+    );
     expect(markup).toContain("Keep both");
     expect(markup).toContain("a replaced entry does not come back");
   });
@@ -158,14 +176,21 @@ describe("ImportReview", () => {
     });
 
     expect(markup).toContain("You marked Synthetic shop of");
-    expect(markup).toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/);
+    expect(markup).toMatch(
+      /checked=""[^>]*\/><span class="py-2.5">Replace my entry with this bank row/,
+    );
   });
 
   it("flags a savings row that matches a planned transfer marked as transferred, worded as a transfer", () => {
     const savingsRow = {
       line: 4,
       rawDate: null,
-      draft: { date: "2026-03-05", label: "SYNTHETIC SAVINGS", amount: "-300,00", externalId: null },
+      draft: {
+        date: "2026-03-05",
+        label: "SYNTHETIC SAVINGS",
+        amount: "-300,00",
+        externalId: null,
+      },
       details: {
         type: "savings" as const,
         categoryId: null,
@@ -199,7 +224,9 @@ describe("ImportReview", () => {
     });
 
     expect(markup).toContain("Entries already marked as paid or transferred");
-    expect(markup).toContain("You marked Synthetic saving of Mar 5, 2026 as transferred on Mar 5, 2026 (€300.00).");
+    expect(markup).toContain(
+      "You marked Synthetic saving of Mar 5, 2026 as transferred on Mar 5, 2026 (€300.00).",
+    );
     expect(markup).toContain("Replacing a transfer deletes every leg you entered for it");
     expect(markup).toContain("The bank row takes the occurrence of the entry");
   });
@@ -208,7 +235,12 @@ describe("ImportReview", () => {
     const savingsRow = {
       line: 4,
       rawDate: null,
-      draft: { date: "2026-03-05", label: "SYNTHETIC SAVINGS", amount: "-300,00", externalId: null },
+      draft: {
+        date: "2026-03-05",
+        label: "SYNTHETIC SAVINGS",
+        amount: "-300,00",
+        externalId: null,
+      },
       details: {
         type: "savings" as const,
         categoryId: null,
@@ -251,9 +283,15 @@ describe("ImportReview", () => {
     expect(markup).toContain(
       "This row may be one of 2 transfers marked as transferred. Choose the one to replace, or keep both.",
     );
-    expect(markup).toContain("Replace my transfer Synthetic saving A of Mar 5, 2026, transferred on Mar 5, 2026 (€300.00)");
-    expect(markup).toContain("Replace my transfer Synthetic saving B of Mar 5, 2026, transferred on Mar 5, 2026 (€300.00)");
-    expect(markup).toContain("Choose what to do with the row that may be an entry you recorded by hand.");
+    expect(markup).toContain(
+      "Replace my transfer Synthetic saving A of Mar 5, 2026, transferred on Mar 5, 2026 (€300.00)",
+    );
+    expect(markup).toContain(
+      "Replace my transfer Synthetic saving B of Mar 5, 2026, transferred on Mar 5, 2026 (€300.00)",
+    );
+    expect(markup).toContain(
+      "Choose what to do with the row that may be an entry you recorded by hand.",
+    );
     expect(markup).not.toMatch(/checked=""[^>]*\/><span class="py-2.5">Replace/);
   });
 

@@ -41,7 +41,11 @@ const overflowChoiceSchema = z.strictObject({
 
 const replacementSchema = z.strictObject({
   /** Position of the row in `drafts`. */
-  index: z.number().int().min(0).max(MAX_ROWS - 1),
+  index: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_ROWS - 1),
   entryId: id,
 });
 

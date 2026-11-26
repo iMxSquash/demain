@@ -20,20 +20,45 @@ export function Logo({ label }: { label: string }) {
   return (
     <svg viewBox={VIEW_BOX} width={WIDTH} height={HEIGHT} role="img" aria-label={label}>
       <defs>
-        <linearGradient id={`${prefix}-db`} gradientUnits="userSpaceOnUse" x1="75.92" y1="42.6" x2="159.92" y2="210.6">
+        <linearGradient
+          id={`${prefix}-db`}
+          gradientUnits="userSpaceOnUse"
+          x1="75.92"
+          y1="42.6"
+          x2="159.92"
+          y2="210.6"
+        >
           <stop offset="0" className={styles.blue} />
           <stop offset=".45" className={styles.aqua} />
           <stop offset="1" className={styles.sand} />
         </linearGradient>
-        <radialGradient id={`${prefix}-ds`} gradientUnits="userSpaceOnUse" cx="84.32" cy="59.4" r="100.8">
+        <radialGradient
+          id={`${prefix}-ds`}
+          gradientUnits="userSpaceOnUse"
+          cx="84.32"
+          cy="59.4"
+          r="100.8"
+        >
           <stop offset="0" className={styles.sky} />
           <stop offset="1" stopOpacity="0" className={styles.sky} />
         </radialGradient>
-        <radialGradient id={`${prefix}-dp`} gradientUnits="userSpaceOnUse" cx="134.72" cy="101.4" r="92.4">
+        <radialGradient
+          id={`${prefix}-dp`}
+          gradientUnits="userSpaceOnUse"
+          cx="134.72"
+          cy="101.4"
+          r="92.4"
+        >
           <stop offset="0" className={styles.rose} />
           <stop offset="1" stopOpacity="0" className={styles.rose} />
         </radialGradient>
-        <radialGradient id={`${prefix}-dr`} gradientUnits="userSpaceOnUse" cx="147.32" cy="193.8" r="117.6">
+        <radialGradient
+          id={`${prefix}-dr`}
+          gradientUnits="userSpaceOnUse"
+          cx="147.32"
+          cy="193.8"
+          r="117.6"
+        >
           <stop offset="0" className={styles.peach} />
           <stop offset="1" stopOpacity="0" className={styles.peach} />
         </radialGradient>

@@ -28,22 +28,17 @@ export function ToCategorizeHead() {
         <th scope="col">{t("columns.date")}</th>
         <th scope="col">{t("columns.account")}</th>
         <th scope="col">{t("columns.label")}</th>
-        <th scope="col" className="text-right">{t("columns.amount")}</th>
+        <th scope="col" className="text-right">
+          {t("columns.amount")}
+        </th>
         <th scope="col">{t("columns.category")}</th>
       </tr>
     </thead>
   );
 }
 
-export async function ToCategorizeQueue({
-  queue,
-  accounts,
-  categories,
-}: ToCategorizeQueueProps) {
-  const [t, locale] = await Promise.all([
-    getTranslations("categories"),
-    getLocale(),
-  ]);
+export async function ToCategorizeQueue({ queue, accounts, categories }: ToCategorizeQueueProps) {
+  const [t, locale] = await Promise.all([getTranslations("categories"), getLocale()]);
   if (queue.length === 0) {
     return <EmptyState>{t("queueEmpty")}</EmptyState>;
   }
@@ -56,24 +51,16 @@ export async function ToCategorizeQueue({
         {queue.map((row) => {
           const account = accountById.get(row.accountId);
           if (account === undefined) {
-            throw new Error(
-              `Transaction ${row.id} points to unknown account ${row.accountId}`,
-            );
+            throw new Error(`Transaction ${row.id} points to unknown account ${row.accountId}`);
           }
           return (
             <tr key={row.id}>
               <td className="tabular-nums">
-                <time dateTime={row.date}>
-                  {formatCalendarDate(row.date, locale)}
-                </time>
+                <time dateTime={row.date}>{formatCalendarDate(row.date, locale)}</time>
               </td>
               <td>{account.name}</td>
-              <th scope="row">
-                {row.label}
-              </th>
-              <td className="text-right">
-                {formatAmount(row.amount, account.currency, locale)}
-              </td>
+              <th scope="row">{row.label}</th>
+              <td className="text-right">{formatAmount(row.amount, account.currency, locale)}</td>
               <td>
                 <CategorizeForm
                   action={categorizeTransactionAction.bind(null, row.id)}

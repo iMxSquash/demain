@@ -8,12 +8,7 @@
  * Balance assertion.
  */
 
-import {
-  normalizeHeader,
-  parseCsvFile,
-  type CsvDelimiter,
-  type CsvFileIssue,
-} from "./import-csv";
+import { normalizeHeader, parseCsvFile, type CsvDelimiter, type CsvFileIssue } from "./import-csv";
 import { MoneyParseError, parseAmount } from "./money";
 import type { SheetMonth, VerifiedFigure } from "./sheet-verification";
 import type { Month } from "./synthesis";
@@ -126,8 +121,7 @@ function readMonthCell(
 ): Month | "unreadable" | "yearMissing" {
   const cell = text.trim();
   const iso = ISO_MONTH.exec(cell);
-  if (iso !== null)
-    return toMonth(Number(iso[1]), Number(iso[2])) ?? "unreadable";
+  if (iso !== null) return toMonth(Number(iso[1]), Number(iso[2])) ?? "unreadable";
   const numeric = NUMERIC_MONTH.exec(cell);
   if (numeric !== null) {
     return toMonth(Number(numeric[2]), Number(numeric[1])) ?? "unreadable";
@@ -137,15 +131,10 @@ function readMonthCell(
   const number = MONTH_NAMES.get(normalizeHeader(named?.[1] ?? ""));
   if (number === undefined) return "unreadable";
   const year = named?.[2] === undefined ? defaultYear : Number(named[2]);
-  return year === undefined
-    ? "yearMissing"
-    : (toMonth(year, number) ?? "unreadable");
+  return year === undefined ? "yearMissing" : (toMonth(year, number) ?? "unreadable");
 }
 
-export function readSheetSummary(
-  text: string,
-  options: SummaryOptions,
-): SummaryReading {
+export function readSheetSummary(text: string, options: SummaryOptions): SummaryReading {
   const file = parseCsvFile(text, options.delimiter);
   if ("issue" in file) return { months: [], issues: [file.issue] };
 
@@ -179,11 +168,7 @@ export function readSheetSummary(
   // Without the month, a row cannot be told from another.
   if (!columnOf.has("month")) return { months: [], issues };
 
-  const amountAt = (
-    row: readonly string[],
-    column: SummaryColumn,
-    line: number,
-  ): number | null => {
+  const amountAt = (row: readonly string[], column: SummaryColumn, line: number): number | null => {
     const cell = (row[columnOf.get(column) ?? -1] ?? "").trim();
     if (cell === "") return null;
     try {
@@ -250,10 +235,7 @@ function concernsBalances(issue: SummaryIssue): boolean {
  * with a null amount: it is not an error, and it is not dropped. The
  * separator is detected from the file unless the caller gives it.
  */
-export function readSummaryBalances(
-  text: string,
-  options: SummaryOptions,
-): SummaryBalancesReading {
+export function readSummaryBalances(text: string, options: SummaryOptions): SummaryBalancesReading {
   const reading = readSheetSummary(text, options);
   const issues: SummaryBalancesIssue[] = reading.issues.filter(concernsBalances);
   const balances: SummaryBalance[] = [];

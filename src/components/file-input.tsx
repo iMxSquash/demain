@@ -30,7 +30,9 @@ export function FileInput({ onChange, "aria-describedby": describedBy, ...rest }
 
   function describeFiles(files: FileList | null): string | null {
     if (files === null || files.length === 0) return null;
-    return files.length === 1 ? (files[0]?.name ?? null) : t("filesChosen", { count: files.length });
+    return files.length === 1
+      ? (files[0]?.name ?? null)
+      : t("filesChosen", { count: files.length });
   }
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
@@ -51,7 +53,10 @@ export function FileInput({ onChange, "aria-describedby": describedBy, ...rest }
       <label htmlFor={rest.id} className={BUTTON_CLASS}>
         {t("chooseFile")}
       </label>
-      <span id={nameId} className={`min-w-0 truncate ${summary === null ? "text-text-muted" : "text-text"}`}>
+      <span
+        id={nameId}
+        className={`min-w-0 truncate ${summary === null ? "text-text-muted" : "text-text"}`}
+      >
         {summary ?? t("noFileChosen")}
       </span>
     </div>

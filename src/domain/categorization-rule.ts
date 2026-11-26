@@ -43,11 +43,7 @@ export function labelContains(label: string, value: string): boolean {
   return readRuleLabel(label).includes(value.toLowerCase());
 }
 
-function matches(
-  rule: CategorizationRule,
-  subject: RuleSubject,
-  label: string,
-): boolean {
+function matches(rule: CategorizationRule, subject: RuleSubject, label: string): boolean {
   if (rule.accountId !== null && rule.accountId !== subject.accountId) {
     return false;
   }

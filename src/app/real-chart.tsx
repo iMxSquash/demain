@@ -31,7 +31,10 @@ async function readChartMonths(today: string) {
   return withDatabase((db) => {
     const referenceCurrency = getReferenceCurrency(db);
     return {
-      months: getMonthlySynthesis(db, { referenceCurrency, throughMonth: lastCompleteMonth(today) }),
+      months: getMonthlySynthesis(db, {
+        referenceCurrency,
+        throughMonth: lastCompleteMonth(today),
+      }),
       plannedMonths: getPlannedTrajectory(db, { referenceCurrency, today, months: PLANNED_MONTHS }),
       referenceCurrency,
     };
@@ -55,13 +58,14 @@ export async function RealChart() {
     getLocale(),
     getTimeZone(),
   ]);
-  const { months: realMonths, plannedMonths, referenceCurrency } = await readChartMonths(
-    todayIn(timeZone, new Date()),
-  );
+  const {
+    months: realMonths,
+    plannedMonths,
+    referenceCurrency,
+  } = await readChartMonths(todayIn(timeZone, new Date()));
   // Without real months the chart has no today to anchor on, so no planned month is drawn either.
   const planned = realMonths.length === 0 ? [] : plannedMonths;
-  const money = (minorUnits: number) =>
-    formatAmount(minorUnits, referenceCurrency, locale);
+  const money = (minorUnits: number) => formatAmount(minorUnits, referenceCurrency, locale);
   const unconverted = [
     ...new Set([...realMonths, ...planned].flatMap((month) => month.unconvertedCurrencies)),
   ].sort();
@@ -97,9 +101,7 @@ export async function RealChart() {
       <p>{t("intro", { currency: referenceCurrency })}</p>
 
       {unconverted.length > 0 ? (
-        <p role="status">
-          {t("unconverted", { currencies: unconverted.join(", ") })}
-        </p>
+        <p role="status">{t("unconverted", { currencies: unconverted.join(", ") })}</p>
       ) : null}
 
       {realMonths.length === 0 ? (

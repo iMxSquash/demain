@@ -45,9 +45,7 @@ describe("fingerprintRows", () => {
   });
 
   it("numbers identical rows of one file so that each keeps its own fingerprint", () => {
-    const fingerprints = fingerprintRows([row(), row(), row()]).map(
-      (entry) => entry.fingerprint,
-    );
+    const fingerprints = fingerprintRows([row(), row(), row()]).map((entry) => entry.fingerprint);
 
     expect(new Set(fingerprints).size).toBe(3);
   });

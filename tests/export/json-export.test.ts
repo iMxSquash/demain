@@ -93,7 +93,13 @@ describe("JSON export", () => {
       .values({ accountId: checking.id, date: "2026-02-28", amount: 9_876, note: "from the app" })
       .run();
     db.insert(exchangeRates)
-      .values({ date: "2026-02-01", base: "EUR", quote: "USD", rate: 108_000_000, source: "manual" })
+      .values({
+        date: "2026-02-01",
+        base: "EUR",
+        quote: "USD",
+        rate: 108_000_000,
+        source: "manual",
+      })
       .run();
     db.insert(settings).values({ key: "reference_currency", value: "EUR" }).run();
     return { checking, travel };
@@ -252,7 +258,10 @@ describe("JSON export", () => {
 
     const exported = exportSchema.parse(await exportAsObject());
 
-    expect(exported.plannedItemVersions[0]?.amount).toEqual({ minorUnits: -12_345, currency: "USD" });
+    expect(exported.plannedItemVersions[0]?.amount).toEqual({
+      minorUnits: -12_345,
+      currency: "USD",
+    });
     expect(exported.occurrenceOverrides[0]).toMatchObject({
       status: "cancelled",
       overrideDate: null,

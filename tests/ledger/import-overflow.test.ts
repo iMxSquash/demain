@@ -139,7 +139,12 @@ describe("import overflow account", () => {
 
   it("refuses a new account without a name", () => {
     expect(
-      refusal(() => createOverflowCandidate(db, getAccount(db, capped), { name: " ", openingDate: "2026-03-01" })).ref.key,
+      refusal(() =>
+        createOverflowCandidate(db, getAccount(db, capped), {
+          name: " ",
+          openingDate: "2026-03-01",
+        }),
+      ).ref.key,
     ).toBe("accountNameRequired");
   });
 });

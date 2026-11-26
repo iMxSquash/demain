@@ -65,9 +65,7 @@ function labeledCategories(indexes: readonly number[], maxXTicks: number): numbe
   return indexes.filter((index) => index % step === 0);
 }
 
-export function buildLineChartGeometry(
-  input: LineChartGeometryInput,
-): LineChartGeometry {
+export function buildLineChartGeometry(input: LineChartGeometryInput): LineChartGeometry {
   const { width, height, margin } = input;
   const indexes = Array.from({ length: input.categoryCount }, (_, index) => index);
   const xScale = scalePoint<number>()

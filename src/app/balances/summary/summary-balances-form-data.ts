@@ -1,18 +1,10 @@
-import {
-  BYTES_PER_KILOBYTE,
-  isChosenFile,
-  MAX_FILE_BYTES,
-} from "../../form-files";
+import { BYTES_PER_KILOBYTE, isChosenFile, MAX_FILE_BYTES } from "../../form-files";
 
 const YEAR_PATTERN = /^\d{4}$/;
 const ACCOUNT_ID_PATTERN = /^\d{1,9}$/;
 
 export type SummaryFormErrorKey =
-  | "fileRequired"
-  | "fileTooLarge"
-  | "fileEmpty"
-  | "accountRequired"
-  | "yearInvalid";
+  "fileRequired" | "fileTooLarge" | "fileEmpty" | "accountRequired" | "yearInvalid";
 
 export type SummaryField = "summary" | "accountId" | "year";
 
@@ -39,8 +31,7 @@ export interface SummaryBalancesForm {
 }
 
 export type SummaryBalancesFormReading =
-  | { form: SummaryBalancesForm }
-  | { error: SummaryFormError };
+  { form: SummaryBalancesForm } | { error: SummaryFormError };
 
 const refuse = (
   key: SummaryFormErrorKey,

@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-import { DataTable, EmptyState, Pill, SECONDARY_LINK_CLASS } from "../../../components/data-display";
+import {
+  DataTable,
+  EmptyState,
+  Pill,
+  SECONDARY_LINK_CLASS,
+} from "../../../components/data-display";
 import { formatAmount, formatEditableAmount } from "../../../domain/money";
 import { formatCalendarDate, formatWeekdayDate } from "../../../i18n/dates";
 import type { CalendarEntry, CalendarMonth } from "../../../ledger/calendar";
@@ -99,7 +104,10 @@ function lineViewOf(
     status:
       entry.status === null
         ? null
-        : { label: text.statuses[entry.status], tone: entry.status === "overdue" ? "warning" : "neutral" },
+        : {
+            label: text.statuses[entry.status],
+            tone: entry.status === "overdue" ? "warning" : "neutral",
+          },
     // A move says "X to Y": a sign would claim a direction for the selected account.
     amount: formatAmount(
       entry.destinationAccountId === null ? entry.amount : Math.abs(entry.amount),
@@ -120,7 +128,10 @@ function linesOf({ month, accounts, locale, text }: CalendarLinesTableProps): Li
       view: lineViewOf(entry, nameOf, { locale, text }),
       balance:
         index === day.entries.length - 1 && day.balance !== null
-          ? { amount: formatAmount(day.balance, month.currency, locale), isBelowZero: day.isBelowZero }
+          ? {
+              amount: formatAmount(day.balance, month.currency, locale),
+              isBelowZero: day.isBelowZero,
+            }
           : null,
     })),
   );
@@ -140,7 +151,15 @@ function Notes({ notes }: { notes: readonly string[] }) {
 
 // A linked occurrence keeps what its transaction settled: it is unlinked first (owner decision Q1 of issue 174).
 // Nor does an occurrence of an archived account change. A skipped one keeps its button, so that it can be restored.
-function ChangeOccurrence({ entry, locale, text }: { entry: CalendarEntry; locale: string; text: CalendarLinesTableText }) {
+function ChangeOccurrence({
+  entry,
+  locale,
+  text,
+}: {
+  entry: CalendarEntry;
+  locale: string;
+  text: CalendarLinesTableText;
+}) {
   const { plannedItemId, nominalDate, override } = entry;
   if (!entry.isEditable || plannedItemId === null || nominalDate === null) return null;
   const date = formatCalendarDate(nominalDate, locale);
@@ -165,7 +184,10 @@ function ChangeOccurrence({ entry, locale, text }: { entry: CalendarEntry; local
   );
 }
 
-type ActionsProps = { entry: CalendarEntry } & Pick<CalendarLinesTableProps, "locale" | "text" | "backView">;
+type ActionsProps = { entry: CalendarEntry } & Pick<
+  CalendarLinesTableProps,
+  "locale" | "text" | "backView"
+>;
 
 // A settled occurrence has no action, a cancelled one only its change (DESIGN section 18).
 function hasActions(entry: CalendarEntry): boolean {
@@ -196,7 +218,10 @@ function OccurrenceActions({ entry, locale, text, backView }: ActionsProps) {
               pendingLabel: text.actions[`${kind}Pending`],
             }}
             // Unsigned: the type of the item gives the direction.
-            values={{ date: entry.date, amount: formatEditableAmount(Math.abs(entry.amount), entry.currency) }}
+            values={{
+              date: entry.date,
+              amount: formatEditableAmount(Math.abs(entry.amount), entry.currency),
+            }}
           />
           {kind === "transfer" ? null : (
             <Link
@@ -227,39 +252,39 @@ function TableRow({ line, locale, text, backView }: RowProps) {
 
   return (
     <>
-    <tr
-      className={`${view.isPlanned ? PLANNED_ROW_CLASS : REAL_ROW_CLASS} ${view.isCancelled ? "text-text-muted" : ""}`}
-    >
-      <td>{formatWeekdayDate(entry.date, locale)}</td>
-      <th scope="row" className="min-w-40 whitespace-normal! py-2">
-        <span className={view.isCancelled ? "line-through" : ""}>{entry.label}</span>
-        <Notes notes={view.notes} />
-      </th>
-      <td className="whitespace-normal!">{view.account}</td>
-      <td className="whitespace-normal!">{view.kind}</td>
-      <td>
-        <StatusPill status={view.status} />
-      </td>
-      <td className="text-right tabular-nums">{view.amount}</td>
-      <td className="text-right tabular-nums">
-        {balance === null ? null : (
-          <>
-            {balance.amount}
-            {balance.isBelowZero ? <BelowZero text={text} /> : null}
-          </>
-        )}
-      </td>
-    </tr>
-    {/* Seven columns have no room for three buttons: they get a row of their own (DESIGN section 18). */}
-    {hasActions(entry) ? (
-      <tr className="border-t-0! hover:bg-transparent!">
-        <td colSpan={TABLE_COLUMN_COUNT} className="h-auto! pb-3">
-          <div className="flex justify-end">
-            <OccurrenceActions entry={entry} locale={locale} text={text} backView={backView} />
-          </div>
+      <tr
+        className={`${view.isPlanned ? PLANNED_ROW_CLASS : REAL_ROW_CLASS} ${view.isCancelled ? "text-text-muted" : ""}`}
+      >
+        <td>{formatWeekdayDate(entry.date, locale)}</td>
+        <th scope="row" className="min-w-40 whitespace-normal! py-2">
+          <span className={view.isCancelled ? "line-through" : ""}>{entry.label}</span>
+          <Notes notes={view.notes} />
+        </th>
+        <td className="whitespace-normal!">{view.account}</td>
+        <td className="whitespace-normal!">{view.kind}</td>
+        <td>
+          <StatusPill status={view.status} />
+        </td>
+        <td className="text-right tabular-nums">{view.amount}</td>
+        <td className="text-right tabular-nums">
+          {balance === null ? null : (
+            <>
+              {balance.amount}
+              {balance.isBelowZero ? <BelowZero text={text} /> : null}
+            </>
+          )}
         </td>
       </tr>
-    ) : null}
+      {/* Seven columns have no room for three buttons: they get a row of their own (DESIGN section 18). */}
+      {hasActions(entry) ? (
+        <tr className="border-t-0! hover:bg-transparent!">
+          <td colSpan={TABLE_COLUMN_COUNT} className="h-auto! pb-3">
+            <div className="flex justify-end">
+              <OccurrenceActions entry={entry} locale={locale} text={text} backView={backView} />
+            </div>
+          </td>
+        </tr>
+      ) : null}
     </>
   );
 }
@@ -269,13 +294,27 @@ export function CalendarLinesHead({ columns }: { columns: CalendarLinesTableText
   return (
     <thead>
       <tr>
-        <th scope="col" className="align-bottom">{columns.date}</th>
-        <th scope="col" className="align-bottom">{columns.description}</th>
-        <th scope="col" className="align-bottom">{columns.account}</th>
-        <th scope="col" className="align-bottom">{columns.kind}</th>
-        <th scope="col" className="align-bottom">{columns.status}</th>
-        <th scope="col" className="align-bottom text-right">{columns.amount}</th>
-        <th scope="col" className="align-bottom text-right">{columns.balance}</th>
+        <th scope="col" className="align-bottom">
+          {columns.date}
+        </th>
+        <th scope="col" className="align-bottom">
+          {columns.description}
+        </th>
+        <th scope="col" className="align-bottom">
+          {columns.account}
+        </th>
+        <th scope="col" className="align-bottom">
+          {columns.kind}
+        </th>
+        <th scope="col" className="align-bottom">
+          {columns.status}
+        </th>
+        <th scope="col" className="align-bottom text-right">
+          {columns.amount}
+        </th>
+        <th scope="col" className="align-bottom text-right">
+          {columns.balance}
+        </th>
       </tr>
     </thead>
   );
@@ -299,7 +338,13 @@ function LinesTable({ lines, locale, text, backView }: LinesProps) {
         <CalendarLinesHead columns={text.columns} />
         <tbody>
           {lines.map((line) => (
-            <TableRow key={line.entry.id} line={line} locale={locale} text={text} backView={backView} />
+            <TableRow
+              key={line.entry.id}
+              line={line}
+              locale={locale}
+              text={text}
+              backView={backView}
+            />
           ))}
         </tbody>
       </DataTable>
@@ -312,12 +357,16 @@ function ListEntry({ line, locale, text, backView }: RowProps) {
   const textClass = view.isPlanned || view.isCancelled ? "text-text-muted" : "text-text";
 
   return (
-    <li className={`border-t py-3 ${view.isPlanned ? PLANNED_ITEM_CLASS : "border-divider"} ${textClass}`}>
+    <li
+      className={`border-t py-3 ${view.isPlanned ? PLANNED_ITEM_CLASS : "border-divider"} ${textClass}`}
+    >
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         <span className="w-18 flex-none text-caption text-text-muted">
           {formatWeekdayDate(entry.date, locale)}
         </span>
-        <span className={`min-w-0 font-medium ${view.isCancelled ? "line-through" : ""}`}>{entry.label}</span>
+        <span className={`min-w-0 font-medium ${view.isCancelled ? "line-through" : ""}`}>
+          {entry.label}
+        </span>
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <span className="text-caption font-medium">{view.kind}</span>
@@ -348,7 +397,13 @@ function LinesList({ lines, locale, text, backView }: LinesProps) {
       <h2 className="pb-3 font-medium">{text.caption}</h2>
       <ul>
         {lines.map((line) => (
-          <ListEntry key={line.entry.id} line={line} locale={locale} text={text} backView={backView} />
+          <ListEntry
+            key={line.entry.id}
+            line={line}
+            locale={locale}
+            text={text}
+            backView={backView}
+          />
         ))}
       </ul>
     </div>
@@ -372,7 +427,9 @@ export function CalendarLinesTable(props: CalendarLinesTableProps) {
         </p>
       )}
       {month.unconvertedCurrencies.length === 0 ? null : (
-        <p className="text-caption text-text-muted">{text.unconverted(month.unconvertedCurrencies.join(", "))}</p>
+        <p className="text-caption text-text-muted">
+          {text.unconverted(month.unconvertedCurrencies.join(", "))}
+        </p>
       )}
       {lines.length === 0 ? (
         <EmptyState>{text.empty}</EmptyState>

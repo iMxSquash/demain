@@ -13,11 +13,7 @@ import {
   linkReviewAssertions,
   type FileContext,
 } from "../../src/domain/import-assertions";
-import {
-  planReview,
-  type ReviewedFile,
-  type ReviewedRow,
-} from "../../src/domain/import-review";
+import { planReview, type ReviewedFile, type ReviewedRow } from "../../src/domain/import-review";
 import type { OverflowAccount } from "../../src/domain/overflow";
 
 const CHECKING_ID = 1;
@@ -177,9 +173,10 @@ describe("filePeriod", () => {
   });
 
   it("counts the rows the account already holds: the file still covers their days", () => {
-    expect(
-      filePeriod(file([row("2026-03-02", "-1,00", EXPENSE, true)]), "EUR"),
-    ).toEqual({ from: "2026-03-02", to: "2026-03-02" });
+    expect(filePeriod(file([row("2026-03-02", "-1,00", EXPENSE, true)]), "EUR")).toEqual({
+      from: "2026-03-02",
+      to: "2026-03-02",
+    });
   });
 
   it("is a single day for a single row", () => {
@@ -212,7 +209,8 @@ describe("linkAssertions", () => {
     linkAssertions(
       {
         accountId: CHECKING_ID,
-        period: options.period === undefined ? { from: "2026-03-01", to: "2026-03-31" } : options.period,
+        period:
+          options.period === undefined ? { from: "2026-03-01", to: "2026-03-31" } : options.period,
         movements,
       },
       {
@@ -237,9 +235,11 @@ describe("linkAssertions", () => {
   });
 
   it("finds nothing to check for a file with no period", () => {
-    expect(
-      link([], [assertion(1, CHECKING_ID, "2026-03-31", 0)], { period: null }),
-    ).toEqual({ accounts: [], checked: 0, matching: 0 });
+    expect(link([], [assertion(1, CHECKING_ID, "2026-03-31", 0)], { period: null })).toEqual({
+      accounts: [],
+      checked: 0,
+      matching: 0,
+    });
   });
 
   it("matches an assertion that equals the balance once the file is recorded", () => {
@@ -305,11 +305,9 @@ describe("linkAssertions", () => {
   });
 
   it("adds the movements of the file to the transactions already recorded", () => {
-    const result = link(
-      [EXPENSE_MOVEMENT],
-      [assertion(1, CHECKING_ID, "2026-03-31", 95_000)],
-      { transactions: [{ accountId: CHECKING_ID, date: "2026-02-15", amount: -2_500 }] },
-    );
+    const result = link([EXPENSE_MOVEMENT], [assertion(1, CHECKING_ID, "2026-03-31", 95_000)], {
+      transactions: [{ accountId: CHECKING_ID, date: "2026-02-15", amount: -2_500 }],
+    });
 
     expect(result).toMatchObject({ checked: 1, matching: 1 });
   });
@@ -319,7 +317,11 @@ describe("linkAssertions", () => {
       row("2026-03-10", "-25,00", EXPENSE, true),
       row("2026-03-12", "-10,00"),
     ]);
-    const existing: AssertionMovement = { accountId: CHECKING_ID, date: "2026-03-10", amount: -2_500 };
+    const existing: AssertionMovement = {
+      accountId: CHECKING_ID,
+      date: "2026-03-10",
+      amount: -2_500,
+    };
 
     const result = link(
       movementsOf(reviewed),
@@ -364,11 +366,9 @@ describe("linkAssertions", () => {
   });
 
   it("ignores the assertions of an account that is not active", () => {
-    const result = link(
-      [EXPENSE_MOVEMENT],
-      [assertion(1, CHECKING_ID, "2026-03-31", 1)],
-      { accounts: ASSERTED_ACCOUNTS.filter(({ id }) => id !== CHECKING_ID) },
-    );
+    const result = link([EXPENSE_MOVEMENT], [assertion(1, CHECKING_ID, "2026-03-31", 1)], {
+      accounts: ASSERTED_ACCOUNTS.filter(({ id }) => id !== CHECKING_ID),
+    });
 
     expect(result).toEqual({ accounts: [], checked: 0, matching: 0 });
   });
@@ -395,10 +395,13 @@ describe("linkReviewAssertions", () => {
     );
 
   it("gives one result per file, in the order of the files", () => {
-    const results = linkAll([march, april], [
-      assertion(1, CHECKING_ID, "2026-03-02", 99_000),
-      assertion(2, CHECKING_ID, "2026-04-02", 97_000),
-    ]);
+    const results = linkAll(
+      [march, april],
+      [
+        assertion(1, CHECKING_ID, "2026-03-02", 99_000),
+        assertion(2, CHECKING_ID, "2026-04-02", 97_000),
+      ],
+    );
 
     expect(results.map((result) => result.checked)).toEqual([1, 1]);
     expect(results.map((result) => result.matching)).toEqual([1, 1]);
@@ -418,7 +421,10 @@ describe("linkReviewAssertions", () => {
 
   it("leaves out the movements of an earlier file that is cancelled", () => {
     const cancelled = { ...march, phase: "cancelled" as const };
-    const [, second] = linkAll([cancelled, april], [assertion(1, CHECKING_ID, "2026-04-02", 98_000)]);
+    const [, second] = linkAll(
+      [cancelled, april],
+      [assertion(1, CHECKING_ID, "2026-04-02", 98_000)],
+    );
 
     expect(second?.accounts[0]?.links[0]).toMatchObject({ computedBalance: 98_000, gap: 0 });
   });

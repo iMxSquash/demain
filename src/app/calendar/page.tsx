@@ -18,7 +18,11 @@ import {
 import { linesTextOf } from "./lines/calendar-lines-text";
 import { MonthGrid, type MonthGridText } from "./month-grid";
 
-export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
   return calendarMetadata(searchParams, "grid");
 }
 
@@ -44,7 +48,10 @@ function CalendarLoading() {
 }
 
 async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
-  const [t, data] = await Promise.all([getTranslations("calendar"), loadCalendarPage(searchParams)]);
+  const [t, data] = await Promise.all([
+    getTranslations("calendar"),
+    loadCalendarPage(searchParams),
+  ]);
   const { calendar, accountNames, locale, today, month, selectedKey } = data;
 
   const text: MonthGridText = {
@@ -68,7 +75,9 @@ async function CalendarData({ searchParams }: { searchParams: SearchParams }) {
     <section aria-labelledby={MONTH_HEADING_ID} className="flex flex-col gap-4">
       <CalendarControls view="grid" {...data} />
       {calendar === null ? (
-        <EmptyState action={{ href: "/accounts", label: t("noCheckingAction") }}>{t("noChecking")}</EmptyState>
+        <EmptyState action={{ href: "/accounts", label: t("noCheckingAction") }}>
+          {t("noChecking")}
+        </EmptyState>
       ) : (
         <MonthGrid
           month={calendar}

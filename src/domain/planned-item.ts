@@ -19,7 +19,12 @@ import { isValidRepetition, type BusinessDayRule, type Repetition } from "./recu
 
 export type PlannedItemKind = "expense" | "income" | "interest" | "transfer";
 
-const PLANNED_ITEM_KINDS: readonly PlannedItemKind[] = ["expense", "income", "interest", "transfer"];
+const PLANNED_ITEM_KINDS: readonly PlannedItemKind[] = [
+  "expense",
+  "income",
+  "interest",
+  "transfer",
+];
 
 export const AMOUNT_MODES: readonly AmountMode[] = ["fixed", "rolling_average"];
 
@@ -227,7 +232,11 @@ function assertCategoryAllowed(
   }
   const category = categories.find((candidate) => candidate.id === categoryId);
   if (category === undefined) {
-    refuse("categoryId", `Category ${categoryId} does not exist`, messageRef("plannedItemCategoryMissing"));
+    refuse(
+      "categoryId",
+      `Category ${categoryId} does not exist`,
+      messageRef("plannedItemCategoryMissing"),
+    );
   }
   if (category.archived) {
     refuse(
@@ -307,7 +316,11 @@ export function validatePlannedItemInput(
 ): ValidPlannedItemInput {
   const name = normalizeName(input.name);
   if (!PLANNED_ITEM_KINDS.includes(input.kind)) {
-    refuse("kind", `Unknown kind "${input.kind}"`, messageRef("plannedItemKindUnknown", { kind: input.kind }));
+    refuse(
+      "kind",
+      `Unknown kind "${input.kind}"`,
+      messageRef("plannedItemKindUnknown", { kind: input.kind }),
+    );
   }
   const source = accountOf("accountId", input.accountId, context.accounts);
   if (input.kind === "transfer") {
@@ -326,8 +339,7 @@ export function validatePlannedItemInput(
     refuse("repetition", "Invalid repetition", messageRef("plannedItemRepetitionInvalid"));
   }
   const matchWindowDays = input.matchWindowDays ?? DEFAULT_MATCH_WINDOW_DAYS;
-  const matchAmountToleranceBp =
-    input.matchAmountToleranceBp ?? DEFAULT_MATCH_AMOUNT_TOLERANCE_BP;
+  const matchAmountToleranceBp = input.matchAmountToleranceBp ?? DEFAULT_MATCH_AMOUNT_TOLERANCE_BP;
   assertMatchSettings(matchWindowDays, matchAmountToleranceBp);
   const amountMode = input.amountMode ?? "fixed";
   assertAmountMode(amountMode);
@@ -437,7 +449,9 @@ export function isTolerancePercentDraft(text: string): boolean {
   if (match === null) return false;
   const [, whole = "", decimals = ""] = match;
   const percent = Number(whole);
-  return percent < MAX_TOLERANCE_PERCENT || (percent === MAX_TOLERANCE_PERCENT && /^0*$/.test(decimals));
+  return (
+    percent < MAX_TOLERANCE_PERCENT || (percent === MAX_TOLERANCE_PERCENT && /^0*$/.test(decimals))
+  );
 }
 
 /** The inverse of `parseTolerancePercent`, to pre-fill a field: 500 is "5", 250 is "2.5". */
@@ -597,7 +611,11 @@ interface BlockingOccurrences {
 // would reach back over one, or stop the schedule before it, is refused so that history is never
 // rewritten or hidden.
 function latestBlockingNominalDate(context: BlockingOccurrences): string | null {
-  return [...context.settledNominalDates, ...context.overrides.map((override) => override.nominalDate)].sort().at(-1) ?? null;
+  return (
+    [...context.settledNominalDates, ...context.overrides.map((override) => override.nominalDate)]
+      .sort()
+      .at(-1) ?? null
+  );
 }
 
 function assertNoBlockingDateFrom(effectiveFrom: string, context: VersionChangeContext): void {
@@ -679,7 +697,10 @@ interface EndDateChangeContext extends BlockingOccurrences {
   item: { startDate: string; versions: readonly PlannedVersion[] };
 }
 
-export function validatePlannedItemEndDate(endDate: string | null, context: EndDateChangeContext): string | null {
+export function validatePlannedItemEndDate(
+  endDate: string | null,
+  context: EndDateChangeContext,
+): string | null {
   if (endDate === null) return null;
   const { item } = context;
   assertCalendarDate("endDate", endDate);
@@ -691,7 +712,11 @@ export function validatePlannedItemEndDate(endDate: string | null, context: EndD
     );
   }
   if (isOneOff(item.versions)) {
-    refuse("endDate", "A one-off event has no end date", messageRef("plannedItemOneOffHasNoEndDate"));
+    refuse(
+      "endDate",
+      "A one-off event has no end date",
+      messageRef("plannedItemOneOffHasNoEndDate"),
+    );
   }
   assertNoBlockingDateAfter(endDate, context);
   return endDate;

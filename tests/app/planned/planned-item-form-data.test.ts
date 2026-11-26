@@ -222,7 +222,11 @@ describe("parsePlannedItemForm", () => {
       ),
     ).toMatchObject({
       ok: true,
-      input: { kind: "transfer", acceptsMultipleTransactions: true, provisionLabelFilter: "market" },
+      input: {
+        kind: "transfer",
+        acceptsMultipleTransactions: true,
+        provisionLabelFilter: "market",
+      },
     });
   });
 
@@ -337,14 +341,17 @@ describe("parsePlannedItemForm", () => {
     expect(parsed.ok && parsed.input.averageWindow).toBeUndefined();
   });
 
-  it.each(["5", "abc", ""])("refuses the average window %j in rolling average mode", (averageWindow) => {
-    expect(
-      parsePlannedItemForm(formOf({ amountMode: "rolling_average", averageWindow })),
-    ).toMatchObject({
-      ok: false,
-      error: { field: "averageWindow", message: "plannedItemAverageWindowInvalid" },
-    });
-  });
+  it.each(["5", "abc", ""])(
+    "refuses the average window %j in rolling average mode",
+    (averageWindow) => {
+      expect(
+        parsePlannedItemForm(formOf({ amountMode: "rolling_average", averageWindow })),
+      ).toMatchObject({
+        ok: false,
+        error: { field: "averageWindow", message: "plannedItemAverageWindowInvalid" },
+      });
+    },
+  );
 
   it("refuses an unknown amount mode", () => {
     expect(parsePlannedItemForm(formOf({ amountMode: "median" }))).toMatchObject({
@@ -463,7 +470,9 @@ describe("parsePlannedItemDetailsForm", () => {
   });
 
   it("keeps the typed label filter when the form is refused", () => {
-    expect(detailsOf({ matchTolerancePercent: "abc", provisionLabelFilter: "Market" })).toMatchObject({
+    expect(
+      detailsOf({ matchTolerancePercent: "abc", provisionLabelFilter: "Market" }),
+    ).toMatchObject({
       ok: false,
       error: { values: { provisionLabelFilter: "Market" } },
     });
@@ -611,12 +620,15 @@ describe("parsePlannedItemVersionForm", () => {
     expect(parsed.ok && parsed.input.averageWindow).toBeUndefined();
   });
 
-  it.each(["5", "abc", ""])("refuses the average window %j in rolling average mode", (averageWindow) => {
-    expect(versionOf({ amountMode: "rolling_average", averageWindow })).toMatchObject({
-      ok: false,
-      error: { field: "averageWindow", message: "plannedItemAverageWindowInvalid" },
-    });
-  });
+  it.each(["5", "abc", ""])(
+    "refuses the average window %j in rolling average mode",
+    (averageWindow) => {
+      expect(versionOf({ amountMode: "rolling_average", averageWindow })).toMatchObject({
+        ok: false,
+        error: { field: "averageWindow", message: "plannedItemAverageWindowInvalid" },
+      });
+    },
+  );
 
   it("refuses an unknown amount mode", () => {
     expect(versionOf({ amountMode: "median" })).toMatchObject({

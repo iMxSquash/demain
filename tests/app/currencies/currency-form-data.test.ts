@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  parseCurrencyCode,
-  readRateValues,
-} from "../../../src/app/currencies/currency-form-data";
+import { parseCurrencyCode, readRateValues } from "../../../src/app/currencies/currency-form-data";
 
 function formOf(fields: Record<string, string>): FormData {
   const formData = new FormData();

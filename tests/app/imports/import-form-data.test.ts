@@ -139,8 +139,22 @@ describe("toImportView", () => {
     overflowAccountId: 3,
   };
   const BALANCES = [
-    { id: 1, currency: "EUR", archived: false, balance: 123_456, ceiling: null, overflowAccountId: null },
-    { id: 2, currency: "EUR", archived: false, balance: 90_000, ceiling: 100_000, overflowAccountId: 3 },
+    {
+      id: 1,
+      currency: "EUR",
+      archived: false,
+      balance: 123_456,
+      ceiling: null,
+      overflowAccountId: null,
+    },
+    {
+      id: 2,
+      currency: "EUR",
+      archived: false,
+      balance: 90_000,
+      ceiling: 100_000,
+      overflowAccountId: 3,
+    },
     { id: 3, currency: "EUR", archived: true, balance: 0, ceiling: null, overflowAccountId: null },
   ];
 
@@ -152,8 +166,22 @@ describe("toImportView", () => {
     );
 
     expect(view.accounts).toEqual([
-      { id: 1, name: "Checking", kind: "checking", currency: "EUR", archived: false, overflowAccountId: null },
-      { id: 2, name: "Savings", kind: "savings", currency: "EUR", archived: false, overflowAccountId: 3 },
+      {
+        id: 1,
+        name: "Checking",
+        kind: "checking",
+        currency: "EUR",
+        archived: false,
+        overflowAccountId: null,
+      },
+      {
+        id: 2,
+        name: "Savings",
+        kind: "savings",
+        currency: "EUR",
+        archived: false,
+        overflowAccountId: 3,
+      },
     ]);
     expect(view.categories).toEqual([{ id: 7, name: "Groceries" }]);
   });
@@ -172,13 +200,17 @@ describe("readColumnChoices", () => {
 
   it("reads a column number, 0-based, and the answer that the file has none", () => {
     expect(
-      readColumnChoices(formOf({ typeColumn: "3", categoryColumn: "none", descriptionColumn: "0" })),
+      readColumnChoices(
+        formOf({ typeColumn: "3", categoryColumn: "none", descriptionColumn: "0" }),
+      ),
     ).toEqual({ typeColumn: 3, categoryColumn: null, descriptionColumn: 0 });
   });
 
   it("leaves to the detection anything that is not a column number", () => {
     expect(
-      readColumnChoices(formOf({ typeColumn: "-1", paymentModeColumn: "1e3", categoryColumn: "9999" })),
+      readColumnChoices(
+        formOf({ typeColumn: "-1", paymentModeColumn: "1e3", categoryColumn: "9999" }),
+      ),
     ).toEqual({});
   });
 });

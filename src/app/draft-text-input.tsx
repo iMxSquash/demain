@@ -68,7 +68,13 @@ export function DraftTextInput({
       const isPaste = PASTE_INPUT_TYPES.has(event.inputType);
       const data = isPaste ? (event.dataTransfer?.getData("text/plain") ?? "") : (event.data ?? "");
       const start = input.selectionStart ?? input.value.length;
-      const character = refusedCharacter(isDraft, input.value, data, start, input.selectionEnd ?? start);
+      const character = refusedCharacter(
+        isDraft,
+        input.value,
+        data,
+        start,
+        input.selectionEnd ?? start,
+      );
       if (character === undefined) {
         setRefused(null);
         return;

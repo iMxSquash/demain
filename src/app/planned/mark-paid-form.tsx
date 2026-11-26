@@ -86,7 +86,10 @@ function focusLater(element: HTMLElement | null | undefined): void {
 }
 
 // The button is unmounted while the surplus step shows: once Cancel brings it back, it takes the focus.
-function useFocusOnCancel(state: MarkPaidFormState | null, buttonRef: RefObject<HTMLButtonElement | null>): void {
+function useFocusOnCancel(
+  state: MarkPaidFormState | null,
+  buttonRef: RefObject<HTMLButtonElement | null>,
+): void {
   useEffect(() => {
     if (state?.status === "cancelled") buttonRef.current?.focus();
   }, [state, buttonRef]);
@@ -102,8 +105,15 @@ function RefusalMessage({ message }: { message: string }) {
 }
 
 /** A refusal that no visible field explains: a chosen surplus account, or a planned value. */
-function Refusal({ state, visibleFields }: { state: MarkPaidFormState | null; visibleFields: readonly string[] }) {
-  if (state?.status !== "error" || state.field === undefined || visibleFields.includes(state.field)) return null;
+function Refusal({
+  state,
+  visibleFields,
+}: {
+  state: MarkPaidFormState | null;
+  visibleFields: readonly string[];
+}) {
+  if (state?.status !== "error" || state.field === undefined || visibleFields.includes(state.field))
+    return null;
   return <RefusalMessage message={state.message} />;
 }
 
@@ -143,7 +153,9 @@ export function MarkPaidCardForm({
 }: MarkPaidCardFormProps) {
   const baseId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [state, formAction, isPending] = useMarkPaid(() => focusLater(document.getElementById(focusAfterId)));
+  const [state, formAction, isPending] = useMarkPaid(() =>
+    focusLater(document.getElementById(focusAfterId)),
+  );
   const formRef = useFocusFirstError(state?.status === "error" ? state : null);
   useFocusOnCancel(state, buttonRef);
   const values = state?.values ?? initialValues;
@@ -211,7 +223,13 @@ interface MarkPaidButtonProps extends MarkPaidTarget {
  * The one-click button of an occurrence in the calendar (DESIGN section 18, "Actions on an
  * occurrence"). A planned transfer above a ceiling shows the surplus step in its place.
  */
-export function MarkPaidButton({ itemId, nominalDate, text, values, onRecorded }: MarkPaidButtonProps) {
+export function MarkPaidButton({
+  itemId,
+  nominalDate,
+  text,
+  values,
+  onRecorded,
+}: MarkPaidButtonProps) {
   const [state, formAction, isPending] = useMarkPaid(onRecorded);
   const buttonRef = useRef<HTMLButtonElement>(null);
   useFocusOnCancel(state, buttonRef);

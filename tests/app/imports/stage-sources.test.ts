@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  ColumnChoiceFields,
-  StagedFile,
-} from "../../../src/app/imports/import-form-data";
+import type { ColumnChoiceFields, StagedFile } from "../../../src/app/imports/import-form-data";
 import { stageSources, stagingForm } from "../../../src/app/imports/stage-sources";
 import { readMappingFields } from "../../../src/app/imports/import-form-data";
 import type { CsvMapping } from "../../../src/domain/import-csv";

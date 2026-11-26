@@ -4,11 +4,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  AccountNotFoundError,
-  archiveAccount,
-  createAccount,
-} from "../../src/ledger/accounts";
+import { AccountNotFoundError, archiveAccount, createAccount } from "../../src/ledger/accounts";
 import {
   BalanceAssertionNotFoundError,
   BalanceAssertionOnArchivedAccountError,
@@ -20,11 +16,7 @@ import {
   saveBalanceAssertion,
 } from "../../src/ledger/balance-assertions";
 import { createTransaction } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const CHECKING_INPUT = {
   name: "Checking",
@@ -94,10 +86,26 @@ describe("balance assertions", () => {
     const checking = createAccount(db, CHECKING_INPUT);
     const savings = createAccount(db, { ...CHECKING_INPUT, name: "Livret A", kind: "savings" });
 
-    const first = saveBalanceAssertion(db, { accountId: checking.id, date: "2026-01-31", amount: 100 });
-    const again = saveBalanceAssertion(db, { accountId: checking.id, date: "2026-01-31", amount: 200 });
-    const otherDay = saveBalanceAssertion(db, { accountId: checking.id, date: "2026-02-28", amount: 200 });
-    const otherAccount = saveBalanceAssertion(db, { accountId: savings.id, date: "2026-01-31", amount: 200 });
+    const first = saveBalanceAssertion(db, {
+      accountId: checking.id,
+      date: "2026-01-31",
+      amount: 100,
+    });
+    const again = saveBalanceAssertion(db, {
+      accountId: checking.id,
+      date: "2026-01-31",
+      amount: 200,
+    });
+    const otherDay = saveBalanceAssertion(db, {
+      accountId: checking.id,
+      date: "2026-02-28",
+      amount: 200,
+    });
+    const otherAccount = saveBalanceAssertion(db, {
+      accountId: savings.id,
+      date: "2026-01-31",
+      amount: 200,
+    });
 
     expect([first, again, otherDay, otherAccount].map((saved) => saved.replaced)).toEqual([
       false,
@@ -139,8 +147,16 @@ describe("balance assertions", () => {
     it("lists the assertions of the active accounts only, oldest first", () => {
       const active = createAccount(db, CHECKING_INPUT);
       const closed = createAccount(db, { ...CHECKING_INPUT, name: "Old", openingBalance: 0 });
-      const later = saveBalanceAssertion(db, { accountId: active.id, date: "2026-02-28", amount: 5627 });
-      const earlier = saveBalanceAssertion(db, { accountId: active.id, date: "2026-01-31", amount: 5000 });
+      const later = saveBalanceAssertion(db, {
+        accountId: active.id,
+        date: "2026-02-28",
+        amount: 5627,
+      });
+      const earlier = saveBalanceAssertion(db, {
+        accountId: active.id,
+        date: "2026-01-31",
+        amount: 5000,
+      });
       saveBalanceAssertion(db, { accountId: closed.id, date: "2026-01-31", amount: 0 });
       archiveAccount(db, closed.id, "2026-06-15");
 
@@ -243,7 +259,10 @@ describe("balance assertions", () => {
         listAllBalanceAssertions(db).map((entry) => [entry.accountId, entry]),
       );
 
-      expect(byAccount.get(active.id)).toMatchObject({ accountName: "Checking", accountArchived: false });
+      expect(byAccount.get(active.id)).toMatchObject({
+        accountName: "Checking",
+        accountArchived: false,
+      });
       expect(byAccount.get(closed.id)).toMatchObject({ accountName: "Old", accountArchived: true });
     });
 

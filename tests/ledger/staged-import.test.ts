@@ -22,11 +22,7 @@ import { listImportBatches } from "../../src/ledger/imports";
 import { commitDrafts } from "../../src/ledger/staged-import";
 import { getMonthlySynthesis } from "../../src/ledger/synthesis";
 import { createTransaction, listTransactions } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const NOW = new Date("2026-03-01T10:00:00Z");
 const TODAY = "2026-03-01";
@@ -87,15 +83,11 @@ describe("commitDrafts", () => {
       newCount: 2,
       duplicateCount: 0,
     });
-    expect(
-      listTransactions(db).map((t) => [t.date, t.label, t.amount]),
-    ).toEqual([
+    expect(listTransactions(db).map((t) => [t.date, t.label, t.amount])).toEqual([
       ["2026-02-01", "CARD SHOP", -1_250],
       ["2026-02-05", "SALARY", 114_388],
     ]);
-    expect(listImportBatches(db, accountId).map((b) => b.fileName)).toEqual([
-      "2026-02.csv",
-    ]);
+    expect(listImportBatches(db, accountId).map((b) => b.fileName)).toEqual(["2026-02.csv"]);
   });
 
   it("records nothing and names every row that is still wrong", () => {
@@ -120,8 +112,7 @@ describe("commitDrafts", () => {
 
   describe("an explicit type against the sign of the amount", () => {
     const expense: RowDetails = { ...detailsFromSign(-1), type: "expense" };
-    const against = (amount: string) =>
-      draft({ label: "RENT", amount, details: expense });
+    const against = (amount: string) => draft({ label: "RENT", amount, details: expense });
 
     it("records the sign of the type and recognizes the same file the second time", () => {
       const first = commit([against("+50,00")]);
@@ -145,10 +136,7 @@ describe("commitDrafts", () => {
   it("ignores the rows already in the account, as an import does", () => {
     commit([draft()]);
 
-    const second = commit(
-      [draft(), draft({ label: "BAKERY", amount: "-3,20" })],
-      "again.csv",
-    );
+    const second = commit([draft(), draft({ label: "BAKERY", amount: "-3,20" })], "again.csv");
 
     expect(second).toMatchObject({
       status: "done",
@@ -391,7 +379,10 @@ describe("commitDrafts with the details of a review", () => {
     it("writes neither the link nor the new account when the ledger blocks the file", () => {
       const result = commitWith(
         [{ accountId: A_ID, target: { kind: "new", name: "Spare" } }],
-        [savings(), savings({ label: "BAD" }, { categoryId: 999, type: "expense", savingsAccountId: null })],
+        [
+          savings(),
+          savings({ label: "BAD" }, { categoryId: 999, type: "expense", savingsAccountId: null }),
+        ],
       );
 
       expect(result.status).toBe("blocked");
@@ -411,22 +402,34 @@ describe("commitDrafts with the details of a review", () => {
     };
 
     it.each([
-      ["loops back to the account", "update accounts set overflow_account_id = 2 where id = 3", "overflowChainLoop"],
+      [
+        "loops back to the account",
+        "update accounts set overflow_account_id = 2 where id = 3",
+        "overflowChainLoop",
+      ],
       ["is archived", "update accounts set archived = 1 where id = 3", "overflowAccountArchived"],
-      ["has another currency", "update accounts set currency = 'USD' where id = 3", "overflowAccountCurrencyMismatch"],
-    ])("refuses the whole import, and writes nothing, when the account chosen %s", (_name, statement, key) => {
-      db.$client.exec(statement);
+      [
+        "has another currency",
+        "update accounts set currency = 'USD' where id = 3",
+        "overflowAccountCurrencyMismatch",
+      ],
+    ])(
+      "refuses the whole import, and writes nothing, when the account chosen %s",
+      (_name, statement, key) => {
+        db.$client.exec(statement);
 
-      expect(refusal(() => commitWith([chooseB])).ref.key).toBe(key);
+        expect(refusal(() => commitWith([chooseB])).ref.key).toBe(key);
 
-      expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
-      expect(listTransactions(db)).toEqual([]);
-      expect(listImportBatches(db, CHECKING_ID)).toEqual([]);
-    });
+        expect(getAccount(db, A_ID).overflowAccountId).toBeNull();
+        expect(listTransactions(db)).toEqual([]);
+        expect(listImportBatches(db, CHECKING_ID)).toEqual([]);
+      },
+    );
 
     it("refuses the whole import when the new account has no name, and writes nothing", () => {
       expect(
-        refusal(() => commitWith([{ accountId: A_ID, target: { kind: "new", name: " " } }])).ref.key,
+        refusal(() => commitWith([{ accountId: A_ID, target: { kind: "new", name: " " } }])).ref
+          .key,
       ).toBe("accountNameRequired");
 
       expect(listTransactions(db)).toEqual([]);
@@ -441,7 +444,12 @@ describe("commitDrafts with the details of a review", () => {
         depositCeiling: 100_000,
         overflowAccountId: B_ID,
       });
-      const other = createAccount(db, { ...ACCOUNT, name: "Other", kind: "savings", openingBalance: 0 });
+      const other = createAccount(db, {
+        ...ACCOUNT,
+        name: "Other",
+        kind: "savings",
+        openingBalance: 0,
+      });
 
       const error = refusal(() =>
         commitWith([{ accountId: A_ID, target: { kind: "existing", id: other.id } }]),
@@ -453,7 +461,9 @@ describe("commitDrafts with the details of a review", () => {
 
     it("refuses the account that receives the file", () => {
       expect(
-        refusal(() => commitWith([{ accountId: A_ID, target: { kind: "existing", id: CHECKING_ID } }])).ref.key,
+        refusal(() =>
+          commitWith([{ accountId: A_ID, target: { kind: "existing", id: CHECKING_ID } }]),
+        ).ref.key,
       ).toBe("importOverflowIsReceiving");
     });
   });
@@ -469,19 +479,20 @@ describe("commitDrafts with the details of a review", () => {
 
   it.each([
     ["archived", "update accounts set archived = 1 where id = 2", "importSavingsAccountArchived"],
-    ["not savings", "update accounts set kind = 'other' where id = 2", "importSavingsAccountNotSavings"],
-  ])(
-    "is blocked, and writes nothing, when the savings account is %s",
-    (_name, statement, key) => {
-      db.$client.exec(statement);
+    [
+      "not savings",
+      "update accounts set kind = 'other' where id = 2",
+      "importSavingsAccountNotSavings",
+    ],
+  ])("is blocked, and writes nothing, when the savings account is %s", (_name, statement, key) => {
+    db.$client.exec(statement);
 
-      expect(commit([savings()])).toEqual({
-        status: "blocked",
-        issues: [{ kind: "rowInvalid", index: 0, ref: { key } }],
-      });
-      expect(listTransactions(db)).toEqual([]);
-    },
-  );
+    expect(commit([savings()])).toEqual({
+      status: "blocked",
+      issues: [{ kind: "rowInvalid", index: 0, ref: { key } }],
+    });
+    expect(listTransactions(db)).toEqual([]);
+  });
 
   it("imports onto an account that already holds transactions", () => {
     createTransaction(db, {

@@ -60,7 +60,9 @@ describe("TrajectoryChart on the server", () => {
   it("is one named tab stop, described by its hint, with a polite live region", () => {
     const markup = render();
 
-    expect(markup).toMatch(/role="group"[^>]*aria-label="Month-end balances"|aria-label="Month-end balances"[^>]*role="group"/);
+    expect(markup).toMatch(
+      /role="group"[^>]*aria-label="Month-end balances"|aria-label="Month-end balances"[^>]*role="group"/,
+    );
     expect(markup).toMatch(/tabindex="0"/);
     const hintId = markup.match(/aria-describedby="([^"]+)"/)?.[1];
     expect(markup).toContain(`id="${hintId}"`);
@@ -103,7 +105,12 @@ describe("TrajectoryChart on the server", () => {
 
 describe("TrajectoryTable on the server", () => {
   const markup = renderToString(
-    createElement(TrajectoryTable, { months: MONTHS, todayIndex: 2, series: SERIES, text: TABLE_TEXT }),
+    createElement(TrajectoryTable, {
+      months: MONTHS,
+      todayIndex: 2,
+      series: SERIES,
+      text: TABLE_TEXT,
+    }),
   );
 
   it("has one row per month the chart draws, each month as a time element", () => {
@@ -132,14 +139,25 @@ describe("RealChartView on the server", () => {
   };
   const REAL_KEYS = ["2025-11", "2025-12", "2026-01", "2026-02", "2026-03"];
   const PLANNED_KEYS = [
-    "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09",
-    "2026-10", "2026-11", "2026-12", "2027-01", "2027-02", "2027-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08",
+    "2026-09",
+    "2026-10",
+    "2026-11",
+    "2026-12",
+    "2027-01",
+    "2027-02",
+    "2027-03",
   ];
   // The checking series dips lower in the real past than anywhere planned, and its
   // planned minimum moves from the 2nd planned month to the 9th as the horizon grows.
   const CHECKING_REAL = [200_000, -900_000, 200_000, 200_000, 200_000];
   const CHECKING_PLANNED = [
-    300_000, 150_000, 400_000, 350_000, 360_000, 370_000, 380_000, 50_000, 390_000, 400_000, 410_000, 420_000,
+    300_000, 150_000, 400_000, 350_000, 360_000, 370_000, 380_000, 50_000, 390_000, 400_000,
+    410_000, 420_000,
   ];
   const labelOf = (value: number) => (value === -900_000 ? "REAL-LOW" : `V${value}`);
 
@@ -147,7 +165,10 @@ describe("RealChartView on the server", () => {
     return { key, label: `label-${key}`, tickLabel: `tick-${key}` };
   }
 
-  function viewProps(plannedCount: number, overrides: Partial<RealChartViewProps> = {}): RealChartViewProps {
+  function viewProps(
+    plannedCount: number,
+    overrides: Partial<RealChartViewProps> = {},
+  ): RealChartViewProps {
     const keys = [...REAL_KEYS, ...PLANNED_KEYS.slice(0, plannedCount)];
     const checking = [...CHECKING_REAL, ...CHECKING_PLANNED.slice(0, plannedCount)];
     return {
@@ -158,7 +179,13 @@ describe("RealChartView on the server", () => {
       months: keys.map(monthOf),
       todayIndex: REAL_KEYS.length - 1,
       series: [
-        { id: "checking", label: "Checking", tone: "primary", values: checking, valueLabels: checking.map(labelOf) },
+        {
+          id: "checking",
+          label: "Checking",
+          tone: "primary",
+          values: checking,
+          valueLabels: checking.map(labelOf),
+        },
         {
           id: "savings",
           label: "Savings",

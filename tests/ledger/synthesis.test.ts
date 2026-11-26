@@ -6,15 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { archiveAccount, createAccount } from "../../src/ledger/accounts";
 import { getMonthlySynthesis } from "../../src/ledger/synthesis";
-import {
-  createTransaction,
-  createTransfer,
-} from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { createTransaction, createTransfer } from "../../src/ledger/transactions";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const ACCOUNT = {
   currency: "EUR",
@@ -94,10 +87,7 @@ describe("getMonthlySynthesis", () => {
     });
 
     expect(january?.net).toBe(900);
-    expect(january?.balances.map((entry) => entry.accountId)).toEqual([
-      closed.id,
-      kept.id,
-    ]);
+    expect(january?.balances.map((entry) => entry.accountId)).toEqual([closed.id, kept.id]);
   });
 
   it("reproduces both months of the worked example from the stored data", () => {

@@ -16,10 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ImportsPage() {
-  const [t, common] = await Promise.all([
-    getTranslations("imports"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("imports"), getTranslations("common")]);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
@@ -53,5 +50,7 @@ async function ImportSection() {
   const { view, assertionSnapshot, enteredPayments } = await readImportContext();
 
   if (view.accounts.length === 0) return <p>{t("noAccount")}</p>;
-  return <ImportForm {...view} assertionSnapshot={assertionSnapshot} enteredPayments={enteredPayments} />;
+  return (
+    <ImportForm {...view} assertionSnapshot={assertionSnapshot} enteredPayments={enteredPayments} />
+  );
 }

@@ -852,7 +852,10 @@ describe("marking a due occurrence as paid", () => {
   function statusOf(itemId: number, nominalDate: string) {
     const item = getPlannedItem(db, itemId);
     const links = listTransactions(db)
-      .filter((transaction) => transaction.plannedItemId === itemId && transaction.occurrenceDate !== null)
+      .filter(
+        (transaction) =>
+          transaction.plannedItemId === itemId && transaction.occurrenceDate !== null,
+      )
       .map((transaction) => ({
         transactionId: transaction.id,
         occurrenceDate: transaction.occurrenceDate!,
@@ -924,7 +927,12 @@ describe("marking a due occurrence as paid", () => {
     );
 
     expect(listTransactions(db)).toEqual([
-      expect.objectContaining({ kind: "income", amount: 245_000, categoryId: null, categoryFromPlannedItem: false }),
+      expect.objectContaining({
+        kind: "income",
+        amount: 245_000,
+        categoryId: null,
+        categoryFromPlannedItem: false,
+      }),
     ]);
   });
 
@@ -933,7 +941,10 @@ describe("marking a due occurrence as paid", () => {
     const occurrence = { plannedItemId: item.id, nominalDate: "2026-03-31" };
 
     markOccurrencePaid(db, { ...occurrence, date: "2026-03-08", amount: 10_000 }, TODAY);
-    expect(statusOf(item.id, "2026-03-31")).toMatchObject({ status: "partial", remaining: -20_000 });
+    expect(statusOf(item.id, "2026-03-31")).toMatchObject({
+      status: "partial",
+      remaining: -20_000,
+    });
 
     markOccurrencePaid(db, { ...occurrence, date: "2026-03-10", amount: 20_000 }, TODAY);
     expect(statusOf(item.id, "2026-03-31")).toMatchObject({ status: "confirmed", remaining: 0 });
@@ -942,7 +953,12 @@ describe("marking a due occurrence as paid", () => {
 
   it("refuses a settled, a cancelled or an unknown occurrence", () => {
     const item = rentItem();
-    const march = { plannedItemId: item.id, nominalDate: "2026-03-05", date: "2026-03-05", amount: 65_000 };
+    const march = {
+      plannedItemId: item.id,
+      nominalDate: "2026-03-05",
+      date: "2026-03-05",
+      amount: 65_000,
+    };
     markOccurrencePaid(db, march, TODAY);
     db.insert(occurrenceOverrides)
       .values({ plannedItemId: item.id, nominalDate: "2026-04-05", status: "cancelled" })
@@ -1063,14 +1079,24 @@ describe("marking a due occurrence as paid", () => {
           plannedItemId: item.id,
           occurrenceDate: "2026-03-10",
         }),
-        expect.objectContaining({ accountId: savingsId, amount: 20_000, paymentMode: "transfer", ...NO_LINK }),
+        expect.objectContaining({
+          accountId: savingsId,
+          amount: 20_000,
+          paymentMode: "transfer",
+          ...NO_LINK,
+        }),
       ]);
       expect(statusOf(item.id, "2026-03-10")?.status).toBe("confirmed");
     });
 
     it("writes nothing and asks for a decision when the ceiling is reached", () => {
       const item = savingsTransfer(80_000);
-      const request = { plannedItemId: item.id, nominalDate: "2026-03-10", date: "2026-03-10", amount: 80_000 };
+      const request = {
+        plannedItemId: item.id,
+        nominalDate: "2026-03-10",
+        date: "2026-03-10",
+        amount: 80_000,
+      };
 
       const error = catchError(() => markOccurrencePaid(db, request, TODAY));
 
@@ -1080,12 +1106,19 @@ describe("marking a due occurrence as paid", () => {
 
     it("deposits the room only when asked, and settles the occurrence", () => {
       const item = savingsTransfer(80_000);
-      const request = { plannedItemId: item.id, nominalDate: "2026-03-10", date: "2026-03-10", amount: 80_000 };
+      const request = {
+        plannedItemId: item.id,
+        nominalDate: "2026-03-10",
+        date: "2026-03-10",
+        amount: 80_000,
+      };
 
       const result = markOccurrencePaid(db, request, TODAY, { kind: "room-only" });
 
       expect(result).toEqual({ unplaced: 30_000, ceilingExcess: 0 });
-      expect(listTransactions(db).map(({ amount, plannedItemId }) => ({ amount, plannedItemId }))).toEqual([
+      expect(
+        listTransactions(db).map(({ amount, plannedItemId }) => ({ amount, plannedItemId })),
+      ).toEqual([
         { amount: -50_000, plannedItemId: item.id },
         { amount: 50_000, plannedItemId: null },
       ]);
@@ -1132,10 +1165,23 @@ describe("listing the due occurrences", () => {
     const { due, soon } = listDueOccurrences(db, TODAY);
 
     expect(due).toEqual([
-      expect.objectContaining({ plannedItemId: water.id, name: "Water", kind: "expense", status: "overdue", amount: -2_990 }),
-      expect.objectContaining({ plannedItemId: internet.id, kind: "income", status: "planned", amount: 1_500 }),
+      expect.objectContaining({
+        plannedItemId: water.id,
+        name: "Water",
+        kind: "expense",
+        status: "overdue",
+        amount: -2_990,
+      }),
+      expect.objectContaining({
+        plannedItemId: internet.id,
+        kind: "income",
+        status: "planned",
+        amount: 1_500,
+      }),
     ]);
-    expect(soon).toEqual([expect.objectContaining({ plannedItemId: insurance.id, date: "2026-03-19" })]);
+    expect(soon).toEqual([
+      expect.objectContaining({ plannedItemId: insurance.id, date: "2026-03-19" }),
+    ]);
   });
 
   it("leaves out a settled occurrence and an item of an archived account", () => {
@@ -1147,7 +1193,11 @@ describe("listing the due occurrences", () => {
       kind: "expense",
       label: "WATER",
     });
-    linkTransactionToOccurrence(db, { transactionId: paid.id, plannedItemId: water.id, nominalDate: "2026-03-10" });
+    linkTransactionToOccurrence(db, {
+      transactionId: paid.id,
+      plannedItemId: water.id,
+      nominalDate: "2026-03-10",
+    });
     const closedId = createAccount(db, { ...ACCOUNT_DETAILS, name: "Closed", kind: "checking" }).id;
     oneOff("Old", "2026-03-11", { accountId: closedId });
     db.$client.exec(`UPDATE accounts SET archived = 1 WHERE id = ${closedId}`);
@@ -1200,9 +1250,18 @@ describe("listing the transactions an occurrence can be linked to", () => {
   it("prefills the range with the matching window of the item around the occurrence", () => {
     const item = internetItem();
 
-    const result = listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-10" }, TODAY);
+    const result = listOccurrenceLinkCandidates(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-10" },
+      TODAY,
+    );
 
-    expect(result.occurrence).toMatchObject({ name: "Internet", date: "2026-03-10", status: "planned", amount: -2_990 });
+    expect(result.occurrence).toMatchObject({
+      name: "Internet",
+      date: "2026-03-10",
+      status: "planned",
+      amount: -2_990,
+    });
     expect(result.range).toEqual({ from: "2026-03-07", to: "2026-03-13" });
   });
 
@@ -1217,7 +1276,11 @@ describe("listing the transactions an occurrence can be linked to", () => {
       amount: -30_000,
     });
 
-    const result = listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-31" }, TODAY);
+    const result = listOccurrenceLinkCandidates(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-31" },
+      TODAY,
+    );
 
     expect(result.range).toEqual({ from: "2026-03-01", to: "2026-03-31" });
   });
@@ -1230,9 +1293,17 @@ describe("listing the transactions an occurrence can be linked to", () => {
     enter("2026-03-11", -2_990, "INTERNET JOINT", jointId);
     enter("2026-03-20", -2_990, "OUT OF RANGE");
     const linked = enter("2026-03-09", -2_990, "LINKED");
-    linkTransactionToOccurrence(db, { transactionId: linked.id, plannedItemId: internetItem().id, nominalDate: "2026-03-10" });
+    linkTransactionToOccurrence(db, {
+      transactionId: linked.id,
+      plannedItemId: internetItem().id,
+      nominalDate: "2026-03-10",
+    });
 
-    const result = listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-10" }, TODAY);
+    const result = listOccurrenceLinkCandidates(
+      db,
+      { plannedItemId: item.id, nominalDate: "2026-03-10" },
+      TODAY,
+    );
 
     expect(result.transactions.map(({ id }) => id)).toEqual([newer.id, older.id]);
   });
@@ -1267,7 +1338,11 @@ describe("listing the transactions an occurrence can be linked to", () => {
 
     expect(result.transactions.map(({ id }) => id)).toEqual([kept.id]);
     for (const transaction of result.transactions) {
-      linkByHand(db, { transactionId: transaction.id, plannedItemId: item.id, nominalDate: "2027-05-10" }, TODAY);
+      linkByHand(
+        db,
+        { transactionId: transaction.id, plannedItemId: item.id, nominalDate: "2027-05-10" },
+        TODAY,
+      );
     }
   });
 
@@ -1275,7 +1350,13 @@ describe("listing the transactions an occurrence can be linked to", () => {
     const item = internetItem();
 
     expect(
-      catchError(() => listOccurrenceLinkCandidates(db, { plannedItemId: item.id, nominalDate: "2026-03-11" }, TODAY)),
+      catchError(() =>
+        listOccurrenceLinkCandidates(
+          db,
+          { plannedItemId: item.id, nominalDate: "2026-03-11" },
+          TODAY,
+        ),
+      ),
     ).toMatchObject({ ref: { key: "markPaidOccurrenceUnknown" } });
   });
 
@@ -1284,7 +1365,11 @@ describe("listing the transactions an occurrence can be linked to", () => {
     const other = enter("2026-03-10", -2_990, "INTERNET", jointId);
 
     const error = catchError(() =>
-      linkByHand(db, { transactionId: other.id, plannedItemId: item.id, nominalDate: "2026-03-10" }, TODAY),
+      linkByHand(
+        db,
+        { transactionId: other.id, plannedItemId: item.id, nominalDate: "2026-03-10" },
+        TODAY,
+      ),
     );
 
     expect(error).toBeInstanceOf(PlannedLinkError);

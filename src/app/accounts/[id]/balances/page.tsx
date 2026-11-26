@@ -61,11 +61,7 @@ const readAccountBalances = cache(async (params: AccountParams) => {
 
 // The back link, the intro and the headings show at once; the title (the name of the account), the
 // form and the table wait for the database, each on its own.
-export default async function BalanceAssertionsPage({
-  params,
-}: {
-  params: AccountParams;
-}) {
+export default async function BalanceAssertionsPage({ params }: { params: AccountParams }) {
   const [t, accountsT] = await Promise.all([
     getTranslations("balances"),
     getTranslations("accounts"),
@@ -160,9 +156,7 @@ async function AssertionList({ params }: { params: AccountParams }) {
   if (assertions.length === 0) {
     return (
       <EmptyState
-        action={
-          account.archived ? undefined : { href: "#new-heading", label: t("emptyAction") }
-        }
+        action={account.archived ? undefined : { href: "#new-heading", label: t("emptyAction") }}
       >
         {t("empty")}
       </EmptyState>

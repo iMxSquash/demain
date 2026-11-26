@@ -23,8 +23,7 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const values = state?.values;
-  const errorOf = (field: VocabularyField) =>
-    state?.field === field ? state.message : undefined;
+  const errorOf = (field: VocabularyField) => (state?.field === field ? state.message : undefined);
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
@@ -46,11 +45,7 @@ export function VocabularyForm({ action }: VocabularyFormProps) {
       </FormField>
 
       <FormField id="vocabulary-type" label={t("type")} error={errorOf("type")}>
-        <Select
-          id="vocabulary-type"
-          name="type"
-          defaultValue={values?.type ?? "income"}
-        >
+        <Select id="vocabulary-type" name="type" defaultValue={values?.type ?? "income"}>
           {MOVEMENT_TYPES.map((type) => (
             <option key={type} value={type}>
               {t(`types.${type}`)}

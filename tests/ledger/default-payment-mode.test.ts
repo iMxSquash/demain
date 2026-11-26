@@ -9,11 +9,7 @@ import {
   getDefaultPaymentMode,
   setDefaultPaymentMode,
 } from "../../src/ledger/default-payment-mode";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { settings } from "../../src/storage/schema";
 
 describe("default payment mode", () => {
@@ -43,9 +39,7 @@ describe("default payment mode", () => {
   });
 
   it("falls back to card when the stored value is unknown", () => {
-    db.insert(settings)
-      .values({ key: "default_payment_mode", value: "cheque" })
-      .run();
+    db.insert(settings).values({ key: "default_payment_mode", value: "cheque" }).run();
 
     expect(getDefaultPaymentMode(db)).toBe("card");
   });

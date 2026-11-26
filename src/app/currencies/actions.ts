@@ -96,9 +96,7 @@ export async function deleteExchangeRateAction(id: number): Promise<void> {
   refreshData();
 }
 
-export async function setEcbFetchEnabledAction(
-  enabled: boolean,
-): Promise<void> {
+export async function setEcbFetchEnabledAction(enabled: boolean): Promise<void> {
   await requireSession();
   await runWithNotice(() => withDatabase((db) => setEcbFetchEnabled(db, enabled)), {
     success: enabled ? "ecbFetchTurnedOn" : "ecbFetchTurnedOff",

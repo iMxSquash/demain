@@ -8,15 +8,18 @@ type SearchParam = string | string[] | undefined;
 /** The calendar view a "Link a transaction" page goes back to. */
 export type CalendarBackView = "grid" | "lines";
 
-
 // A bound the user cleared lists everything on that side.
 const NO_LOWER_BOUND = "0001-01-01";
 const NO_UPPER_BOUND = "9999-12-31";
 
-const single = (value: SearchParam): string | undefined => (typeof value === "string" ? value : undefined);
+const single = (value: SearchParam): string | undefined =>
+  typeof value === "string" ? value : undefined;
 
 /** The page of an occurrence: `item` and `date` name it, `back` the view the user came from. */
-export function linkHref({ plannedItemId, nominalDate }: OccurrenceRef, back: CalendarBackView): string {
+export function linkHref(
+  { plannedItemId, nominalDate }: OccurrenceRef,
+  back: CalendarBackView,
+): string {
   return `${LINK_ROUTE}?${new URLSearchParams({ item: String(plannedItemId), date: nominalDate, back })}`;
 }
 
@@ -33,7 +36,8 @@ export function parseBackView(value: unknown): CalendarBackView {
 export function parseOccurrenceRef(item: unknown, date: unknown): OccurrenceRef | null {
   if (typeof item !== "string" || typeof date !== "string") return null;
   const plannedItemId = parseWholeNumber(item);
-  if (plannedItemId === null || plannedItemId < 1 || !Number.isSafeInteger(plannedItemId)) return null;
+  if (plannedItemId === null || plannedItemId < 1 || !Number.isSafeInteger(plannedItemId))
+    return null;
   return isCalendarDate(date) ? { plannedItemId, nominalDate: date } : null;
 }
 

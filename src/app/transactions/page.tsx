@@ -12,25 +12,14 @@ import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { getDefaultPaymentMode } from "../../ledger/default-payment-mode";
 import { listTransactions, type Transaction } from "../../ledger/transactions";
-import {
-  getLastUsedAccountId,
-  listLabelSuggestions,
-} from "../../ledger/transaction-suggestions";
+import { getLastUsedAccountId, listLabelSuggestions } from "../../ledger/transaction-suggestions";
 import { withDatabase } from "../../storage/with-database";
 import { addDays } from "../../components/date-picker-keyboard";
 import { DataTable, EmptyState, Pill } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
-import {
-  SkeletonDataTable,
-  SkeletonFields,
-  SkeletonRegion,
-} from "../../components/skeleton";
+import { SkeletonDataTable, SkeletonFields, SkeletonRegion } from "../../components/skeleton";
 import { ConfirmActionButton } from "../confirm-action-button";
-import {
-  createTransactionAction,
-  createTransferAction,
-  deleteTransactionAction,
-} from "./actions";
+import { createTransactionAction, createTransferAction, deleteTransactionAction } from "./actions";
 import { createCategoryAction } from "../categories/actions";
 import { AddTransactionForm } from "./add-transaction-form";
 import { addTransactionDefaults } from "./add-transaction-defaults";
@@ -57,7 +46,9 @@ async function readTransactionsFromDatabase() {
   tagDataRead();
   return withDatabase((db) => {
     const accounts = listAccounts(db, { includeArchived: true });
-    const openAccountIds = accounts.filter((account) => !account.archived).map((account) => account.id);
+    const openAccountIds = accounts
+      .filter((account) => !account.archived)
+      .map((account) => account.id);
     return {
       accounts,
       categories: listCategories(db, { includeArchived: true }),
@@ -114,7 +105,9 @@ function TransactionsHead() {
         <th scope="col">{t("columns.type")}</th>
         <th scope="col">{t("columns.category")}</th>
         <th scope="col">{t("columns.paymentMode")}</th>
-        <th scope="col" className="text-right">{t("columns.amount")}</th>
+        <th scope="col" className="text-right">
+          {t("columns.amount")}
+        </th>
         <th scope="col">{common("actions")}</th>
       </tr>
     </thead>
@@ -145,9 +138,7 @@ async function TransactionList() {
   ]);
   const active = accounts.filter((account) => !account.archived);
   const accountById = new Map(accounts.map((account) => [account.id, account]));
-  const categoryNameById = new Map(
-    categories.map((category) => [category.id, category.name]),
-  );
+  const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
   // A transfer never has a category, any other one waits in the queue without it.
   const categoryCell = (row: Transaction) => {
     if (row.kind === "transfer") return "";
@@ -158,9 +149,7 @@ async function TransactionList() {
   if (rows.length === 0) {
     return (
       <EmptyState
-        action={
-          active.length === 0 ? undefined : { href: "#new-heading", label: t("emptyAction") }
-        }
+        action={active.length === 0 ? undefined : { href: "#new-heading", label: t("emptyAction") }}
       >
         {t("empty")}
       </EmptyState>
@@ -171,69 +160,52 @@ async function TransactionList() {
     <DataTable caption={t("caption")}>
       <TransactionsHead />
       <tbody>
-      {rows.map((row) => {
-        const account = accountById.get(row.accountId);
-        if (account === undefined) {
-          throw new Error(
-            `Transaction ${row.id} points to unknown account ${row.accountId}`,
+        {rows.map((row) => {
+          const account = accountById.get(row.accountId);
+          if (account === undefined) {
+            throw new Error(`Transaction ${row.id} points to unknown account ${row.accountId}`);
+          }
+          return (
+            <tr key={row.id}>
+              <td className="tabular-nums">
+                <time dateTime={row.date}>{formatCalendarDate(row.date, locale)}</time>
+              </td>
+              <td>{account.name}</td>
+              <th scope="row">{row.label}</th>
+              <td>{t(`kinds.${row.kind}`)}</td>
+              <td>{categoryCell(row)}</td>
+              <td>{row.paymentMode === null ? "" : t(`paymentModes.${row.paymentMode}`)}</td>
+              <td className="text-right">{formatAmount(row.amount, account.currency, locale)}</td>
+              <td>
+                {account.archived ? (
+                  <Pill>{t("archivedAccount")}</Pill>
+                ) : (
+                  <div className="flex gap-2">
+                    {row.kind === "transfer" ? null : (
+                      <Link
+                        href={`/transactions/${row.id}/edit`}
+                        className="inline-flex min-h-11 items-center px-2 underline"
+                      >
+                        {t("edit")}
+                        <span className="sr-only"> {row.label}</span>
+                      </Link>
+                    )}
+                    <ConfirmActionButton
+                      action={deleteTransactionAction.bind(null, row.id)}
+                      label={row.kind === "transfer" ? t("deleteTransfer") : t("delete")}
+                      subject={row.label}
+                      title={t("deleteTitle", { label: row.label })}
+                      message={
+                        row.kind === "transfer" ? t("deleteTransferMessage") : t("deleteMessage")
+                      }
+                      confirmLabel={t("deleteConfirm")}
+                    />
+                  </div>
+                )}
+              </td>
+            </tr>
           );
-        }
-        return (
-          <tr key={row.id}>
-            <td className="tabular-nums">
-              <time dateTime={row.date}>
-                {formatCalendarDate(row.date, locale)}
-              </time>
-            </td>
-            <td>{account.name}</td>
-            <th scope="row">
-              {row.label}
-            </th>
-            <td>{t(`kinds.${row.kind}`)}</td>
-            <td>{categoryCell(row)}</td>
-            <td>
-              {row.paymentMode === null
-                ? ""
-                : t(`paymentModes.${row.paymentMode}`)}
-            </td>
-            <td className="text-right">
-              {formatAmount(row.amount, account.currency, locale)}
-            </td>
-            <td>
-              {account.archived ? (
-                <Pill>{t("archivedAccount")}</Pill>
-              ) : (
-                <div className="flex gap-2">
-                  {row.kind === "transfer" ? null : (
-                    <Link
-                      href={`/transactions/${row.id}/edit`}
-                      className="inline-flex min-h-11 items-center px-2 underline"
-                    >
-                      {t("edit")}<span className="sr-only"> {row.label}</span>
-                    </Link>
-                  )}
-                  <ConfirmActionButton
-                    action={deleteTransactionAction.bind(null, row.id)}
-                    label={
-                      row.kind === "transfer"
-                        ? t("deleteTransfer")
-                        : t("delete")
-                    }
-                    subject={row.label}
-                    title={t("deleteTitle", { label: row.label })}
-                    message={
-                      row.kind === "transfer"
-                        ? t("deleteTransferMessage")
-                        : t("deleteMessage")
-                    }
-                    confirmLabel={t("deleteConfirm")}
-                  />
-                </div>
-              )}
-            </td>
-          </tr>
-        );
-      })}
+        })}
       </tbody>
     </DataTable>
   );

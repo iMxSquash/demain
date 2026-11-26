@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  readSheetSummary,
-  readSummaryBalances,
-} from "../../src/domain/sheet-summary";
+import { readSheetSummary, readSummaryBalances } from "../../src/domain/sheet-summary";
 
 // Headers as named in DOMAIN; the figures are synthetic.
 const HEADER =
@@ -39,10 +36,7 @@ describe("readSheetSummary", () => {
 
     const result = readSheetSummary(text, OPTIONS);
 
-    expect(result.months.map((entry) => entry.month)).toEqual([
-      "2026-02",
-      "2026-08",
-    ]);
+    expect(result.months.map((entry) => entry.month)).toEqual(["2026-02", "2026-08"]);
     expect(result.months[0]).toMatchObject({
       net: 10_000,
       savingsBalance: 150_000,
@@ -59,10 +53,7 @@ describe("readSheetSummary", () => {
   });
 
   it("reports every column it does not recognize and every figure it cannot find", () => {
-    const result = readSheetSummary(
-      "Month;Final balance;Notes\nJanuary;100,00;x",
-      OPTIONS,
-    );
+    const result = readSheetSummary("Month;Final balance;Notes\nJanuary;100,00;x", OPTIONS);
 
     expect(result.issues).toEqual([
       { kind: "unrecognizedColumn", column: 2, header: "Notes" },
@@ -76,10 +67,7 @@ describe("readSheetSummary", () => {
   });
 
   it("reads nothing when the month column is missing", () => {
-    const result = readSheetSummary(
-      "Final balance;Savings\n100,00;50,00",
-      OPTIONS,
-    );
+    const result = readSheetSummary("Final balance;Savings\n100,00;50,00", OPTIONS);
 
     expect(result.months).toEqual([]);
     expect(result.issues).toContainEqual({
@@ -114,9 +102,7 @@ describe("readSheetSummary", () => {
     });
 
     expect(result.months).toEqual([]);
-    expect(result.issues).toEqual([
-      { kind: "monthYearMissing", line: 2, text: "January" },
-    ]);
+    expect(result.issues).toEqual([{ kind: "monthYearMissing", line: 2, text: "January" }]);
   });
 
   it("reports a row that is not a month, with its line, and keeps the others", () => {
@@ -125,20 +111,12 @@ describe("readSheetSummary", () => {
       OPTIONS,
     );
 
-    expect(result.months.map((entry) => entry.month)).toEqual([
-      "2026-01",
-      "2026-02",
-    ]);
-    expect(result.issues).toEqual([
-      { kind: "monthUnreadable", line: 3, text: "Total" },
-    ]);
+    expect(result.months.map((entry) => entry.month)).toEqual(["2026-01", "2026-02"]);
+    expect(result.issues).toEqual([{ kind: "monthUnreadable", line: 3, text: "Total" }]);
   });
 
   it("reports two columns that name the same figure and keeps the first", () => {
-    const result = readSheetSummary(
-      "Month;Savings;Épargne\nJanuary;1,00;2,00",
-      OPTIONS,
-    );
+    const result = readSheetSummary("Month;Savings;Épargne\nJanuary;1,00;2,00", OPTIONS);
 
     expect(result.issues).toContainEqual({
       kind: "ambiguousColumn",
@@ -149,10 +127,7 @@ describe("readSheetSummary", () => {
   });
 
   it("reports an amount it cannot read, keeps the row and leaves the figure empty", () => {
-    const result = readSheetSummary(
-      `${HEADER}\nJanuary;abc;50,00;12,00 USD;0,00;;`,
-      OPTIONS,
-    );
+    const result = readSheetSummary(`${HEADER}\nJanuary;abc;50,00;12,00 USD;0,00;;`, OPTIONS);
 
     expect(result.months[0]).toMatchObject({
       net: null,
@@ -177,11 +152,7 @@ describe("readSheetSummary", () => {
       OPTIONS,
     );
 
-    expect(result.months.map((entry) => entry.month)).toEqual([
-      "2026-01",
-      "2026-11",
-      "2026-12",
-    ]);
+    expect(result.months.map((entry) => entry.month)).toEqual(["2026-01", "2026-11", "2026-12"]);
     expect(result.months[1]).toEqual({
       month: "2026-11",
       net: null,
@@ -239,9 +210,7 @@ describe("readSummaryBalances", () => {
 
     expect(readSummaryBalances(text, OPTIONS)).toEqual({
       balances: [{ month: "2026-01", amount: null }],
-      issues: [
-        { kind: "amountUnreadable", line: 2, column: "realAccountBalance", text: "abc" },
-      ],
+      issues: [{ kind: "amountUnreadable", line: 2, column: "realAccountBalance", text: "abc" }],
     });
   });
 

@@ -29,7 +29,15 @@ describe("parseRealBalance", () => {
     expect(parseRealBalance("1 143,88", "EUR", "credit")).toBe(114_388);
   });
 
-  it.each(["-12,50", "+12,50", "\u221212,50", "\u20ac-12,50", "-\u20ac12,50", "\u20ac +12,50", "-0,00"])("refuses the typed sign of %j", (text) => {
+  it.each([
+    "-12,50",
+    "+12,50",
+    "\u221212,50",
+    "\u20ac-12,50",
+    "-\u20ac12,50",
+    "\u20ac +12,50",
+    "-0,00",
+  ])("refuses the typed sign of %j", (text) => {
     expect(() => parseRealBalance(text, "EUR", "credit")).toThrow(RealBalanceError);
     expect(() => parseRealBalance(text, "EUR", "debit")).toThrow(RealBalanceError);
   });

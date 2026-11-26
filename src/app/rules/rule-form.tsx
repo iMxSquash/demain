@@ -11,10 +11,7 @@ import type { RuleFormField, RuleFormState } from "./rule-form-data";
 import { Select } from "../../components/select";
 
 interface RuleFormProps {
-  action: (
-    previous: RuleFormState | null,
-    formData: FormData,
-  ) => Promise<RuleFormState | null>;
+  action: (previous: RuleFormState | null, formData: FormData) => Promise<RuleFormState | null>;
   /** Active accounts and categories the user may pick. */
   accounts: { id: number; name: string }[];
   categories: { id: number; name: string }[];
@@ -25,17 +22,12 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
   const [state, formAction, isPending] = useActionState(action, null);
   const formRef = useFocusFirstError(state);
   const values = state?.values;
-  const errorOf = (field: RuleFormField) =>
-    state?.field === field ? state.message : undefined;
+  const errorOf = (field: RuleFormField) => (state?.field === field ? state.message : undefined);
 
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField id="operator" label={t("operator")} error={errorOf("operator")}>
-        <Select
-          id="operator"
-          name="operator"
-          defaultValue={values?.operator ?? "contains"}
-        >
+        <Select id="operator" name="operator" defaultValue={values?.operator ?? "contains"}>
           {RULE_OPERATORS.map((operator) => (
             <option key={operator} value={operator}>
               {t(`operators.${operator}`)}
@@ -57,11 +49,7 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
       </FormField>
 
       <FormField id="accountId" label={t("account")} error={errorOf("accountId")}>
-        <Select
-          id="accountId"
-          name="accountId"
-          defaultValue={values?.accountId ?? ""}
-        >
+        <Select id="accountId" name="accountId" defaultValue={values?.accountId ?? ""}>
           <option value="">{t("allAccounts")}</option>
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
@@ -72,12 +60,7 @@ export function RuleForm({ action, accounts, categories }: RuleFormProps) {
       </FormField>
 
       <FormField id="categoryId" label={t("category")} error={errorOf("categoryId")}>
-        <Select
-          id="categoryId"
-          name="categoryId"
-          defaultValue={values?.categoryId ?? ""}
-          required
-        >
+        <Select id="categoryId" name="categoryId" defaultValue={values?.categoryId ?? ""} required>
           <option value="">{t("chooseCategory")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>

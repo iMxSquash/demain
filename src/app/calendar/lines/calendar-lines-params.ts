@@ -50,7 +50,9 @@ export function selectAccounts(
   if (single !== undefined) return { key, accountIds: [single.id], currency: single.currency };
   return {
     key: CHECKING_KEY,
-    accountIds: accounts.filter((account) => account.kind === "checking").map((account) => account.id),
+    accountIds: accounts
+      .filter((account) => account.kind === "checking")
+      .map((account) => account.id),
     currency: referenceCurrency,
   };
 }

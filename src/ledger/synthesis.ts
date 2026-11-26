@@ -1,8 +1,4 @@
-import {
-  computeMonthlySynthesis,
-  type Month,
-  type MonthlySynthesis,
-} from "../domain/synthesis";
+import { computeMonthlySynthesis, type Month, type MonthlySynthesis } from "../domain/synthesis";
 import type { AppDatabase } from "../storage/database";
 import { listAccounts } from "./accounts";
 import { listExchangeRates } from "./exchange-rates";

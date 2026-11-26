@@ -60,15 +60,11 @@ describe("parseCsv", () => {
 
 describe("detectDelimiter", () => {
   it("prefers the semicolon of French bank exports", () => {
-    expect(detectDelimiter("Date;Libelle;Montant\n01/02/2026;CB;-12,50")).toBe(
-      ";",
-    );
+    expect(detectDelimiter("Date;Libelle;Montant\n01/02/2026;CB;-12,50")).toBe(";");
   });
 
   it("detects commas and tabs", () => {
-    expect(detectDelimiter("Date,Label,Amount\n2026-02-01,CB,-12.50")).toBe(
-      ",",
-    );
+    expect(detectDelimiter("Date,Label,Amount\n2026-02-01,CB,-12.50")).toBe(",");
     expect(detectDelimiter("Date\tLabel\tAmount")).toBe("\t");
   });
 
@@ -206,11 +202,7 @@ describe("applyCsvMapping", () => {
   describe("with the decimal mark of the file", () => {
     const row = ["01/02/2026", "SHOP", "1,234"];
     const read = (mapping: Partial<CsvMapping>, cells = row) =>
-      applyCsvMapping(
-        [cells],
-        { ...SEMICOLON_MAPPING, hasHeader: false, ...mapping },
-        "EUR",
-      );
+      applyCsvMapping([cells], { ...SEMICOLON_MAPPING, hasHeader: false, ...mapping }, "EUR");
 
     it("reads a lone comma as a group separator when the mark is the point", () => {
       expect(read({ decimalMark: "." }).rows[0]?.amount).toBe(123_400);
@@ -245,12 +237,7 @@ describe("applyCsvMapping", () => {
 
 describe("suggestCsvMapping", () => {
   it("recognizes French headers", () => {
-    expect(
-      suggestCsvMapping(
-        ["Date de l'opération", "Libellé", "Débit", "Crédit"],
-        ";",
-      ),
-    ).toEqual({
+    expect(suggestCsvMapping(["Date de l'opération", "Libellé", "Débit", "Crédit"], ";")).toEqual({
       delimiter: ";",
       hasHeader: true,
       dateColumn: 0,
@@ -261,9 +248,7 @@ describe("suggestCsvMapping", () => {
   });
 
   it("recognizes English headers with a single amount column", () => {
-    expect(
-      suggestCsvMapping(["Date", "Description", "Amount"], ","),
-    ).toMatchObject({
+    expect(suggestCsvMapping(["Date", "Description", "Amount"], ",")).toMatchObject({
       dateColumn: 0,
       labelColumn: 1,
       amount: { kind: "single", column: 2 },

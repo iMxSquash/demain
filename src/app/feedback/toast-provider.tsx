@@ -3,7 +3,15 @@
 import { Check, WarningCircle, X } from "@phosphor-icons/react/ssr";
 import { AnimatePresence, m } from "motion/react";
 import { useTranslations } from "next-intl";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { Icon } from "../../components/icon";
 import { useMotion } from "../motion-provider";
@@ -110,7 +118,13 @@ function ToastItem({ notice, isRenderedByServer, onDismiss }: ToastItemProps) {
  * stay in the page from the start, because a screen reader only announces what
  * is added to a region it already knows. Errors go to the assertive one.
  */
-export function ToastProvider({ notice, children }: { notice: Notice | null; children: ReactNode }) {
+export function ToastProvider({
+  notice,
+  children,
+}: {
+  notice: Notice | null;
+  children: ReactNode;
+}) {
   const t = useTranslations("common");
   const [toasts, setToasts] = useState<Notice[]>([]);
   const [lastNoticeId, setLastNoticeId] = useState<string | null>(null);

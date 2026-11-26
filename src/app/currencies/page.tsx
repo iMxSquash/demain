@@ -63,10 +63,7 @@ async function readCurrenciesFromDatabase() {
 // The sections show their headings and their text at once and hold only the data in a `Suspense`,
 // so a slow read never delays the rest of the page.
 export default async function CurrenciesPage() {
-  const [t, common] = await Promise.all([
-    getTranslations("currencies"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("currencies"), getTranslations("common")]);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 p-8">
@@ -128,10 +125,7 @@ async function ReferenceCurrency() {
 }
 
 async function NewRate() {
-  const [timeZone, { referenceCurrency }] = await Promise.all([
-    getTimeZone(),
-    readCurrencies(),
-  ]);
+  const [timeZone, { referenceCurrency }] = await Promise.all([getTimeZone(), readCurrencies()]);
 
   return (
     <RateForm
@@ -155,7 +149,9 @@ function RatesHead() {
       <tr>
         <th scope="col">{t("columns.date")}</th>
         <th scope="col">{t("columns.pair")}</th>
-        <th scope="col" className="text-right">{t("columns.rate")}</th>
+        <th scope="col" className="text-right">
+          {t("columns.rate")}
+        </th>
         <th scope="col">{t("columns.source")}</th>
         <th scope="col">{t("columns.actions")}</th>
       </tr>
@@ -199,31 +195,29 @@ async function RateList() {
     <DataTable caption={t("caption")} regionLabel={t("regionLabel")}>
       <RatesHead />
       <tbody>
-      {rates.map((rate) => {
-        const pair = `${rate.base}/${rate.quote}`;
-        return (
-          <tr key={rate.id}>
-            <th scope="row" className="tabular-nums">
-              <time dateTime={rate.date}>{rate.date}</time>
-            </th>
-            <td>{pair}</td>
-            <td className="text-right">{formatRate(rate.rate, locale)}</td>
-            <td>
-              {rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}
-            </td>
-            <td>
-              <ConfirmActionButton
-                action={deleteExchangeRateAction.bind(null, rate.id)}
-                label={t("delete")}
-                subject={`${pair} ${rate.date}`}
-                title={t("deleteTitle", { pair, date: rate.date })}
-                message={t("deleteMessage")}
-                confirmLabel={t("deleteConfirm")}
-              />
-            </td>
-          </tr>
-        );
-      })}
+        {rates.map((rate) => {
+          const pair = `${rate.base}/${rate.quote}`;
+          return (
+            <tr key={rate.id}>
+              <th scope="row" className="tabular-nums">
+                <time dateTime={rate.date}>{rate.date}</time>
+              </th>
+              <td>{pair}</td>
+              <td className="text-right">{formatRate(rate.rate, locale)}</td>
+              <td>{rate.source === "ecb" ? t("sourceEcb") : t("sourceManual")}</td>
+              <td>
+                <ConfirmActionButton
+                  action={deleteExchangeRateAction.bind(null, rate.id)}
+                  label={t("delete")}
+                  subject={`${pair} ${rate.date}`}
+                  title={t("deleteTitle", { pair, date: rate.date })}
+                  message={t("deleteMessage")}
+                  confirmLabel={t("deleteConfirm")}
+                />
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </DataTable>
   );

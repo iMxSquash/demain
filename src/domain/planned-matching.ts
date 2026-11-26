@@ -5,7 +5,11 @@
 import { addDays } from "./calendar-date";
 import { compareDates, type SavingsMovement } from "./import-savings";
 import type { OccurrenceStatus } from "./occurrence-resolution";
-import { isProvisionCandidate, type ProvisionCandidateTransaction, type ProvisionItem } from "./provision";
+import {
+  isProvisionCandidate,
+  type ProvisionCandidateTransaction,
+  type ProvisionItem,
+} from "./provision";
 import type { DateRange } from "./recurrence";
 
 const BASIS_POINTS_DENOMINATOR = 10000;
@@ -93,7 +97,11 @@ function occurrenceKey(pair: MatchPair): string {
   return `${pair.plannedItemId}|${pair.nominalDate}`;
 }
 
-function toPair(transaction: MatchTransaction, plannedItemId: number, nominalDate: string): MatchPair {
+function toPair(
+  transaction: MatchTransaction,
+  plannedItemId: number,
+  nominalDate: string,
+): MatchPair {
   return { transactionId: transaction.id, plannedItemId, nominalDate };
 }
 
@@ -101,7 +109,10 @@ function toPair(transaction: MatchTransaction, plannedItemId: number, nominalDat
  * The dates of the transactions that can settle an occurrence: its matching window around its
  * effective date, or the period of a provision.
  */
-export function matchingWindow(occurrence: { date: string; period: DateRange | null }, windowDays: number): DateRange {
+export function matchingWindow(
+  occurrence: { date: string; period: DateRange | null },
+  windowDays: number,
+): DateRange {
   if (occurrence.period !== null) return occurrence.period;
   return { from: addDays(occurrence.date, -windowDays), to: addDays(occurrence.date, windowDays) };
 }
@@ -125,7 +136,11 @@ function isRegularCandidate(transaction: MatchTransaction, occurrence: MatchOccu
   if (transaction.accountId !== occurrence.accountId) return false;
   const window = matchingWindow({ date: occurrence.date, period: null }, occurrence.windowDays);
   if (transaction.date < window.from || transaction.date > window.to) return false;
-  return isWithinTolerance(occurrence.expectedAmount, transaction.amount, occurrence.toleranceBasisPoints);
+  return isWithinTolerance(
+    occurrence.expectedAmount,
+    transaction.amount,
+    occurrence.toleranceBasisPoints,
+  );
 }
 
 function provisionCandidates(
@@ -166,7 +181,10 @@ export function provisionLinks(
     .sort(comparePairs);
 }
 
-function createUnionFind(): { find: (key: string) => string; union: (a: string, b: string) => void } {
+function createUnionFind(): {
+  find: (key: string) => string;
+  union: (a: string, b: string) => void;
+} {
   const parents = new Map<string, string>();
   const find = (key: string): string => {
     const parent = parents.get(key);
@@ -299,7 +317,10 @@ export function findEnteredPayments<T extends EnteredPayment>(
   const byDate = [...entered].sort((a, b) => compareDates(a.date, b.date) || a.id - b.id);
   const matches = [...rows]
     .sort((a, b) => a.id - b.id)
-    .map((row) => ({ rowId: row.id, candidates: byDate.filter((entry) => isEnteredCandidate(row, entry)) }))
+    .map((row) => ({
+      rowId: row.id,
+      candidates: byDate.filter((entry) => isEnteredCandidate(row, entry)),
+    }))
     .filter(({ candidates }) => candidates.length > 0);
   const rowsPerEntry = Map.groupBy(
     matches.flatMap(({ candidates }) => candidates),
@@ -334,7 +355,11 @@ export interface DueOccurrences<T> {
 }
 
 function compareDue(a: DueCandidate, b: DueCandidate): number {
-  return compareDates(a.date, b.date) || a.plannedItemId - b.plannedItemId || compareDates(a.nominalDate, b.nominalDate);
+  return (
+    compareDates(a.date, b.date) ||
+    a.plannedItemId - b.plannedItemId ||
+    compareDates(a.nominalDate, b.nominalDate)
+  );
 }
 
 /**
@@ -347,7 +372,9 @@ export function dueOccurrences<T extends DueCandidate>(
   soonDays: number,
 ): DueOccurrences<T> {
   const lastSoonDate = addDays(today, soonDays);
-  const open = occurrences.filter((occurrence) => OPEN_STATUSES.includes(occurrence.status)).sort(compareDue);
+  const open = occurrences
+    .filter((occurrence) => OPEN_STATUSES.includes(occurrence.status))
+    .sort(compareDue);
   return {
     due: open.filter((occurrence) => occurrence.date <= today),
     soon: open.filter((occurrence) => occurrence.date > today && occurrence.date <= lastSoonDate),

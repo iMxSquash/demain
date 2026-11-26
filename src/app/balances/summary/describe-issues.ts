@@ -2,10 +2,7 @@ import type en from "../../../../messages/en.json";
 import { formatMonth } from "../../../i18n/dates";
 import type { Translate } from "../../../domain/message";
 import type { SummaryIssue } from "../../../domain/sheet-summary";
-import type {
-  VerificationIssue,
-  VerifiedFigure,
-} from "../../../domain/sheet-verification";
+import type { VerificationIssue, VerifiedFigure } from "../../../domain/sheet-verification";
 
 type Flatten<T, Prefix extends string = ""> = {
   [Key in keyof T & string]: T[Key] extends string
@@ -35,25 +32,14 @@ function assertNever(value: never): never {
 const columnNumbers = (columns: readonly number[]): string =>
   columns.map((column) => column + 1).join(", ");
 
-function located(
-  say: Say,
-  source: string,
-  line: number | null,
-  text: string,
-): string {
+function located(say: Say, source: string, line: number | null, text: string): string {
   const location =
-    line === null
-      ? say.t("locationFile", { source })
-      : say.t("location", { source, line });
+    line === null ? say.t("locationFile", { source }) : say.t("location", { source, line });
   return say.t("withLocation", { location, text });
 }
 
 /** The sentence for a problem of the Summary file: all of them are to be read, none blocks. */
-export function describeSummaryIssue(
-  source: string,
-  issue: SummaryIssue,
-  say: Say,
-): string {
+export function describeSummaryIssue(source: string, issue: SummaryIssue, say: Say): string {
   const { t } = say;
   const file = (text: string) => located(say, source, null, text);
   const row = (line: number, text: string) => located(say, source, line, text);
@@ -103,10 +89,7 @@ export function figureLabel(figure: VerifiedFigure, say: Say): string {
   return say.t(`figures.${figure}`);
 }
 
-export function describeVerificationIssue(
-  issue: VerificationIssue,
-  say: Say,
-): string {
+export function describeVerificationIssue(issue: VerificationIssue, say: Say): string {
   const { t } = say;
   const month = formatMonth(issue.month, say.locale);
 

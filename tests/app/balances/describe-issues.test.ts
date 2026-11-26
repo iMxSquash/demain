@@ -25,13 +25,13 @@ const SUMMARY_ISSUES: SummaryIssue[] = [
   { kind: "emptyFile" },
   { kind: "delimiterNotFound" },
   { kind: "unreadableFile", ref: REF, line: null },
-  ...SUMMARY_COLUMNS.map(
-    (column): SummaryIssue => ({ kind: "columnNotFound", column }),
-  ),
+  ...SUMMARY_COLUMNS.map((column): SummaryIssue => ({ kind: "columnNotFound", column })),
   { kind: "unrecognizedColumn", column: 2, header: "Notes" },
-  ...SUMMARY_COLUMNS.map(
-    (column): SummaryIssue => ({ kind: "ambiguousColumn", column, columns: [1, 2] }),
-  ),
+  ...SUMMARY_COLUMNS.map((column): SummaryIssue => ({
+    kind: "ambiguousColumn",
+    column,
+    columns: [1, 2],
+  })),
   { kind: "monthUnreadable", line: 9, text: "Total" },
   { kind: "monthYearMissing", line: 2, text: "January" },
   { kind: "amountUnreadable", line: 2, column: "net", text: "abc" },

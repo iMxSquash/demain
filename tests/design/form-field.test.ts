@@ -70,7 +70,9 @@ describe("FormField", () => {
   it("starts the error with the word Error, announces it and marks the control invalid", () => {
     const markup = render({ error: "Invalid amount." });
 
-    expect(markup).toMatch(/<p id="amount-error" role="alert"[^>]*>.*<span>Error: Invalid amount\.<\/span><\/p>/);
+    expect(markup).toMatch(
+      /<p id="amount-error" role="alert"[^>]*>.*<span>Error: Invalid amount\.<\/span><\/p>/,
+    );
     expect(attribute(markup, "aria-invalid")).toBe("true");
   });
 

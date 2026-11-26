@@ -117,7 +117,9 @@ describe("SkeletonTable", () => {
     const header = columns;
     const caption = 1;
 
-    expect(countOf(markup, 'class="skeleton rounded-control')).toBe(rows * columns + header + caption);
+    expect(countOf(markup, 'class="skeleton rounded-control')).toBe(
+      rows * columns + header + caption,
+    );
   });
 
   it("keeps 48 px rows with a hairline above them", () => {
@@ -140,7 +142,11 @@ describe("SkeletonTable", () => {
 describe("SkeletonRows", () => {
   it("draws the rows it is given with the classes of the caller", () => {
     const markup = render(
-      createElement(SkeletonRows, { columns: 3, rows: 2, rowClassName: "border-b border-divider py-2" }),
+      createElement(SkeletonRows, {
+        columns: 3,
+        rows: 2,
+        rowClassName: "border-b border-divider py-2",
+      }),
     );
 
     expect(countOf(markup, "border-b border-divider py-2")).toBe(2);
@@ -150,7 +156,11 @@ describe("SkeletonRows", () => {
 
 describe("SkeletonTableBody", () => {
   const markup = render(
-    createElement("table", null, createElement(SkeletonTableBody, { columns: ["start", "end"], rows: 3 })),
+    createElement(
+      "table",
+      null,
+      createElement(SkeletonTableBody, { columns: ["start", "end"], rows: 3 }),
+    ),
   );
 
   it("draws one hidden block per cell", () => {
@@ -266,7 +276,10 @@ describe("the shimmer in the stylesheets", () => {
   });
 
   it("uses no other colour than the tokens of the skeleton: a block on a card or on the ground, and the band", () => {
-    const layer = /@layer components {\s*(\/\*.*?\*\/\s*)?\.skeleton-ground.*?\n  }\n}/s.exec(GLOBALS_CSS)?.[0] ?? "";
+    const layer =
+      /@layer components {\s*(\/\*.*?\*\/\s*)?\.skeleton-ground.*?\n  }\n}/s.exec(
+        GLOBALS_CSS,
+      )?.[0] ?? "";
     const colours = layer.match(/var\(--color-[a-z-]+\)/g) ?? [];
 
     expect(layer).toContain("&::after");

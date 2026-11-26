@@ -2,10 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import {
-  LineChart,
-  type LineChartProps,
-} from "../../src/charts/line-chart";
+import { LineChart, type LineChartProps } from "../../src/charts/line-chart";
 
 const PROPS: LineChartProps = {
   label: "Month-end balances",

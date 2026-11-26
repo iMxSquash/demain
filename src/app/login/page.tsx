@@ -27,7 +27,12 @@ export default async function LoginPage() {
       <AuthForm
         action={loginAction}
         fields={[
-          { name: "password", label: t("password"), type: "password", autoComplete: "current-password" },
+          {
+            name: "password",
+            label: t("password"),
+            type: "password",
+            autoComplete: "current-password",
+          },
         ]}
         submitLabel={t("submit")}
       />

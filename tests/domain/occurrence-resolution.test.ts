@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { OccurrenceOverride, PlannedSchedule, PlannedVersion } from "../../src/domain/occurrences";
+import type {
+  OccurrenceOverride,
+  PlannedSchedule,
+  PlannedVersion,
+} from "../../src/domain/occurrences";
 import {
   findOrphanLinks,
   resolveOccurrences,
@@ -48,8 +52,17 @@ function item(overrides: Partial<ResolutionItem> = {}): ResolutionItem {
   };
 }
 
-function override(nominalDate: string, overrides: Partial<OccurrenceOverride> = {}): OccurrenceOverride {
-  return { nominalDate, status: "modified", overrideDate: null, overrideAmount: null, ...overrides };
+function override(
+  nominalDate: string,
+  overrides: Partial<OccurrenceOverride> = {},
+): OccurrenceOverride {
+  return {
+    nominalDate,
+    status: "modified",
+    overrideDate: null,
+    overrideAmount: null,
+    ...overrides,
+  };
 }
 
 function link(occurrenceDate: string, overrides: Partial<OccurrenceLink> = {}): OccurrenceLink {
@@ -62,7 +75,8 @@ function link(occurrenceDate: string, overrides: Partial<OccurrenceLink> = {}): 
   };
 }
 
-const statuses = (occurrences: ResolvedOccurrence[]) => occurrences.map((occurrence) => occurrence.status);
+const statuses = (occurrences: ResolvedOccurrence[]) =>
+  occurrences.map((occurrence) => occurrence.status);
 
 function statusOfMarchOccurrence(
   today: string,
@@ -162,7 +176,12 @@ describe("resolveOccurrences", () => {
     it("a linked transaction keeps the occurrence confirmed when the item is cancelled afterwards", () => {
       const cancelledItem = item({ schedule: schedule({ cancelled: true }) });
 
-      const resolved = resolveOccurrences(cancelledItem, [link("2026-04-05")], MARCH_TO_JUNE, "2026-05-10");
+      const resolved = resolveOccurrences(
+        cancelledItem,
+        [link("2026-04-05")],
+        MARCH_TO_JUNE,
+        "2026-05-10",
+      );
 
       expect(statuses(resolved)).toEqual(["cancelled", "confirmed", "cancelled"]);
     });
@@ -170,9 +189,9 @@ describe("resolveOccurrences", () => {
     it("a linked transaction keeps the occurrence confirmed when its override is cancelled", () => {
       const cancelled = override("2026-03-05", { status: "cancelled" });
 
-      expect(statusOfMarchOccurrence("2026-04-01", { overrides: [cancelled] }, [link("2026-03-05")])).toBe(
-        "confirmed",
-      );
+      expect(
+        statusOfMarchOccurrence("2026-04-01", { overrides: [cancelled] }, [link("2026-03-05")]),
+      ).toBe("confirmed");
     });
 
     it("today before the start date leaves every occurrence planned", () => {
@@ -187,7 +206,12 @@ describe("resolveOccurrences", () => {
       const moved = override("2026-03-05", { overrideDate: "2026-03-20" });
       const settling = link("2026-03-05", { date: "2026-03-19" });
 
-      const [first] = resolveOccurrences(item({ overrides: [moved] }), [settling], MARCH, "2026-04-30");
+      const [first] = resolveOccurrences(
+        item({ overrides: [moved] }),
+        [settling],
+        MARCH,
+        "2026-04-30",
+      );
 
       expect(first?.status).toBe("confirmed");
       expect(first?.links).toEqual([settling]);
@@ -231,12 +255,7 @@ describe("resolveOccurrences", () => {
     it("remaining is 0 once confirmed and the expected amount otherwise", () => {
       const smallerPayment = link("2026-03-05", { amount: -10000 });
 
-      const resolved = resolveOccurrences(
-        item(),
-        [smallerPayment],
-        MARCH_TO_APRIL,
-        "2026-03-06",
-      );
+      const resolved = resolveOccurrences(item(), [smallerPayment], MARCH_TO_APRIL, "2026-03-06");
 
       const [confirmed, planned] = resolved;
       expect(confirmed?.status).toBe("confirmed");
@@ -272,7 +291,10 @@ describe("resolveOccurrences", () => {
       versionOverrides: Partial<PlannedVersion> = {},
       itemOverrides: Partial<ResolutionItem> = {},
     ): ResolutionItem {
-      return item({ schedule: schedule({ versions: [rollingVersion(versionOverrides)] }), ...itemOverrides });
+      return item({
+        schedule: schedule({ versions: [rollingVersion(versionOverrides)] }),
+        ...itemOverrides,
+      });
     }
 
     const expectedAmounts = (occurrences: ResolvedOccurrence[]) =>
@@ -286,7 +308,12 @@ describe("resolveOccurrences", () => {
     });
 
     it("occurrence 1 paid 10000: the next three are 10000", () => {
-      const resolved = resolveOccurrences(rollingItem(), [paid(0, 10000)], MARCH_TO_JUNE, "2026-03-06");
+      const resolved = resolveOccurrences(
+        rollingItem(),
+        [paid(0, 10000)],
+        MARCH_TO_JUNE,
+        "2026-03-06",
+      );
 
       expect(expectedAmounts(resolved).slice(1)).toEqual([10000, 10000, 10000]);
     });
@@ -303,7 +330,12 @@ describe("resolveOccurrences", () => {
       const cancelled = override(occurrenceDate(1), { status: "cancelled" });
       const links = [paid(0, 10000), paid(2, 12000)];
 
-      const resolved = resolveOccurrences(rollingItem({}, { overrides: [cancelled] }), links, MARCH_TO_JUNE, "2026-05-06");
+      const resolved = resolveOccurrences(
+        rollingItem({}, { overrides: [cancelled] }),
+        links,
+        MARCH_TO_JUNE,
+        "2026-05-06",
+      );
 
       expect(resolved[1]?.status).toBe("cancelled");
       // Counting the cancelled occurrence would give 10667.
@@ -330,7 +362,12 @@ describe("resolveOccurrences", () => {
       const links = [paid(0, 10000), paid(1, 11000), paid(2, 12000)];
       const range = { from: "2026-03-01", to: "2026-07-31" };
 
-      const resolved = resolveOccurrences(item({ schedule: restarted }), links, range, "2026-05-06");
+      const resolved = resolveOccurrences(
+        item({ schedule: restarted }),
+        links,
+        range,
+        "2026-05-06",
+      );
 
       expect(expectedAmounts(resolved).slice(3)).toEqual([5000, 5000]);
     });
@@ -338,7 +375,12 @@ describe("resolveOccurrences", () => {
     it("an override amount is used once and does not feed the next occurrence", () => {
       const repriced = override(occurrenceDate(1), { overrideAmount: 20000 });
 
-      const resolved = resolveOccurrences(rollingItem({}, { overrides: [repriced] }), [], MARCH_TO_JUNE, FAR_FUTURE_START);
+      const resolved = resolveOccurrences(
+        rollingItem({}, { overrides: [repriced] }),
+        [],
+        MARCH_TO_JUNE,
+        FAR_FUTURE_START,
+      );
 
       expect(expectedAmounts(resolved)).toEqual([9000, 20000, 9000, 9000]);
     });
@@ -355,7 +397,12 @@ describe("resolveOccurrences", () => {
     it("rounds to the nearest minor unit, ties away from zero, for a negative expense", () => {
       const links = [paid(0, -1000), paid(1, -1001)];
 
-      const resolved = resolveOccurrences(rollingItem({ amount: -9000 }), links, MARCH_TO_JUNE, "2026-04-06");
+      const resolved = resolveOccurrences(
+        rollingItem({ amount: -9000 }),
+        links,
+        MARCH_TO_JUNE,
+        "2026-04-06",
+      );
 
       // The exact average is -1000.5.
       expect(resolved[2]?.expectedAmount).toBe(-1001);
@@ -367,7 +414,12 @@ describe("resolveOccurrences", () => {
       const twelvePaid = Array.from({ length: 12 }, (_, index) => paid(index, (index + 1) * 1000));
       const twelveRange = { from: "2026-03-01", to: "2027-03-31" };
 
-      const withSix = resolveOccurrences(rollingItem({ averageWindow: 6 }), sixPaid, sixRange, "2026-09-06");
+      const withSix = resolveOccurrences(
+        rollingItem({ averageWindow: 6 }),
+        sixPaid,
+        sixRange,
+        "2026-09-06",
+      );
       const withTwelve = resolveOccurrences(
         rollingItem({ averageWindow: 12 }),
         twelvePaid,
@@ -447,7 +499,10 @@ describe("resolveOccurrences, provisions", () => {
       amount: -9000,
       ...overrides,
     });
-  const fuel = (overrides: Partial<ResolutionItem> = {}, versionOverrides: Partial<PlannedVersion> = {}) =>
+  const fuel = (
+    overrides: Partial<ResolutionItem> = {},
+    versionOverrides: Partial<PlannedVersion> = {},
+  ) =>
     item({
       schedule: schedule({ startDate: "2026-03-15", versions: [fuelVersion(versionOverrides)] }),
       acceptsMultipleTransactions: true,
@@ -455,7 +510,11 @@ describe("resolveOccurrences, provisions", () => {
     });
   const fillUp = (amount: number, transactionId: number, overrides: Partial<OccurrenceLink> = {}) =>
     link("2026-03-15", { transactionId, amount, date: "2026-03-12", ...overrides });
-  const resolveFuel = (today: string, links: OccurrenceLink[] = [], overrides: Partial<ResolutionItem> = {}) => {
+  const resolveFuel = (
+    today: string,
+    links: OccurrenceLink[] = [],
+    overrides: Partial<ResolutionItem> = {},
+  ) => {
     const [first] = resolveOccurrences(fuel(overrides), links, FUEL_RANGE, today);
     if (first === undefined) throw new Error("No occurrence resolved");
     return first;
@@ -470,7 +529,11 @@ describe("resolveOccurrences, provisions", () => {
   });
 
   it("a further fill-up of 50 leaves 0 remaining, never negative, and confirms it", () => {
-    const resolved = resolveFuel("2026-03-20", [fillUp(-3000, 1), fillUp(-2500, 2), fillUp(-5000, 3)]);
+    const resolved = resolveFuel("2026-03-20", [
+      fillUp(-3000, 1),
+      fillUp(-2500, 2),
+      fillUp(-5000, 3),
+    ]);
 
     expect(resolved.linkedSum).toBe(-10500);
     expect(resolved.remaining).toBe(0);
@@ -519,7 +582,12 @@ describe("resolveOccurrences, provisions", () => {
   it("an income provision keeps its positive sign", () => {
     const income = fuel({}, { amount: 9000 });
     const [partial] = resolveOccurrences(income, [fillUp(3000, 1)], FUEL_RANGE, "2026-03-20");
-    const [over] = resolveOccurrences(income, [fillUp(3000, 1), fillUp(7000, 2)], FUEL_RANGE, "2026-03-20");
+    const [over] = resolveOccurrences(
+      income,
+      [fillUp(3000, 1), fillUp(7000, 2)],
+      FUEL_RANGE,
+      "2026-03-20",
+    );
 
     expect(partial).toMatchObject({ remaining: 6000, status: "partial" });
     expect(over).toMatchObject({ remaining: 0, status: "confirmed" });
@@ -580,7 +648,9 @@ describe("resolveOccurrences, provisions", () => {
       item({
         schedule: schedule({
           startDate,
-          versions: [version({ effectiveFrom: startDate, repetition: { kind: "every_n_weeks", weeks: 2 } })],
+          versions: [
+            version({ effectiveFrom: startDate, repetition: { kind: "every_n_weeks", weeks: 2 } }),
+          ],
         }),
         acceptsMultipleTransactions: true,
       });
@@ -593,7 +663,9 @@ describe("resolveOccurrences, provisions", () => {
         "2026-03-01",
       );
 
-      expect(resolved.map((occurrence) => occurrence.period)).toEqual([{ from: "2026-03-07", to: "2026-03-20" }]);
+      expect(resolved.map((occurrence) => occurrence.period)).toEqual([
+        { from: "2026-03-07", to: "2026-03-20" },
+      ]);
     });
 
     it("has the length of the other periods for the first occurrence of the schedule", () => {
@@ -646,7 +718,9 @@ describe("findOrphanLinks", () => {
   it("does not report a link on a nominal date whose occurrence was moved far away", () => {
     const moved = override("2026-03-05", { overrideDate: "2026-09-15" });
 
-    expect(findOrphanLinks(item({ overrides: [moved] }), [link("2026-03-05")], "2026-03-20")).toEqual([]);
+    expect(
+      findOrphanLinks(item({ overrides: [moved] }), [link("2026-03-05")], "2026-03-20"),
+    ).toEqual([]);
   });
 
   it("returns an empty list without links", () => {

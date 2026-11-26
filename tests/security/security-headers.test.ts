@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import nextConfig from "../../next.config";
-import {
-  buildContentSecurityPolicy,
-  STATIC_SECURITY_HEADERS,
-} from "../../src/security-headers";
+import { buildContentSecurityPolicy, STATIC_SECURITY_HEADERS } from "../../src/security-headers";
 
 function directive(policy: string, name: string): string[] {
   const found = policy

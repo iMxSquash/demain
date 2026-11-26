@@ -8,19 +8,11 @@ import { cache, Suspense } from "react";
 import type { AccountKind } from "../../domain/account";
 import { formatAmount } from "../../domain/money";
 import { overflowTargetsOf } from "../../domain/overflow";
-import {
-  listAccounts,
-  listOverflowAccounts,
-  type Account,
-} from "../../ledger/accounts";
+import { listAccounts, listOverflowAccounts, type Account } from "../../ledger/accounts";
 import { withDatabase } from "../../storage/with-database";
 import { DataTable, EmptyState } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
-import {
-  SkeletonDataTable,
-  SkeletonFields,
-  SkeletonRegion,
-} from "../../components/skeleton";
+import { SkeletonDataTable, SkeletonFields, SkeletonRegion } from "../../components/skeleton";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AccountForm } from "./account-form";
 import { archiveAccountAction, createAccountAction } from "./actions";
@@ -57,9 +49,7 @@ async function readAccountsFromDatabase() {
   tagDataRead();
   return withDatabase((db) => ({
     all: listAccounts(db, { includeArchived: true }),
-    balances: new Map(
-      listOverflowAccounts(db).map((account) => [account.id, account.balance]),
-    ),
+    balances: new Map(listOverflowAccounts(db).map((account) => [account.id, account.balance])),
   }));
 }
 
@@ -103,9 +93,15 @@ function AccountsHead() {
         <th scope="col">{t("columns.name")}</th>
         <th scope="col">{t("columns.kind")}</th>
         <th scope="col">{t("columns.currency")}</th>
-        <th scope="col" className="text-right">{t("columns.openingBalance")}</th>
-        <th scope="col" className="text-right">{t("columns.balance")}</th>
-        <th scope="col" className="text-right">{t("columns.depositCeiling")}</th>
+        <th scope="col" className="text-right">
+          {t("columns.openingBalance")}
+        </th>
+        <th scope="col" className="text-right">
+          {t("columns.balance")}
+        </th>
+        <th scope="col" className="text-right">
+          {t("columns.depositCeiling")}
+        </th>
         <th scope="col">{t("columns.overflowAccount")}</th>
         <th scope="col">{common("actions")}</th>
       </tr>
@@ -130,10 +126,7 @@ function ActiveAccountsLoading() {
 }
 
 async function ActiveAccounts() {
-  const [t, { all, balances }] = await Promise.all([
-    getTranslations("accounts"),
-    readAccounts(),
-  ]);
+  const [t, { all, balances }] = await Promise.all([getTranslations("accounts"), readAccounts()]);
   const active = all.filter((account) => !account.archived);
 
   if (active.length === 0) {
@@ -177,10 +170,7 @@ async function NewAccount() {
 }
 
 async function ArchivedAccounts() {
-  const [t, { all, balances }] = await Promise.all([
-    getTranslations("accounts"),
-    readAccounts(),
-  ]);
+  const [t, { all, balances }] = await Promise.all([getTranslations("accounts"), readAccounts()]);
   const archived = all.filter((account) => account.archived);
 
   if (archived.length === 0) return null;
@@ -238,8 +228,7 @@ async function AccountRow({
     getLocale(),
   ]);
   const overflowName =
-    allAccounts.find((other) => other.id === account.overflowAccountId)?.name ??
-    common("none");
+    allAccounts.find((other) => other.id === account.overflowAccountId)?.name ?? common("none");
   // An archived referrer is ignored, as in archiveAccount.
   const referrers = allAccounts.filter(
     (other) => !other.archived && other.overflowAccountId === account.id,
@@ -253,9 +242,7 @@ async function AccountRow({
       <td className="text-right">
         {formatAmount(account.openingBalance, account.currency, locale)}
       </td>
-      <td className="text-right">
-        {formatAmount(balance, account.currency, locale)}
-      </td>
+      <td className="text-right">{formatAmount(balance, account.currency, locale)}</td>
       <td className="text-right">
         {account.depositCeiling === null
           ? common("none")
@@ -269,13 +256,15 @@ async function AccountRow({
               href={`/accounts/${account.id}/edit`}
               className="inline-flex min-h-11 items-center px-2 underline"
             >
-              {t("edit")}<span className="sr-only"> {account.name}</span>
+              {t("edit")}
+              <span className="sr-only"> {account.name}</span>
             </Link>
             <Link
               href={`/accounts/${account.id}/balances`}
               className="inline-flex min-h-11 items-center px-2 underline"
             >
-              {t("balances")}<span className="sr-only"> {account.name}</span>
+              {t("balances")}
+              <span className="sr-only"> {account.name}</span>
             </Link>
             {referrers.length > 0 ? (
               <p className="inline-flex min-h-11 items-center px-2">
@@ -284,9 +273,7 @@ async function AccountRow({
                 })}
               </p>
             ) : balance !== 0 ? (
-              <p className="inline-flex min-h-11 items-center px-2">
-                {t("balanceNotZero")}
-              </p>
+              <p className="inline-flex min-h-11 items-center px-2">{t("balanceNotZero")}</p>
             ) : (
               <ConfirmActionButton
                 action={archiveAccountAction.bind(null, account.id)}

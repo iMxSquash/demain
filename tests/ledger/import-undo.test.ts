@@ -23,11 +23,7 @@ import {
   setTransactionCategory,
   updateTransaction,
 } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { importBatches } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");
@@ -209,7 +205,10 @@ describe("undoing an imported batch", () => {
 
     it("refuses a batch recorded without a digest, and deletes nothing", () => {
       const batchId = importFile([row("2026-03-10", -1_000, "A")]);
-      db.update(importBatches).set({ contentDigest: null }).where(eq(importBatches.id, batchId)).run();
+      db.update(importBatches)
+        .set({ contentDigest: null })
+        .where(eq(importBatches.id, batchId))
+        .run();
 
       expect(catchError(() => undoImportBatch(db, batchId))).toBeInstanceOf(
         ImportBatchUnverifiableError,
@@ -254,9 +253,7 @@ describe("undoing an imported batch", () => {
     });
 
     it("refuses an unknown batch", () => {
-      expect(catchError(() => undoImportBatch(db, 999))).toBeInstanceOf(
-        ImportBatchNotFoundError,
-      );
+      expect(catchError(() => undoImportBatch(db, 999))).toBeInstanceOf(ImportBatchNotFoundError);
     });
   });
 });

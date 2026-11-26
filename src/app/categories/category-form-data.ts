@@ -50,8 +50,7 @@ export function readCategorizeValues(formData: FormData): CategorizeValues {
 }
 
 export type ParsedCategoryChoice =
-  | { ok: true; categoryId: number }
-  | { ok: false; message: string };
+  { ok: true; categoryId: number } | { ok: false; message: string };
 
 export function parseCategoryChoice(
   formData: FormData,

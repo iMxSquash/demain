@@ -60,12 +60,7 @@ export async function saveBalanceAssertionAction(
     const outcome = withDatabase((db) => {
       // The amount is read in the currency of the account, so it is loaded first.
       const { currency } = getAccount(db, accountId);
-      const parsed = parseBalanceAssertionForm(
-        formData,
-        accountId,
-        currency,
-        translate,
-      );
+      const parsed = parseBalanceAssertionForm(formData, accountId, currency, translate);
       if (!parsed.ok) return parsed;
       return { ok: true as const, saved: saveBalanceAssertion(db, parsed.input) };
     });
@@ -111,10 +106,7 @@ function describeDeleteFailure(error: unknown): MessageRef {
   return messageRef("balanceAssertionNotDeleted");
 }
 
-export async function deleteBalanceAssertionAction(
-  accountId: number,
-  id: number,
-): Promise<void> {
+export async function deleteBalanceAssertionAction(accountId: number, id: number): Promise<void> {
   await requireSession();
   await runWithNotice(
     () => {

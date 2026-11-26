@@ -23,7 +23,12 @@ const parseOccurrenceOverrideForm = (
   { kind = "expense", currency = "EUR" }: { kind?: PlannedItemKind; currency?: string } = {},
 ) => {
   const formData = formOf(fields);
-  return parse(formData, readSubmittedOverride(formData), { ...TARGET, kind, currency }, translateKey);
+  return parse(
+    formData,
+    readSubmittedOverride(formData),
+    { ...TARGET, kind, currency },
+    translateKey,
+  );
 };
 
 describe("readOccurrenceTarget", () => {
@@ -45,7 +50,9 @@ describe("readOccurrenceTarget", () => {
   );
 
   it("refuses a missing item id", () => {
-    expect(readOccurrenceTarget(formOf({ nominalDate: "2026-03-05" }))).toMatchObject({ ok: false });
+    expect(readOccurrenceTarget(formOf({ nominalDate: "2026-03-05" }))).toMatchObject({
+      ok: false,
+    });
   });
 
   it.each(["", "2026-02-30", "2026-3-5", "05/03/2026", "garbage"])(
@@ -68,16 +75,34 @@ describe("readOccurrenceTarget", () => {
 
 describe("parseOccurrenceOverrideForm", () => {
   it("moves the occurrence to a new date and keeps the computed amount", () => {
-    expect(parseOccurrenceOverrideForm({ intent: "save", overrideDate: "2026-03-09", overrideAmount: "" })).toEqual({
+    expect(
+      parseOccurrenceOverrideForm({
+        intent: "save",
+        overrideDate: "2026-03-09",
+        overrideAmount: "",
+      }),
+    ).toEqual({
       ok: true,
-      input: { nominalDate: "2026-03-05", status: "modified", overrideDate: "2026-03-09", overrideAmount: null },
+      input: {
+        nominalDate: "2026-03-05",
+        status: "modified",
+        overrideDate: "2026-03-09",
+        overrideAmount: null,
+      },
     });
   });
 
   it("signs a new amount with the kind of the item: an expense leaves the account", () => {
-    expect(parseOccurrenceOverrideForm({ intent: "save", overrideDate: "", overrideAmount: "1250,50" })).toEqual({
+    expect(
+      parseOccurrenceOverrideForm({ intent: "save", overrideDate: "", overrideAmount: "1250,50" }),
+    ).toEqual({
       ok: true,
-      input: { nominalDate: "2026-03-05", status: "modified", overrideDate: null, overrideAmount: -125_050 },
+      input: {
+        nominalDate: "2026-03-05",
+        status: "modified",
+        overrideDate: null,
+        overrideAmount: -125_050,
+      },
     });
   });
 
@@ -95,23 +120,43 @@ describe("parseOccurrenceOverrideForm", () => {
 
   it("changes the date and the amount together", () => {
     expect(
-      parseOccurrenceOverrideForm({ intent: "save", overrideDate: "2026-03-09", overrideAmount: "12" }),
+      parseOccurrenceOverrideForm({
+        intent: "save",
+        overrideDate: "2026-03-09",
+        overrideAmount: "12",
+      }),
     ).toMatchObject({ ok: true, input: { overrideDate: "2026-03-09", overrideAmount: -1_200 } });
   });
 
   it("skips the occurrence, whatever the fields hold", () => {
     expect(
-      parseOccurrenceOverrideForm({ intent: "skip", overrideDate: "not a date", overrideAmount: "abc" }),
+      parseOccurrenceOverrideForm({
+        intent: "skip",
+        overrideDate: "not a date",
+        overrideAmount: "abc",
+      }),
     ).toEqual({
       ok: true,
-      input: { nominalDate: "2026-03-05", status: "cancelled", overrideDate: null, overrideAmount: null },
+      input: {
+        nominalDate: "2026-03-05",
+        status: "cancelled",
+        overrideDate: null,
+        overrideAmount: null,
+      },
     });
   });
 
   it("leaves both fields empty for the domain to refuse", () => {
-    expect(parseOccurrenceOverrideForm({ intent: "save", overrideDate: "  ", overrideAmount: " " })).toEqual({
+    expect(
+      parseOccurrenceOverrideForm({ intent: "save", overrideDate: "  ", overrideAmount: " " }),
+    ).toEqual({
       ok: true,
-      input: { nominalDate: "2026-03-05", status: "modified", overrideDate: null, overrideAmount: null },
+      input: {
+        nominalDate: "2026-03-05",
+        status: "modified",
+        overrideDate: null,
+        overrideAmount: null,
+      },
     });
   });
 
@@ -131,7 +176,11 @@ describe("parseOccurrenceOverrideForm", () => {
 
   it("refuses an invalid date on its field and keeps what was typed", () => {
     expect(
-      parseOccurrenceOverrideForm({ intent: "save", overrideDate: "2026-02-30", overrideAmount: "12" }),
+      parseOccurrenceOverrideForm({
+        intent: "save",
+        overrideDate: "2026-02-30",
+        overrideAmount: "12",
+      }),
     ).toEqual({
       ok: false,
       error: {
@@ -155,17 +204,30 @@ describe("parseOccurrenceOverrideForm", () => {
 
   it("refuses an amount it cannot read and keeps what was typed", () => {
     expect(
-      parseOccurrenceOverrideForm({ intent: "save", overrideDate: "2026-03-09", overrideAmount: "12,345" }),
+      parseOccurrenceOverrideForm({
+        intent: "save",
+        overrideDate: "2026-03-09",
+        overrideAmount: "12,345",
+      }),
     ).toMatchObject({
       ok: false,
-      error: { field: "overrideAmount", values: { overrideDate: "2026-03-09", overrideAmount: "12,345" } },
+      error: {
+        field: "overrideAmount",
+        values: { overrideDate: "2026-03-09", overrideAmount: "12,345" },
+      },
     });
   });
 
-  it.each<Record<string, string>>([{}, { intent: "" }, { intent: "delete" }])("refuses the intent %j", (fields) => {
-    expect(parseOccurrenceOverrideForm({ ...fields, overrideDate: "2026-03-09" })).toEqual({
-      ok: false,
-      error: { message: "nothingSaved", values: { overrideDate: "2026-03-09", overrideAmount: "" } },
-    });
-  });
+  it.each<Record<string, string>>([{}, { intent: "" }, { intent: "delete" }])(
+    "refuses the intent %j",
+    (fields) => {
+      expect(parseOccurrenceOverrideForm({ ...fields, overrideDate: "2026-03-09" })).toEqual({
+        ok: false,
+        error: {
+          message: "nothingSaved",
+          values: { overrideDate: "2026-03-09", overrideAmount: "" },
+        },
+      });
+    },
+  );
 });

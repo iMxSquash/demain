@@ -1,15 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  type RefObject,
-} from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState, type RefObject } from "react";
 
 import { Button } from "../../components/button";
 import { linkReviewAssertions, type AssertionLinkSnapshot } from "../../domain/import-assertions";
@@ -110,17 +102,19 @@ function ReviewBody({
 
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? "";
   const receiving = useMemo(() => ({ id: accountId, currency }), [accountId, currency]);
-  const [state, dispatch] = useReducer(
-    reviewReducer,
-    files,
-    (staged) => initReview(staged, defaultSavingsAccountId(accounts, receiving)),
+  const [state, dispatch] = useReducer(reviewReducer, files, (staged) =>
+    initReview(staged, defaultSavingsAccountId(accounts, receiving)),
   );
   // All the files were read again (another account): what the user corrected follows its line.
   const [seenBatch, setSeenBatch] = useState(batch);
   // The replacement choices of each file, by its position, and the entries each recorded file
   // replaced: the snapshot still holds them until the files are read again.
-  const [enteredChoices, setEnteredChoices] = useState<ReadonlyMap<number, EnteredChoices>>(new Map());
-  const [replacedByFile, setReplacedByFile] = useState<ReadonlyMap<number, readonly number[]>>(new Map());
+  const [enteredChoices, setEnteredChoices] = useState<ReadonlyMap<number, EnteredChoices>>(
+    new Map(),
+  );
+  const [replacedByFile, setReplacedByFile] = useState<ReadonlyMap<number, readonly number[]>>(
+    new Map(),
+  );
   if (seenBatch !== batch) {
     setSeenBatch(batch);
     setEnteredChoices(new Map());
@@ -140,8 +134,7 @@ function ReviewBody({
     [accounts, receiving],
   );
   const accountNames = useMemo(
-    () =>
-      new Map(accounts.map((account): [number, string] => [account.id, account.name])),
+    () => new Map(accounts.map((account): [number, string] => [account.id, account.name])),
     [accounts],
   );
   const { defaultSavingsAccountId: savingsAccountId } = state;
@@ -186,7 +179,10 @@ function ReviewBody({
   function chooseEntered(fileIndex: number, match: EnteredMatch, entryId: number | null) {
     const line = state.files[fileIndex]?.rows[match.rowId]?.line ?? -1;
     setEnteredChoices((previous) =>
-      new Map(previous).set(fileIndex, new Map(previous.get(fileIndex)).set(choiceKey(line, match), entryId)),
+      new Map(previous).set(
+        fileIndex,
+        new Map(previous.get(fileIndex)).set(choiceKey(line, match), entryId),
+      ),
     );
   }
   const replacedByEachFile = useMemo(
@@ -204,10 +200,20 @@ function ReviewBody({
   );
   // Computed from the plans of the review, so that the figures agree with what the import records.
   const assertionLinks = useMemo(
-    () => linkReviewAssertions(state.files, plans, assertionSnapshot, { accountId, currency }, replacedByEachFile),
+    () =>
+      linkReviewAssertions(
+        state.files,
+        plans,
+        assertionSnapshot,
+        { accountId, currency },
+        replacedByEachFile,
+      ),
     [state.files, plans, assertionSnapshot, accountId, currency, replacedByEachFile],
   );
-  const demands = useMemo(() => overflowDemands(plans.map(({ shortfalls }) => shortfalls)), [plans]);
+  const demands = useMemo(
+    () => overflowDemands(plans.map(({ shortfalls }) => shortfalls)),
+    [plans],
+  );
   // Read on the stored balances: a choice already made would hide the need it answers.
   // Without a choice the stored balances are the shown ones, so the plan is reused.
   const storedPlans = useMemo(
@@ -216,10 +222,22 @@ function ReviewBody({
         ? plans
         : planReview(
             state.files,
-            { currency, defaultSavingsAccountId: savingsAccountId, accounts: storedOverflowAccounts },
+            {
+              currency,
+              defaultSavingsAccountId: savingsAccountId,
+              accounts: storedOverflowAccounts,
+            },
             replacedByEachFile,
           ),
-    [plans, overflowChoices.length, state.files, currency, savingsAccountId, storedOverflowAccounts, replacedByEachFile],
+    [
+      plans,
+      overflowChoices.length,
+      state.files,
+      currency,
+      savingsAccountId,
+      storedOverflowAccounts,
+      replacedByEachFile,
+    ],
   );
   const phases = state.files.map((file) => file.phase);
   const order = useMemo(
@@ -242,19 +260,12 @@ function ReviewBody({
 
   // Resolves to false when the file could not be read again: it then keeps its
   // rows, says why, and is not imported until a reading succeeds.
-  async function restageFile(
-    fileIndex: number,
-    choices: ColumnChoiceFields,
-  ): Promise<boolean> {
+  async function restageFile(fileIndex: number, choices: ColumnChoiceFields): Promise<boolean> {
     const file = state.files[fileIndex];
     if (file === undefined) return false;
     setRestaging(fileIndex);
     try {
-      return await rereadFile(
-        fileIndex,
-        () => onRestage(file.sourceIndex, choices),
-        dispatch,
-      );
+      return await rereadFile(fileIndex, () => onRestage(file.sourceIndex, choices), dispatch);
     } finally {
       setRestaging(null);
     }
@@ -357,11 +368,16 @@ function ReviewBody({
             accountId={accountId}
             defaultSavingsAccountId={savingsAccountId}
             accountNames={accountNames}
-            overflowChoices={choicesForShortfalls(overflowChoices, storedPlans[index]?.shortfalls ?? [])}
+            overflowChoices={choicesForShortfalls(
+              overflowChoices,
+              storedPlans[index]?.shortfalls ?? [],
+            )}
             enteredMatches={enteredMatches[index] ?? []}
             enteredSettled={settledEntered[index] ?? NO_ENTERED_CHOICES}
             onChooseEntered={(match, entryId) => chooseEntered(index, match, entryId)}
-            onEntriesReplaced={(entryIds) => setReplacedByFile((previous) => new Map(previous).set(index, entryIds))}
+            onEntriesReplaced={(entryIds) =>
+              setReplacedByFile((previous) => new Map(previous).set(index, entryIds))
+            }
             lookups={lookups}
             isReading={isBusy}
             onChangeColumns={(choices) => restageFile(index, choices)}
@@ -379,8 +395,7 @@ function ReviewBody({
   );
 }
 
-interface StagedImportReviewProps
-  extends Omit<ReviewBodyProps, "isReading" | "accountSelectRef"> {
+interface StagedImportReviewProps extends Omit<ReviewBodyProps, "isReading" | "accountSelectRef"> {
   /** Translated progress while the files are read again; null otherwise. */
   readingText: string | null;
 }

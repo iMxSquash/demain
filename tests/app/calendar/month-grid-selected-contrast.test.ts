@@ -42,7 +42,13 @@ const month: CalendarMonth = {
 };
 
 const html = renderToString(
-  createElement(MonthGrid, { month, locale: "en", today: "2026-11-21", linesHref: (date) => `/l#${date}`, text: TEXT }),
+  createElement(MonthGrid, {
+    month,
+    locale: "en",
+    today: "2026-11-21",
+    linesHref: (date) => `/l#${date}`,
+    text: TEXT,
+  }),
 );
 
 const classesOf = (tag: string) => (/\sclass="([^"]*)"/.exec(tag)?.[1] ?? "").split(" ");

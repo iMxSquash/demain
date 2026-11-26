@@ -14,11 +14,7 @@ export function getImportBatch(
   reader: Pick<AppDatabase, "select">,
   batchId: number,
 ): typeof importBatches.$inferSelect {
-  const batch = reader
-    .select()
-    .from(importBatches)
-    .where(eq(importBatches.id, batchId))
-    .get();
+  const batch = reader.select().from(importBatches).where(eq(importBatches.id, batchId)).get();
   if (batch === undefined) throw new ImportBatchNotFoundError(batchId);
   return batch;
 }

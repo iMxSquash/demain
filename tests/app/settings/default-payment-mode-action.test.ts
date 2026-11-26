@@ -94,9 +94,9 @@ describe("saving the default payment mode from the settings", () => {
   it("checks the session before reading the form", async () => {
     holder.requireSession.mockRejectedValueOnce(new Error("redirect:/login"));
 
-    await expect(
-      setDefaultPaymentModeAction(formOf({ paymentMode: "transfer" })),
-    ).rejects.toThrow("redirect:/login");
+    await expect(setDefaultPaymentModeAction(formOf({ paymentMode: "transfer" }))).rejects.toThrow(
+      "redirect:/login",
+    );
     expect(getDefaultPaymentMode(db)).toBe("card");
   });
 });

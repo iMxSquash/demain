@@ -16,11 +16,7 @@ import {
   setVocabularyWord,
   VocabularyValidationError,
 } from "../../src/ledger/type-vocabulary";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 import { settings } from "../../src/storage/schema";
 
 const NOW = new Date("2026-04-15T10:00:00Z");

@@ -10,7 +10,11 @@ import { DataTable, Pill } from "../../../../components/data-display";
 import { PageSection } from "../../../../components/page-section";
 import { SkeletonFields, SkeletonLine, SkeletonRegion } from "../../../../components/skeleton";
 import { formatAmount, formatEditableAmount } from "../../../../domain/money";
-import { formatTolerancePercent, isOneOff, versionInEffectAt } from "../../../../domain/planned-item";
+import {
+  formatTolerancePercent,
+  isOneOff,
+  versionInEffectAt,
+} from "../../../../domain/planned-item";
 import { formatCalendarDate, todayIn } from "../../../../i18n/dates";
 import { listAccounts } from "../../../../ledger/accounts";
 import { listCategories } from "../../../../ledger/categories";
@@ -50,11 +54,7 @@ const PAGE_GAP = "gap-6";
 
 // The back link shows at once; the title holds the name of the item, so it waits for the database
 // with the form.
-export default async function EditPlannedItemPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditPlannedItemPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("planned");
 
   return (
@@ -170,7 +170,9 @@ async function EditPlannedItem({ params }: { params: Promise<{ id: string }> }) 
               <th scope="col">{t("versions.columns.effectiveFrom")}</th>
               <th scope="col">{t("versions.columns.schedule")}</th>
               <th scope="col">{t("versions.columns.businessDay")}</th>
-              <th scope="col" className="text-right">{t("versions.columns.amount")}</th>
+              <th scope="col" className="text-right">
+                {t("versions.columns.amount")}
+              </th>
               <th scope="col">{t("versions.columns.status")}</th>
             </tr>
           </thead>

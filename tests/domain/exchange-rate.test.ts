@@ -19,9 +19,7 @@ const EUR_USD: ExchangeRate = {
 describe("convertAmount", () => {
   it("converts minor units from the base to the quote currency", () => {
     // 100.00 EUR at 1.0821 is 108.21 USD.
-    expect(convertAmount(10_000, "EUR", "USD", "2026-03-01", [EUR_USD])).toBe(
-      10_821,
-    );
+    expect(convertAmount(10_000, "EUR", "USD", "2026-03-01", [EUR_USD])).toBe(10_821);
   });
 
   it("uses the most recent rate on or before the date", () => {
@@ -31,12 +29,8 @@ describe("convertAmount", () => {
       { ...EUR_USD, date: "2026-04-01", rate: 120_000_000 },
     ];
 
-    expect(convertAmount(10_000, "EUR", "USD", "2026-03-15", rates)).toBe(
-      11_000,
-    );
-    expect(convertAmount(10_000, "EUR", "USD", "2026-03-01", rates)).toBe(
-      11_000,
-    );
+    expect(convertAmount(10_000, "EUR", "USD", "2026-03-15", rates)).toBe(11_000);
+    expect(convertAmount(10_000, "EUR", "USD", "2026-03-01", rates)).toBe(11_000);
   });
 
   it("returns null when no rate applies on or before the date", () => {
@@ -48,9 +42,7 @@ describe("convertAmount", () => {
 
   it("converts against the stored direction by inverting the rate", () => {
     // 108.21 USD at 1 EUR = 1.0821 USD is 100.00 EUR.
-    expect(convertAmount(10_821, "USD", "EUR", "2026-03-01", [EUR_USD])).toBe(
-      10_000,
-    );
+    expect(convertAmount(10_821, "USD", "EUR", "2026-03-01", [EUR_USD])).toBe(10_000);
   });
 
   it("accounts for currencies with a different number of decimals", () => {
@@ -62,12 +54,8 @@ describe("convertAmount", () => {
     };
 
     // 100.00 EUR at 160.50 is 16 050 JPY, which has no minor unit below the yen.
-    expect(convertAmount(10_000, "EUR", "JPY", "2026-03-01", [eurJpy])).toBe(
-      16_050,
-    );
-    expect(convertAmount(16_050, "JPY", "EUR", "2026-03-01", [eurJpy])).toBe(
-      10_000,
-    );
+    expect(convertAmount(10_000, "EUR", "JPY", "2026-03-01", [eurJpy])).toBe(16_050);
+    expect(convertAmount(16_050, "JPY", "EUR", "2026-03-01", [eurJpy])).toBe(10_000);
   });
 
   it("rounds to the nearest minor unit, ties away from zero", () => {
@@ -82,9 +70,9 @@ describe("convertAmount", () => {
 
   it("stays exact when the intermediate product exceeds the safe integer range", () => {
     // 8e15 * 108_210_000 is far above 2^53: a Number step would drift.
-    expect(
-      convertAmount(8_000_000_000_000_000, "EUR", "USD", "2026-03-01", [EUR_USD]),
-    ).toBe(8_656_800_000_000_000);
+    expect(convertAmount(8_000_000_000_000_000, "EUR", "USD", "2026-03-01", [EUR_USD])).toBe(
+      8_656_800_000_000_000,
+    );
   });
 
   it("refuses a result that no safe integer can hold", () => {

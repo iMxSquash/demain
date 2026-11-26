@@ -76,10 +76,7 @@ function stageWithMapping(
     format: "csv",
     mapping: reading.used,
     columns: null,
-    rows: typeRowsBySign(
-      stageCsvRows(reading.table, reading.used, currency),
-      currency,
-    ),
+    rows: typeRowsBySign(stageCsvRows(reading.table, reading.used, currency), currency),
   };
 }
 

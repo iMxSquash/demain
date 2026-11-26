@@ -75,7 +75,10 @@ export function scheduleText(
   if (version.repetitionKind === null || item.endDate === null) {
     return text;
   }
-  return translate("schedule.until", { schedule: text, date: formatCalendarDate(item.endDate, locale) });
+  return translate("schedule.until", {
+    schedule: text,
+    date: formatCalendarDate(item.endDate, locale),
+  });
 }
 
 /** The account of an item, or "from X to Y" for a transfer. `transferText` words the pair. */

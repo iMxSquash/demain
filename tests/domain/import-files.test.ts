@@ -147,12 +147,7 @@ describe("an export with a type column and signed amounts", () => {
   });
 
   it("flags the income with a negative amount, keeping the sign as the conflict", () => {
-    expect(reading.rows.map((row) => row.type.confidence)).toEqual([
-      "high",
-      "high",
-      "low",
-      "high",
-    ]);
+    expect(reading.rows.map((row) => row.type.confidence)).toEqual(["high", "high", "low", "high"]);
     expect(reading.rows[2]?.type.conflict).toEqual({ kind: "sign", direction: "out" });
     expect(reading.rows[2]?.amount).toBe(-4_500);
   });

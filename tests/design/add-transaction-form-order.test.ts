@@ -52,7 +52,9 @@ function render(kind?: string): string {
 /** The `name` of each form control, in document order, one entry per control name. */
 function controlNames(markup: string): string[] {
   const names = [...markup.matchAll(/<(?:input|button)\b[^>]*>/g)].map(
-    (match) => match[0].match(/ name="([^"]*)"/)?.[1] ?? (match[0].includes('type="submit"') ? "submit" : ""),
+    (match) =>
+      match[0].match(/ name="([^"]*)"/)?.[1] ??
+      (match[0].includes('type="submit"') ? "submit" : ""),
   );
   return names.filter((name, index) => name !== "" && names.indexOf(name) === index);
 }

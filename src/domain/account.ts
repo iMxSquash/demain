@@ -47,9 +47,7 @@ export class AccountValidationError extends Error {
 }
 
 // Intl carries the ISO 4217 codes, like the minor units in the money core.
-const KNOWN_CURRENCIES: ReadonlySet<string> = new Set(
-  Intl.supportedValuesOf("currency"),
-);
+const KNOWN_CURRENCIES: ReadonlySet<string> = new Set(Intl.supportedValuesOf("currency"));
 
 export function isKnownCurrency(code: string): boolean {
   return KNOWN_CURRENCIES.has(code);

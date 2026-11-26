@@ -7,11 +7,7 @@ import { cache, Suspense } from "react";
 
 import { Button } from "../../components/button";
 import { PageSection } from "../../components/page-section";
-import {
-  SkeletonDataTable,
-  SkeletonRegion,
-  SkeletonRows,
-} from "../../components/skeleton";
+import { SkeletonDataTable, SkeletonRegion, SkeletonRows } from "../../components/skeleton";
 import { listAccounts } from "../../ledger/accounts";
 import { categoryIconOf } from "../../components/category-icons";
 import { CHIP_DISC_CLASS } from "../../components/chip";
@@ -21,11 +17,7 @@ import { listCategories } from "../../ledger/categories";
 import { listUncategorizedTransactions } from "../../ledger/transactions";
 import { withDatabase } from "../../storage/with-database";
 import { ConfirmActionButton } from "../confirm-action-button";
-import {
-  archiveCategoryAction,
-  createCategoryAction,
-  reactivateCategoryAction,
-} from "./actions";
+import { archiveCategoryAction, createCategoryAction, reactivateCategoryAction } from "./actions";
 import { CategoryForm } from "./category-form";
 import { ToCategorizeHead, ToCategorizeQueue } from "./to-categorize-queue";
 import { requireSession } from "../auth/session";
@@ -67,10 +59,7 @@ const CATEGORY_ROW_HEIGHT = "min-h-[calc(var(--target-min)+0.5rem+1px)]";
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page. The form to add a category needs no data: it is drawn at once.
 export default async function CategoriesPage() {
-  const [t, common] = await Promise.all([
-    getTranslations("categories"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("categories"), getTranslations("common")]);
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 p-8">
@@ -173,7 +162,8 @@ async function CategoryList() {
               href={`/categories/${category.id}/edit`}
               className="inline-flex min-h-11 items-center px-2 underline"
             >
-              {t("rename")}<span className="sr-only"> {category.name}</span>
+              {t("rename")}
+              <span className="sr-only"> {category.name}</span>
             </Link>
             <ConfirmActionButton
               action={archiveCategoryAction.bind(null, category.id)}

@@ -4,10 +4,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import {
-  withOverflowChoice,
-  type OverflowTarget,
-} from "../../domain/import-overflow";
+import { withOverflowChoice, type OverflowTarget } from "../../domain/import-overflow";
 import type { AssertionLinkSnapshot } from "../../domain/import-assertions";
 import type { EnteredPaymentEntry } from "../../ledger/planned-matching";
 import { failedStagedFile, type ColumnChoiceFields, type ImportView } from "./import-form-data";
@@ -24,7 +21,10 @@ export function ImportReview({
   overflowAccounts,
   assertionSnapshot,
   enteredPayments,
-}: ImportView & { assertionSnapshot: AssertionLinkSnapshot; enteredPayments: EnteredPaymentEntry[] }) {
+}: ImportView & {
+  assertionSnapshot: AssertionLinkSnapshot;
+  enteredPayments: EnteredPaymentEntry[];
+}) {
   const t = useTranslations("imports");
   const router = useRouter();
   const { review, setReview } = useReviewSession();
@@ -46,7 +46,10 @@ export function ImportReview({
     if (review === null) return;
     const { sources, columnChoices, mappings } = review;
     setReview({ ...review, accountId });
-    const files = await stageFiles(sources, String(accountId), { columns: columnChoices, mappings });
+    const files = await stageFiles(sources, String(accountId), {
+      columns: columnChoices,
+      mappings,
+    });
     // Left while the files were read: it stays dropped.
     setReview((current) =>
       current === null

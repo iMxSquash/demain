@@ -1,9 +1,5 @@
 import type { AccountField, AccountInput } from "../../domain/account";
-import {
-  applyBalanceSide,
-  parseUnsignedAmount,
-  readBalanceSide,
-} from "../../domain/amount-syntax";
+import { applyBalanceSide, parseUnsignedAmount, readBalanceSide } from "../../domain/amount-syntax";
 import { messageRef, type Translate } from "../../domain/message";
 import { MoneyParseError } from "../../domain/money";
 
@@ -31,8 +27,7 @@ export interface AccountFormState {
 }
 
 export type ParsedAccountForm =
-  | { ok: true; input: AccountInput }
-  | { ok: false; error: AccountFormState };
+  { ok: true; input: AccountInput } | { ok: false; error: AccountFormState };
 
 function readText(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -82,10 +77,7 @@ function readAmount(
 }
 
 /** Converts submitted text to a typed input. Amounts never go through a float. */
-export function parseAccountForm(
-  formData: FormData,
-  translate: Translate,
-): ParsedAccountForm {
+export function parseAccountForm(formData: FormData, translate: Translate): ParsedAccountForm {
   const values = readSubmittedValues(formData);
   const currency = values.currency.trim().toUpperCase();
 
@@ -101,13 +93,7 @@ export function parseAccountForm(
     };
   }
 
-  const opening = readAmount(
-    "openingBalance",
-    values.openingBalance,
-    currency,
-    values,
-    translate,
-  );
+  const opening = readAmount("openingBalance", values.openingBalance, currency, values, translate);
   if ("error" in opening) return { ok: false, error: opening.error };
 
   let depositCeiling: number | null = null;

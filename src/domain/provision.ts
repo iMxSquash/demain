@@ -70,7 +70,10 @@ export function provisionPeriod(
 ): DateRange {
   if (isMonthly(repetition)) {
     const { year, month } = parseDate(nominalDate);
-    return { from: clampedDate(year, month, 1), to: clampedDate(year, month, daysInMonth(year, month)) };
+    return {
+      from: clampedDate(year, month, 1),
+      to: clampedDate(year, month, daysInMonth(year, month)),
+    };
   }
   const previous = previousNominalDate ?? stepBack(nominalDate, repetition);
   return { from: addDays(previous, 1), to: nominalDate };
@@ -90,5 +93,8 @@ export function isProvisionCandidate(
   if (transaction.accountId !== provision.accountId) return false;
   if (transaction.categoryId !== provision.categoryId) return false;
   if (transaction.date < period.from || transaction.date > period.to) return false;
-  return provision.provisionLabelFilter === null || labelContains(transaction.label, provision.provisionLabelFilter);
+  return (
+    provision.provisionLabelFilter === null ||
+    labelContains(transaction.label, provision.provisionLabelFilter)
+  );
 }

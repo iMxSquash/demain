@@ -27,7 +27,12 @@ interface AddTransactionRecapProps {
   categoryOptions: readonly ChipOption[];
   /** Changes with each result: remounts the radios that the automatic form reset sent back. */
   resultCount: number;
-  onChange: (changes: { kind?: Kind; amount?: string; label?: string; categoryId?: string }) => void;
+  onChange: (changes: {
+    kind?: Kind;
+    amount?: string;
+    label?: string;
+    categoryId?: string;
+  }) => void;
 }
 
 /**
@@ -51,7 +56,9 @@ export function AddTransactionRecap({
 }: AddTransactionRecapProps) {
   const add = useTranslations("transactions.add");
   const form = useTranslations("transactions.form");
-  const category = categoryOptions.find((option) => option.value === recap.label.categoryId?.toString());
+  const category = categoryOptions.find(
+    (option) => option.value === recap.label.categoryId?.toString(),
+  );
 
   return (
     <div className={`divide-y divide-divider border-y border-divider ${WIDE_HIDDEN_CLASS}`}>

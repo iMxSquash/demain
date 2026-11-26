@@ -267,9 +267,7 @@ describe("detectColumnRoles", () => {
       ["02/02/2026", "Salary", "1500,00", "Income", "Income", "Pay"],
     ];
 
-    expect(
-      detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER).issues,
-    ).toContainEqual({
+    expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, NO_HEADER).issues).toContainEqual({
       kind: "ambiguousColumn",
       role: "type",
       column: 3,
@@ -302,9 +300,7 @@ describe("detectColumnRoles", () => {
         ["02/02/2026", "Landlord", "-700,00", "R1"],
       ];
 
-      expect(
-        detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header).categoryColumn,
-      ).toBe(3);
+      expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header).categoryColumn).toBe(3);
     });
 
     it("lets the values win: a Type header over payment modes is the payment mode", () => {
@@ -397,10 +393,9 @@ describe("detectColumnRoles", () => {
         const header = ["Date", "Libellé", "Amount", name];
         const rows = [["01/02/2026", "Carrefour", "-12,50", "weekly shop"]];
 
-        expect(
-          detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header)
-            .descriptionColumn,
-        ).toBe(3);
+        expect(detectColumnRoles(rows, FIRST_LINE, MAPPED_COLUMNS, header).descriptionColumn).toBe(
+          3,
+        );
       },
     );
 

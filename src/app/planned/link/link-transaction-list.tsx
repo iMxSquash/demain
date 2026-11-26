@@ -46,7 +46,15 @@ interface LinkButtonProps {
   className?: string;
 }
 
-function LinkButton({ row, hidden, formAction, isPending, isChosen, onChoose, className }: LinkButtonProps) {
+function LinkButton({
+  row,
+  hidden,
+  formAction,
+  isPending,
+  isChosen,
+  onChoose,
+  className,
+}: LinkButtonProps) {
   const t = useTranslations("planned.link");
 
   return (
@@ -74,7 +82,14 @@ function LinkButton({ row, hidden, formAction, isPending, isChosen, onChoose, cl
  * The transactions of the "Link a transaction" page, each with its Link button. A link sends the
  * user back to the calendar with a toast; a refusal stays here, one line above the list.
  */
-export function LinkTransactionList({ itemId, nominalDate, back, month, caption, rows }: LinkTransactionListProps) {
+export function LinkTransactionList({
+  itemId,
+  nominalDate,
+  back,
+  month,
+  caption,
+  rows,
+}: LinkTransactionListProps) {
   const t = useTranslations("planned.link");
   const common = useTranslations("common");
   const [error, formAction, isPending] = useActionState(linkTransactionToOccurrenceAction, null);
@@ -122,9 +137,7 @@ export function LinkTransactionList({ itemId, nominalDate, back, month, caption,
                 </th>
                 <td>{row.account}</td>
                 <td className="text-right tabular-nums">{row.amount}</td>
-                <td className="py-1 text-right">
-                  {buttonOf(row)}
-                </td>
+                <td className="py-1 text-right">{buttonOf(row)}</td>
               </tr>
             ))}
           </tbody>
@@ -141,9 +154,7 @@ export function LinkTransactionList({ itemId, nominalDate, back, month, caption,
                 <span className="ml-auto tabular-nums">{row.amount}</span>
               </div>
               <p className="mt-1 text-caption text-text-muted">{row.account}</p>
-              <div className="mt-3">
-                {buttonOf(row, "w-full")}
-              </div>
+              <div className="mt-3">{buttonOf(row, "w-full")}</div>
             </li>
           ))}
         </ul>

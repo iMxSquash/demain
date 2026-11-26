@@ -1,9 +1,6 @@
 import { and, asc, eq, getTableColumns, max } from "drizzle-orm";
 
-import {
-  validateRuleValue,
-  type CategorizationRule,
-} from "../domain/categorization-rule";
+import { validateRuleValue, type CategorizationRule } from "../domain/categorization-rule";
 import type { AppDatabase } from "../storage/database";
 import { categories, categorizationRules } from "../storage/schema";
 import { getAccount } from "./accounts";
@@ -27,11 +24,7 @@ export interface NewRule {
 
 /** Rules in evaluation order. */
 export function listRules(db: RuleReader): CategorizationRule[] {
-  return db
-    .select()
-    .from(categorizationRules)
-    .orderBy(asc(categorizationRules.priority))
-    .all();
+  return db.select().from(categorizationRules).orderBy(asc(categorizationRules.priority)).all();
 }
 
 /**
@@ -44,10 +37,7 @@ export function listApplicableRules(db: RuleReader): CategorizationRule[] {
     .from(categorizationRules)
     .innerJoin(
       categories,
-      and(
-        eq(categories.id, categorizationRules.categoryId),
-        eq(categories.archived, false),
-      ),
+      and(eq(categories.id, categorizationRules.categoryId), eq(categories.archived, false)),
     )
     .orderBy(asc(categorizationRules.priority))
     .all();
@@ -84,11 +74,7 @@ export function createRule(db: AppDatabase, input: NewRule): CategorizationRule 
 }
 
 /** Swaps the rule with its neighbour; the first rule cannot go up, nor the last go down. */
-export function moveRule(
-  db: AppDatabase,
-  id: number,
-  direction: "up" | "down",
-): void {
+export function moveRule(db: AppDatabase, id: number, direction: "up" | "down"): void {
   db.transaction((tx) => {
     const rules = listRules(tx);
     const index = rules.findIndex((candidate) => candidate.id === id);

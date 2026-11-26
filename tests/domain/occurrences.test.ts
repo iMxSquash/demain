@@ -12,7 +12,9 @@ import type { Repetition } from "../../src/domain/recurrence";
 const FAR_TODAY = "2000-01-01";
 const SALARY_START = "2026-01-25";
 
-function version(overrides: Partial<PlannedVersion> & Pick<PlannedVersion, "effectiveFrom">): PlannedVersion {
+function version(
+  overrides: Partial<PlannedVersion> & Pick<PlannedVersion, "effectiveFrom">,
+): PlannedVersion {
   return {
     repetition: { kind: "monthly_on_day", day: 25 },
     businessDayRule: "none",
@@ -23,7 +25,10 @@ function version(overrides: Partial<PlannedVersion> & Pick<PlannedVersion, "effe
   };
 }
 
-function schedule(versions: PlannedVersion[], overrides: Partial<PlannedSchedule> = {}): PlannedSchedule {
+function schedule(
+  versions: PlannedVersion[],
+  overrides: Partial<PlannedSchedule> = {},
+): PlannedSchedule {
   const [first] = versions;
   return {
     startDate: first?.effectiveFrom ?? SALARY_START,
@@ -56,7 +61,8 @@ describe("generateOccurrences", () => {
 
       const occurrences = generate(salary, YEAR_2026);
 
-      const amountOn = (nominalDate: string) => occurrences.find((o) => o.nominalDate === nominalDate)?.amount;
+      const amountOn = (nominalDate: string) =>
+        occurrences.find((o) => o.nominalDate === nominalDate)?.amount;
       expect(amountOn("2026-05-25")).toBe(114388);
       expect(amountOn("2026-06-25")).toBe(117147);
       expect(occurrences.find((o) => o.nominalDate === "2026-06-25")?.versionIndex).toBe(1);
@@ -103,7 +109,10 @@ describe("generateOccurrences", () => {
       const before = generate(schedule([first]), { from: "2026-01-01", to: "2026-05-31" });
 
       const after = generate(
-        schedule([first, version({ effectiveFrom: "2026-06-01", amount: 999, repetition: { kind: "yearly" } })]),
+        schedule([
+          first,
+          version({ effectiveFrom: "2026-06-01", amount: 999, repetition: { kind: "yearly" } }),
+        ]),
         { from: "2026-01-01", to: "2026-05-31" },
       );
 
@@ -142,18 +151,33 @@ describe("generateOccurrences", () => {
       const every3Months: Repetition = { kind: "every_n_months", months: 3 };
       const planned = schedule([
         version({ effectiveFrom: "2026-01-15", repetition: every3Months }),
-        version({ effectiveFrom: "2026-02-01", repetition: every3Months, amountMode: "rolling_average" }),
+        version({
+          effectiveFrom: "2026-02-01",
+          repetition: every3Months,
+          amountMode: "rolling_average",
+        }),
       ]);
 
-      expect(dates(generate(planned, YEAR_2026))).toEqual(["2026-01-15", "2026-04-15", "2026-07-15", "2026-10-15"]);
+      expect(dates(generate(planned, YEAR_2026))).toEqual([
+        "2026-01-15",
+        "2026-04-15",
+        "2026-07-15",
+        "2026-10-15",
+      ]);
     });
   });
 
   describe("bounds", () => {
-    const monthlyOn25 = schedule([version({ effectiveFrom: SALARY_START })], { endDate: "2026-03-25" });
+    const monthlyOn25 = schedule([version({ effectiveFrom: SALARY_START })], {
+      endDate: "2026-03-25",
+    });
 
     it("includes the end date", () => {
-      expect(dates(generate(monthlyOn25, YEAR_2026))).toEqual(["2026-01-25", "2026-02-25", "2026-03-25"]);
+      expect(dates(generate(monthlyOn25, YEAR_2026))).toEqual([
+        "2026-01-25",
+        "2026-02-25",
+        "2026-03-25",
+      ]);
     });
 
     it("excludes a nominal date after an end date set the day before it", () => {
@@ -163,12 +187,18 @@ describe("generateOccurrences", () => {
     });
 
     it("returns exactly one occurrence for a one-off event", () => {
-      const oneOff = schedule([version({ effectiveFrom: "2026-04-10", repetition: null, amount: 5000 })]);
+      const oneOff = schedule([
+        version({ effectiveFrom: "2026-04-10", repetition: null, amount: 5000 }),
+      ]);
 
       const occurrences = generate(oneOff, { from: "2026-01-01", to: "2030-12-31" });
 
       expect(occurrences).toHaveLength(1);
-      expect(occurrences[0]).toMatchObject({ nominalDate: "2026-04-10", date: "2026-04-10", amount: 5000 });
+      expect(occurrences[0]).toMatchObject({
+        nominalDate: "2026-04-10",
+        date: "2026-04-10",
+        amount: 5000,
+      });
     });
 
     it("returns nothing for a range before the start date", () => {
@@ -197,18 +227,26 @@ describe("generateOccurrences", () => {
       const planned = schedule([lastDay]);
 
       expect(generate(planned, { from: "2026-01-01", to: "2026-01-31" })).toEqual([]);
-      expect(dates(generate(planned, { from: "2026-02-01", to: "2026-02-02" }))).toEqual(["2026-02-02"]);
+      expect(dates(generate(planned, { from: "2026-02-01", to: "2026-02-02" }))).toEqual([
+        "2026-02-02",
+      ]);
     });
 
     it("includes an occurrence whose date falls in the range after a previous-day shift", () => {
       const planned = schedule([
-        version({ effectiveFrom: "2026-01-01", repetition: { kind: "monthly_on_day", day: 1 }, businessDayRule: "previous" }),
+        version({
+          effectiveFrom: "2026-01-01",
+          repetition: { kind: "monthly_on_day", day: 1 },
+          businessDayRule: "previous",
+        }),
       ]);
 
       // 1 Feb 2026 is a Sunday: the previous rule gives Friday 30 Jan.
       const occurrences = generate(planned, { from: "2026-01-30", to: "2026-01-30" });
 
-      expect(occurrences.map((o) => [o.nominalDate, o.date])).toEqual([["2026-02-01", "2026-01-30"]]);
+      expect(occurrences.map((o) => [o.nominalDate, o.date])).toEqual([
+        ["2026-02-01", "2026-01-30"],
+      ]);
     });
 
     it("sorts by date, then by nominal date when two occurrences share a date", () => {
@@ -220,7 +258,9 @@ describe("generateOccurrences", () => {
         overrideAmount: null,
       };
 
-      const occurrences = generate(monthly, { from: "2026-02-01", to: "2026-03-31" }, [moveOntoFebruary]);
+      const occurrences = generate(monthly, { from: "2026-02-01", to: "2026-03-31" }, [
+        moveOntoFebruary,
+      ]);
 
       expect(occurrences.map((o) => [o.date, o.nominalDate])).toEqual([
         ["2026-02-25", "2026-01-25"],
@@ -278,14 +318,20 @@ describe("generateOccurrences", () => {
         overrideAmount: null,
       };
 
-      const moved = generate(monthly, range, [override]).find((o) => o.nominalDate === "2026-02-25");
+      const moved = generate(monthly, range, [override]).find(
+        (o) => o.nominalDate === "2026-02-25",
+      );
 
       expect(moved).toMatchObject({ amount: 100, isAmountOverridden: false });
     });
 
     it("applies the override date after the business-day rule", () => {
       const planned = schedule([
-        version({ effectiveFrom: "2026-01-31", repetition: { kind: "monthly_on_last_day" }, businessDayRule: "next" }),
+        version({
+          effectiveFrom: "2026-01-31",
+          repetition: { kind: "monthly_on_last_day" },
+          businessDayRule: "next",
+        }),
       ]);
       const override: OccurrenceOverride = {
         nominalDate: "2026-01-31",
@@ -309,7 +355,9 @@ describe("generateOccurrences", () => {
 
       const occurrences = generate(monthly, { from: "2026-04-05", to: "2026-04-15" }, [override]);
 
-      expect(occurrences.map((o) => [o.nominalDate, o.date])).toEqual([["2026-01-25", "2026-04-10"]]);
+      expect(occurrences.map((o) => [o.nominalDate, o.date])).toEqual([
+        ["2026-01-25", "2026-04-10"],
+      ]);
     });
 
     it("has no effect for a modified override with neither a date nor an amount", () => {
@@ -357,7 +405,12 @@ describe("generateOccurrences", () => {
     it("returns nothing after today and flags the earlier occurrences", () => {
       const planned = schedule([version({ effectiveFrom: SALARY_START })], { cancelled: true });
 
-      const occurrences = generate(planned, { from: "2026-01-01", to: "2026-06-30" }, [], "2026-03-25");
+      const occurrences = generate(
+        planned,
+        { from: "2026-01-01", to: "2026-06-30" },
+        [],
+        "2026-03-25",
+      );
 
       expect(occurrences.map((o) => [o.nominalDate, o.isCancelled])).toEqual([
         ["2026-01-25", true],
@@ -395,7 +448,9 @@ describe("generateOccurrences", () => {
     });
 
     it("throws when the first version is not effective on the start date", () => {
-      const planned = schedule([version({ effectiveFrom: "2026-02-01" })], { startDate: SALARY_START });
+      const planned = schedule([version({ effectiveFrom: "2026-02-01" })], {
+        startDate: SALARY_START,
+      });
 
       expect(() => generate(planned, YEAR_2026)).toThrow(Error);
     });

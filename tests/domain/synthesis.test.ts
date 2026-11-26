@@ -12,9 +12,7 @@ const CHECKING_ID = 1;
 const LIVRET_A_ID = 2;
 const LIVRET_JEUNE_ID = 3;
 
-function account(
-  overrides: Partial<SynthesisAccount> & { id: number },
-): SynthesisAccount {
+function account(overrides: Partial<SynthesisAccount> & { id: number }): SynthesisAccount {
   return {
     kind: "checking",
     currency: "EUR",
@@ -37,16 +35,18 @@ const livretA = account({ id: LIVRET_A_ID, kind: "savings" });
 const livretJeune = account({ id: LIVRET_JEUNE_ID, kind: "savings" });
 
 // A transfer is two legs of opposite sign that point to each other.
-function transfer(
-  from: number,
-  to: number,
-  date: string,
-  amount: number,
-): SynthesisTransaction[] {
+function transfer(from: number, to: number, date: string, amount: number): SynthesisTransaction[] {
   const out = nextId++;
   const incoming = nextId++;
   return [
-    { id: out, accountId: from, date, amount: -amount, kind: "transfer", transferCounterpartId: incoming },
+    {
+      id: out,
+      accountId: from,
+      date,
+      amount: -amount,
+      kind: "transfer",
+      transferCounterpartId: incoming,
+    },
     { id: incoming, accountId: to, date, amount, kind: "transfer", transferCounterpartId: out },
   ];
 }
@@ -165,11 +165,7 @@ describe("computeMonthlySynthesis", () => {
 
     // The savings account is absent from the months before its opening.
     expect(result.map((month) => [month.month, month.balances, month.total])).toEqual([
-      [
-        "2026-01",
-        [{ accountId: CHECKING_ID, currency: "EUR", balance: 99_000 }],
-        99_000,
-      ],
+      ["2026-01", [{ accountId: CHECKING_ID, currency: "EUR", balance: 99_000 }], 99_000],
       [
         "2026-02",
         [
@@ -225,7 +221,12 @@ describe("computeMonthlySynthesis", () => {
         wallet,
       ],
       transactions: [
-        transaction({ accountId: LIVRET_A_ID, date: "2026-01-20", amount: 1_500, kind: "interest" }),
+        transaction({
+          accountId: LIVRET_A_ID,
+          date: "2026-01-20",
+          amount: 1_500,
+          kind: "interest",
+        }),
       ],
       referenceCurrency: "EUR",
       exchangeRates: [eurUsd],

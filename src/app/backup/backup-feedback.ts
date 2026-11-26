@@ -1,6 +1,11 @@
 import { BackupError, type BackupErrorCode } from "../../export/backup-error";
 import { MIN_BACKUP_PASSWORD_LENGTH } from "../../export/envelope";
-import { messageRef, type FeedbackKey, type MessageRef, type Translate } from "../../domain/message";
+import {
+  messageRef,
+  type FeedbackKey,
+  type MessageRef,
+  type Translate,
+} from "../../domain/message";
 
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 // Server actions accept 21 MB (next.config.ts): this stays under it.
@@ -29,7 +34,10 @@ export function backupFailureRef(error: unknown): MessageRef {
       ? messageRef(FEEDBACK_KEYS[error.code], { min: MIN_BACKUP_PASSWORD_LENGTH })
       : messageRef(FEEDBACK_KEYS[error.code]);
   }
-  console.error("Backup operation failed:", error instanceof Error ? error.message : "unknown error");
+  console.error(
+    "Backup operation failed:",
+    error instanceof Error ? error.message : "unknown error",
+  );
   return messageRef("backupFailed");
 }
 

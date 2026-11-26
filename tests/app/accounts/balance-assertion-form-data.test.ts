@@ -34,15 +34,17 @@ describe("parseBalanceAssertionForm", () => {
   });
 
   it("reads a debit balance as a negative amount", () => {
-    expect(
-      parseBalanceAssertionForm(formOf({ amount: "12,50", side: "debit" })),
-    ).toMatchObject({ ok: true, input: { amount: -1250 } });
+    expect(parseBalanceAssertionForm(formOf({ amount: "12,50", side: "debit" }))).toMatchObject({
+      ok: true,
+      input: { amount: -1250 },
+    });
   });
 
   it("reads a credit balance, and a missing side, as positive", () => {
-    expect(
-      parseBalanceAssertionForm(formOf({ amount: "12,50", side: "credit" })),
-    ).toMatchObject({ ok: true, input: { amount: 1250 } });
+    expect(parseBalanceAssertionForm(formOf({ amount: "12,50", side: "credit" }))).toMatchObject({
+      ok: true,
+      input: { amount: 1250 },
+    });
     expect(parseBalanceAssertionForm(formOf({ amount: "12,50" }))).toMatchObject({
       ok: true,
       input: { amount: 1250 },
@@ -56,9 +58,10 @@ describe("parseBalanceAssertionForm", () => {
   });
 
   it("refuses an unknown side", () => {
-    expect(
-      parseBalanceAssertionForm(formOf({ amount: "12", side: "up" })),
-    ).toMatchObject({ ok: false, error: { field: "side" } });
+    expect(parseBalanceAssertionForm(formOf({ amount: "12", side: "up" }))).toMatchObject({
+      ok: false,
+      error: { field: "side" },
+    });
   });
 
   it.each([
@@ -80,9 +83,10 @@ describe("parseBalanceAssertionForm", () => {
   });
 
   it("uses the currency of the account to find the minor unit", () => {
-    expect(
-      parseBalanceAssertionForm(formOf({ amount: "1234" }), "JPY"),
-    ).toMatchObject({ ok: true, input: { amount: 1234 } });
+    expect(parseBalanceAssertionForm(formOf({ amount: "1234" }), "JPY")).toMatchObject({
+      ok: true,
+      input: { amount: 1234 },
+    });
   });
 
   it("reports an unreadable amount on the amount field", () => {
@@ -93,9 +97,7 @@ describe("parseBalanceAssertionForm", () => {
   });
 
   it("sends back what the user typed so the form can be refilled", () => {
-    expect(
-      parseBalanceAssertionForm(formOf({ amount: "abc", note: "oops" })),
-    ).toMatchObject({
+    expect(parseBalanceAssertionForm(formOf({ amount: "abc", note: "oops" }))).toMatchObject({
       ok: false,
       error: { values: { date: "2026-01-31", amount: "abc", note: "oops" } },
     });
@@ -129,8 +131,9 @@ describe("parseAccountId", () => {
   });
 
   it("sends the chosen account back with the typed values", () => {
-    expect(
-      parseBalanceAssertionForm(formOf({ accountId: "4", amount: "abc" })),
-    ).toMatchObject({ ok: false, error: { values: { accountId: "4" } } });
+    expect(parseBalanceAssertionForm(formOf({ accountId: "4", amount: "abc" }))).toMatchObject({
+      ok: false,
+      error: { values: { accountId: "4" } },
+    });
   });
 });

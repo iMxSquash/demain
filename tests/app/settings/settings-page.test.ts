@@ -1,7 +1,13 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
 
-import { createElement, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
+import {
+  createElement,
+  isValidElement,
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createTranslator, NextIntlClientProvider } from "next-intl";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,7 +27,9 @@ const SESSION_COOKIE = "demain_session";
 const cookieJar = new Map<string, string>();
 
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: (name: string) => (cookieJar.has(name) ? { value: cookieJar.get(name) } : undefined) }),
+  cookies: async () => ({
+    get: (name: string) => (cookieJar.has(name) ? { value: cookieJar.get(name) } : undefined),
+  }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (location: string) => {
@@ -57,7 +65,11 @@ async function resolve(node: ReactNode): Promise<ReactNode> {
   }
   const children = element.props.children;
   if (children === undefined) return element;
-  return createElement(element.type, { ...element.props, key: element.key }, await resolve(children));
+  return createElement(
+    element.type,
+    { ...element.props, key: element.key },
+    await resolve(children),
+  );
 }
 
 async function renderSettings(): Promise<string> {
@@ -66,7 +78,9 @@ async function renderSettings(): Promise<string> {
   return renderToStaticMarkup(
     createElement(
       NextIntlClientProvider,
-      { locale: LOCALE, messages: loadMessages(LOCALE) } as ComponentProps<typeof NextIntlClientProvider>,
+      { locale: LOCALE, messages: loadMessages(LOCALE) } as ComponentProps<
+        typeof NextIntlClientProvider
+      >,
       page,
     ),
   );
@@ -120,7 +134,10 @@ describe("settings page", () => {
     const html = await renderSettings();
 
     expect(html.match(/<h1[ >]/g)).toHaveLength(1);
-    const headings = [...html.matchAll(/<h([1-6])[^>]*>(.*?)<\/h\1>/g)].map((match) => [match[1], match[2]]);
+    const headings = [...html.matchAll(/<h([1-6])[^>]*>(.*?)<\/h\1>/g)].map((match) => [
+      match[1],
+      match[2],
+    ]);
     expect(headings).toEqual([
       ["1", "Settings"],
       ["2", "Appearance"],

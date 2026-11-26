@@ -3,10 +3,7 @@ import { z } from "zod";
 const SETUP_TOKEN_MIN_LENGTH = 32;
 
 const envSchema = z.object({
-  DEMAIN_DATA_DIR: z
-    .string({ error: "is required" })
-    .trim()
-    .min(1, { error: "must not be empty" }),
+  DEMAIN_DATA_DIR: z.string({ error: "is required" }).trim().min(1, { error: "must not be empty" }),
   // Only needed until the account exists. A blank value (typical of a compose
   // file) counts as unset.
   DEMAIN_SETUP_TOKEN: z

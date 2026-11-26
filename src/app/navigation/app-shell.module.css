@@ -34,7 +34,8 @@
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   font-weight: var(--weight-medium);
-  transition: color var(--motion-duration-state) var(--motion-ease-move),
+  transition:
+    color var(--motion-duration-state) var(--motion-ease-move),
     background-color var(--motion-duration-state) var(--motion-ease-move);
 
   &:hover {

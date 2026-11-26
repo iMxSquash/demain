@@ -2,10 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { validateBalanceAssertionInput } from "../domain/balance-assertion";
 import type { SummaryBalance } from "../domain/sheet-summary";
-import {
-  planSummaryAssertions,
-  type SummaryAssertionPlan,
-} from "../domain/summary-assertions";
+import { planSummaryAssertions, type SummaryAssertionPlan } from "../domain/summary-assertions";
 import type { AppDatabase } from "../storage/database";
 import { balanceAssertions } from "../storage/schema";
 import { getAccount } from "./accounts";
@@ -15,16 +12,14 @@ import {
   type SavedBalanceAssertion,
 } from "./balance-assertions";
 
-export interface SummaryAssertionPreview
-  extends Omit<SummaryAssertionPlan, "assertions"> {
+export interface SummaryAssertionPreview extends Omit<SummaryAssertionPlan, "assertions"> {
   assertions: (SummaryAssertionPlan["assertions"][number] & {
     /** The amount of the assertion this one would replace, or null for a new day. */
     replacedAmount: number | null;
   })[];
 }
 
-export interface SummaryAssertionsSaved
-  extends Omit<SummaryAssertionPlan, "assertions"> {
+export interface SummaryAssertionsSaved extends Omit<SummaryAssertionPlan, "assertions"> {
   saved: SavedBalanceAssertion[];
 }
 
@@ -72,9 +67,7 @@ export function saveSummaryAssertions(
   }
   const { assertions, ...rest } = planSummaryAssertions(balances, account, today);
   // Validated before anything is written, so that one bad amount stops the whole batch.
-  const valid = assertions.map((assertion) =>
-    validateBalanceAssertionInput(assertion, account),
-  );
+  const valid = assertions.map((assertion) => validateBalanceAssertionInput(assertion, account));
   const saved = db.transaction((tx) =>
     valid.map((assertion) => recordValidAssertion(tx, assertion)),
   );

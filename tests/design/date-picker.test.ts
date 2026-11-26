@@ -7,7 +7,12 @@ import { DatePicker } from "../../src/components/date-picker";
 
 const MESSAGES = {
   common: {
-    datePicker: { dialog: "Choose a date", previousMonth: "Previous", nextMonth: "Next", today: "Today" },
+    datePicker: {
+      dialog: "Choose a date",
+      previousMonth: "Previous",
+      nextMonth: "Next",
+      today: "Today",
+    },
   },
 };
 

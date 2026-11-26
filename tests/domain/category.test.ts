@@ -17,9 +17,7 @@ describe("validateCategoryName", () => {
   });
 
   it("rejects a blank name", () => {
-    expect(() => validateCategoryName("   ")).toThrow(
-      CategoryValidationError,
-    );
+    expect(() => validateCategoryName("   ")).toThrow(CategoryValidationError);
   });
 });
 
@@ -40,9 +38,7 @@ describe("assertCategoryNameAvailable", () => {
   });
 
   it("lets a category keep its own name when it is renamed", () => {
-    expect(() =>
-      assertCategoryNameAvailable("GROCERIES", existing, { ignoreId: 1 }),
-    ).not.toThrow();
+    expect(() => assertCategoryNameAvailable("GROCERIES", existing, { ignoreId: 1 })).not.toThrow();
   });
 });
 

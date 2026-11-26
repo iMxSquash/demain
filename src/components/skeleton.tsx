@@ -130,7 +130,11 @@ export function SkeletonTable({ columns, rows }: { columns: number; rows: number
           </div>
         ))}
       </div>
-      <SkeletonRows columns={columns} rows={rows} rowClassName="h-12 border-t border-divider px-3" />
+      <SkeletonRows
+        columns={columns}
+        rows={rows}
+        rowClassName="h-12 border-t border-divider px-3"
+      />
     </div>
   );
 }
@@ -200,7 +204,13 @@ interface SkeletonDataTableProps {
 }
 
 /** A `DataTable` with its real caption and column headings and rows of blocks. */
-export function SkeletonDataTable({ caption, regionLabel, head, columns, rows }: SkeletonDataTableProps) {
+export function SkeletonDataTable({
+  caption,
+  regionLabel,
+  head,
+  columns,
+  rows,
+}: SkeletonDataTableProps) {
   return (
     <DataTable caption={caption} regionLabel={regionLabel}>
       {head}

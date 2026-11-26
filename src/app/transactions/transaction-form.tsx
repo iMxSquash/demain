@@ -72,11 +72,7 @@ export function TransactionForm({
         </p>
       ) : null}
 
-      <FormField
-        id="accountId"
-        label={t("form.account")}
-        error={errorOf("accountId")}
-      >
+      <FormField id="accountId" label={t("form.account")} error={errorOf("accountId")}>
         {/* The key remounts the select: after the automatic form reset React
             does not re-apply a changed defaultValue to the options. */}
         <Select key={values.accountId} {...controlProps("accountId")}>
@@ -112,16 +108,22 @@ export function TransactionForm({
       </FormField>
 
       <FormField id="label" label={t("form.label")} error={errorOf("label")}>
-        <input {...controlProps("label")} className={CONTROL_CLASS} type="text" required autoComplete="off" />
+        <input
+          {...controlProps("label")}
+          className={CONTROL_CLASS}
+          type="text"
+          required
+          autoComplete="off"
+        />
       </FormField>
 
-      <FormField
-        id="description"
-        label={t("form.note")}
-        optional
-        error={errorOf("description")}
-      >
-        <input {...controlProps("description")} className={CONTROL_CLASS} type="text" autoComplete="off" />
+      <FormField id="description" label={t("form.note")} optional error={errorOf("description")}>
+        <input
+          {...controlProps("description")}
+          className={CONTROL_CLASS}
+          type="text"
+          autoComplete="off"
+        />
       </FormField>
 
       <FormField

@@ -90,7 +90,10 @@ interface DayContent {
 }
 
 // Every day of November 2026, with the content of a few of them.
-function monthOf(contents: Record<number, DayContent> = {}, overrides: Partial<CalendarMonth> = {}): CalendarMonth {
+function monthOf(
+  contents: Record<number, DayContent> = {},
+  overrides: Partial<CalendarMonth> = {},
+): CalendarMonth {
   const days: CalendarDay[] = Array.from({ length: 30 }, (_, index) => {
     const { entries = [], balance = 100_000 } = contents[index + 1] ?? {};
     return {
@@ -100,11 +103,24 @@ function monthOf(contents: Record<number, DayContent> = {}, overrides: Partial<C
       isBelowZero: balance !== null && balance < 0,
     };
   });
-  return { month: "2026-11", currency: "EUR", days, firstDayBelowZero: null, unconvertedCurrencies: [], ...overrides };
+  return {
+    month: "2026-11",
+    currency: "EUR",
+    days,
+    firstDayBelowZero: null,
+    unconvertedCurrencies: [],
+    ...overrides,
+  };
 }
 
 function render(month: CalendarMonth): string {
-  const props: CalendarLinesTableProps = { month, accounts: ACCOUNTS, locale: LOCALE, text: TEXT, backView: "lines" };
+  const props: CalendarLinesTableProps = {
+    month,
+    accounts: ACCOUNTS,
+    locale: LOCALE,
+    text: TEXT,
+    backView: "lines",
+  };
   return renderToString(createElement(CalendarLinesTable, props));
 }
 
@@ -128,7 +144,11 @@ describe("monthly line table", () => {
     const entries = [entry({ id: "t1" }), entry({ id: "t2", label: "COFFEE" })];
     const html = render(monthOf({ 3: { entries } }));
 
-    expect(tableOf(html).match(/<tbody[\s\S]*<\/tbody>/)?.[0].match(/<tr[\s>]/g)).toHaveLength(2);
+    expect(
+      tableOf(html)
+        .match(/<tbody[\s\S]*<\/tbody>/)?.[0]
+        .match(/<tr[\s>]/g),
+    ).toHaveLength(2);
     expect(listOf(html).match(/<li[\s>]/g)).toHaveLength(2);
     expect(tableOf(html)).toContain("COFFEE");
     expect(listOf(html)).toContain("COFFEE");
@@ -137,7 +157,13 @@ describe("monthly line table", () => {
   it("writes each status in words", () => {
     const statuses = ["planned", "partial", "confirmed", "overdue", "cancelled"] as const;
     const entries = statuses.map((status, index) =>
-      entry({ id: `p${index}`, kind: "planned", status, label: `Item ${index}`, plannedItemId: index }),
+      entry({
+        id: `p${index}`,
+        kind: "planned",
+        status,
+        label: `Item ${index}`,
+        plannedItemId: index,
+      }),
     );
     const html = render(monthOf({ 12: { entries } }));
 
@@ -151,7 +177,11 @@ describe("monthly line table", () => {
     const html = render(
       monthOf({
         3: { entries: [entry()] },
-        15: { entries: [entry({ id: "p1:2026-11-15", kind: "planned", status: "planned", label: "Rent" })] },
+        15: {
+          entries: [
+            entry({ id: "p1:2026-11-15", kind: "planned", status: "planned", label: "Rent" }),
+          ],
+        },
       }),
     );
 
@@ -216,7 +246,10 @@ describe("monthly line table", () => {
               entry({ id: "t2", date: "2026-11-05", label: "SECOND" }),
             ],
           },
-          9: { balance: 98_765, entries: [entry({ id: "t3", date: "2026-11-09", label: "THIRD" })] },
+          9: {
+            balance: 98_765,
+            entries: [entry({ id: "t3", date: "2026-11-09", label: "THIRD" })],
+          },
         }),
       );
 
@@ -236,7 +269,15 @@ describe("monthly line table", () => {
       {
         20: {
           balance: -26_544,
-          entries: [entry({ id: "p3:2026-11-20", kind: "planned", status: "planned", label: "Insurance", amount: -150_000 })],
+          entries: [
+            entry({
+              id: "p3:2026-11-20",
+              kind: "planned",
+              status: "planned",
+              label: "Insurance",
+              amount: -150_000,
+            }),
+          ],
         },
       },
       { firstDayBelowZero: "2026-11-20" },
@@ -309,7 +350,9 @@ describe("monthly line table", () => {
   });
 
   it("names the currencies left out of the balance", () => {
-    const html = render(monthOf({ 3: { entries: [entry()] } }, { unconvertedCurrencies: ["GBP", "USD"] }));
+    const html = render(
+      monthOf({ 3: { entries: [entry()] } }, { unconvertedCurrencies: ["GBP", "USD"] }),
+    );
 
     expect(html).toContain("Left out, no rate: GBP, USD");
   });
@@ -328,12 +371,19 @@ describe("monthly line table", () => {
     const html = render(monthOf({ 18: { entries: [rent] } }));
 
     for (const layout of [tableOf(html), listOf(html)]) {
-      expect(layout).toMatch(/<button[^>]*>Change<span class="sr-only"> Rent, Nov 15, 2026<\/span><\/button>/);
+      expect(layout).toMatch(
+        /<button[^>]*>Change<span class="sr-only"> Rent, Nov 15, 2026<\/span><\/button>/,
+      );
     }
   });
 
   it("offers to restore a skipped occurrence, but no change of one that is not editable or of a real transaction", () => {
-    const planned = { kind: "planned" as const, plannedItemId: 4, nominalDate: "2026-11-15", isEditable: true };
+    const planned = {
+      kind: "planned" as const,
+      plannedItemId: 4,
+      nominalDate: "2026-11-15",
+      isEditable: true,
+    };
     const html = render(
       monthOf({
         3: { entries: [entry()] },
@@ -344,10 +394,29 @@ describe("monthly line table", () => {
               id: "p4:2026-11-15",
               status: "cancelled",
               label: "Rent",
-              override: { nominalDate: "2026-11-15", status: "cancelled", overrideDate: null, overrideAmount: null },
+              override: {
+                nominalDate: "2026-11-15",
+                status: "cancelled",
+                overrideDate: null,
+                overrideAmount: null,
+              },
             }),
-            entry({ ...planned, id: "p5:2026-11-15", status: "partial", label: "Groceries", plannedItemId: 5, isEditable: false }),
-            entry({ ...planned, id: "p6:2026-11-15", status: "overdue", label: "Subscription", plannedItemId: 6, isEditable: false }),
+            entry({
+              ...planned,
+              id: "p5:2026-11-15",
+              status: "partial",
+              label: "Groceries",
+              plannedItemId: 5,
+              isEditable: false,
+            }),
+            entry({
+              ...planned,
+              id: "p6:2026-11-15",
+              status: "overdue",
+              label: "Subscription",
+              plannedItemId: 6,
+              isEditable: false,
+            }),
           ],
         },
       }),
@@ -376,7 +445,9 @@ describe("monthly line table", () => {
       const html = render(monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15" })] } }));
 
       for (const layout of [tableOf(html), listOf(html)]) {
-        expect(layout).toMatch(/<button[^>]*aria-label="Mark as paid, Rent, Nov 15, 2026"[^>]*>Mark as paid<\/button>/);
+        expect(layout).toMatch(
+          /<button[^>]*aria-label="Mark as paid, Rent, Nov 15, 2026"[^>]*>Mark as paid<\/button>/,
+        );
         expect(layout).toMatch(
           /<a[^>]*href="\/planned\/link\?item=4&amp;date=2026-11-15&amp;back=lines"[^>]*aria-label="Link a transaction, Rent, Nov 15, 2026"[^>]*>Link a transaction<\/a>|<a[^>]*aria-label="Link a transaction, Rent, Nov 15, 2026"[^>]*href="\/planned\/link\?item=4&amp;date=2026-11-15&amp;back=lines"[^>]*>Link a transaction<\/a>/,
         );
@@ -384,7 +455,9 @@ describe("monthly line table", () => {
     });
 
     it("records the planned date and the unsigned amount, with no form to fill", () => {
-      const html = render(monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15", date: "2026-11-16" })] } }));
+      const html = render(
+        monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15", date: "2026-11-16" })] } }),
+      );
 
       expect(tableOf(html)).toContain('<input type="hidden" name="date" value="2026-11-16"/>');
       expect(tableOf(html)).toContain('<input type="hidden" name="amount" value="650.00"/>');
@@ -393,7 +466,11 @@ describe("monthly line table", () => {
     it("puts the actions of a table row in a row of their own, under it, across the seven columns", () => {
       const html = render(monthOf({ 15: { entries: [entry({ ...open, id: "p4:2026-11-15" })] } }));
 
-      const rows = tableOf(html).match(/<tbody[\s\S]*<\/tbody>/)?.[0].split("<tr").slice(1) ?? [];
+      const rows =
+        tableOf(html)
+          .match(/<tbody[\s\S]*<\/tbody>/)?.[0]
+          .split("<tr")
+          .slice(1) ?? [];
       expect(rows).toHaveLength(2);
       expect(rows[0]).not.toContain("<button");
       expect(rows[1]).toMatch(/<td colSpan="7"/);
@@ -405,7 +482,13 @@ describe("monthly line table", () => {
         monthOf({
           15: {
             entries: [
-              entry({ ...open, id: "p4:2026-11-15", label: "Salary", amount: 245_000, plannedKind: "income" }),
+              entry({
+                ...open,
+                id: "p4:2026-11-15",
+                label: "Salary",
+                amount: 245_000,
+                plannedKind: "income",
+              }),
               entry({
                 ...open,
                 id: "p5:2026-11-15",
@@ -431,7 +514,13 @@ describe("monthly line table", () => {
             entries: [
               entry(),
               entry({ ...open, id: "p4:2026-11-15", status: "cancelled", canSettle: false }),
-              entry({ ...open, id: "p6:2026-11-15", plannedItemId: 6, status: "overdue", canSettle: false }),
+              entry({
+                ...open,
+                id: "p6:2026-11-15",
+                plannedItemId: 6,
+                status: "overdue",
+                canSettle: false,
+              }),
             ],
           },
         }),

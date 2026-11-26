@@ -19,7 +19,10 @@ interface DisclosureProps {
  */
 export function Disclosure({ summary, open, edges = "both", children }: DisclosureProps) {
   return (
-    <details open={open} className={`group ${edges === "both" ? "border-y" : "border-t"} border-divider`}>
+    <details
+      open={open}
+      className={`group ${edges === "both" ? "border-y" : "border-t"} border-divider`}
+    >
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 font-medium [&::-webkit-details-marker]:hidden">
         {summary}
         <span aria-hidden="true" className="transition-transform group-open:rotate-180">

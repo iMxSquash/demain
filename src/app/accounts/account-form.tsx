@@ -9,10 +9,7 @@ import { AmountInput } from "../amount-input";
 import { BalanceSideField } from "../balance-side-field";
 import { CONTROL_CLASS, FormField } from "../form-field";
 import { useFocusFirstError } from "../use-focus-first-error";
-import type {
-  AccountFormState,
-  AccountFormValues,
-} from "./account-form-data";
+import type { AccountFormState, AccountFormValues } from "./account-form-data";
 import { DatePicker } from "../../components/date-picker";
 import { Select } from "../../components/select";
 
@@ -46,8 +43,7 @@ export function AccountForm({
   // After a failed submit the typed values come back with the error.
   const values = state?.values ?? initialValues;
 
-  const errorOf = (field: AccountField) =>
-    state?.field === field ? state.message : undefined;
+  const errorOf = (field: AccountField) => (state?.field === field ? state.message : undefined);
   const controlProps = (field: AccountField) => ({
     id: field,
     name: field,
@@ -62,7 +58,13 @@ export function AccountForm({
   return (
     <form ref={formRef} action={formAction} className="flex max-w-md flex-col gap-4" noValidate>
       <FormField {...fieldProps("name", t("form.name"))}>
-        <input {...controlProps("name")} className={CONTROL_CLASS} type="text" required autoComplete="off" />
+        <input
+          {...controlProps("name")}
+          className={CONTROL_CLASS}
+          type="text"
+          required
+          autoComplete="off"
+        />
       </FormField>
 
       <FormField {...fieldProps("kind", t("form.kind"))}>
@@ -79,7 +81,8 @@ export function AccountForm({
 
       <FormField {...fieldProps("currency", t("form.currency"))} hint={t("form.currencyHint")}>
         <input
-          {...controlProps("currency")} className={CONTROL_CLASS}
+          {...controlProps("currency")}
+          className={CONTROL_CLASS}
           type="text"
           required
           autoComplete="off"
@@ -111,10 +114,7 @@ export function AccountForm({
 
       <FormField {...fieldProps("overflowAccountId", t("form.overflowAccount"))} optional>
         {/* Same remount trick as the kind select above. */}
-        <Select
-          key={values.overflowAccountId}
-          {...controlProps("overflowAccountId")}
-        >
+        <Select key={values.overflowAccountId} {...controlProps("overflowAccountId")}>
           <option value="">{common("none")}</option>
           {overflowOptions.map((option) => (
             <option key={option.id} value={option.id}>

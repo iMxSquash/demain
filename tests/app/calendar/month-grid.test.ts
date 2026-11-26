@@ -112,7 +112,13 @@ function monthOf(contents: Record<number, DayContent> = {}): CalendarMonth {
       isBelowZero: balance !== null && balance < 0,
     };
   });
-  return { month: "2026-11", currency: "EUR", days, firstDayBelowZero: null, unconvertedCurrencies: [] };
+  return {
+    month: "2026-11",
+    currency: "EUR",
+    days,
+    firstDayBelowZero: null,
+    unconvertedCurrencies: [],
+  };
 }
 
 const linesHref = (date: string) => `/calendar/lines?month=2026-11#${date}`;
@@ -125,14 +131,17 @@ function render(
   return renderToString(createElement(MonthGrid, props));
 }
 
-const attributeOf = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
+const attributeOf = (tag: string, name: string) =>
+  new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
 // Intl writes a no-break space between the code and the figure.
 const flat = (text: string) => text.replace(/[\s  ]+/g, " ");
 const codeAmount = (minor: number, locale: string) =>
   flat(
-    new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", currencyDisplay: "code" }).format(
-      minor / 100,
-    ),
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "EUR",
+      currencyDisplay: "code",
+    }).format(minor / 100),
   );
 
 interface Cell {
@@ -167,7 +176,9 @@ const headersOf = (html: string) =>
   }));
 
 const linkOf = (html: string, date: string) =>
-  [...html.matchAll(/<a\s[^>]*>/g)].map((match) => match[0]).find((tag) => attributeOf(tag, "href") === linesHref(date));
+  [...html.matchAll(/<a\s[^>]*>/g)]
+    .map((match) => match[0])
+    .find((tag) => attributeOf(tag, "href") === linesHref(date));
 
 describe("month grid structure", () => {
   it("is one grid named by the month", () => {
@@ -182,7 +193,13 @@ describe("month grid structure", () => {
     const headers = headersOf(render(monthOf(), { locale: "en" }));
 
     expect(headers.map((header) => header.label)).toEqual([
-      "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
     ]);
     expect(headers.map((header) => header.text)).toEqual(
       [0, 1, 2, 3, 4, 5, 6].map((weekday) => formatWeekday(weekday, "en", "short")),
@@ -193,7 +210,13 @@ describe("month grid structure", () => {
     const headers = headersOf(render(monthOf(), { locale: "fr", text: TEXT_FR }));
 
     expect(headers.map((header) => header.label)).toEqual([
-      "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche",
+      "lundi",
+      "mardi",
+      "mercredi",
+      "jeudi",
+      "vendredi",
+      "samedi",
+      "dimanche",
     ]);
     expect(headers.map((header) => header.text)).toEqual(
       [1, 2, 3, 4, 5, 6, 0].map((weekday) => formatWeekday(weekday, "fr", "short")),
@@ -203,7 +226,9 @@ describe("month grid structure", () => {
   it("has a header row and one row per week", () => {
     // November 2026 spans 5 weeks from Sunday and 6 from Monday.
     expect(render(monthOf(), { locale: "en" }).match(/role="row"/g)).toHaveLength(1 + 5);
-    expect(render(monthOf(), { locale: "fr", text: TEXT_FR }).match(/role="row"/g)).toHaveLength(1 + 6);
+    expect(render(monthOf(), { locale: "fr", text: TEXT_FR }).match(/role="row"/g)).toHaveLength(
+      1 + 6,
+    );
   });
 
   it("has one named gridcell per day of the month, in order", () => {
@@ -255,7 +280,13 @@ describe("month grid cell name", () => {
   });
 
   it("says today, below zero and the unplaced surplus in the name", () => {
-    const entries = [entry({ id: "p1:2026-11-21", kind: "planned", unplacedSurplus: { amount: 10_000, accountId: 2 } })];
+    const entries = [
+      entry({
+        id: "p1:2026-11-21",
+        kind: "planned",
+        unplacedSurplus: { amount: 10_000, accountId: 2 },
+      }),
+    ];
     const html = render(monthOf({ 21: { entries, balance: -8_500 } }), { today: "2026-11-21" });
     const { label } = cellOf(html, 21);
 
@@ -268,7 +299,10 @@ describe("month grid cell name", () => {
 
   it("writes the name in French with the French words and the Intl figure", () => {
     const entries = [entry({ id: "t1" })];
-    const { label } = cellOf(render(monthOf({ 3: { entries, balance: -8_500 } }), { locale: "fr", text: TEXT_FR }), 3);
+    const { label } = cellOf(
+      render(monthOf({ 3: { entries, balance: -8_500 } }), { locale: "fr", text: TEXT_FR }),
+      3,
+    );
 
     expect(label).toContain("3 novembre");
     expect(flat(label)).toContain(`solde de fin de journée ${codeAmount(-8_500, "fr")}`);
@@ -279,7 +313,11 @@ describe("month grid cell name", () => {
 
 describe("month grid cell content", () => {
   it("shows the day number, the balance with its symbol and the counts", () => {
-    const entries = [entry({ id: "t1" }), entry({ id: "t2" }), entry({ id: "p1:2026-11-03", kind: "planned" })];
+    const entries = [
+      entry({ id: "t1" }),
+      entry({ id: "t2" }),
+      entry({ id: "p1:2026-11-03", kind: "planned" }),
+    ];
     const { content } = cellOf(render(monthOf({ 3: { entries, balance: 123_456 } })), 3);
 
     expect(content).toContain(formatAmount(123_456, "EUR", "en"));
@@ -303,7 +341,13 @@ describe("month grid cell content", () => {
   });
 
   it("states an unplaced surplus in text", () => {
-    const entries = [entry({ id: "p1:2026-11-12", kind: "planned", unplacedSurplus: { amount: 10_000, accountId: 2 } })];
+    const entries = [
+      entry({
+        id: "p1:2026-11-12",
+        kind: "planned",
+        unplacedSurplus: { amount: 10_000, accountId: 2 },
+      }),
+    ];
     const html = render(monthOf({ 12: { entries } }));
 
     expect(cellOf(html, 12).content).toContain("Unplaced surplus");

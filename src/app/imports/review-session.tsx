@@ -61,9 +61,7 @@ export function ReviewSessionProvider({
 }) {
   const [review, setReview] = useState<Review | null>(initialReview);
 
-  return (
-    <ReviewSessionContext value={{ review, setReview }}>{children}</ReviewSessionContext>
-  );
+  return <ReviewSessionContext value={{ review, setReview }}>{children}</ReviewSessionContext>;
 }
 
 export function useReviewSession(): ReviewSession {

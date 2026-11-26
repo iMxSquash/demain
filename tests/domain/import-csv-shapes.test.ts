@@ -161,7 +161,7 @@ describe("a file with a point as decimal mark and commas as thousands separators
     expect(reading.analysis.mapping?.decimalMark).toBe(".");
   });
 
-  it("reads \"2,100.00\" and \"-1,234.56\" as thousands, not as decimals", () => {
+  it('reads "2,100.00" and "-1,234.56" as thousands, not as decimals', () => {
     expect(summarize(reading)).toEqual([
       [2, "2026-04-03", "Bakery", -480],
       [3, "2026-04-05", "Acme payroll", 210_000],
@@ -183,8 +183,6 @@ describe("the number format is read per file", () => {
 
     expect(comma.analysis.mapping?.decimalMark).toBe(",");
     expect(point.analysis.mapping?.decimalMark).toBe(".");
-    expect(comma.rows.map((row) => row.amount)).toEqual(
-      point.rows.map((row) => row.amount),
-    );
+    expect(comma.rows.map((row) => row.amount)).toEqual(point.rows.map((row) => row.amount));
   });
 });

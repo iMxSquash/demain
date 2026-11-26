@@ -8,11 +8,7 @@
  * is not one the cursor reacts to. Without a cursor yet, the first arrow lands
  * on the most recent category.
  */
-export function moveCursor(
-  key: string,
-  current: number | null,
-  lastIndex: number,
-): number | null {
+export function moveCursor(key: string, current: number | null, lastIndex: number): number | null {
   switch (key) {
     case "ArrowLeft":
       return current === null ? lastIndex : Math.max(0, current - 1);

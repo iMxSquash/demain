@@ -4,7 +4,11 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { detailsFromSign, type ReviewedDraft, type RowDetails } from "../../src/domain/import-draft";
+import {
+  detailsFromSign,
+  type ReviewedDraft,
+  type RowDetails,
+} from "../../src/domain/import-draft";
 import type { PlannedItemInput } from "../../src/domain/planned-item";
 import { createAccount, getAccountBalance } from "../../src/ledger/accounts";
 import { createCategory } from "../../src/ledger/categories";
@@ -12,9 +16,17 @@ import { createRule } from "../../src/ledger/categorization-rules";
 import { undoImportBatch } from "../../src/ledger/import-undo";
 import { listImportBatches } from "../../src/ledger/imports";
 import { createPlannedItem } from "../../src/ledger/planned-items";
-import { listDueOccurrences, listEnteredPayments, markOccurrencePaid } from "../../src/ledger/planned-matching";
+import {
+  listDueOccurrences,
+  listEnteredPayments,
+  markOccurrencePaid,
+} from "../../src/ledger/planned-matching";
 import { commitDrafts } from "../../src/ledger/staged-import";
-import { createTransaction, listTransactions, type Transaction } from "../../src/ledger/transactions";
+import {
+  createTransaction,
+  listTransactions,
+  type Transaction,
+} from "../../src/ledger/transactions";
 import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const NOW = new Date("2026-03-12T10:00:00Z");
@@ -22,7 +34,10 @@ const TODAY = "2026-03-12";
 const RENT_DATE = "2026-03-05";
 const RENT_AMOUNT = 65_000;
 
-function draft(overrides: Partial<ReviewedDraft> = {}, details: Partial<RowDetails> = {}): ReviewedDraft {
+function draft(
+  overrides: Partial<ReviewedDraft> = {},
+  details: Partial<RowDetails> = {},
+): ReviewedDraft {
   return {
     date: RENT_DATE,
     label: "RENT MARCH",
@@ -71,16 +86,24 @@ describe("replacing an entry marked as paid by its bank row", () => {
     });
   }
 
-  function markPaid(plannedItemId: number, nominalDate = RENT_DATE, amount = RENT_AMOUNT): Transaction {
+  function markPaid(
+    plannedItemId: number,
+    nominalDate = RENT_DATE,
+    amount = RENT_AMOUNT,
+  ): Transaction {
     markOccurrencePaid(db, { plannedItemId, nominalDate, date: nominalDate, amount }, TODAY);
     const entry = listTransactions(db).find(
-      (transaction) => transaction.plannedItemId === plannedItemId && transaction.occurrenceDate === nominalDate,
+      (transaction) =>
+        transaction.plannedItemId === plannedItemId && transaction.occurrenceDate === nominalDate,
     );
     if (entry === undefined) throw new Error("The entry was not recorded");
     return entry;
   }
 
-  function commit(drafts: ReviewedDraft[], replacements: { index: number; entryId: number }[] = []) {
+  function commit(
+    drafts: ReviewedDraft[],
+    replacements: { index: number; entryId: number }[] = [],
+  ) {
     return commitDrafts(db, {
       accountId: checkingId,
       format: "csv",
@@ -95,7 +118,8 @@ describe("replacing an entry marked as paid by its bank row", () => {
 
   function isOpen(plannedItemId: number, nominalDate: string): boolean {
     return listDueOccurrences(db, TODAY).due.some(
-      (occurrence) => occurrence.plannedItemId === plannedItemId && occurrence.nominalDate === nominalDate,
+      (occurrence) =>
+        occurrence.plannedItemId === plannedItemId && occurrence.nominalDate === nominalDate,
     );
   }
 
@@ -126,11 +150,19 @@ describe("replacing an entry marked as paid by its bank row", () => {
     it("leaves out imported rows, unlinked entries and provisions", () => {
       const groceries = rentItem({ name: "Groceries", acceptsMultipleTransactions: true });
       markPaid(groceries.id, RENT_DATE, 4_000);
-      createTransaction(db, { accountId: checkingId, date: RENT_DATE, amount: -2_000, kind: "expense", label: "Cafe" });
+      createTransaction(db, {
+        accountId: checkingId,
+        date: RENT_DATE,
+        amount: -2_000,
+        kind: "expense",
+        label: "Cafe",
+      });
       const imported = rentItem({ name: "Phone", amount: -2_500 });
       commit([draft({ label: "PHONE", amount: "-25,00" })]);
 
-      expect(listTransactions(db).some((transaction) => transaction.plannedItemId === imported.id)).toBe(true);
+      expect(
+        listTransactions(db).some((transaction) => transaction.plannedItemId === imported.id),
+      ).toBe(true);
       expect(listEnteredPayments(db)).toEqual([]);
     });
   });
@@ -138,7 +170,9 @@ describe("replacing an entry marked as paid by its bank row", () => {
   it("replace deletes the entry and links the bank row, which takes its category and description", () => {
     const item = rentItem();
     const entry = markPaid(item.id);
-    db.$client.prepare("UPDATE transactions SET description = 'Paid by hand' WHERE id = ?").run(entry.id);
+    db.$client
+      .prepare("UPDATE transactions SET description = 'Paid by hand' WHERE id = ?")
+      .run(entry.id);
 
     const result = commit([draft()], [{ index: 0, entryId: entry.id }]);
 
@@ -190,12 +224,21 @@ describe("replacing an entry marked as paid by its bank row", () => {
   it("the replaced occurrence keeps its link when the bank row also fits another open occurrence", () => {
     const item = rentItem();
     const entry = markPaid(item.id);
-    const other = rentItem({ name: "Garage", categoryId: null, startDate: "2026-03-06", repetition: null });
+    const other = rentItem({
+      name: "Garage",
+      categoryId: null,
+      startDate: "2026-03-06",
+      repetition: null,
+    });
 
     commit([draft()], [{ index: 0, entryId: entry.id }]);
 
     expect(listTransactions(db)).toEqual([
-      expect.objectContaining({ label: "RENT MARCH", plannedItemId: item.id, occurrenceDate: RENT_DATE }),
+      expect.objectContaining({
+        label: "RENT MARCH",
+        plannedItemId: item.id,
+        occurrenceDate: RENT_DATE,
+      }),
     ]);
     expect(isOpen(other.id, "2026-03-06")).toBe(true);
   });
@@ -206,7 +249,12 @@ describe("replacing an entry marked as paid by its bank row", () => {
     const entry = markPaid(item.id, RENT_DATE, 245_000);
 
     commit(
-      [draft({ label: "SALARY", amount: "2 450,00" }, { type: "income", categoryId: bonusCategoryId })],
+      [
+        draft(
+          { label: "SALARY", amount: "2 450,00" },
+          { type: "income", categoryId: bonusCategoryId },
+        ),
+      ],
       [{ index: 0, entryId: entry.id }],
     );
 
@@ -222,8 +270,14 @@ describe("replacing an entry marked as paid by its bank row", () => {
   });
 
   it("a replaced income is not counted twice against the deposit ceiling", () => {
-    db.$client.prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?").run(300_000, checkingId);
-    const entry = markPaid(rentItem({ name: "Salary", kind: "income", amount: 150_000 }).id, RENT_DATE, 150_000);
+    db.$client
+      .prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?")
+      .run(300_000, checkingId);
+    const entry = markPaid(
+      rentItem({ name: "Salary", kind: "income", amount: 150_000 }).id,
+      RENT_DATE,
+      150_000,
+    );
 
     const result = commit(
       [draft({ label: "SALARY", amount: "1 500,00" }, { type: "income" })],
@@ -242,7 +296,9 @@ describe("replacing an entry marked as paid by its bank row", () => {
       openingBalance: 0,
     }).id;
     const entry = markPaid(rentItem().id);
-    db.$client.prepare("UPDATE transactions SET account_id = ? WHERE id = ?").run(jointId, entry.id);
+    db.$client
+      .prepare("UPDATE transactions SET account_id = ? WHERE id = ?")
+      .run(jointId, entry.id);
 
     expect(listEnteredPayments(db)).toEqual([]);
   });
@@ -267,8 +323,13 @@ describe("replacing an entry marked as paid by its bank row", () => {
 
       const result = commit([draft({ amount: "-900,00" })], [{ index: 0, entryId: entry.id }]);
 
-      expect(result).toMatchObject({ status: "blocked", issues: [{ kind: "replacementRefused", index: 0 }] });
-      expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entry.id, plannedItemId: item.id })]);
+      expect(result).toMatchObject({
+        status: "blocked",
+        issues: [{ kind: "replacementRefused", index: 0 }],
+      });
+      expect(listTransactions(db)).toEqual([
+        expect.objectContaining({ id: entry.id, plannedItemId: item.id }),
+      ]);
       expect(listImportBatches(db, checkingId)).toEqual([]);
     });
 
@@ -283,7 +344,10 @@ describe("replacing an entry marked as paid by its bank row", () => {
         ],
       );
 
-      expect(result).toMatchObject({ status: "blocked", issues: [{ kind: "replacementRefused", index: 1 }] });
+      expect(result).toMatchObject({
+        status: "blocked",
+        issues: [{ kind: "replacementRefused", index: 1 }],
+      });
       expect(listTransactions(db)).toEqual([expect.objectContaining({ id: entry.id })]);
     });
   });
@@ -292,7 +356,8 @@ describe("replacing an entry marked as paid by its bank row", () => {
     const item = rentItem();
     const entry = markPaid(item.id);
     const result = commit([draft()], [{ index: 0, entryId: entry.id }]);
-    if (result.status !== "done" || result.batchId === null) throw new Error("The file was not recorded");
+    if (result.status !== "done" || result.batchId === null)
+      throw new Error("The file was not recorded");
 
     expect(undoImportBatch(db, result.batchId)).toBe(1);
 
@@ -400,7 +465,11 @@ describe("replacing an entry marked as paid by its bank row", () => {
       expect(legs).toHaveLength(4);
       expect(legs.every((leg) => leg.importBatchId !== null)).toBe(true);
       // Split as a fresh import would: the hand legs no longer fill the first account.
-      expect(legs.filter((leg) => leg.amount > 0).map(({ accountId, amount }) => ({ accountId, amount }))).toEqual([
+      expect(
+        legs
+          .filter((leg) => leg.amount > 0)
+          .map(({ accountId, amount }) => ({ accountId, amount })),
+      ).toEqual([
         { accountId: firstSavingsId, amount: FIRST_CEILING },
         { accountId: secondSavingsId, amount: SAVING_AMOUNT - FIRST_CEILING },
       ]);
@@ -408,35 +477,62 @@ describe("replacing an entry marked as paid by its bank row", () => {
         expect.objectContaining({ plannedItemId: item.id, occurrenceDate: RENT_DATE }),
         expect.objectContaining({ plannedItemId: item.id, occurrenceDate: RENT_DATE }),
       ]);
-      expect(legs.filter((leg) => leg.amount > 0).every((leg) => leg.plannedItemId === null)).toBe(true);
-      expect(balances()).toEqual([100_000 - SAVING_AMOUNT, FIRST_CEILING, SAVING_AMOUNT - FIRST_CEILING]);
+      expect(legs.filter((leg) => leg.amount > 0).every((leg) => leg.plannedItemId === null)).toBe(
+        true,
+      );
+      expect(balances()).toEqual([
+        100_000 - SAVING_AMOUNT,
+        FIRST_CEILING,
+        SAVING_AMOUNT - FIRST_CEILING,
+      ]);
       expect(isOpen(item.id, RENT_DATE)).toBe(false);
     });
 
     it("is offered and replaced even when the hand entry was split another way (Q1 of #210)", () => {
-      db.$client.prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?").run(50_000, firstSavingsId);
+      db.$client
+        .prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?")
+        .run(50_000, firstSavingsId);
       const item = savingItem();
       markTransferred(item.id);
-      db.$client.prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?").run(FIRST_CEILING, firstSavingsId);
+      db.$client
+        .prepare("UPDATE accounts SET deposit_ceiling = ? WHERE id = ?")
+        .run(FIRST_CEILING, firstSavingsId);
 
       const result = commit([savingsDraft()], [{ index: 0, entryId: enteredTransferId() }]);
 
       expect(result).toMatchObject({ status: "done", replacedCount: 1 });
       expect(listTransactions(db)).toHaveLength(4);
-      expect(balances()).toEqual([100_000 - SAVING_AMOUNT, FIRST_CEILING, SAVING_AMOUNT - FIRST_CEILING]);
+      expect(balances()).toEqual([
+        100_000 - SAVING_AMOUNT,
+        FIRST_CEILING,
+        SAVING_AMOUNT - FIRST_CEILING,
+      ]);
     });
 
     it("replace works for a withdrawal, from the savings account it leaves", () => {
-      db.$client.prepare("UPDATE accounts SET opening_balance = ? WHERE id = ?").run(SAVING_AMOUNT, secondSavingsId);
+      db.$client
+        .prepare("UPDATE accounts SET opening_balance = ? WHERE id = ?")
+        .run(SAVING_AMOUNT, secondSavingsId);
       const item = savingItem({ accountId: secondSavingsId, destinationAccountId: checkingId });
       markTransferred(item.id);
 
-      const result = commit([savingsDraft("300,00", secondSavingsId)], [{ index: 0, entryId: enteredTransferId() }]);
+      const result = commit(
+        [savingsDraft("300,00", secondSavingsId)],
+        [{ index: 0, entryId: enteredTransferId() }],
+      );
 
       expect(result).toMatchObject({ status: "done", replacedCount: 1 });
       expect(listTransactions(db)).toEqual([
-        expect.objectContaining({ accountId: secondSavingsId, amount: -SAVING_AMOUNT, plannedItemId: item.id }),
-        expect.objectContaining({ accountId: checkingId, amount: SAVING_AMOUNT, plannedItemId: null }),
+        expect.objectContaining({
+          accountId: secondSavingsId,
+          amount: -SAVING_AMOUNT,
+          plannedItemId: item.id,
+        }),
+        expect.objectContaining({
+          accountId: checkingId,
+          amount: SAVING_AMOUNT,
+          plannedItemId: null,
+        }),
       ]);
       expect(balances()).toEqual([100_000 + SAVING_AMOUNT, 0, 0]);
     });
@@ -468,7 +564,10 @@ describe("replacing an entry marked as paid by its bank row", () => {
         [{ index: 0, entryId }],
       );
 
-      expect(outside).toMatchObject({ status: "blocked", issues: [{ kind: "replacementRefused", index: 0 }] });
+      expect(outside).toMatchObject({
+        status: "blocked",
+        issues: [{ kind: "replacementRefused", index: 0 }],
+      });
       expect(badRow.status).toBe("blocked");
       expect(listTransactions(db)).toEqual(handLegs);
       expect(listImportBatches(db, checkingId)).toEqual([]);
@@ -478,7 +577,8 @@ describe("replacing an entry marked as paid by its bank row", () => {
       const item = savingItem();
       markTransferred(item.id);
       const result = commit([savingsDraft()], [{ index: 0, entryId: enteredTransferId() }]);
-      if (result.status !== "done" || result.batchId === null) throw new Error("The file was not recorded");
+      if (result.status !== "done" || result.batchId === null)
+        throw new Error("The file was not recorded");
 
       expect(undoImportBatch(db, result.batchId)).toBe(4);
 

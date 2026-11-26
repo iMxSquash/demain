@@ -115,14 +115,11 @@ export function defaultSavingsAccountId(
 ): number | null {
   const targets = new Set(
     accounts.flatMap((account) =>
-      account.archived || account.overflowAccountId === null
-        ? []
-        : [account.overflowAccountId],
+      account.archived || account.overflowAccountId === null ? [] : [account.overflowAccountId],
     ),
   );
   const heads = accounts.filter(
-    (account) =>
-      isSelectableSavingsAccount(receiving, account) && !targets.has(account.id),
+    (account) => isSelectableSavingsAccount(receiving, account) && !targets.has(account.id),
   );
   const [head] = heads;
   return heads.length === 1 && head !== undefined ? head.id : null;
@@ -253,14 +250,20 @@ export function orderFilesByDate<T extends DatedFile>(files: readonly T[]): T[] 
  */
 export function planFilesInDateOrder<
   Id extends AccountRef,
-  T extends DatedFile & { movements: readonly SavingsMovement<Id>[]; removed?: readonly AccountMovement<Id>[] },
+  T extends DatedFile & {
+    movements: readonly SavingsMovement<Id>[];
+    removed?: readonly AccountMovement<Id>[];
+  },
 >(
   files: readonly T[],
   accounts: readonly OverflowAccount<Id>[],
 ): { file: T; plan: SavingsPlan<Id> }[] {
   let current = accounts;
   return orderFilesByDate(files).map((file) => {
-    const plan = planSavingsTransfers(file.movements, withoutMovements(current, file.removed ?? []));
+    const plan = planSavingsTransfers(
+      file.movements,
+      withoutMovements(current, file.removed ?? []),
+    );
     current = plan.accounts;
     return { file, plan };
   });

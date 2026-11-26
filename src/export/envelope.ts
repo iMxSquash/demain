@@ -100,7 +100,11 @@ export async function decryptPayload(
   const tag = file.subarray(file.length - TAG_BYTES);
   const ciphertext = file.subarray(HEADER_BYTES, file.length - TAG_BYTES);
 
-  const decipher = createDecipheriv("aes-256-gcm", await deriveKey(password, header), nonceOf(header));
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    await deriveKey(password, header),
+    nonceOf(header),
+  );
   decipher.setAAD(header);
   decipher.setAuthTag(tag);
   try {

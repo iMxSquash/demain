@@ -4,11 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { CsvMapping } from "../../src/domain/import-csv";
-import {
-  stageCsvRows,
-  stageMovementFile,
-  typeRowsBySign,
-} from "../../src/domain/import-staging";
+import { stageCsvRows, stageMovementFile, typeRowsBySign } from "../../src/domain/import-staging";
 
 const SINGLE: CsvMapping = {
   delimiter: ";",
@@ -105,9 +101,10 @@ describe("stageCsvRows", () => {
       ["05/02/2026", "SALARY", "", "1 143,88"],
     ];
 
-    expect(
-      stageCsvRows(table, SPLIT, "EUR").map((row) => row.draft.amount),
-    ).toEqual(["-12.50", "1143.88"]);
+    expect(stageCsvRows(table, SPLIT, "EUR").map((row) => row.draft.amount)).toEqual([
+      "-12.50",
+      "1143.88",
+    ]);
   });
 
   it("gives a negative debit one minus sign, not two, when it cannot be read", () => {
@@ -127,9 +124,7 @@ describe("stageCsvRows", () => {
       ["", "", "", "total"],
     ];
 
-    expect(stageCsvRows(table, SINGLE, "EUR").map((row) => row.line)).toEqual([
-      3,
-    ]);
+    expect(stageCsvRows(table, SINGLE, "EUR").map((row) => row.line)).toEqual([3]);
   });
 
   it("reads every row as a movement when the file has no header", () => {
@@ -242,10 +237,26 @@ describe("stageMovementFile", () => {
 
 describe("typeRowsBySign", () => {
   const ROWS = [
-    { line: 2, rawDate: null, draft: { date: "2026-02-01", label: "SHOP", amount: "-12.50", externalId: null } },
-    { line: 3, rawDate: null, draft: { date: "2026-02-05", label: "SALARY", amount: "1143.88", externalId: "FIT1" } },
-    { line: 4, rawDate: "31/02/2026", draft: { date: "", label: "BROKEN", amount: "abc", externalId: null } },
-    { line: 5, rawDate: "31/02/2026", draft: { date: "", label: "REFUND", amount: "20.00", externalId: null } },
+    {
+      line: 2,
+      rawDate: null,
+      draft: { date: "2026-02-01", label: "SHOP", amount: "-12.50", externalId: null },
+    },
+    {
+      line: 3,
+      rawDate: null,
+      draft: { date: "2026-02-05", label: "SALARY", amount: "1143.88", externalId: "FIT1" },
+    },
+    {
+      line: 4,
+      rawDate: "31/02/2026",
+      draft: { date: "", label: "BROKEN", amount: "abc", externalId: null },
+    },
+    {
+      line: 5,
+      rawDate: "31/02/2026",
+      draft: { date: "", label: "REFUND", amount: "20.00", externalId: null },
+    },
   ];
 
   it("gives each row the type its amount says, even when its date is unreadable, and no guess", () => {

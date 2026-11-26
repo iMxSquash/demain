@@ -35,7 +35,9 @@ describe("a Select in a form that runs an action", () => {
         onChange={(event) => setRepetition(event.target.value)}
       >`;
 
-    expect(selectTopLevelProps(withTheBug).some((props) => CONTROLLED_VALUE.test(props))).toBe(true);
+    expect(selectTopLevelProps(withTheBug).some((props) => CONTROLLED_VALUE.test(props))).toBe(
+      true,
+    );
   });
 
   it("does not take a value inside a handler or a spread for a prop", () => {

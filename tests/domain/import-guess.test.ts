@@ -98,10 +98,7 @@ describe("guessMovementType with an explicit type cell", () => {
   });
 
   it("stays high when the sign agrees with the cell", () => {
-    const guess = guessMovementType(
-      signalsOf({ typeCell: "Income", direction: "in" }),
-      NO_HISTORY,
-    );
+    const guess = guessMovementType(signalsOf({ typeCell: "Income", direction: "in" }), NO_HISTORY);
 
     expect(guess).toMatchObject({ type: "income", confidence: "high" });
   });
@@ -271,13 +268,10 @@ describe("guessMovementType for savings coming back to the account", () => {
   });
 
   it("keeps the savings type of the history on an incoming amount", () => {
-    const guess = guessMovementType(
-      signalsOf({ direction: "in", label: "Vir depuis livret" }),
-      {
-        vocabulary: DEFAULT_TYPE_VOCABULARY,
-        history: new Map([["vir depuis livret", "savings"]]),
-      },
-    );
+    const guess = guessMovementType(signalsOf({ direction: "in", label: "Vir depuis livret" }), {
+      vocabulary: DEFAULT_TYPE_VOCABULARY,
+      history: new Map([["vir depuis livret", "savings"]]),
+    });
 
     expect(guess).toMatchObject({ type: "savings", confidence: "medium" });
   });
@@ -308,10 +302,7 @@ describe("guessMovementType with a type column that does not help", () => {
   });
 
   it("asks to confirm when the cell is empty, without keeping anything aside", () => {
-    const guess = guessMovementType(
-      signalsOf({ typeCell: "", direction: "out" }),
-      NO_HISTORY,
-    );
+    const guess = guessMovementType(signalsOf({ typeCell: "", direction: "out" }), NO_HISTORY);
 
     expect(guess).toMatchObject({
       type: "expense",
@@ -341,10 +332,7 @@ describe("guessMovementType without any clue", () => {
     };
 
     const guess = guessMovementType(signalsOf({ category: "Prime" }), custom);
-    const defaultGuess = guessMovementType(
-      signalsOf({ category: "Salaire" }),
-      custom,
-    );
+    const defaultGuess = guessMovementType(signalsOf({ category: "Salaire" }), custom);
 
     expect(guess.type).toBe("income");
     expect(guess.evidence).toMatchObject({

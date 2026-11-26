@@ -4,10 +4,7 @@
  */
 
 import { messageRef, type MessageRef } from "./message";
-import {
-  TransactionValidationError,
-  type EnteredTransactionKind,
-} from "./transaction";
+import { TransactionValidationError, type EnteredTransactionKind } from "./transaction";
 
 /**
  * The icons a category can have, by key. The set is closed: a category carries one of these keys and
@@ -91,8 +88,7 @@ export function assertCategoryNameAvailable(
 ): void {
   const wanted = name.toLowerCase();
   const clash = existing.find(
-    (category) =>
-      category.id !== ignoreId && category.name.toLowerCase() === wanted,
+    (category) => category.id !== ignoreId && category.name.toLowerCase() === wanted,
   );
   if (clash !== undefined) {
     throw new CategoryValidationError(

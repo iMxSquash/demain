@@ -12,12 +12,7 @@ import {
   parseDate,
   type CsvMapping,
 } from "./import-csv";
-import {
-  detailsFromSign,
-  draftOfRow,
-  type ImportDraft,
-  type RowDetails,
-} from "./import-draft";
+import { detailsFromSign, draftOfRow, type ImportDraft, type RowDetails } from "./import-draft";
 import { amountsCarrySign, type TypeGuess } from "./import-guess";
 import {
   readMovementFile,
@@ -48,11 +43,7 @@ function unreadableAmount(row: readonly string[], mapping: CsvMapping): string {
   return debit.startsWith("-") ? debit : `-${debit}`;
 }
 
-function stageUnreadableRow(
-  row: readonly string[],
-  mapping: CsvMapping,
-  line: number,
-): StagedRow {
+function stageUnreadableRow(row: readonly string[], mapping: CsvMapping, line: number): StagedRow {
   const rawDate = cell(row, mapping.dateColumn);
   const date = parseDate(rawDate, mapping.dateFormat);
   return {
@@ -121,10 +112,7 @@ function signOfAmount(text: string, currency: string): number {
  * the user fixed by hand): the sign of the amount decides, as it did before the
  * type could be chosen. A row whose amount cannot be read is taken for an expense.
  */
-export function typeRowsBySign(
-  staged: readonly StagedRow[],
-  currency: string,
-): TypedStagedRow[] {
+export function typeRowsBySign(staged: readonly StagedRow[], currency: string): TypedStagedRow[] {
   return staged.map((row) => ({
     ...row,
     guess: null,
@@ -165,10 +153,7 @@ function stageReadRow(
   return {
     line: row.line,
     rawDate: null,
-    draft: draftOfRow(
-      { date: row.date, label: row.label, amount, externalId: null },
-      currency,
-    ),
+    draft: draftOfRow({ date: row.date, label: row.label, amount, externalId: null }, currency),
     guess: row.type,
     details: {
       type,

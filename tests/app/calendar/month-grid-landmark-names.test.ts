@@ -59,16 +59,36 @@ const props: MonthGridProps = {
     unplacedSurplus: "Excédent non placé",
     real: (count) => `${count} réelle`,
     planned: (count) => `${count} prévue`,
-    name: { today: "aujourd'hui", balance: "solde", noEntries: "aucune écriture", belowZero: "sous zéro", unplacedSurplus: "excédent" },
+    name: {
+      today: "aujourd'hui",
+      balance: "solde",
+      noEntries: "aucune écriture",
+      belowZero: "sous zéro",
+      unplacedSurplus: "excédent",
+    },
     legend: "Point : réelle, anneau : prévue",
   },
   details: {
     accounts: [{ id: 1, name: "Courant" }],
     text: { balance: "Solde de fin de journée", noEntries: "Aucune écriture ce jour." },
     lines: {
-      columns: { date: "Date", description: "Libellé", account: "Compte", kind: "Type", status: "Statut", amount: "Montant", balance: "Solde" },
+      columns: {
+        date: "Date",
+        description: "Libellé",
+        account: "Compte",
+        kind: "Type",
+        status: "Statut",
+        amount: "Montant",
+        balance: "Solde",
+      },
       kinds: { real: "Réelle", planned: "Prévue" },
-      statuses: { planned: "À venir", partial: "Partielle", confirmed: "Confirmée", overdue: "En retard", cancelled: "Annulée" },
+      statuses: {
+        planned: "À venir",
+        partial: "Partielle",
+        confirmed: "Confirmée",
+        overdue: "En retard",
+        cancelled: "Annulée",
+      },
       belowZero: "Sous zéro",
       belowZeroFrom: (date) => `Sous zéro dès ${date}`,
       unplacedSurplus: (amount, account) => `${amount} reste sur ${account}`,
@@ -91,7 +111,8 @@ const props: MonthGridProps = {
   },
 };
 
-const attributeOf = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
+const attributeOf = (tag: string, name: string) =>
+  new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
 
 // Walks the characters instead of a tag-stripping regex, which CodeQL flags as incomplete sanitization.
 function textOfMarkup(markup: string): string {
@@ -126,7 +147,8 @@ function landmarkNamesOf(html: string): string[] {
 // wrapper as a prop, so the markup of an open day is the grid plus that prop.
 function markupWithOpenDay(date: string): string {
   const grid = MonthGrid(props);
-  if (!isValidElement<{ details: Record<string, ReactNode> }>(grid)) throw new Error("the grid is not an element");
+  if (!isValidElement<{ details: Record<string, ReactNode> }>(grid))
+    throw new Error("the grid is not an element");
   return renderToString(grid) + renderToString(grid.props.details[date]);
 }
 

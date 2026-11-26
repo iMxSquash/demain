@@ -14,9 +14,7 @@ const FRAME = {
   margin: { top: 20, right: 10, bottom: 30, left: 50 },
 };
 
-function input(
-  overrides: Partial<TrajectoryGeometryInput> = {},
-): TrajectoryGeometryInput {
+function input(overrides: Partial<TrajectoryGeometryInput> = {}): TrajectoryGeometryInput {
   return {
     ...FRAME,
     categoryCount: 5,
@@ -86,7 +84,11 @@ describe("buildTrajectoryGeometry", () => {
 
   it("draws a single real path and no planned one when no month is planned", () => {
     const { series, xTicks } = buildTrajectoryGeometry(
-      input({ categoryCount: 3, todayIndex: 2, series: [{ id: "checking", values: [100, 200, 300] }] }),
+      input({
+        categoryCount: 3,
+        todayIndex: 2,
+        series: [{ id: "checking", values: [100, 200, 300] }],
+      }),
     );
 
     expect(series[0]?.points.map((point) => point.kind)).toEqual(["real", "real", "today"]);

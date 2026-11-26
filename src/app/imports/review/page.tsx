@@ -48,5 +48,11 @@ async function ReviewSection() {
   await connection();
   const { view, assertionSnapshot, enteredPayments } = await readImportContext();
 
-  return <ImportReview {...view} assertionSnapshot={assertionSnapshot} enteredPayments={enteredPayments} />;
+  return (
+    <ImportReview
+      {...view}
+      assertionSnapshot={assertionSnapshot}
+      enteredPayments={enteredPayments}
+    />
+  );
 }

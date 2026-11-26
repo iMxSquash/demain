@@ -58,7 +58,5 @@ async function SummaryForm() {
   const accounts = await readActiveAccounts();
 
   if (accounts.length === 0) return <p>{t("noAccount")}</p>;
-  return (
-    <SummaryBalancesForm accounts={accounts.map(({ id, name }) => ({ id, name }))} />
-  );
+  return <SummaryBalancesForm accounts={accounts.map(({ id, name }) => ({ id, name }))} />;
 }

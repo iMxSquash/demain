@@ -10,18 +10,18 @@ import { Checkbox } from "../../components/checkbox";
 import { Notice } from "../../components/notice";
 import type { AssertionLinks } from "../../domain/import-assertions";
 import type { RowDetails } from "../../domain/import-draft";
-import { isPendingAccount, pendingAccountName, type PendingOverflow } from "../../domain/import-overflow";
+import {
+  isPendingAccount,
+  pendingAccountName,
+  type PendingOverflow,
+} from "../../domain/import-overflow";
 import type { FilePlan } from "../../domain/import-review";
 import type { AccountRef } from "../../domain/overflow";
 import type { ColumnChoiceFields, StagedColumns } from "./import-form-data";
 import { columnChoicesOf } from "./reread-file";
 import { describeSplit } from "./review-text";
 import { commitStagedFileAction } from "./stage-actions";
-import {
-  RowEditor,
-  type ReviewDispatch,
-  type RowLookups,
-} from "./staged-row-editor";
+import { RowEditor, type ReviewDispatch, type RowLookups } from "./staged-row-editor";
 import {
   canImportFile,
   countRowsToConfirm,
@@ -198,9 +198,7 @@ export function FileCard({
   const { phase, outcome, rows, columns } = file;
 
   const problemCount = rows.filter((row) => row.problem !== null).length;
-  const duplicateCount = rows.filter(
-    (row) => row.problem === null && row.isDuplicate,
-  ).length;
+  const duplicateCount = rows.filter((row) => row.problem === null && row.isDuplicate).length;
   const confirmCount = countRowsToConfirm(rows);
   const isLocked = isReading || phase === "importing";
 
@@ -215,10 +213,7 @@ export function FileCard({
         ? t("entered.chosenTwice")
         : null;
   const regionRef = useRef<HTMLDivElement>(null);
-  const visible = useMemo(
-    () => visibleRowIndexes(rows, onlyToConfirm),
-    [rows, onlyToConfirm],
-  );
+  const visible = useMemo(() => visibleRowIndexes(rows, onlyToConfirm), [rows, onlyToConfirm]);
   // A row hidden by the filter is not reached by a change made to the selection.
   const selectedShown = useMemo(
     () => visible.filter((index) => selected.has(index)),
@@ -285,13 +280,12 @@ export function FileCard({
       currency: file.currency,
       locale,
       nameOf: (ref: AccountRef) =>
-        isPendingAccount(ref) ? pendingAccountName(ref) : (accountNames.get(ref) ?? t("unknownAccount")),
+        isPendingAccount(ref)
+          ? pendingAccountName(ref)
+          : (accountNames.get(ref) ?? t("unknownAccount")),
     };
     return new Map(
-      [...plan.splits].map(([rowIndex, segments]) => [
-        rowIndex,
-        describeSplit(segments, say),
-      ]),
+      [...plan.splits].map(([rowIndex, segments]) => [rowIndex, describeSplit(segments, say)]),
     );
   }, [plan, accountNames, file.currency, locale, t]);
   const hasUnplaced = [...plan.splits.values()].some((segments) =>
@@ -384,15 +378,9 @@ export function FileCard({
               problemCount,
             })}
           </p>
-          {confirmCount > 0 ? (
-            <p>{t("toConfirmCount", { count: confirmCount })}</p>
-          ) : null}
+          {confirmCount > 0 ? <p>{t("toConfirmCount", { count: confirmCount })}</p> : null}
           {columns === null ? null : (
-            <ColumnRoles
-              columns={columns}
-              isBusy={isLocked}
-              onChange={changeColumns}
-            />
+            <ColumnRoles columns={columns} isBusy={isLocked} onChange={changeColumns} />
           )}
           {file.rereadError === null ? null : (
             <div className="flex flex-col items-start gap-2">
@@ -428,9 +416,7 @@ export function FileCard({
             <p>{t("selectedCount", { count: selectedShown.length })}</p>
             <p>{t("showing", { shown: visible.length, total: rows.length })}</p>
             {bulkMessage === null ? null : <p className="font-medium">{bulkMessage}</p>}
-            {file.lastReread === null ? null : (
-              <p>{t("rereadDone", { ...file.lastReread })}</p>
-            )}
+            {file.lastReread === null ? null : <p>{t("rereadDone", { ...file.lastReread })}</p>}
           </div>
           {plan.isChainLooping ? <p>{t("issues.overflowChainCycle")}</p> : null}
           {hasUnplaced ? <p>{t("unplacedNote")}</p> : null}
@@ -466,10 +452,10 @@ export function FileCard({
             />
           )}
           {problemCount > 0 ? <p id={hintId}>{t("fixFirst")}</p> : null}
-          <div role="status">{enteredHint === null ? null : <p id={enteredHintId}>{enteredHint}</p>}</div>
-          {waitFor === null ? null : (
-            <p id={waitId}>{t("importAfter", { name: waitFor })}</p>
-          )}
+          <div role="status">
+            {enteredHint === null ? null : <p id={enteredHintId}>{enteredHint}</p>}
+          </div>
+          {waitFor === null ? null : <p id={waitId}>{t("importAfter", { name: waitFor })}</p>}
           <div className="flex flex-wrap gap-3">
             <Button
               type="button"
@@ -482,9 +468,7 @@ export function FileCard({
             <Button
               type="button"
               variant="secondary"
-              onClick={() =>
-                dispatch({ type: "setPhase", file: fileIndex, phase: "cancelled" })
-              }
+              onClick={() => dispatch({ type: "setPhase", file: fileIndex, phase: "cancelled" })}
               disabled={phase === "importing" || isReading}
             >
               {t("cancelFile")}

@@ -13,11 +13,7 @@ import { createAccount } from "../../../src/ledger/accounts";
 import { commitImport, type ImportRow } from "../../../src/ledger/imports";
 import { createPlannedItem } from "../../../src/ledger/planned-items";
 import { listTransactions, type Transaction } from "../../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../../src/storage/database";
 import { translateKey } from "../translate-key";
 
 const TODAY = "2026-03-12";

@@ -55,10 +55,7 @@ type AppShellProps = {
  * bar and a floating tab bar. Only Settings has two links, one for each width.
  */
 export async function AppShell({ toCategorizeCount, toPayCount, children }: AppShellProps) {
-  const [t, common] = await Promise.all([
-    getTranslations("navigation"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("navigation"), getTranslations("common")]);
 
   return (
     <div className={styles.frame}>

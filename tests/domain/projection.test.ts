@@ -70,15 +70,34 @@ function account(overrides: Partial<ProjectionAccount> = {}): ProjectionAccount 
   };
 }
 
-function transactionFlow(transactionId: number, date: string, amount: number, accountId = CHECKING): ProjectionFlow {
+function transactionFlow(
+  transactionId: number,
+  date: string,
+  amount: number,
+  accountId = CHECKING,
+): ProjectionFlow {
   return { accountId, date, amount, source: { kind: "transaction", transactionId } };
 }
 
-function occurrenceFlow(date: string, amount: number, nominalDate = date, accountId = CHECKING): ProjectionFlow {
-  return { accountId, date, amount, source: { kind: "occurrence", plannedItemId: RENT_ITEM, nominalDate } };
+function occurrenceFlow(
+  date: string,
+  amount: number,
+  nominalDate = date,
+  accountId = CHECKING,
+): ProjectionFlow {
+  return {
+    accountId,
+    date,
+    amount,
+    source: { kind: "occurrence", plannedItemId: RENT_ITEM, nominalDate },
+  };
 }
 
-function balanceOn(days: readonly DailyBalance[], date: string, accountId = CHECKING): number | undefined {
+function balanceOn(
+  days: readonly DailyBalance[],
+  date: string,
+  accountId = CHECKING,
+): number | undefined {
   return days.find((day) => day.date === date)?.balances.get(accountId);
 }
 
@@ -97,11 +116,18 @@ describe("plannedFlows", () => {
   });
 
   it("counts a planned occurrence dated before today at today and keeps its nominal date", () => {
-    const flows = plannedFlows([item([occurrence({ nominalDate: "2026-03-05", date: "2026-03-06" })])], TODAY);
+    const flows = plannedFlows(
+      [item([occurrence({ nominalDate: "2026-03-05", date: "2026-03-06" })])],
+      TODAY,
+    );
 
     expect(flows).toHaveLength(1);
     expect(flows[0]?.date).toBe(TODAY);
-    expect(flows[0]?.source).toEqual({ kind: "occurrence", plannedItemId: RENT_ITEM, nominalDate: "2026-03-05" });
+    expect(flows[0]?.source).toEqual({
+      kind: "occurrence",
+      plannedItemId: RENT_ITEM,
+      nominalDate: "2026-03-05",
+    });
   });
 
   it("counts a partial provision with a past date and an open period at today", () => {
@@ -134,18 +160,26 @@ describe("plannedFlows", () => {
 
   it("emits two flows for a planned transfer, with the same source and date", () => {
     // A planned transfer is stored with a negative amount: it leaves its source account.
-    const transfer = item([occurrence({ amount: -20000, expectedAmount: -20000, remaining: -20000 })], {
-      plannedItemId: TRANSFER_ITEM,
-      kind: "transfer",
-      accountId: CHECKING,
-      destinationAccountId: SAVINGS,
-    });
+    const transfer = item(
+      [occurrence({ amount: -20000, expectedAmount: -20000, remaining: -20000 })],
+      {
+        plannedItemId: TRANSFER_ITEM,
+        kind: "transfer",
+        accountId: CHECKING,
+        destinationAccountId: SAVINGS,
+      },
+    );
 
     const flows = plannedFlows([transfer], TODAY);
 
     const source = { kind: "occurrence", plannedItemId: TRANSFER_ITEM, nominalDate: "2026-03-15" };
     expect(flows).toHaveLength(2);
-    expect(flows).toContainEqual({ accountId: CHECKING, date: "2026-03-15", amount: -20000, source });
+    expect(flows).toContainEqual({
+      accountId: CHECKING,
+      date: "2026-03-15",
+      amount: -20000,
+      source,
+    });
     expect(flows).toContainEqual({ accountId: SAVINGS, date: "2026-03-15", amount: 20000, source });
   });
 
@@ -156,7 +190,9 @@ describe("plannedFlows", () => {
       destinationAccountId: null,
     });
 
-    expect(() => plannedFlows([transfer], TODAY)).toThrow(`Planned transfer ${TRANSFER_ITEM} has no destination account`);
+    expect(() => plannedFlows([transfer], TODAY)).toThrow(
+      `Planned transfer ${TRANSFER_ITEM} has no destination account`,
+    );
   });
 
   it("moves a transfer by its absolute amount whatever the sign it carries", () => {
@@ -218,10 +254,15 @@ describe("projectDailyBalances", () => {
     const settled = occurrence({
       status: "confirmed",
       remaining: 0,
-      links: [{ transactionId: 7, occurrenceDate: "2026-03-15", date: "2026-03-08", amount: -45000 }],
+      links: [
+        { transactionId: 7, occurrenceDate: "2026-03-15", date: "2026-03-08", amount: -45000 },
+      ],
       linkedSum: -45000,
     });
-    const flows = [transactionFlow(7, "2026-03-08", -45000), ...plannedFlows([item([settled])], TODAY)];
+    const flows = [
+      transactionFlow(7, "2026-03-08", -45000),
+      ...plannedFlows([item([settled])], TODAY),
+    ];
 
     const days = projectDailyBalances([account()], flows, MARCH);
 
@@ -232,8 +273,17 @@ describe("projectDailyBalances", () => {
   });
 
   it("overdue and cancelled occurrences count for nothing", () => {
-    const overdue = occurrence({ nominalDate: "2026-02-05", date: "2026-02-05", status: "overdue" });
-    const cancelled = occurrence({ nominalDate: "2026-03-20", date: "2026-03-20", status: "cancelled", isCancelled: true });
+    const overdue = occurrence({
+      nominalDate: "2026-02-05",
+      date: "2026-02-05",
+      status: "overdue",
+    });
+    const cancelled = occurrence({
+      nominalDate: "2026-03-20",
+      date: "2026-03-20",
+      status: "cancelled",
+      isCancelled: true,
+    });
 
     const flows = plannedFlows([item([overdue, cancelled])], TODAY);
     const days = projectDailyBalances([account()], flows, MARCH);
@@ -252,7 +302,10 @@ describe("projectDailyBalances", () => {
       status: "partial",
       period: { from: "2026-03-01", to: "2026-03-31" },
     });
-    const flows = [transactionFlow(5, "2026-03-04", -12000), ...plannedFlows([item([provision])], TODAY)];
+    const flows = [
+      transactionFlow(5, "2026-03-04", -12000),
+      ...plannedFlows([item([provision])], TODAY),
+    ];
 
     const days = projectDailyBalances([account()], flows, MARCH);
 
@@ -261,12 +314,15 @@ describe("projectDailyBalances", () => {
   });
 
   it("a planned transfer moves the amount from one account to the other", () => {
-    const transfer = item([occurrence({ amount: -20000, expectedAmount: -20000, remaining: -20000 })], {
-      plannedItemId: TRANSFER_ITEM,
-      kind: "transfer",
-      accountId: CHECKING,
-      destinationAccountId: SAVINGS,
-    });
+    const transfer = item(
+      [occurrence({ amount: -20000, expectedAmount: -20000, remaining: -20000 })],
+      {
+        plannedItemId: TRANSFER_ITEM,
+        kind: "transfer",
+        accountId: CHECKING,
+        destinationAccountId: SAVINGS,
+      },
+    );
     const accounts = [account(), account({ id: SAVINGS, openingBalance: 5000 })];
 
     const days = projectDailyBalances(accounts, plannedFlows([transfer], TODAY), MARCH);
@@ -275,7 +331,9 @@ describe("projectDailyBalances", () => {
     expect(balanceOn(days, "2026-03-14", SAVINGS)).toBe(5000);
     expect(balanceOn(days, "2026-03-15", CHECKING)).toBe(80000);
     expect(balanceOn(days, "2026-03-15", SAVINGS)).toBe(25000);
-    const total = days.map((day) => (day.balances.get(CHECKING) ?? 0) + (day.balances.get(SAVINGS) ?? 0));
+    const total = days.map(
+      (day) => (day.balances.get(CHECKING) ?? 0) + (day.balances.get(SAVINGS) ?? 0),
+    );
     expect(new Set(total)).toEqual(new Set([105000]));
   });
 
@@ -296,7 +354,10 @@ describe("projectDailyBalances", () => {
   });
 
   it("an account opened inside the range has no balance before its opening date", () => {
-    const accounts = [account(), account({ id: SAVINGS, openingDate: "2026-03-10", openingBalance: 7000 })];
+    const accounts = [
+      account(),
+      account({ id: SAVINGS, openingDate: "2026-03-10", openingBalance: 7000 }),
+    ];
 
     const days = projectDailyBalances(accounts, [], MARCH);
 
@@ -327,7 +388,9 @@ describe("projectDailyBalances", () => {
 
     const days = projectDailyBalances([account()], flows, MARCH);
 
-    expect(days.every((day) => day.balances.size === 1 && day.balances.get(CHECKING) === 100000)).toBe(true);
+    expect(
+      days.every((day) => day.balances.size === 1 && day.balances.get(CHECKING) === 100000),
+    ).toBe(true);
   });
 
   it("does not depend on the order of the flows", () => {
@@ -393,7 +456,12 @@ describe("firstDayBelowZero", () => {
   });
 
   it("ignores accounts that were not requested", () => {
-    const days = [day("2026-03-01", [[CHECKING, 5000], [SAVINGS, -9000]])];
+    const days = [
+      day("2026-03-01", [
+        [CHECKING, 5000],
+        [SAVINGS, -9000],
+      ]),
+    ];
 
     expect(firstDayBelowZero(days, [CHECKING])).toBeNull();
     expect(firstDayBelowZero(days, [SAVINGS])).toBe("2026-03-01");
@@ -401,15 +469,27 @@ describe("firstDayBelowZero", () => {
 
   it("sums the requested accounts present that day", () => {
     const days = [
-      day("2026-03-01", [[CHECKING, -2000], [SAVINGS, 3000]]),
-      day("2026-03-02", [[CHECKING, -4000], [SAVINGS, 3000]]),
+      day("2026-03-01", [
+        [CHECKING, -2000],
+        [SAVINGS, 3000],
+      ]),
+      day("2026-03-02", [
+        [CHECKING, -4000],
+        [SAVINGS, 3000],
+      ]),
     ];
 
     expect(firstDayBelowZero(days, [CHECKING, SAVINGS])).toBe("2026-03-02");
   });
 
   it("skips a requested account that is not open yet", () => {
-    const days = [day("2026-03-01", [[CHECKING, 1000]]), day("2026-03-02", [[CHECKING, 1000], [SAVINGS, -500]])];
+    const days = [
+      day("2026-03-01", [[CHECKING, 1000]]),
+      day("2026-03-02", [
+        [CHECKING, 1000],
+        [SAVINGS, -500],
+      ]),
+    ];
 
     expect(firstDayBelowZero(days, [CHECKING, SAVINGS])).toBeNull();
   });
@@ -426,7 +506,14 @@ describe("projectWithRouting", () => {
     occurrenceOverrides: Partial<ResolvedOccurrence> = {},
   ): PlannedItemOccurrences {
     return item(
-      [occurrence({ amount: -amount, expectedAmount: -amount, remaining: -amount, ...occurrenceOverrides })],
+      [
+        occurrence({
+          amount: -amount,
+          expectedAmount: -amount,
+          remaining: -amount,
+          ...occurrenceOverrides,
+        }),
+      ],
       { plannedItemId, kind: "transfer", accountId: CHECKING, destinationAccountId },
     );
   }
@@ -445,7 +532,10 @@ describe("projectWithRouting", () => {
     return account({ id: LIVRET_A, openingBalance: 0, ...overrides });
   }
 
-  function placementsOf(result: { transfers: ReturnType<typeof projectWithRouting>["transfers"] }, index = 0) {
+  function placementsOf(
+    result: { transfers: ReturnType<typeof projectWithRouting>["transfers"] },
+    index = 0,
+  ) {
     const routing = result.transfers[index]?.routing;
     return routing?.status === "ok" ? routing.placements : undefined;
   }
@@ -453,7 +543,13 @@ describe("projectWithRouting", () => {
   it("splits a transfer between a nearly full account and its overflow account (DOMAIN example 1)", () => {
     const accounts = [account(), livretJeune(), livretA()];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toHaveLength(1);
     expect(result.transfers[0]?.routing).toEqual({
@@ -478,10 +574,21 @@ describe("projectWithRouting", () => {
       livretA({ openingBalance: 2290000, ceiling: 2295000 }),
     ];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toHaveLength(1);
-    expect(result.transfers[0]).toMatchObject({ plannedItemId: TRANSFER_ITEM, nominalDate: SATURDAY, date: SATURDAY, amount: 20000 });
+    expect(result.transfers[0]).toMatchObject({
+      plannedItemId: TRANSFER_ITEM,
+      nominalDate: SATURDAY,
+      date: SATURDAY,
+      amount: 20000,
+    });
     expect(result.transfers[0]?.routing).toEqual({
       status: "ok",
       placements: [
@@ -498,15 +605,23 @@ describe("projectWithRouting", () => {
 
   it("without any ceiling gives the same days as projectDailyBalances", () => {
     const accounts = [account(), livretA({ openingBalance: 5000 })];
-    const real = [transactionFlow(1, "2026-03-03", -1200), transactionFlow(2, "2026-03-20", 2500, LIVRET_A)];
+    const real = [
+      transactionFlow(1, "2026-03-03", -1200),
+      transactionFlow(2, "2026-03-20", 2500, LIVRET_A),
+    ];
     const items = [
       item([occurrence()]),
-      transferItem(TRANSFER_ITEM, 20000, LIVRET_A, { nominalDate: "2026-03-18", date: "2026-03-18" }),
+      transferItem(TRANSFER_ITEM, 20000, LIVRET_A, {
+        nominalDate: "2026-03-18",
+        date: "2026-03-18",
+      }),
     ];
 
     const result = projectWithRouting(accounts, real, items, TODAY, MARCH);
 
-    expect(result.days).toEqual(projectDailyBalances(accounts, real.concat(plannedFlows(items, TODAY)), MARCH));
+    expect(result.days).toEqual(
+      projectDailyBalances(accounts, real.concat(plannedFlows(items, TODAY)), MARCH),
+    );
     expect(result.transfers).toHaveLength(1);
     expect(placementsOf(result)).toEqual([{ accountId: LIVRET_A, amount: 20000 }]);
   });
@@ -514,7 +629,13 @@ describe("projectWithRouting", () => {
   it("records nothing for a transfer with nothing remaining", () => {
     const accounts = [account(), livretJeune(), livretA()];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 0, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 0, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toEqual([]);
     expect(result.days).toEqual(projectDailyBalances(accounts, [], MARCH));
@@ -522,11 +643,17 @@ describe("projectWithRouting", () => {
 
   it("sends the next transfer entirely to the overflow account once the ceiling is reached exactly", () => {
     const accounts = [account(), livretJeune({ openingBalance: 150000 }), livretA()];
-    const items = [transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE), transferItem(TRANSFER_ITEM + 1, 3000, LIVRET_JEUNE)];
+    const items = [
+      transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE),
+      transferItem(TRANSFER_ITEM + 1, 3000, LIVRET_JEUNE),
+    ];
 
     const result = projectWithRouting(accounts, [], items, TODAY, MARCH);
 
-    expect(result.transfers.map((transfer) => transfer.plannedItemId)).toEqual([TRANSFER_ITEM, TRANSFER_ITEM + 1]);
+    expect(result.transfers.map((transfer) => transfer.plannedItemId)).toEqual([
+      TRANSFER_ITEM,
+      TRANSFER_ITEM + 1,
+    ]);
     expect(result.transfers[0]?.routing).toMatchObject({
       status: "ok",
       placements: [{ accountId: LIVRET_JEUNE, amount: 10000 }],
@@ -544,7 +671,13 @@ describe("projectWithRouting", () => {
   it("places nothing and keeps the source untouched when the destination is full and has no overflow account", () => {
     const accounts = [account(), livretJeune({ openingBalance: 160000, overflowAccountId: null })];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toHaveLength(1);
     expect(result.transfers[0]?.routing).toEqual({
@@ -564,7 +697,13 @@ describe("projectWithRouting", () => {
       livretA({ ceiling: 1000, overflowAccountId: LIVRET_JEUNE }),
     ];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toHaveLength(1);
     expect(result.transfers[0]?.routing).toEqual({ status: "invalid", reason: "cycle" });
@@ -574,7 +713,13 @@ describe("projectWithRouting", () => {
   it("reports a currency mismatch along the chain and moves nothing", () => {
     const accounts = [account(), livretJeune(), livretA({ currency: "USD" })];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers[0]?.routing).toEqual({ status: "invalid", reason: "currency" });
     expect(result.days).toEqual(projectDailyBalances(accounts, [], MARCH));
@@ -583,7 +728,13 @@ describe("projectWithRouting", () => {
   it("reports an archived overflow account and moves nothing", () => {
     const accounts = [account(), livretJeune(), livretA({ archived: true })];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 20000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers[0]?.routing).toEqual({ status: "invalid", reason: "archived" });
     expect(result.days).toEqual(projectDailyBalances(accounts, [], MARCH));
@@ -617,7 +768,13 @@ describe("projectWithRouting", () => {
   it("keeps the whole transfer on the destination when it has room and no overflow account", () => {
     const accounts = [account(), livretA({ ceiling: 100000 })];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, LIVRET_A)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 20000, LIVRET_A)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers[0]?.routing).toEqual({
       status: "ok",
@@ -631,7 +788,13 @@ describe("projectWithRouting", () => {
     const accounts = [account(), livretJeune(), livretA()];
     const real = [transactionFlow(1, SATURDAY, 3000, LIVRET_JEUNE)];
 
-    const result = projectWithRouting(accounts, real, [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      real,
+      [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)],
+      TODAY,
+      MARCH,
+    );
 
     expect(placementsOf(result)).toEqual([
       { accountId: LIVRET_JEUNE, amount: 2000 },
@@ -641,11 +804,17 @@ describe("projectWithRouting", () => {
 
   it("routes two transfers of the same day by planned item id, whatever the input order", () => {
     const accounts = [account(), livretJeune({ openingBalance: 154000 }), livretA()];
-    const items = [transferItem(TRANSFER_ITEM + 10, 5000, LIVRET_JEUNE), transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)];
+    const items = [
+      transferItem(TRANSFER_ITEM + 10, 5000, LIVRET_JEUNE),
+      transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE),
+    ];
 
     const result = projectWithRouting(accounts, [], items, TODAY, MARCH);
 
-    expect(result.transfers.map((transfer) => transfer.plannedItemId)).toEqual([TRANSFER_ITEM, TRANSFER_ITEM + 10]);
+    expect(result.transfers.map((transfer) => transfer.plannedItemId)).toEqual([
+      TRANSFER_ITEM,
+      TRANSFER_ITEM + 10,
+    ]);
     expect(placementsOf(result, 0)).toEqual([{ accountId: LIVRET_JEUNE, amount: 5000 }]);
     expect(placementsOf(result, 1)).toEqual([
       { accountId: LIVRET_JEUNE, amount: 1000 },
@@ -655,8 +824,20 @@ describe("projectWithRouting", () => {
 
   it("routes two occurrences of the same item and day by nominal date", () => {
     const accounts = [account(), livretJeune({ openingBalance: 154000 }), livretA()];
-    const later = occurrence({ nominalDate: "2026-03-12", date: SATURDAY, amount: -5000, expectedAmount: -5000, remaining: -5000 });
-    const earlier = occurrence({ nominalDate: "2026-03-10", date: SATURDAY, amount: -5000, expectedAmount: -5000, remaining: -5000 });
+    const later = occurrence({
+      nominalDate: "2026-03-12",
+      date: SATURDAY,
+      amount: -5000,
+      expectedAmount: -5000,
+      remaining: -5000,
+    });
+    const earlier = occurrence({
+      nominalDate: "2026-03-10",
+      date: SATURDAY,
+      amount: -5000,
+      expectedAmount: -5000,
+      remaining: -5000,
+    });
     const transfer = item([later, earlier], {
       plannedItemId: TRANSFER_ITEM,
       kind: "transfer",
@@ -666,7 +847,10 @@ describe("projectWithRouting", () => {
 
     const result = projectWithRouting(accounts, [], [transfer], TODAY, MARCH);
 
-    expect(result.transfers.map((record) => record.nominalDate)).toEqual(["2026-03-10", "2026-03-12"]);
+    expect(result.transfers.map((record) => record.nominalDate)).toEqual([
+      "2026-03-10",
+      "2026-03-12",
+    ]);
     expect(placementsOf(result, 0)).toEqual([{ accountId: LIVRET_JEUNE, amount: 5000 }]);
     expect(placementsOf(result, 1)).toEqual([
       { accountId: LIVRET_JEUNE, amount: 1000 },
@@ -682,7 +866,13 @@ describe("projectWithRouting", () => {
       accountId: LIVRET_JEUNE,
     });
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE), expense], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE), expense],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toHaveLength(1);
     expect(placementsOf(result)).toEqual([
@@ -700,7 +890,13 @@ describe("projectWithRouting", () => {
       accountId: LIVRET_JEUNE,
     });
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE), income], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE), income],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toHaveLength(1);
     expect(placementsOf(result)).toEqual([
@@ -716,7 +912,13 @@ describe("projectWithRouting", () => {
     // Dated after the transfer but before range.from: it must not eat the room of the transfer.
     const real = [transactionFlow(1, "2026-03-20", 8000, LIVRET_JEUNE)];
 
-    const result = projectWithRouting(accounts, real, [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)], TODAY, range);
+    const result = projectWithRouting(
+      accounts,
+      real,
+      [transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE)],
+      TODAY,
+      range,
+    );
 
     expect(placementsOf(result)).toEqual([{ accountId: LIVRET_JEUNE, amount: 5000 }]);
     expect(balanceOn(result.days, "2026-03-25", LIVRET_JEUNE)).toBe(163000);
@@ -731,7 +933,10 @@ describe("projectWithRouting", () => {
       transactionFlow(2, TODAY, 7000, LIVRET_JEUNE),
       transactionFlow(3, "2026-03-12", 50000, LIVRET_JEUNE),
     ];
-    const late = transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE, { nominalDate: "2026-03-05", date: "2026-03-06" });
+    const late = transferItem(TRANSFER_ITEM, 5000, LIVRET_JEUNE, {
+      nominalDate: "2026-03-05",
+      date: "2026-03-06",
+    });
 
     const result = projectWithRouting(accounts, real, [late], TODAY, MARCH);
 
@@ -745,9 +950,25 @@ describe("projectWithRouting", () => {
   it("does not route confirmed, overdue or cancelled occurrences", () => {
     const accounts = [account(), livretJeune(), livretA()];
     const occurrences = [
-      occurrence({ nominalDate: "2026-03-12", date: "2026-03-12", remaining: -20000, status: "confirmed" }),
-      occurrence({ nominalDate: "2026-02-05", date: "2026-02-05", remaining: -20000, status: "overdue" }),
-      occurrence({ nominalDate: "2026-03-20", date: "2026-03-20", remaining: -20000, status: "cancelled", isCancelled: true }),
+      occurrence({
+        nominalDate: "2026-03-12",
+        date: "2026-03-12",
+        remaining: -20000,
+        status: "confirmed",
+      }),
+      occurrence({
+        nominalDate: "2026-02-05",
+        date: "2026-02-05",
+        remaining: -20000,
+        status: "overdue",
+      }),
+      occurrence({
+        nominalDate: "2026-03-20",
+        date: "2026-03-20",
+        remaining: -20000,
+        status: "cancelled",
+        isCancelled: true,
+      }),
     ];
     const transfer = item(occurrences, {
       plannedItemId: TRANSFER_ITEM,
@@ -765,7 +986,13 @@ describe("projectWithRouting", () => {
   it("debits the source in full and records nothing when the destination is unknown", () => {
     const accounts = [account()];
 
-    const result = projectWithRouting(accounts, [], [transferItem(TRANSFER_ITEM, 20000, 99)], TODAY, MARCH);
+    const result = projectWithRouting(
+      accounts,
+      [],
+      [transferItem(TRANSFER_ITEM, 20000, 99)],
+      TODAY,
+      MARCH,
+    );
 
     expect(result.transfers).toEqual([]);
     expect(balanceOn(result.days, "2026-03-14")).toBe(100000);
@@ -785,8 +1012,18 @@ describe("projectWithRouting", () => {
 
   describe("with a transfer between two real flows on the destination", () => {
     const accounts = [account(), livretJeune({ openingBalance: 150000 }), livretA()];
-    const real = [transactionFlow(1, "2026-03-05", 3000, LIVRET_JEUNE), transactionFlow(2, "2026-03-20", -1000, LIVRET_JEUNE)];
-    const run = () => projectWithRouting(accounts, real, [transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE)], TODAY, MARCH);
+    const real = [
+      transactionFlow(1, "2026-03-05", 3000, LIVRET_JEUNE),
+      transactionFlow(2, "2026-03-20", -1000, LIVRET_JEUNE),
+    ];
+    const run = () =>
+      projectWithRouting(
+        accounts,
+        real,
+        [transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE)],
+        TODAY,
+        MARCH,
+      );
 
     it("routes the transfer from the running balance of its day", () => {
       expect(placementsOf(run())).toEqual([

@@ -16,9 +16,7 @@ function parseAcceptLanguage(header: string): WeightedTag[] {
       const [rawTag = "", ...params] = part.trim().split(";");
       const tag = rawTag.trim();
       if (tag === "" || tag === "*") return null;
-      const quality = params
-        .map((param) => param.trim())
-        .find((param) => param.startsWith("q="));
+      const quality = params.map((param) => param.trim()).find((param) => param.startsWith("q="));
       const weight = quality === undefined ? 1 : Number(quality.slice(2));
       return Number.isFinite(weight) && weight > 0 ? { tag, weight } : null;
     })
@@ -26,10 +24,7 @@ function parseAcceptLanguage(header: string): WeightedTag[] {
     .sort((a, b) => b.weight - a.weight);
 }
 
-function findSupported(
-  tag: string,
-  supported: readonly string[],
-): string | undefined {
+function findSupported(tag: string, supported: readonly string[]): string | undefined {
   const wanted = tag.toLowerCase();
   const exact = supported.find((locale) => locale.toLowerCase() === wanted);
   if (exact !== undefined) return exact;

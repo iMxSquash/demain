@@ -331,7 +331,11 @@ describe("buildRecap", () => {
 
     expect(recap.amount).toEqual({ kind: "expense", sign: "out", formatted: "€42.50" });
     expect(recap.label).toEqual({ text: "Groceries", categoryId: 7 });
-    expect(recap.save).toEqual({ kind: "expense", formattedAmount: "€42.50", destinationName: null });
+    expect(recap.save).toEqual({
+      kind: "expense",
+      formattedAmount: "€42.50",
+      destinationName: null,
+    });
   });
 
   it("sends an uncategorized label to the queue with no category id", () => {

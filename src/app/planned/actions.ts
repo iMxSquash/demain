@@ -10,7 +10,12 @@ import type { PlannedItemField, PlannedItemKind } from "../../domain/planned-ite
 import { TransactionValidationError } from "../../domain/transaction";
 import { todayIn } from "../../i18n/dates";
 import { AccountNotFoundError, getAccount, listAccounts } from "../../ledger/accounts";
-import { linkByHand, markOccurrencePaid, PlannedLinkError, type MarkPaidResult } from "../../ledger/planned-matching";
+import {
+  linkByHand,
+  markOccurrencePaid,
+  PlannedLinkError,
+  type MarkPaidResult,
+} from "../../ledger/planned-matching";
 import {
   getTransaction,
   SurplusDecisionRequiredError,
@@ -87,7 +92,13 @@ const detailsControlOf = (field: PlannedItemField) =>
 
 // The controls of the version form that the domain can refuse; the business day rule has no
 // refusal of its own, and a refusal on another field is shown as a message.
-const VERSION_FIELDS = ["effectiveFrom", "repetition", "amount", "amountMode", "averageWindow"] as const;
+const VERSION_FIELDS = [
+  "effectiveFrom",
+  "repetition",
+  "amount",
+  "amountMode",
+  "averageWindow",
+] as const;
 const versionControlOf = (field: PlannedItemField) =>
   VERSION_FIELDS.find((candidate) => candidate === field);
 const endDateControlOf = (field: PlannedItemField) => (field === "endDate" ? field : undefined);
@@ -104,7 +115,10 @@ export async function createPlannedItemAction(
   try {
     withDatabase((db) => createPlannedItem(db, parsed.input));
   } catch (error) {
-    return { ...(await toFailureState(error, translate, formFieldOf)), values: readSubmittedValues(formData) };
+    return {
+      ...(await toFailureState(error, translate, formFieldOf)),
+      values: readSubmittedValues(formData),
+    };
   }
 
   refreshData();
@@ -127,7 +141,10 @@ export async function updatePlannedItemAction(
     // The domain refuses a label filter on an item that is not a provision.
     withDatabase((db) => updatePlannedItemDetails(db, id, parsed.details));
   } catch (error) {
-    return { ...(await toFailureState(error, translate, detailsControlOf)), values: readSubmittedDetails(formData) };
+    return {
+      ...(await toFailureState(error, translate, detailsControlOf)),
+      values: readSubmittedDetails(formData),
+    };
   }
 
   refreshData();
@@ -137,8 +154,7 @@ export async function updatePlannedItemAction(
 }
 
 type VersionOutcome =
-  | { rejected: PlannedItemVersionFormState }
-  | { replaced: boolean; effectiveFrom: string };
+  { rejected: PlannedItemVersionFormState } | { replaced: boolean; effectiveFrom: string };
 
 export async function addPlannedItemVersionAction(
   itemId: number,
@@ -160,7 +176,10 @@ export async function addPlannedItemVersionAction(
       return { replaced, effectiveFrom: parsed.input.effectiveFrom };
     });
   } catch (error) {
-    return { ...(await toFailureState(error, translate, versionControlOf)), values: readSubmittedVersion(formData) };
+    return {
+      ...(await toFailureState(error, translate, versionControlOf)),
+      values: readSubmittedVersion(formData),
+    };
   }
   if ("rejected" in outcome) return outcome.rejected;
 
@@ -193,12 +212,17 @@ export async function setPlannedItemEndAction(
       return { endDate: parsed.endDate };
     });
   } catch (error) {
-    return { ...(await toFailureState(error, translate, endDateControlOf)), values: readSubmittedEndDate(formData) };
+    return {
+      ...(await toFailureState(error, translate, endDateControlOf)),
+      values: readSubmittedEndDate(formData),
+    };
   }
   if ("rejected" in outcome) return outcome.rejected;
 
   refreshData();
-  await flashSuccess(outcome.endDate === null ? "plannedItemEndDateCleared" : "plannedItemEndDateSaved");
+  await flashSuccess(
+    outcome.endDate === null ? "plannedItemEndDateCleared" : "plannedItemEndDateSaved",
+  );
   return null;
 }
 
@@ -252,7 +276,12 @@ async function markPaidFailure(
 ): Promise<MarkPaidFormState> {
   const { field, ref } = describeMarkPaidFailure(error);
   if (field === undefined) await flashError(ref);
-  return { status: "error", ...(field === undefined ? {} : { field }), message: translate(ref), values };
+  return {
+    status: "error",
+    ...(field === undefined ? {} : { field }),
+    message: translate(ref),
+    values,
+  };
 }
 
 // The split is the server's computation: the step only shows it and posts the decision.
@@ -270,13 +299,17 @@ function surplusStepOf(
     choice: {
       depositedText: format(split.deposited),
       surplusText: format(split.surplus),
-      suggestedAccountId: split.suggestedOverflowAccountId === null ? "" : String(split.suggestedOverflowAccountId),
+      suggestedAccountId:
+        split.suggestedOverflowAccountId === null ? "" : String(split.suggestedOverflowAccountId),
     },
     sourceName: source.name,
     destinationName: destination.name,
     // A transfer cannot cross currencies, so only the accounts of the same currency can take the rest.
     targets: listAccounts(db)
-      .filter(({ id, currency }) => id !== source.id && id !== destination.id && currency === source.currency)
+      .filter(
+        ({ id, currency }) =>
+          id !== source.id && id !== destination.id && currency === source.currency,
+      )
       .map(({ id, name }) => ({ id, name })),
   };
 }
@@ -298,7 +331,12 @@ interface MarkPaidContext {
 // carries a figure, so it is told instead.
 function feedbackOf(
   db: AppDatabase,
-  item: { kind: PlannedItemKind; name: string; accountId: number; destinationAccountId: number | null },
+  item: {
+    kind: PlannedItemKind;
+    name: string;
+    accountId: number;
+    destinationAccountId: number | null;
+  },
   { unplaced, ceilingExcess }: MarkPaidResult,
   decision: SurplusDecision | null,
   locale: string,
@@ -324,26 +362,36 @@ function feedbackOf(
   };
 }
 
-function markInDatabase(db: AppDatabase, formData: FormData, context: MarkPaidContext): MarkPaidOutcome {
+function markInDatabase(
+  db: AppDatabase,
+  formData: FormData,
+  context: MarkPaidContext,
+): MarkPaidOutcome {
   const { itemId, nominalDate, values, today, locale, translate } = context;
   // The kind gives the sign and the account the minor units: neither comes from the form.
   const item = getPlannedItem(db, itemId);
   const parsed = parseMarkPaidForm(values, getAccount(db, item.accountId).currency, translate);
   if (!parsed.ok) return { state: parsed.error };
-  const currencies: CurrencyByAccount = new Map(listAccounts(db).map(({ id, currency }) => [id, currency]));
+  const currencies: CurrencyByAccount = new Map(
+    listAccounts(db).map(({ id, currency }) => [id, currency]),
+  );
   const decision = readDecision(formData, currencies, translate);
   if ("message" in decision) {
-    return { state: { status: "error", field: "surplusAccountId", message: decision.message, values } };
+    return {
+      state: { status: "error", field: "surplusAccountId", message: decision.message, values },
+    };
   }
   const request = { plannedItemId: item.id, nominalDate, ...parsed.input };
   try {
     // A decision taken on a split of other values is stale: the step is shown again for these ones.
     const isStale =
-      readText(formData, DECIDED_AMOUNT_FIELD) !== values.amount || readText(formData, DECIDED_DATE_FIELD) !== values.date;
+      readText(formData, DECIDED_AMOUNT_FIELD) !== values.amount ||
+      readText(formData, DECIDED_DATE_FIELD) !== values.date;
     const result = markOccurrencePaid(db, request, today, isStale ? null : decision.value);
     return { feedback: feedbackOf(db, item, result, decision.value, locale) };
   } catch (error) {
-    if (!(error instanceof SurplusDecisionRequiredError) || item.destinationAccountId === null) throw error;
+    if (!(error instanceof SurplusDecisionRequiredError) || item.destinationAccountId === null)
+      throw error;
     const transfer: TransferRequest = {
       sourceId: item.accountId,
       destinationId: item.destinationAccountId,
@@ -351,7 +399,9 @@ function markInDatabase(db: AppDatabase, formData: FormData, context: MarkPaidCo
       date: request.date,
       label: item.name,
     };
-    return { state: { status: "surplus", step: surplusStepOf(db, transfer, error, locale), values } };
+    return {
+      state: { status: "surplus", step: surplusStepOf(db, transfer, error, locale), values },
+    };
   }
 }
 
@@ -366,7 +416,11 @@ export async function markOccurrencePaidAction(
   formData: FormData,
 ): Promise<MarkPaidFormState | null> {
   await requireSession();
-  const [translate, locale, timeZone] = await Promise.all([getTranslator(), getLocale(), getTimeZone()]);
+  const [translate, locale, timeZone] = await Promise.all([
+    getTranslator(),
+    getLocale(),
+    getTimeZone(),
+  ]);
   const values = readSubmittedMarkPaid(formData);
   if (formData.get("decision") === TRANSFER_DECISION.cancel) return { status: "cancelled", values };
   const read = readOccurrenceTarget(formData);
@@ -425,7 +479,10 @@ export async function linkTransactionToOccurrenceAction(
   try {
     names = withDatabase((db) => {
       linkByHand(db, { transactionId, plannedItemId: itemId, nominalDate }, today);
-      return { transaction: getTransaction(db, transactionId).label, name: getPlannedItem(db, itemId).name };
+      return {
+        transaction: getTransaction(db, transactionId).label,
+        name: getPlannedItem(db, itemId).name,
+      };
     });
   } catch (error) {
     if (error instanceof PlannedLinkError || error instanceof TransactionValidationError) {

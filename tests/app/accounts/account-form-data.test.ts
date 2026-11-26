@@ -38,9 +38,7 @@ describe("parseAccountForm", () => {
   });
 
   it("converts the ceiling to minor units and reads the overflow account", () => {
-    const parsed = parseAccountForm(
-      formOf({ depositCeiling: "1600", overflowAccountId: "2" }),
-    );
+    const parsed = parseAccountForm(formOf({ depositCeiling: "1600", overflowAccountId: "2" }));
 
     expect(parsed).toMatchObject({
       ok: true,
@@ -67,9 +65,7 @@ describe("parseAccountForm", () => {
   });
 
   it("normalizes the currency code before parsing the amount", () => {
-    const parsed = parseAccountForm(
-      formOf({ currency: " jpy ", openingBalance: "1234" }),
-    );
+    const parsed = parseAccountForm(formOf({ currency: " jpy ", openingBalance: "1234" }));
 
     expect(parsed).toMatchObject({
       ok: true,

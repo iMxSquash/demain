@@ -49,17 +49,11 @@ const BYTES_PER_MEGABYTE = 1024 * 1024;
  */
 export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   await requireSession();
-  const [t, translate] = await Promise.all([
-    getTranslations("imports"),
-    getTranslator(),
-  ]);
+  const [t, translate] = await Promise.all([getTranslations("imports"), getTranslator()]);
   const file = formData.get("file");
-  const fileName =
-    file instanceof File ? file.name.slice(0, MAX_FILE_NAME_LENGTH) : "";
-  const failed = (
-    message: string,
-    options?: { needsMapping?: boolean },
-  ): StagedFile => failedStagedFile(fileName, message, options);
+  const fileName = file instanceof File ? file.name.slice(0, MAX_FILE_NAME_LENGTH) : "";
+  const failed = (message: string, options?: { needsMapping?: boolean }): StagedFile =>
+    failedStagedFile(fileName, message, options);
 
   const accountId = Number(formData.get("accountId"));
   if (!Number.isInteger(accountId) || accountId < 1) {
@@ -67,9 +61,7 @@ export async function stageFileAction(formData: FormData): Promise<StagedFile> {
   }
   if (!(file instanceof File) || file.size === 0) return failed(t("fileEmpty"));
   if (file.size > MAX_IMPORT_FILE_BYTES) {
-    return failed(
-      t("fileTooLarge", { max: MAX_IMPORT_FILE_BYTES / BYTES_PER_MEGABYTE }),
-    );
+    return failed(t("fileTooLarge", { max: MAX_IMPORT_FILE_BYTES / BYTES_PER_MEGABYTE }));
   }
 
   try {
@@ -145,14 +137,10 @@ function duplicateFlags(
     ),
   );
   const rows = readings.flatMap((reading) => (reading.ok ? [reading.row] : []));
-  const flags = withDatabase((db) =>
-    findDuplicateRows(db, { accountId, rows }),
-  );
+  const flags = withDatabase((db) => findDuplicateRows(db, { accountId, rows }));
 
   let next = 0;
-  return readings.map((reading) =>
-    reading.ok ? (flags[next++] ?? false) : false,
-  );
+  return readings.map((reading) => (reading.ok ? (flags[next++] ?? false) : false));
 }
 
 /**
@@ -244,15 +232,13 @@ export async function commitStagedFileAction(
       matched: outcome.matchedCount,
       duplicates: outcome.duplicateCount,
     });
-    const warnings = outcome.ceilingWarnings
-      .slice(0, WARNING_COUNT)
-      .map((warning) =>
-        t("ceilingWarning", {
-          label: warning.label,
-          date: formatCalendarDate(warning.date, locale),
-          excess: formatAmount(warning.excess, currency, locale),
-        }),
-      );
+    const warnings = outcome.ceilingWarnings.slice(0, WARNING_COUNT).map((warning) =>
+      t("ceilingWarning", {
+        label: warning.label,
+        date: formatCalendarDate(warning.date, locale),
+        excess: formatAmount(warning.excess, currency, locale),
+      }),
+    );
     if (outcome.accountArchived) warnings.push(t("archivedWarning"));
     return {
       status: "done",

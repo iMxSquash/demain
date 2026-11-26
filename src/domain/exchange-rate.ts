@@ -50,10 +50,7 @@ export class ExchangeRateValidationError extends Error {
 }
 
 /** Throws unless `code` is an ISO 4217 currency code. */
-export function assertKnownCurrency(
-  code: string,
-  field: ExchangeRateField,
-): void {
+export function assertKnownCurrency(code: string, field: ExchangeRateField): void {
   if (!isKnownCurrency(code)) {
     throw new ExchangeRateValidationError(
       field,
@@ -112,9 +109,7 @@ export interface ExchangeRateInput {
 }
 
 /** Checks a typed rate and converts it to its stored form. */
-export function validateExchangeRateInput(
-  input: ExchangeRateInput,
-): ExchangeRate {
+export function validateExchangeRateInput(input: ExchangeRateInput): ExchangeRate {
   if (!isCalendarDate(input.date)) {
     throw new ExchangeRateValidationError(
       "date",
@@ -228,8 +223,7 @@ export class EcbResponseError extends Error {
 
 const ECB_BASE_CURRENCY = "EUR";
 const ECB_DAY_PATTERN = /<Cube\s+time=['"](\d{4}-\d{2}-\d{2})['"]/;
-const ECB_RATE_PATTERN =
-  /<Cube\s+currency=['"]([A-Za-z]{3})['"]\s+rate=['"]([^'"]+)['"]\s*\/>/g;
+const ECB_RATE_PATTERN = /<Cube\s+currency=['"]([A-Za-z]{3})['"]\s+rate=['"]([^'"]+)['"]\s*\/>/g;
 
 /**
  * Reads the daily reference rates of the ECB feed (`eurofxref-daily.xml`): all

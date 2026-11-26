@@ -88,12 +88,16 @@ function assertValidSchedule(schedule: PlannedSchedule): void {
   const [first] = schedule.versions;
   if (first === undefined) throw new Error("A planned schedule needs at least one version");
   if (first.effectiveFrom !== schedule.startDate) {
-    throw new Error(`The first version must be effective from the start date ${schedule.startDate}`);
+    throw new Error(
+      `The first version must be effective from the start date ${schedule.startDate}`,
+    );
   }
   schedule.versions.forEach((version, index) => {
     const previous = schedule.versions[index - 1];
     if (previous !== undefined && version.effectiveFrom <= previous.effectiveFrom) {
-      throw new Error(`Versions must be sorted by strictly increasing effective date, got ${version.effectiveFrom}`);
+      throw new Error(
+        `Versions must be sorted by strictly increasing effective date, got ${version.effectiveFrom}`,
+      );
     }
   });
 }
@@ -149,7 +153,10 @@ function enumerationRange(range: DateRange, overrides: readonly OccurrenceOverri
   return { from, to };
 }
 
-function applyOverride(occurrence: Occurrence, override: OccurrenceOverride | undefined): Occurrence {
+function applyOverride(
+  occurrence: Occurrence,
+  override: OccurrenceOverride | undefined,
+): Occurrence {
   if (override === undefined) return occurrence;
   if (override.status === "cancelled") return { ...occurrence, isCancelled: true };
   return {
@@ -179,7 +186,9 @@ export function generateOccurrences(
   today: string,
 ): Occurrence[] {
   assertValidSchedule(schedule);
-  const overrideByNominalDate = new Map(overrides.map((override) => [override.nominalDate, override]));
+  const overrideByNominalDate = new Map(
+    overrides.map((override) => [override.nominalDate, override]),
+  );
 
   return enumerateNominalDates(schedule, enumerationRange(range, overrides))
     .filter(({ nominalDate }) => !schedule.cancelled || nominalDate <= today)

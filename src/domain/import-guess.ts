@@ -181,10 +181,7 @@ type Guess = Pick<TypeGuess, "type" | "confidence" | "evidence" | "conflict">;
 
 // The sign of the amount settles the type, unless a clue agrees with it (more
 // reliable than the sign alone) or contradicts it (flagged, the sign winning).
-function guessFromClues(
-  hint: Hint | null,
-  directionEvidence: DirectionEvidence | null,
-): Guess {
+function guessFromClues(hint: Hint | null, directionEvidence: DirectionEvidence | null): Guess {
   if (directionEvidence === null) {
     return hint === null
       ? { type: "expense", confidence: "low", evidence: { kind: "none" }, conflict: null }
@@ -203,10 +200,7 @@ function guessFromClues(
   };
 }
 
-export function guessMovementType(
-  signals: TypeSignals,
-  context: GuessContext,
-): TypeGuess {
+export function guessMovementType(signals: TypeSignals, context: GuessContext): TypeGuess {
   const { typeCell, direction } = signals;
   const directionEvidence: DirectionEvidence | null =
     direction === null ? null : { kind: signals.directionSource, direction };

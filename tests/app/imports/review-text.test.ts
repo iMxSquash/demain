@@ -61,7 +61,10 @@ describe.each(["en", "fr"] as const)("describing the rows to confirm in %s", (lo
 describe("describeConfirmReasons", () => {
   it("names the category that gave the type and where its word comes from", () => {
     const say = (origin: "fixed" | "history" | "user") =>
-      describeConfirmReasons([{ kind: "categoryWord", category: "salaire", origin }], stagedIn("fr"));
+      describeConfirmReasons(
+        [{ kind: "categoryWord", category: "salaire", origin }],
+        stagedIn("fr"),
+      );
 
     expect(say("fixed")).toBe("deviné : la catégorie est salaire (mot du vocabulaire fixe)");
     expect(say("history")).toBe("deviné : la catégorie est salaire (mot appris de l'historique)");
@@ -92,7 +95,7 @@ describe("describeConfirmReasons", () => {
         stagedIn("en"),
       ),
     ).toBe(
-      "guessed from the sign of the amount: an income; the type column says \"misc\", which is not a known type",
+      'guessed from the sign of the amount: an income; the type column says "misc", which is not a known type',
     );
   });
 });
@@ -106,7 +109,8 @@ describe("describeSplit", () => {
     t: stagedIn(locale),
     currency: "EUR",
     locale,
-    nameOf: (ref: AccountRef) => (isPendingAccount(ref) ? pendingAccountName(ref) : (names.get(ref) ?? "?")),
+    nameOf: (ref: AccountRef) =>
+      isPendingAccount(ref) ? pendingAccountName(ref) : (names.get(ref) ?? "?"),
   });
 
   it("writes each part of a deposit with the account that receives it", () => {
@@ -115,9 +119,7 @@ describe("describeSplit", () => {
       { direction: "to", accountId: 3, amount: 20_000 },
     ];
 
-    expect(describeSplit(segments, say("en"))).toBe(
-      "€100.00 to Account A, €200.00 to Account B",
-    );
+    expect(describeSplit(segments, say("en"))).toBe("€100.00 to Account A, €200.00 to Account B");
   });
 
   it("names an account to create by the name the user gave it", () => {
@@ -130,10 +132,7 @@ describe("describeSplit", () => {
   });
 
   it("writes a withdrawal in French with the account it comes from", () => {
-    const text = describeSplit(
-      [{ direction: "from", accountId: 2, amount: 5_000 }],
-      say("fr"),
-    );
+    const text = describeSplit([{ direction: "from", accountId: 2, amount: 5_000 }], say("fr"));
 
     expect(text).toContain("50,00");
     expect(text).toContain("depuis le compte Account A");

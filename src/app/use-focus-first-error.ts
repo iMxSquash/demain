@@ -12,9 +12,7 @@ export function useFocusFirstError(state: unknown) {
 
   useEffect(() => {
     if (state === null || state === undefined) return;
-    formRef.current
-      ?.querySelector<HTMLElement>('[aria-invalid="true"]')
-      ?.focus();
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [state]);
 
   return formRef;

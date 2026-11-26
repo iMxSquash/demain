@@ -109,7 +109,10 @@ export function listPlannedItems(
  * Validates an item, then writes it and its first version, effective from its start date, in one
  * transaction: both are recorded or neither is.
  */
-export function createPlannedItem(db: AppDatabase, input: PlannedItemInput): PlannedItemWithDetails {
+export function createPlannedItem(
+  db: AppDatabase,
+  input: PlannedItemInput,
+): PlannedItemWithDetails {
   return db.transaction((tx) => {
     const valid = validatePlannedItemInput(input, {
       accounts: tx.select().from(accounts).all(),
@@ -363,7 +366,10 @@ export function deleteOccurrenceOverride(
     validateOccurrenceOverrideRemoval(nominalDate, overrideContextOf(tx, item));
     tx.delete(occurrenceOverrides)
       .where(
-        and(eq(occurrenceOverrides.plannedItemId, itemId), eq(occurrenceOverrides.nominalDate, nominalDate)),
+        and(
+          eq(occurrenceOverrides.plannedItemId, itemId),
+          eq(occurrenceOverrides.nominalDate, nominalDate),
+        ),
       )
       .run();
     return getPlannedItem(tx, itemId);

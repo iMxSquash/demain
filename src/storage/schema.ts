@@ -27,10 +27,9 @@ export const accounts = sqliteTable("accounts", {
   depositCeiling: integer("deposit_ceiling"),
   // Receives what does not fit under the ceiling. Restrict: a referenced
   // account can never be deleted (DOMAIN, protection of the chain).
-  overflowAccountId: integer("overflow_account_id").references(
-    (): AnySQLiteColumn => accounts.id,
-    { onDelete: "restrict" },
-  ),
+  overflowAccountId: integer("overflow_account_id").references((): AnySQLiteColumn => accounts.id, {
+    onDelete: "restrict",
+  }),
 });
 
 export const categories = sqliteTable(
@@ -116,12 +115,9 @@ export const transactions = sqliteTable(
     ),
     // Set for a transaction created by an import. A batch row is removed only by
     // undoImportBatch, which first checks the digest so that nothing edited is lost.
-    importBatchId: integer("import_batch_id").references(
-      () => importBatches.id,
-      {
-        onDelete: "restrict",
-      },
-    ),
+    importBatchId: integer("import_batch_id").references(() => importBatches.id, {
+      onDelete: "restrict",
+    }),
     // Detects the same movement imported twice, see DOMAIN entity Transaction.
     importFingerprint: text("import_fingerprint"),
     // Date, amount and label of an imported movement, kept even when the bank gave an
@@ -261,10 +257,7 @@ export const balanceAssertions = sqliteTable(
     note: text("note"),
   },
   (table) => [
-    uniqueIndex("balance_assertions_account_date_unique").on(
-      table.accountId,
-      table.date,
-    ),
+    uniqueIndex("balance_assertions_account_date_unique").on(table.accountId, table.date),
   ],
 );
 
@@ -283,11 +276,7 @@ export const exchangeRates = sqliteTable(
     source: text("source", { enum: ["manual", "ecb"] }).notNull(),
   },
   (table) => [
-    uniqueIndex("exchange_rates_pair_date_unique").on(
-      table.base,
-      table.quote,
-      table.date,
-    ),
+    uniqueIndex("exchange_rates_pair_date_unique").on(table.base, table.quote, table.date),
     check("exchange_rates_rate_positive", sql`${table.rate} > 0`),
     check("exchange_rates_distinct_currencies", sql`${table.base} <> ${table.quote}`),
   ],

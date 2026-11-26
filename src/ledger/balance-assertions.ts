@@ -69,10 +69,7 @@ export function recordValidAssertion(
     .select({ id: balanceAssertions.id })
     .from(balanceAssertions)
     .where(
-      and(
-        eq(balanceAssertions.accountId, valid.accountId),
-        eq(balanceAssertions.date, valid.date),
-      ),
+      and(eq(balanceAssertions.accountId, valid.accountId), eq(balanceAssertions.date, valid.date)),
     )
     .get();
   const saved = tx
@@ -88,10 +85,7 @@ export function recordValidAssertion(
 }
 
 /** Every movement of an account, the input of the computed balance. */
-export function listAccountMovements(
-  db: AppDatabase,
-  accountId: number,
-): AssertionMovement[] {
+export function listAccountMovements(db: AppDatabase, accountId: number): AssertionMovement[] {
   return db
     .select({
       accountId: transactions.accountId,
@@ -126,14 +120,9 @@ export function listBalanceAssertions(
  * Every assertion of every account, archived ones included, most recent
  * first, each with its unexplained gap and the account it belongs to.
  */
-export function listAllBalanceAssertions(
-  db: AppDatabase,
-): AccountBalanceAssertion[] {
+export function listAllBalanceAssertions(db: AppDatabase): AccountBalanceAssertion[] {
   const accounts = new Map(
-    listAccounts(db, { includeArchived: true }).map((account) => [
-      account.id,
-      account,
-    ]),
+    listAccounts(db, { includeArchived: true }).map((account) => [account.id, account]),
   );
   // Grouped once, so that each gap only walks the movements of its own account.
   const movementsByAccount = Map.groupBy(
@@ -157,11 +146,7 @@ export function listAllBalanceAssertions(
       const account = accounts.get(assertion.accountId)!;
       return {
         ...assertion,
-        ...computeUnexplainedGap(
-          account,
-          movementsByAccount.get(account.id) ?? [],
-          assertion,
-        ),
+        ...computeUnexplainedGap(account, movementsByAccount.get(account.id) ?? [], assertion),
         accountName: account.name,
         accountCurrency: account.currency,
         accountArchived: account.archived,
@@ -223,22 +208,13 @@ export function readAssertionLinkSnapshot(db: AppDatabase): AssertionLinkSnapsho
  * Deletes an assertion of the given account: an id of another account matches
  * nothing. An archived account keeps its assertions.
  */
-export function deleteBalanceAssertion(
-  db: AppDatabase,
-  accountId: number,
-  id: number,
-): void {
+export function deleteBalanceAssertion(db: AppDatabase, accountId: number, id: number): void {
   if (getAccount(db, accountId).archived) {
     throw new BalanceAssertionOnArchivedAccountError(accountId);
   }
   const deleted = db
     .delete(balanceAssertions)
-    .where(
-      and(
-        eq(balanceAssertions.id, id),
-        eq(balanceAssertions.accountId, accountId),
-      ),
-    )
+    .where(and(eq(balanceAssertions.id, id), eq(balanceAssertions.accountId, accountId)))
     .returning({ id: balanceAssertions.id })
     .get();
   if (deleted === undefined) {

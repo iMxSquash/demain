@@ -113,7 +113,9 @@ function readOptions(children: ReactNode): LabelledOption[] {
 
 // Where the popover sits, in viewport pixels: it is in the top layer, so no ancestor clips it.
 // `maxHeight` is the room left on its side, so the list scrolls instead of leaving the screen.
-type Anchor = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
+type Anchor = { left: number; width: number; maxHeight: number } & (
+  { top: number } | { bottom: number }
+);
 
 export function Select({
   inline = false,
@@ -172,12 +174,20 @@ export function Select({
     setIsOpen(false);
   }, []);
 
-  useImperativeHandle(ref, () => ({
-    focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
-  }), []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => (triggerRef.current ?? nativeRef.current)?.focus(),
+    }),
+    [],
+  );
 
   // A form reset (React 19 resets the form after an action) puts the native select back on its default.
-  useFormReset(nativeRef, () => setUncontrolledValue(nativeRef.current?.value ?? ""), isEnhanced && !isControlled);
+  useFormReset(
+    nativeRef,
+    () => setUncontrolledValue(nativeRef.current?.value ?? ""),
+    isEnhanced && !isControlled,
+  );
 
   // A pointer press outside closes the list; the focus is not moved.
   useEffect(() => {
@@ -232,7 +242,8 @@ export function Select({
     const trigger = triggerRef.current;
     if (trigger !== null) {
       const rect = trigger.getBoundingClientRect();
-      const listHeight = Math.min(options.length * OPTION_HEIGHT, LIST_MAX_HEIGHT) + LIST_PADDING + POPOVER_GAP;
+      const listHeight =
+        Math.min(options.length * OPTION_HEIGHT, LIST_MAX_HEIGHT) + LIST_PADDING + POPOVER_GAP;
       const spaceBelow = window.innerHeight - rect.bottom;
       const isAbove = spaceBelow < listHeight && rect.top > spaceBelow;
       const room = (isAbove ? rect.top : spaceBelow) - POPOVER_GAP - LIST_PADDING - VIEWPORT_MARGIN;
@@ -357,7 +368,9 @@ export function Select({
             aria-haspopup="listbox"
             aria-expanded={isListShown}
             aria-controls={listId}
-            aria-activedescendant={isListShown && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
+            aria-activedescendant={
+              isListShown && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
+            }
             aria-describedby={ariaDescribedby}
             aria-invalid={ariaInvalid}
             aria-label={ariaLabel}
@@ -386,7 +399,10 @@ export function Select({
                 ref={showAsPopover}
                 popover="manual"
                 style={anchor}
-                initial={{ opacity: 0, y: "top" in anchor ? motion.offset.rise : -motion.offset.rise }}
+                initial={{
+                  opacity: 0,
+                  y: "top" in anchor ? motion.offset.rise : -motion.offset.rise,
+                }}
                 animate={{
                   opacity: 1,
                   y: 0,
@@ -419,7 +435,11 @@ export function Select({
                       aria-selected={index === selectedIndex}
                       aria-disabled={option.disabled === true ? true : undefined}
                       onMouseMove={() => {
-                        if (option.disabled === true || (index === activeIndex && !isKeyboardActive)) return;
+                        if (
+                          option.disabled === true ||
+                          (index === activeIndex && !isKeyboardActive)
+                        )
+                          return;
                         activate(index, false);
                       }}
                       onClick={() => {
@@ -427,7 +447,9 @@ export function Select({
                         choose(index);
                       }}
                       className={`flex min-h-11 items-center justify-between gap-3 rounded-[calc(var(--radius-control)-6px)] px-3 py-2 ${
-                        option.disabled === true ? "cursor-not-allowed text-text-muted" : "cursor-pointer text-text"
+                        option.disabled === true
+                          ? "cursor-not-allowed text-text-muted"
+                          : "cursor-pointer text-text"
                       } ${index === selectedIndex ? "font-medium" : ""} ${
                         index === activeIndex && option.disabled !== true ? "bg-control" : ""
                       } ${index === activeIndex && isKeyboardActive ? "ring-2 ring-inset ring-focus" : ""}`}

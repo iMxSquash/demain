@@ -18,9 +18,15 @@ vi.mock("next-intl/server", () => ({
 }));
 
 // AppShell is the only async component of the tree: awaiting it leaves elements React renders.
-async function renderShell(currentPath: string, toCategorizeCount = 3, toPayCount = 2): Promise<string> {
+async function renderShell(
+  currentPath: string,
+  toCategorizeCount = 3,
+  toPayCount = 2,
+): Promise<string> {
   pathname = currentPath;
-  return renderToStaticMarkup(await AppShell({ toCategorizeCount, toPayCount, children: createElement("main") }));
+  return renderToStaticMarkup(
+    await AppShell({ toCategorizeCount, toPayCount, children: createElement("main") }),
+  );
 }
 
 /** The text nodes of a fragment, in order: each one sits between a `>` and the next `<`. */
@@ -29,7 +35,9 @@ function textOf(fragment: string): string {
 }
 
 /** Every link of the markup with its target, its accessible text and whether it is current. */
-function linksOf(html: string): { href: string; text: string; isCurrent: boolean; label?: string }[] {
+function linksOf(
+  html: string,
+): { href: string; text: string; isCurrent: boolean; label?: string }[] {
   return [...html.matchAll(/<a ([^>]*)>(.*?)<\/a>/g)].map((match) => {
     const attributes = match[1] ?? "";
     return {
@@ -41,7 +49,8 @@ function linksOf(html: string): { href: string; text: string; isCurrent: boolean
   });
 }
 
-const navOf = (html: string) => /<nav [^>]*aria-label="Main"[^>]*>(.*?)<\/nav>/.exec(html)?.[1] ?? "";
+const navOf = (html: string) =>
+  /<nav [^>]*aria-label="Main"[^>]*>(.*?)<\/nav>/.exec(html)?.[1] ?? "";
 
 /** The navigation without what only the wide sidebar shows (an element with a `wideOnly` class). */
 function phoneNavOf(html: string): string {
@@ -110,13 +119,20 @@ describe("app shell navigation", () => {
     ]);
   });
 
-  it.each(["/calendar", "/calendar/lines"])("marks Calendar as the current page on %s", async (path) => {
-    const html = await renderShell(path);
+  it.each(["/calendar", "/calendar/lines"])(
+    "marks Calendar as the current page on %s",
+    async (path) => {
+      const html = await renderShell(path);
 
-    const current = linksOf(phoneNavOf(html)).filter((link) => link.isCurrent);
-    expect(current.map((link) => link.href)).toEqual(["/calendar"]);
-    expect(linksOf(navOf(html)).filter((link) => link.isCurrent).map((link) => link.href)).toEqual(["/calendar"]);
-  });
+      const current = linksOf(phoneNavOf(html)).filter((link) => link.isCurrent);
+      expect(current.map((link) => link.href)).toEqual(["/calendar"]);
+      expect(
+        linksOf(navOf(html))
+          .filter((link) => link.isCurrent)
+          .map((link) => link.href),
+      ).toEqual(["/calendar"]);
+    },
+  );
 
   it("shows the number of due occurrences on the To pay entry of the sidebar, in words too", async () => {
     const html = await renderShell("/", 3, 5);
@@ -129,25 +145,39 @@ describe("app shell navigation", () => {
   it("marks only To pay on the To pay page, not Planned", async () => {
     const html = await renderShell("/planned/due");
 
-    expect(linksOf(navOf(html)).filter((link) => link.isCurrent).map((link) => link.href)).toEqual(["/planned/due"]);
+    expect(
+      linksOf(navOf(html))
+        .filter((link) => link.isCurrent)
+        .map((link) => link.href),
+    ).toEqual(["/planned/due"]);
   });
 
   it("marks Calendar on the Link a transaction page, which is reached from the calendar", async () => {
     const html = await renderShell("/planned/link");
 
-    expect(linksOf(navOf(html)).filter((link) => link.isCurrent).map((link) => link.href)).toEqual(["/calendar"]);
+    expect(
+      linksOf(navOf(html))
+        .filter((link) => link.isCurrent)
+        .map((link) => link.href),
+    ).toEqual(["/calendar"]);
   });
 
   it("keeps Planned current on its own pages", async () => {
     const html = await renderShell("/planned/3");
 
-    expect(linksOf(navOf(html)).filter((link) => link.isCurrent).map((link) => link.href)).toEqual(["/planned"]);
+    expect(
+      linksOf(navOf(html))
+        .filter((link) => link.isCurrent)
+        .map((link) => link.href),
+    ).toEqual(["/planned"]);
   });
 
   it("hides the badge digits from assistive technology and names the count in words", async () => {
     const html = await renderShell("/", 1);
 
-    expect(html).toMatch(/<span aria-hidden="true"[^>]*>1<\/span><span class="sr-only">, 1 transaction<\/span>/);
+    expect(html).toMatch(
+      /<span aria-hidden="true"[^>]*>1<\/span><span class="sr-only">, 1 transaction<\/span>/,
+    );
   });
 
   it("gives the icon-only buttons of the top bar an accessible name", async () => {

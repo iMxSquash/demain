@@ -18,11 +18,7 @@ export class CategoryNotFoundError extends Error {
 }
 
 export function getCategory(db: AppDatabase, id: number): Category {
-  const category = db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, id))
-    .get();
+  const category = db.select().from(categories).where(eq(categories.id, id)).get();
   if (category === undefined) {
     throw new CategoryNotFoundError(id);
   }
@@ -34,9 +30,7 @@ export function listCategories(
   { includeArchived = false }: { includeArchived?: boolean } = {},
 ): Category[] {
   const query = db.select().from(categories);
-  const rows = includeArchived
-    ? query
-    : query.where(eq(categories.archived, false));
+  const rows = includeArchived ? query : query.where(eq(categories.archived, false));
   // SQLite gives no order guarantee without ORDER BY: keep creation order.
   return rows.orderBy(asc(categories.id)).all();
 }
@@ -44,18 +38,11 @@ export function listCategories(
 // Archived categories count: homonyms must not coexist in the history.
 function checkedName(db: AppDatabase, name: string, ignoreId?: number): string {
   const valid = validateCategoryName(name);
-  assertCategoryNameAvailable(
-    valid,
-    listCategories(db, { includeArchived: true }),
-    { ignoreId },
-  );
+  assertCategoryNameAvailable(valid, listCategories(db, { includeArchived: true }), { ignoreId });
   return valid;
 }
 
-export function createCategory(
-  db: AppDatabase,
-  input: { name: string; icon?: string },
-): Category {
+export function createCategory(db: AppDatabase, input: { name: string; icon?: string }): Category {
   const name = checkedName(db, input.name);
   const icon = validateCategoryIcon(input.icon);
   return db.insert(categories).values({ name, icon }).returning().get();

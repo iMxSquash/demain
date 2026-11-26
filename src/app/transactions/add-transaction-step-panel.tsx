@@ -22,7 +22,8 @@ interface StepPanelProps {
 
 // From the wide breakpoint on every panel is in view and nothing moves: the rules beat the
 // opacity and the transform that Motion writes on a panel waiting for its turn.
-const WIDE_STILL_CLASS = "@min-[760px]:flex @min-[760px]:opacity-100! @min-[760px]:[transform:none]!";
+const WIDE_STILL_CLASS =
+  "@min-[760px]:flex @min-[760px]:opacity-100! @min-[760px]:[transform:none]!";
 
 /**
  * One step of the form. The panels stay mounted whatever the step, so every field posts; a

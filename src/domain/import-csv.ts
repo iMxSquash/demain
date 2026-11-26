@@ -24,8 +24,7 @@ export const CSV_DATE_FORMATS = ["dmy", "mdy", "ymd"] as const;
 export type CsvDateFormat = (typeof CSV_DATE_FORMATS)[number];
 
 export type CsvAmountMapping =
-  | { kind: "single"; column: number }
-  | { kind: "split"; debitColumn: number; creditColumn: number };
+  { kind: "single"; column: number } | { kind: "split"; debitColumn: number; creditColumn: number };
 
 /** Where each piece of a movement sits in the file; columns are 0-based. */
 export interface CsvMapping {
@@ -133,10 +132,7 @@ function pad(value: string, length: number): string {
 }
 
 // Position of the year, month and day among the three numbers, per format.
-const DATE_ORDER: Record<
-  CsvDateFormat,
-  readonly [year: number, month: number, day: number]
-> = {
+const DATE_ORDER: Record<CsvDateFormat, readonly [year: number, month: number, day: number]> = {
   ymd: [1, 2, 3],
   dmy: [3, 2, 1],
   mdy: [3, 1, 2],
@@ -145,9 +141,7 @@ const DATE_ORDER: Record<
 // A two-digit year would be a guess about the century.
 export function parseDate(text: string, format: CsvDateFormat): string | null {
   const parts = DATE_PATTERN.exec(text.trim());
-  const [year, month, day] = DATE_ORDER[format].map(
-    (position) => parts?.[position],
-  );
+  const [year, month, day] = DATE_ORDER[format].map((position) => parts?.[position]);
   const date =
     year?.length === 4 && month !== undefined && day !== undefined
       ? `${year}-${pad(month, 2)}-${pad(day, 2)}`
@@ -161,10 +155,7 @@ const YEARLESS_DATE_PATTERN = /^(\d{1,2})([/.-])(\d{1,2})$/;
 /** Whether every filled cell is a day and a month with no year, and at least one is filled. */
 export function datesLackYear(cells: readonly string[]): boolean {
   const filled = cells.map((cell) => cell.trim()).filter((cell) => cell !== "");
-  return (
-    filled.length > 0 &&
-    filled.every((cell) => YEARLESS_DATE_PATTERN.test(cell))
-  );
+  return filled.length > 0 && filled.every((cell) => YEARLESS_DATE_PATTERN.test(cell));
 }
 
 /** "13/01" becomes "13/01/2026"; any other text is returned as it is. */
@@ -186,9 +177,7 @@ export interface DateFormatDetection {
  * `CSV_DATE_FORMATS` wins (French exports write the day first) and the result
  * is flagged. Null when no format reads them all, or without dates.
  */
-export function detectDateFormat(
-  dates: readonly string[],
-): DateFormatDetection | null {
+export function detectDateFormat(dates: readonly string[]): DateFormatDetection | null {
   const readable = CSV_DATE_FORMATS.filter((format) =>
     dates.every((text) => parseDate(text, format) !== null),
   );
@@ -210,11 +199,7 @@ function readDate(text: string, format: CsvDateFormat, line: number): string {
   return date;
 }
 
-function readCell(
-  row: readonly string[],
-  column: number,
-  line: number,
-): string {
+function readCell(row: readonly string[], column: number, line: number): string {
   const cell = row[column];
   if (cell === undefined) {
     throw importParseError(
@@ -234,8 +219,7 @@ function readAmount(
   line: number,
   decimalMark: DecimalMark | undefined,
 ): number {
-  const parse = (text: string): number =>
-    parseRowAmount(text, currency, line, decimalMark);
+  const parse = (text: string): number => parseRowAmount(text, currency, line, decimalMark);
   if (mapping.kind === "single") {
     return parse(readCell(row, mapping.column, line));
   }
@@ -269,18 +253,8 @@ function readRow(
   line: number,
 ): ImportedRow {
   const label = requireRowLabel(readCell(row, mapping.labelColumn, line), line);
-  const date = readDate(
-    readCell(row, mapping.dateColumn, line),
-    mapping.dateFormat,
-    line,
-  );
-  const amount = readAmount(
-    row,
-    mapping.amount,
-    currency,
-    line,
-    mapping.decimalMark,
-  );
+  const date = readDate(readCell(row, mapping.dateColumn, line), mapping.dateFormat, line);
+  const amount = readAmount(row, mapping.amount, currency, line, mapping.decimalMark);
   return { date, amount, label, externalId: null };
 }
 
@@ -339,13 +313,8 @@ export function normalizeHeader(header: string): string {
   return foldAccents(header).replace(/[^a-z0-9]/g, "");
 }
 
-export function findColumn(
-  headers: readonly string[],
-  words: readonly string[],
-): number {
-  return headers.findIndex((header) =>
-    words.some((word) => header.includes(word)),
-  );
+export function findColumn(headers: readonly string[], words: readonly string[]): number {
+  return headers.findIndex((header) => words.some((word) => header.includes(word)));
 }
 
 /** What the headers name, role by role: null for a role no header names. */
@@ -355,12 +324,9 @@ export interface SuggestedColumns {
   amount: CsvAmountMapping | null;
 }
 
-export function suggestMappingColumns(
-  headerRow: readonly string[],
-): SuggestedColumns {
+export function suggestMappingColumns(headerRow: readonly string[]): SuggestedColumns {
   const headers = headerRow.map(normalizeHeader);
-  const orNull = (column: number): number | null =>
-    column === -1 ? null : column;
+  const orNull = (column: number): number | null => (column === -1 ? null : column);
   const debitColumn = findColumn(headers, ["debit"]);
   const creditColumn = findColumn(headers, ["credit"]);
   const amountColumn = findColumn(headers, ["montant", "amount", "somme"]);
@@ -418,8 +384,7 @@ export type CsvFileIssue =
   | { kind: "unreadableFile"; ref: MessageRef; line: number | null };
 
 export type CsvFile =
-  | { delimiter: CsvDelimiter; table: string[][] }
-  | { delimiter: CsvDelimiter; issue: CsvFileIssue };
+  { delimiter: CsvDelimiter; table: string[][] } | { delimiter: CsvDelimiter; issue: CsvFileIssue };
 
 /**
  * Splits a file into rows of cells, or says why it cannot be done. `delimiter`

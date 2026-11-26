@@ -13,10 +13,7 @@ export interface MessageRef {
   values?: Record<string, string | number>;
 }
 
-export function messageRef(
-  key: FeedbackKey,
-  values?: MessageRef["values"],
-): MessageRef {
+export function messageRef(key: FeedbackKey, values?: MessageRef["values"]): MessageRef {
   return values === undefined ? { key } : { key, values };
 }
 

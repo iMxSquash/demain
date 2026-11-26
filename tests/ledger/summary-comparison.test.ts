@@ -7,11 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAccount } from "../../src/ledger/accounts";
 import { compareStoredHistoryWithSummary } from "../../src/ledger/summary-comparison";
 import { createTransaction, createTransfer } from "../../src/ledger/transactions";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../src/storage/database";
 
 const ACCOUNT = { currency: "EUR", openingDate: "2026-01-01", openingBalance: 0 };
 const OPTIONS = { referenceCurrency: "EUR", lastCompleteMonth: "2026-02" };

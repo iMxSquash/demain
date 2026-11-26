@@ -13,11 +13,7 @@ import { createAccount } from "../../../src/ledger/accounts";
 import { createCategory } from "../../../src/ledger/categories";
 import { listRules } from "../../../src/ledger/categorization-rules";
 import { commitImport } from "../../../src/ledger/imports";
-import {
-  type AppDatabase,
-  migrateDatabase,
-  openDatabase,
-} from "../../../src/storage/database";
+import { type AppDatabase, migrateDatabase, openDatabase } from "../../../src/storage/database";
 import { transactions } from "../../../src/storage/schema";
 import { translateKey } from "../translate-key";
 
@@ -64,7 +60,10 @@ describe("rule proposal actions", () => {
     });
     if (result.batchId === null) throw new Error("nothing was imported");
     batchId = result.batchId;
-    db.update(transactions).set({ categoryId }).where(eq(transactions.importBatchId, batchId)).run();
+    db.update(transactions)
+      .set({ categoryId })
+      .where(eq(transactions.importBatchId, batchId))
+      .run();
   });
 
   afterEach(() => {
@@ -83,7 +82,10 @@ describe("rule proposal actions", () => {
   });
 
   it("tells when the file has no categorized row at all", async () => {
-    db.update(transactions).set({ categoryId: null }).where(eq(transactions.importBatchId, batchId)).run();
+    db.update(transactions)
+      .set({ categoryId: null })
+      .where(eq(transactions.importBatchId, batchId))
+      .run();
 
     expect(await listRuleProposalsAction(batchId)).toEqual({
       status: "ready",
@@ -96,7 +98,10 @@ describe("rule proposal actions", () => {
     const state = await listRuleProposalsAction(batchId);
     if (state.status !== "ready") throw new Error("no proposals");
 
-    const saved = await saveRuleProposalsAction(batchId, state.proposals.map(({ key }) => key));
+    const saved = await saveRuleProposalsAction(
+      batchId,
+      state.proposals.map(({ key }) => key),
+    );
 
     expect(saved.status).toBe("saved");
     expect(saved.message).toContain('"count":1');

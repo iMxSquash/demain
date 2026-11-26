@@ -42,9 +42,7 @@ describe("confirmReasons", () => {
     "asks for no confirmation of a %s confidence guess",
     (confidence) => {
       expect(
-        confirmReasons(
-          guess({ confidence, evidence: { kind: "sign", direction: "out" } }),
-        ),
+        confirmReasons(guess({ confidence, evidence: { kind: "sign", direction: "out" } })),
       ).toEqual([]);
     },
   );
@@ -96,9 +94,7 @@ describe("confirmReasons", () => {
 
   it("names the type of an earlier import of the same label", () => {
     expect(
-      confirmReasons(
-        guess({ type: "savings", evidence: { kind: "history", type: "savings" } }),
-      ),
+      confirmReasons(guess({ type: "savings", evidence: { kind: "history", type: "savings" } })),
     ).toEqual([{ kind: "history", type: "savings" }]);
   });
 
@@ -127,9 +123,7 @@ describe("confirmReasons", () => {
   });
 
   it("says that nothing in the file gave the type", () => {
-    expect(confirmReasons(guess({ evidence: { kind: "none" } }))).toEqual([
-      { kind: "nothing" },
-    ]);
+    expect(confirmReasons(guess({ evidence: { kind: "none" } }))).toEqual([{ kind: "nothing" }]);
   });
 
   it("adds the type cell that was ignored to what gave the type", () => {
@@ -148,11 +142,9 @@ describe("confirmReasons", () => {
   });
 
   it("names the debit and credit columns when they gave the type", () => {
-    expect(
-      confirmReasons(
-        guess({ evidence: { kind: "debitCredit", direction: "out" } }),
-      ),
-    ).toEqual([{ kind: "debitCredit", type: "expense" }]);
+    expect(confirmReasons(guess({ evidence: { kind: "debitCredit", direction: "out" } }))).toEqual([
+      { kind: "debitCredit", type: "expense" },
+    ]);
   });
 });
 
@@ -201,9 +193,7 @@ describe("splitSegments", () => {
       amount: 5_000,
     };
 
-    expect(splitSegments(transfer)).toEqual([
-      { direction: "from", accountId: 2, amount: 5_000 },
-    ]);
+    expect(splitSegments(transfer)).toEqual([{ direction: "from", accountId: 2, amount: 5_000 }]);
   });
 });
 
@@ -215,9 +205,7 @@ describe("nextFileToSettle", () => {
   });
 
   it("points at the first earlier file that is still to be imported or cancelled", () => {
-    expect(
-      nextFileToSettle(phases("done", "reviewing", "reviewing"), 2),
-    ).toBe(1);
+    expect(nextFileToSettle(phases("done", "reviewing", "reviewing"), 2)).toBe(1);
   });
 
   it("waits for a file that is being imported", () => {
@@ -267,7 +255,12 @@ describe("reviewRowProblem", () => {
 
   it("does not report an expense whose amount is positive: the type decides", () => {
     expect(
-      problem(reviewedRow({ details: EXPENSE, draft: { date: "2026-03-10", label: "X", amount: "12,00", externalId: null } })),
+      problem(
+        reviewedRow({
+          details: EXPENSE,
+          draft: { date: "2026-03-10", label: "X", amount: "12,00", externalId: null },
+        }),
+      ),
     ).toBeNull();
   });
 
@@ -367,7 +360,9 @@ describe("planReview", () => {
       const [firstPlan, secondPlan] = planReview([first, second], context);
 
       expect(firstPlan?.splits.size).toBe(0);
-      expect(secondPlan?.splits.get(0)).toEqual([{ direction: "to", accountId: A_ID, amount: 5_000 }]);
+      expect(secondPlan?.splits.get(0)).toEqual([
+        { direction: "to", accountId: A_ID, amount: 5_000 },
+      ]);
     },
   );
 
@@ -394,8 +389,12 @@ describe("planReview", () => {
       const [firstPlan, secondPlan] = planReview([first, second], context, [[], replaced]);
 
       // A holds 900,00 of 1 000,00 when the first file is planned: the replacement waits.
-      expect(firstPlan?.splits.get(0)).toEqual([{ direction: "to", accountId: A_ID, amount: 8_000 }]);
-      expect(secondPlan?.splits.get(0)).toEqual([{ direction: "to", accountId: A_ID, amount: 5_000 }]);
+      expect(firstPlan?.splits.get(0)).toEqual([
+        { direction: "to", accountId: A_ID, amount: 8_000 },
+      ]);
+      expect(secondPlan?.splits.get(0)).toEqual([
+        { direction: "to", accountId: A_ID, amount: 5_000 },
+      ]);
     });
 
     it("ignores what a cancelled file would have replaced", () => {
@@ -474,7 +473,13 @@ describe("planReview", () => {
     };
     // 10,00 fits in A, 5,00 in the account to create, 5,00 fits nowhere.
     const accountsWithCappedPending: OverflowAccount<number | string>[] = [
-      { ...withDefaults, id: A_ID, balance: 90_000, ceiling: 100_000, overflowAccountId: pendingRef },
+      {
+        ...withDefaults,
+        id: A_ID,
+        balance: 90_000,
+        ceiling: 100_000,
+        overflowAccountId: pendingRef,
+      },
       { ...withDefaults, id: pendingRef, ceiling: 5_000 },
     ];
 
@@ -540,10 +545,7 @@ describe("rowConfirmReasons", () => {
   });
 
   it("adds the reason of the sign taken from the type", () => {
-    expect(rowConfirmReasons([{ kind: "nothing" }], sign)).toEqual([
-      { kind: "nothing" },
-      sign,
-    ]);
+    expect(rowConfirmReasons([{ kind: "nothing" }], sign)).toEqual([{ kind: "nothing" }, sign]);
   });
 
   it("says the contradiction of a type cell once, with the reason of the sign", () => {
@@ -570,11 +572,16 @@ describe("planReview shortfalls", () => {
   });
   const deposit = (amount: string): ReviewedRow =>
     reviewedRow({ draft: { date: "2026-03-10", label: "VIR", amount, externalId: null } });
-  const plan = (rows: ReviewedRow[], accounts: OverflowAccount[], defaultId: number | null = SAVINGS_ID) => {
-    const [first] = planReview(
-      [{ firstDate: "2026-03-01", phase: "reviewing", rows }],
-      { currency: "EUR", defaultSavingsAccountId: defaultId, accounts },
-    );
+  const plan = (
+    rows: ReviewedRow[],
+    accounts: OverflowAccount[],
+    defaultId: number | null = SAVINGS_ID,
+  ) => {
+    const [first] = planReview([{ firstDate: "2026-03-01", phase: "reviewing", rows }], {
+      currency: "EUR",
+      defaultSavingsAccountId: defaultId,
+      accounts,
+    });
     return first;
   };
   // Room for 100,00 and no overflow account.
@@ -591,7 +598,12 @@ describe("planReview shortfalls", () => {
   });
 
   it("reports the end of the chain when every account of it is full", () => {
-    const first = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
+    const first = account({
+      id: SAVINGS_ID,
+      balance: 100_000,
+      ceiling: 100_000,
+      overflowAccountId: OTHER_ID,
+    });
     const last = account({ id: OTHER_ID, balance: 20_000, ceiling: 20_000 });
 
     expect(plan([deposit("-30,00")], [first, last])?.shortfalls).toEqual([
@@ -600,7 +612,12 @@ describe("planReview shortfalls", () => {
   });
 
   it("reports nothing when the overflow account is already defined and has room", () => {
-    const first = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
+    const first = account({
+      id: SAVINGS_ID,
+      balance: 100_000,
+      ceiling: 100_000,
+      overflowAccountId: OTHER_ID,
+    });
 
     expect(plan([deposit("-30,00")], [first, account({ id: OTHER_ID })])?.shortfalls).toEqual([]);
   });
@@ -613,8 +630,18 @@ describe("planReview shortfalls", () => {
     const FIRST_ID = 2;
     const MIDDLE_ID = 3;
     const TAIL_ID = 4;
-    const first = account({ id: FIRST_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: MIDDLE_ID });
-    const middle = account({ id: MIDDLE_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: TAIL_ID });
+    const first = account({
+      id: FIRST_ID,
+      balance: 100_000,
+      ceiling: 100_000,
+      overflowAccountId: MIDDLE_ID,
+    });
+    const middle = account({
+      id: MIDDLE_ID,
+      balance: 100_000,
+      ceiling: 100_000,
+      overflowAccountId: TAIL_ID,
+    });
     // Room for 200,00 and no overflow account: 250,00 leaves 50,00 over.
     const tail = account({ id: TAIL_ID, balance: 0, ceiling: 20_000 });
 
@@ -624,8 +651,18 @@ describe("planReview shortfalls", () => {
   });
 
   it("reports nothing when the chain loops", () => {
-    const a = account({ id: SAVINGS_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: OTHER_ID });
-    const b = account({ id: OTHER_ID, balance: 100_000, ceiling: 100_000, overflowAccountId: SAVINGS_ID });
+    const a = account({
+      id: SAVINGS_ID,
+      balance: 100_000,
+      ceiling: 100_000,
+      overflowAccountId: OTHER_ID,
+    });
+    const b = account({
+      id: OTHER_ID,
+      balance: 100_000,
+      ceiling: 100_000,
+      overflowAccountId: SAVINGS_ID,
+    });
 
     expect(plan([deposit("-30,00")], [a, b])?.shortfalls).toEqual([]);
   });

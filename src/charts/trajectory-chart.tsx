@@ -157,7 +157,9 @@ export function TrajectoryChart({
     const tip = tipRef.current;
     if (tip === null || cursor === null) return;
     const cursorX = xs[cursor] ?? plot.left;
-    const highest = Math.min(...geometry.series.map((entry) => entry.points[cursor]?.y ?? plot.bottom));
+    const highest = Math.min(
+      ...geometry.series.map((entry) => entry.points[cursor]?.y ?? plot.bottom),
+    );
     const left = Math.min(Math.max(cursorX - tip.offsetWidth / 2, 0), width - tip.offsetWidth);
     const above = highest - tip.offsetHeight - TIP_GAP;
     tip.style.left = `${left}px`;
@@ -215,12 +217,14 @@ export function TrajectoryChart({
     .sort((a, b) => a.y - b.y)
     .map((item, order, all) => {
       const previous = all[order - 1];
-      if (previous !== undefined && item.y - previous.y < SERIES_LABEL.minGap) item.y = previous.y + SERIES_LABEL.minGap;
+      if (previous !== undefined && item.y - previous.y < SERIES_LABEL.minGap)
+        item.y = previous.y + SERIES_LABEL.minGap;
       return item;
     });
 
   const lowestSeries = geometry.series.findIndex((entry) => entry.id === lowest?.seriesId);
-  const lowestPoint = lowest === undefined ? undefined : geometry.series[lowestSeries]?.points[lowest.index];
+  const lowestPoint =
+    lowest === undefined ? undefined : geometry.series[lowestSeries]?.points[lowest.index];
 
   return (
     <div className={styles.root}>
@@ -240,7 +244,13 @@ export function TrajectoryChart({
           if (!event.currentTarget.matches(":focus")) setCursor(null);
         }}
       >
-        <svg aria-hidden="true" focusable="false" width={width} height={HEIGHT} className={styles.svg}>
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          width={width}
+          height={HEIGHT}
+          className={styles.svg}
+        >
           {hasPlanned ? (
             <rect
               className={styles.zone}
@@ -260,7 +270,12 @@ export function TrajectoryChart({
                 y2={tick.y}
                 className={tick.value === 0 ? styles.zero : styles.grid}
               />
-              <text x={plot.left - AXIS_LABEL_OFFSET} y={tick.y} textAnchor="end" dominantBaseline="middle">
+              <text
+                x={plot.left - AXIS_LABEL_OFFSET}
+                y={tick.y}
+                textAnchor="end"
+                dominantBaseline="middle"
+              >
                 {formatAxisAmount(tick.value, currency, locale)}
               </text>
             </g>
@@ -268,7 +283,12 @@ export function TrajectoryChart({
 
           {hasPlanned ? (
             <>
-              <text ref={beforeRef} x={plot.left} y={plot.top - ZONE_LABEL_OFFSET} visibility={showBefore ? "visible" : "hidden"}>
+              <text
+                ref={beforeRef}
+                x={plot.left}
+                y={plot.top - ZONE_LABEL_OFFSET}
+                visibility={showBefore ? "visible" : "hidden"}
+              >
                 {text.upToToday}
               </text>
               <text
@@ -291,9 +311,16 @@ export function TrajectoryChart({
               return (
                 <g key={entry.id} className={toneClass(entry.tone)}>
                   {hasPlanned ? (
-                    <path d={drawn.plannedPath} data-planned="" className={`${styles.planned ?? ""} ${styles.glow ?? ""}`} />
+                    <path
+                      d={drawn.plannedPath}
+                      data-planned=""
+                      className={`${styles.planned ?? ""} ${styles.glow ?? ""}`}
+                    />
                   ) : null}
-                  <path d={drawn.realPath} className={`${styles.real ?? ""} ${styles.glow ?? ""}`} />
+                  <path
+                    d={drawn.realPath}
+                    className={`${styles.real ?? ""} ${styles.glow ?? ""}`}
+                  />
                 </g>
               );
             })}
@@ -303,7 +330,12 @@ export function TrajectoryChart({
 
           {/* Each line is named, so series never rely on tone alone. */}
           {seriesLabels.map((item) => (
-            <text key={item.id} className={`${toneClass(item.tone) ?? ""} ${styles.seriesLabel ?? ""}`} x={plot.left + AXIS_LABEL_OFFSET} y={item.y}>
+            <text
+              key={item.id}
+              className={`${toneClass(item.tone) ?? ""} ${styles.seriesLabel ?? ""}`}
+              x={plot.left + AXIS_LABEL_OFFSET}
+              y={item.y}
+            >
               {item.label}
             </text>
           ))}
@@ -313,8 +345,15 @@ export function TrajectoryChart({
               ref={noteRef}
               className={styles.note}
               // Centred on its month, but kept inside the planned zone it describes.
-              x={Math.min(Math.max(lowestPoint.x, todayX + AXIS_LABEL_OFFSET + noteWidth / 2), plot.right - noteWidth / 2)}
-              y={lowestPoint.y + NOTE.below > plot.bottom - 6 ? lowestPoint.y - NOTE.above : lowestPoint.y + NOTE.below}
+              x={Math.min(
+                Math.max(lowestPoint.x, todayX + AXIS_LABEL_OFFSET + noteWidth / 2),
+                plot.right - noteWidth / 2,
+              )}
+              y={
+                lowestPoint.y + NOTE.below > plot.bottom - 6
+                  ? lowestPoint.y - NOTE.above
+                  : lowestPoint.y + NOTE.below
+              }
               textAnchor="middle"
             >
               {lowest.label}
@@ -322,7 +361,12 @@ export function TrajectoryChart({
           ) : null}
 
           {geometry.xTicks.map((tick) => (
-            <text key={months[tick.index]?.key} x={tick.x} y={plot.bottom + X_LABEL_BASELINE} textAnchor={tick.anchor}>
+            <text
+              key={months[tick.index]?.key}
+              x={tick.x}
+              y={plot.bottom + X_LABEL_BASELINE}
+              textAnchor={tick.anchor}
+            >
               {months[tick.index]?.tickLabel}
             </text>
           ))}
@@ -334,13 +378,25 @@ export function TrajectoryChart({
             height={PILL.height}
             rx={PILL.height / 2}
           />
-          <text ref={todayTextRef} className={styles.todayText} x={todayX} y={plot.bottom + X_LABEL_BASELINE} textAnchor="middle">
+          <text
+            ref={todayTextRef}
+            className={styles.todayText}
+            x={todayX}
+            y={plot.bottom + X_LABEL_BASELINE}
+            textAnchor="middle"
+          >
             {text.today}
           </text>
 
           {cursor === null ? null : (
             <g>
-              <line className={styles.crosshair} x1={xs[cursor]} x2={xs[cursor]} y1={plot.top} y2={plot.bottom} />
+              <line
+                className={styles.crosshair}
+                x1={xs[cursor]}
+                x2={xs[cursor]}
+                y1={plot.top}
+                y2={plot.bottom}
+              />
               {markersAt(cursor, ACTIVE_MARKER)}
             </g>
           )}
@@ -349,7 +405,8 @@ export function TrajectoryChart({
         {cursor === null ? null : (
           <div ref={tipRef} className={styles.tip}>
             <strong>
-              {months[cursor]?.label} · {kindLabel(geometry.series[0]?.points[cursor]?.kind ?? "real", text)}
+              {months[cursor]?.label} ·{" "}
+              {kindLabel(geometry.series[0]?.points[cursor]?.kind ?? "real", text)}
             </strong>
             {series.map((entry) => (
               <span key={entry.id} className={styles.tipRow}>
@@ -363,14 +420,26 @@ export function TrajectoryChart({
 
       <ul className={styles.legend}>
         <li>
-          <svg aria-hidden="true" focusable="false" width="28" height="12" className={toneClass("primary")}>
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            width="28"
+            height="12"
+            className={toneClass("primary")}
+          >
             <line x1="0" x2="28" y1="6" y2="6" className={styles.real} />
           </svg>
           {text.real}
         </li>
         {hasPlanned ? (
           <li>
-            <svg aria-hidden="true" focusable="false" width="28" height="12" className={toneClass("primary")}>
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              width="28"
+              height="12"
+              className={toneClass("primary")}
+            >
               <line x1="0" x2="28" y1="6" y2="6" className={styles.planned} />
             </svg>
             {text.planned}

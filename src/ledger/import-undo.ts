@@ -52,7 +52,12 @@ export function undoImportBatch(db: AppDatabase, batchId: number): number {
     // One statement: the legs reference each other, and SQLite checks the
     // foreign key at the end of the statement.
     tx.delete(transactions)
-      .where(inArray(transactions.id, rows.map((row) => row.id)))
+      .where(
+        inArray(
+          transactions.id,
+          rows.map((row) => row.id),
+        ),
+      )
       .run();
     tx.delete(importBatches).where(eq(importBatches.id, batchId)).run();
     return rows.length;

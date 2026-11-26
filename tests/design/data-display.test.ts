@@ -2,12 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import {
-  CountBadge,
-  DataTable,
-  EmptyState,
-  Pill,
-} from "../../src/components/data-display";
+import { CountBadge, DataTable, EmptyState, Pill } from "../../src/components/data-display";
 
 describe("DataTable", () => {
   const markup = renderToStaticMarkup(
@@ -21,7 +16,11 @@ describe("DataTable", () => {
 
   it("names the scroll region with a shorter label when given one", () => {
     const named = renderToStaticMarkup(
-      DataTable({ caption: "A long caption", regionLabel: "Short", children: createElement("tbody") }),
+      DataTable({
+        caption: "A long caption",
+        regionLabel: "Short",
+        children: createElement("tbody"),
+      }),
     );
 
     expect(named).toContain('aria-label="Short"');

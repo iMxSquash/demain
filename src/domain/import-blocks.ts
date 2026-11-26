@@ -6,17 +6,10 @@
  */
 
 import { foldAccents } from "./fold-accents";
-import {
-  datesLackYear,
-  parseDate,
-  suggestMappingColumns,
-  type CsvDateFormat,
-} from "./import-csv";
+import { datesLackYear, parseDate, suggestMappingColumns, type CsvDateFormat } from "./import-csv";
 
 /** First row naming date, label and amount (suggestMappingColumns); 0 when none does. */
-export function findHeaderIndex(
-  table: readonly (readonly string[])[],
-): number {
+export function findHeaderIndex(table: readonly (readonly string[])[]): number {
   const index = table.findIndex((row) => {
     const { dateColumn, labelColumn, amount } = suggestMappingColumns(row);
     return dateColumn !== null && labelColumn !== null && amount !== null;
@@ -25,9 +18,7 @@ export function findHeaderIndex(
 }
 
 /** Cells in the widest row. Reduced, not spread into `Math.max`: a long file overflows the call stack. */
-export function widestRowLength(
-  table: readonly (readonly string[])[],
-): number {
+export function widestRowLength(table: readonly (readonly string[])[]): number {
   return table.reduce((width, row) => Math.max(width, row.length), 0);
 }
 

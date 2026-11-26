@@ -45,7 +45,9 @@ export function UndoImportPanel({
       <h3 id={headingId} className="font-medium">
         {t("heading")}
       </h3>
-      {replacedCount > 0 && result?.status !== "undone" ? <p className="max-w-prose">{replacedNote}</p> : null}
+      {replacedCount > 0 && result?.status !== "undone" ? (
+        <p className="max-w-prose">{replacedNote}</p>
+      ) : null}
       {result?.status === "undone" ? null : (
         <ConfirmActionButton
           action={undo}

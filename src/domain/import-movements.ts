@@ -7,11 +7,7 @@
  */
 
 import { readPaymentMode, type ColumnChoices } from "./import-columns";
-import {
-  analyzeCsvFile,
-  type AnalysisIssue,
-  type CsvAnalysis,
-} from "./import-analysis";
+import { analyzeCsvFile, type AnalysisIssue, type CsvAnalysis } from "./import-analysis";
 import {
   applyCsvMapping,
   completeDateYear,
@@ -87,9 +83,7 @@ export interface MovementFileReading {
 const YEAR_IN_NAME = /(?<!\d)((?:19|20)\d{2})(?!\d)/g;
 
 function yearFromFileName(name: string): number | undefined {
-  const years = new Set(
-    [...name.matchAll(YEAR_IN_NAME)].map((match) => Number(match[1])),
-  );
+  const years = new Set([...name.matchAll(YEAR_IN_NAME)].map((match) => Number(match[1])));
   const [year] = years;
   return years.size === 1 ? year : undefined;
 }
@@ -125,11 +119,7 @@ function readLine(
   });
 
   // One row at a time, so that a bad row is told apart from the others.
-  const reading = applyCsvMapping(
-    [prepared],
-    { ...mapping, hasHeader: false },
-    options.currency,
-  );
+  const reading = applyCsvMapping([prepared], { ...mapping, hasHeader: false }, options.currency);
   const [error] = reading.errors;
   if (error !== undefined) {
     return { issue: { kind: "rowUnreadable", line, ref: error.ref } };
@@ -142,18 +132,13 @@ function readLine(
   return { line, cells, imported, labelFromCategory };
 }
 
-export function readMovementFile(
-  text: string,
-  options: MovementFileOptions,
-): MovementFileReading {
+export function readMovementFile(text: string, options: MovementFileOptions): MovementFileReading {
   const year = options.year ?? yearFromFileName(options.source);
   const file = parseCsvFile(text, options.delimiter);
   const analysis = analyzeCsvFile(file, year, options.columns);
   const { mapping, yearApplied } = analysis;
   // Without a year every date is unreadable: the one issue to report is the missing year.
-  const isYearMissing = analysis.issues.some(
-    (issue) => issue.kind === "dateYearMissing",
-  );
+  const isYearMissing = analysis.issues.some((issue) => issue.kind === "dateYearMissing");
   if (mapping === null || "issue" in file || isYearMissing) {
     return { source: options.source, rows: [], analysis, issues: analysis.issues };
   }
@@ -179,8 +164,7 @@ export function readMovementFile(
     history: options.history ?? new Map(),
   };
   const rows = lines.map(({ line, cells, imported, labelFromCategory }): MovementRow => {
-    const typeCell =
-      analysis.typeColumn === null ? null : cellAt(cells, analysis.typeColumn);
+    const typeCell = analysis.typeColumn === null ? null : cellAt(cells, analysis.typeColumn);
     const category = orNull(cellAt(cells, analysis.categoryColumn));
     const paymentMode = orNull(cellAt(cells, analysis.paymentModeColumn));
     return {

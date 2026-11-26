@@ -15,9 +15,7 @@ const CHECKING_ID = 1;
 const LIVRET_A_ID = 2;
 const LIVRET_JEUNE_ID = 3;
 
-function endpoint(
-  overrides: Partial<TransferEndpoint> & { id: number },
-): TransferEndpoint {
+function endpoint(overrides: Partial<TransferEndpoint> & { id: number }): TransferEndpoint {
   return { currency: "EUR", archived: false, ...overrides };
 }
 
@@ -40,27 +38,27 @@ describe("validateTransactionInput", () => {
   });
 
   it("rejects an income with a negative amount", () => {
-    expect(() =>
-      validateTransactionInput(input({ kind: "income", amount: -500 })),
-    ).toThrow(TransactionValidationError);
+    expect(() => validateTransactionInput(input({ kind: "income", amount: -500 }))).toThrow(
+      TransactionValidationError,
+    );
   });
 
   it("rejects an interest with a negative amount", () => {
-    expect(() =>
-      validateTransactionInput(input({ kind: "interest", amount: -5 })),
-    ).toThrow(TransactionValidationError);
+    expect(() => validateTransactionInput(input({ kind: "interest", amount: -5 }))).toThrow(
+      TransactionValidationError,
+    );
   });
 
   it("rejects a zero amount", () => {
-    expect(() =>
-      validateTransactionInput(input({ kind: "income", amount: 0 })),
-    ).toThrow(TransactionValidationError);
+    expect(() => validateTransactionInput(input({ kind: "income", amount: 0 }))).toThrow(
+      TransactionValidationError,
+    );
   });
 
   it("rejects a date that does not exist", () => {
-    expect(() =>
-      validateTransactionInput(input({ date: "2026-02-30" })),
-    ).toThrow(TransactionValidationError);
+    expect(() => validateTransactionInput(input({ date: "2026-02-30" }))).toThrow(
+      TransactionValidationError,
+    );
   });
 
   it("rejects a blank label", () => {
@@ -95,9 +93,9 @@ describe("validateTransactionInput", () => {
   });
 
   it("rejects an unknown payment mode", () => {
-    expect(() =>
-      validateTransactionInput(input({ paymentMode: "cheque" })),
-    ).toThrow(expect.objectContaining({ field: "paymentMode" }));
+    expect(() => validateTransactionInput(input({ paymentMode: "cheque" }))).toThrow(
+      expect.objectContaining({ field: "paymentMode" }),
+    );
   });
 
   it("trims the description and turns a blank one into none", () => {
@@ -205,9 +203,7 @@ describe("buildTransferLegs", () => {
   });
 });
 
-function overflowAccount(
-  overrides: Partial<OverflowAccount> & { id: number },
-): OverflowAccount {
+function overflowAccount(overrides: Partial<OverflowAccount> & { id: number }): OverflowAccount {
   return {
     currency: "EUR",
     balance: 0,
@@ -252,9 +248,7 @@ describe("splitManualTransfer", () => {
   });
 
   it("deposits nothing when the balance already exceeds the ceiling through interest", () => {
-    const accounts = [
-      overflowAccount({ id: LIVRET_JEUNE_ID, balance: 160_300, ceiling: 160_000 }),
-    ];
+    const accounts = [overflowAccount({ id: LIVRET_JEUNE_ID, balance: 160_300, ceiling: 160_000 })];
 
     const split = splitManualTransfer(1_000, LIVRET_JEUNE_ID, accounts);
 
@@ -326,8 +320,6 @@ describe("ceilingWarningFor", () => {
 
     expect(ceilingWarningFor(fitting, livretJeune)).toBeNull();
     expect(ceilingWarningFor(expense, livretJeune)).toBeNull();
-    expect(
-      ceilingWarningFor(input({ kind: "income", amount: 5_000 }), noCeiling),
-    ).toBeNull();
+    expect(ceilingWarningFor(input({ kind: "income", amount: 5_000 }), noCeiling)).toBeNull();
   });
 });

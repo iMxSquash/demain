@@ -8,11 +8,7 @@ import { cache, Suspense } from "react";
 import { Button } from "../../components/button";
 import { DataTable, EmptyState } from "../../components/data-display";
 import { PageSection } from "../../components/page-section";
-import {
-  SkeletonDataTable,
-  SkeletonFields,
-  SkeletonRegion,
-} from "../../components/skeleton";
+import { SkeletonDataTable, SkeletonFields, SkeletonRegion } from "../../components/skeleton";
 import { listAccounts } from "../../ledger/accounts";
 import { listCategories } from "../../ledger/categories";
 import { listRules } from "../../ledger/categorization-rules";
@@ -54,10 +50,7 @@ const PAGE_GAP = "gap-10";
 // The sections show their heading at once and hold only the data in a `Suspense`, so a slow read
 // never delays the rest of the page.
 export default async function RulesPage() {
-  const [t, common] = await Promise.all([
-    getTranslations("rules"),
-    getTranslations("common"),
-  ]);
+  const [t, common] = await Promise.all([getTranslations("rules"), getTranslations("common")]);
 
   return (
     <main className={`mx-auto flex max-w-4xl flex-col ${PAGE_GAP} p-8`}>
@@ -126,9 +119,7 @@ async function RuleList() {
   const categoryName = new Map(
     categories.map((category) => [
       category.id,
-      category.archived
-        ? `${category.name} ${t("archivedSuffix")}`
-        : category.name,
+      category.archived ? `${category.name} ${t("archivedSuffix")}` : category.name,
     ]),
   );
 
@@ -144,50 +135,48 @@ async function RuleList() {
     <DataTable caption={t("caption")}>
       <RulesHead />
       <tbody>
-      {rules.map((rule, index) => {
-        const subject = t("condition", {
-          operator: t(`operators.${rule.operator}`),
-          value: rule.value,
-        });
-        return (
-          <tr key={rule.id}>
-            <td className="tabular-nums">{index + 1}</td>
-            <th scope="row">
-              {subject}
-            </th>
-            <td>
-              {rule.accountId === null
-                ? t("allAccounts")
-                : (accountName.get(rule.accountId) ?? "")}
-            </td>
-            <td>
-              {categoryName.get(rule.categoryId) ?? ""}
-            </td>
-            <td>
-              <div className="flex gap-2">
-                <form action={moveRuleAction.bind(null, rule.id, "up")}>
-                  <Button type="submit" variant="link" disabled={index === 0}>
-                    {t("moveUp")}<span className="sr-only"> {subject}</span>
-                  </Button>
-                </form>
-                <form action={moveRuleAction.bind(null, rule.id, "down")}>
-                  <Button type="submit" variant="link" disabled={index === rules.length - 1}>
-                    {t("moveDown")}<span className="sr-only"> {subject}</span>
-                  </Button>
-                </form>
-                <ConfirmActionButton
-                  action={deleteRuleAction.bind(null, rule.id)}
-                  label={t("delete")}
-                  subject={subject}
-                  title={t("deleteTitle")}
-                  message={t("deleteMessage")}
-                  confirmLabel={t("deleteConfirm")}
-                />
-              </div>
-            </td>
-          </tr>
-        );
-      })}
+        {rules.map((rule, index) => {
+          const subject = t("condition", {
+            operator: t(`operators.${rule.operator}`),
+            value: rule.value,
+          });
+          return (
+            <tr key={rule.id}>
+              <td className="tabular-nums">{index + 1}</td>
+              <th scope="row">{subject}</th>
+              <td>
+                {rule.accountId === null
+                  ? t("allAccounts")
+                  : (accountName.get(rule.accountId) ?? "")}
+              </td>
+              <td>{categoryName.get(rule.categoryId) ?? ""}</td>
+              <td>
+                <div className="flex gap-2">
+                  <form action={moveRuleAction.bind(null, rule.id, "up")}>
+                    <Button type="submit" variant="link" disabled={index === 0}>
+                      {t("moveUp")}
+                      <span className="sr-only"> {subject}</span>
+                    </Button>
+                  </form>
+                  <form action={moveRuleAction.bind(null, rule.id, "down")}>
+                    <Button type="submit" variant="link" disabled={index === rules.length - 1}>
+                      {t("moveDown")}
+                      <span className="sr-only"> {subject}</span>
+                    </Button>
+                  </form>
+                  <ConfirmActionButton
+                    action={deleteRuleAction.bind(null, rule.id)}
+                    label={t("delete")}
+                    subject={subject}
+                    title={t("deleteTitle")}
+                    message={t("deleteMessage")}
+                    confirmLabel={t("deleteConfirm")}
+                  />
+                </div>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </DataTable>
   );
