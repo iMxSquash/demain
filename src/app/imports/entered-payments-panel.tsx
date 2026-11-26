@@ -12,6 +12,10 @@ import type { ReviewRow } from "./review-state";
 
 const KEEP_BOTH = "keep";
 
+function isTransfer(entry: EnteredPaymentEntry): boolean {
+  return entry.kind === "transfer";
+}
+
 const RADIO_LABEL_CLASS = "flex min-h-11 cursor-pointer items-start gap-3";
 const RADIO_CLASS = "mt-3 size-5 shrink-0 accent-primary";
 
@@ -36,11 +40,12 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose, noteIds }:
   const amount = (value: number) => formatAmount(value, currency, locale);
   const reading = readImportDraft(row.draft, currency);
   const single = match.candidates.length === 1 ? match.candidates[0] : undefined;
+  // A transfer is shown by what it moves: its outgoing legs are negative, even for a withdrawal.
   const describe = (entry: EnteredPaymentEntry) => ({
     name: entry.plannedItemName,
     nominalDate: date(entry.nominalDate),
     date: date(entry.date),
-    amount: amount(entry.amount),
+    amount: amount(isTransfer(entry) ? Math.abs(entry.amount) : entry.amount),
   });
 
   const option = (value: string, label: string, entryId: number | null) => (
@@ -70,12 +75,15 @@ function EnteredRow({ match, row, currency, chosen, isBusy, onChoose, noteIds }:
       </legend>
       <p id={textId}>
         {single !== undefined
-          ? t("one", describe(single))
-          : t("several", { count: match.candidates.length })}
+          ? t(isTransfer(single) ? "oneTransfer" : "one", describe(single))
+          : t(match.candidates.some(isTransfer) ? "severalTransfer" : "several", { count: match.candidates.length })}
       </p>
       {single !== undefined
         ? option(String(single.id), t("replace"), single.id)
-        : match.candidates.map((entry) => option(String(entry.id), t("replaceThis", describe(entry)), entry.id))}
+        : match.candidates.map((entry) => {
+            const label = t(isTransfer(entry) ? "replaceThisTransfer" : "replaceThis", describe(entry));
+            return option(String(entry.id), label, entry.id);
+          })}
       {option(KEEP_BOTH, t("keepBoth"), null)}
     </fieldset>
   );
@@ -107,13 +115,16 @@ export function EnteredPaymentsPanel({
   const headingId = useId();
   const takesId = useId();
   const noteIds = settled.replacements.length > 0 ? `${takesId} ${undoNoteId}` : takesId;
+  const offered = matches.flatMap(({ candidates }) => candidates);
+  const hasTransfer = offered.some(isTransfer);
+  const hasPayment = offered.some((entry) => !isTransfer(entry));
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col items-start gap-3 border-t border-border-control pt-3">
       <h3 id={headingId} className="font-medium">
-        {t("heading")}
+        {t(hasTransfer ? "headingWithTransfers" : "heading")}
       </h3>
-      <p className="max-w-prose">{t("intro")}</p>
+      <p className="max-w-prose">{t(hasTransfer ? "introWithTransfers" : "intro")}</p>
       {matches.map((match) => {
         const row = rows[match.rowId];
         if (row === undefined) return null;
@@ -131,7 +142,7 @@ export function EnteredPaymentsPanel({
         );
       })}
       <p id={takesId} className="max-w-prose">
-        {t("takes")}
+        {[hasPayment ? t("takes") : null, hasTransfer ? t("takesTransfer") : null].filter(Boolean).join(" ")}
       </p>
       {settled.replacements.length > 0 ? (
         <p id={undoNoteId} className="max-w-prose">

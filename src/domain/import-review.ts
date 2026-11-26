@@ -22,7 +22,7 @@ import {
   type SavingsTransfer,
 } from "./import-savings";
 import { isPendingAccount, type OverflowShortfall } from "./import-overflow";
-import type { AccountRef, OverflowAccount } from "./overflow";
+import type { AccountMovement, AccountRef, OverflowAccount } from "./overflow";
 
 /** Why a guessed type is worth a look, in words the review can translate. */
 export type ConfirmReason =
@@ -266,20 +266,26 @@ function savingsMovementsOf(
  * How the savings rows of the files would be split if they were imported now,
  * each file planned from the balances the previous one leaves. A file that is
  * cancelled or could not be read leaves them as they were; one already imported
- * still counts, since `accounts` were read before it. The server plans again from
- * the real balances when a file is imported and has the last word.
- * Returned in the order of `files`.
+ * still counts, since `accounts` were read before it. `removedByFile` holds, by
+ * file, what the entries it replaces take out of the balances: they leave with
+ * that file, not before. The server plans again from the real balances when a
+ * file is imported and has the last word. Returned in the order of `files`.
  */
 export function planReview(
   files: readonly ReviewedFile[],
   context: ReviewContext,
+  removedByFile: readonly (readonly AccountMovement<AccountRef>[])[] = [],
 ): FilePlan[] {
   const plans = files.map(emptyFilePlan);
-  const planned = files.map(({ firstDate, phase, rows }, position) => ({
-    position,
-    firstDate,
-    movements: isFileRecorded({ phase }) ? savingsMovementsOf(rows, context) : [],
-  }));
+  const planned = files.map(({ firstDate, phase, rows }, position) => {
+    const isRecorded = isFileRecorded({ phase });
+    return {
+      position,
+      firstDate,
+      movements: isRecorded ? savingsMovementsOf(rows, context) : [],
+      removed: isRecorded ? (removedByFile[position] ?? []) : [],
+    };
+  });
 
   for (const { file, plan } of planFilesInDateOrder(planned, context.accounts)) {
     const target = plans[file.position];

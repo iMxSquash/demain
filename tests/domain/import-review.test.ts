@@ -383,6 +383,34 @@ describe("planReview", () => {
     ]);
   });
 
+  describe("entries the files replace (#210)", () => {
+    // 50,00 entered by hand into A, which a file replaces: it leaves the balance with that file.
+    const replaced = [{ accountId: A_ID, amount: 5_000 }];
+
+    it("frees the room of a replaced entry from the file that replaces it, not before", () => {
+      const first = file([deposit("-80,00")], { firstDate: "2026-03-01" });
+      const second = file([deposit("-50,00")], { firstDate: "2026-04-01" });
+
+      const [firstPlan, secondPlan] = planReview([first, second], context, [[], replaced]);
+
+      // A holds 900,00 of 1 000,00 when the first file is planned: the replacement waits.
+      expect(firstPlan?.splits.get(0)).toEqual([{ direction: "to", accountId: A_ID, amount: 8_000 }]);
+      expect(secondPlan?.splits.get(0)).toEqual([{ direction: "to", accountId: A_ID, amount: 5_000 }]);
+    });
+
+    it("ignores what a cancelled file would have replaced", () => {
+      const cancelled = file([deposit("-80,00")], { phase: "cancelled" });
+      const second = file([deposit("-150,00")], { firstDate: "2026-04-01" });
+
+      const [, secondPlan] = planReview([cancelled, second], context, [replaced, []]);
+
+      expect(secondPlan?.splits.get(0)).toEqual([
+        { direction: "to", accountId: A_ID, amount: 10_000 },
+        { direction: "to", accountId: B_ID, amount: 5_000 },
+      ]);
+    });
+  });
+
   it("leaves out the rows the account already holds, the other types and the unreadable rows", () => {
     const [plan] = planReview(
       [

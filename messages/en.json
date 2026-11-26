@@ -1081,7 +1081,7 @@
         "confirm": "Remove the movements of this file",
         "done": "Import undone. Movements removed: {count}.",
         "failed": "Something went wrong, nothing was removed.",
-        "replacedNote": "{count, plural, one {This file replaced an entry marked as paid. Undoing it does not bring the entry back: its occurrence becomes unpaid again, and you can mark it as paid again.} other {This file replaced # entries marked as paid. Undoing it does not bring them back: their occurrences become unpaid again, and you can mark them as paid again.}}"
+        "replacedNote": "{count, plural, one {This file replaced an entry you recorded by hand. Undoing it does not bring the entry back: its occurrence becomes unsettled again, and you can mark it again.} other {This file replaced # entries you recorded by hand. Undoing it does not bring them back: their occurrences become unsettled again, and you can mark them again.}}"
       },
       "ruleProposals": {
         "heading": "Rules to create from this file",
@@ -1248,16 +1248,22 @@
       "importAfter": "Import or cancel {name} first: the files are recorded in date order.",
       "entered": {
         "heading": "Entries already marked as paid",
+        "headingWithTransfers": "Entries already marked as paid or transferred",
         "intro": "These rows of the file look like payments you already marked as paid. Replace your entry with the bank row, or keep both: keeping both counts the movement twice.",
+        "introWithTransfers": "These rows of the file look like payments or transfers you already recorded by hand. Replace your entry with the bank row, or keep both: keeping both counts the movement twice.",
         "legend": "Row {line}: {label}, {date}, {amount}",
         "one": "You marked {name} of {nominalDate} as paid on {date} ({amount}).",
+        "oneTransfer": "You marked {name} of {nominalDate} as transferred on {date} ({amount}).",
         "several": "This row may be one of {count} entries marked as paid. Choose the one to replace, or keep both.",
+        "severalTransfer": "This row may be one of {count} transfers marked as transferred. Choose the one to replace, or keep both.",
         "replace": "Replace my entry with this bank row",
         "replaceThis": "Replace my entry {name} of {nominalDate}, paid on {date} ({amount})",
+        "replaceThisTransfer": "Replace my transfer {name} of {nominalDate}, transferred on {date} ({amount})",
         "keepBoth": "Keep both",
         "takes": "The bank row takes the occurrence of the entry, its category if the row has none, and its description if the row has none.",
-        "undoNote": "If you undo this file later, a replaced entry does not come back: its occurrence becomes unpaid again, and you can mark it as paid again.",
-        "chooseFirst": "{count, plural, one {Choose what to do with the row that may be an entry marked as paid.} other {Choose what to do with the # rows that may be entries marked as paid.}}",
+        "takesTransfer": "Replacing a transfer deletes every leg you entered for it, on each account of the overflow chain. The bank row settles the occurrence, split as the import splits it.",
+        "undoNote": "If you undo this file later, a replaced entry does not come back: its occurrence becomes unsettled again, and you can mark it again.",
+        "chooseFirst": "{count, plural, one {Choose what to do with the row that may be an entry you recorded by hand.} other {Choose what to do with the # rows that may be entries you recorded by hand.}}",
         "chosenTwice": "An entry can be replaced by one row only: choose \"Keep both\" for the other rows."
       }
     }
