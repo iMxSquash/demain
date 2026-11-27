@@ -4,6 +4,7 @@
 // the data are arguments.
 
 import { parseDate } from "./calendar-date";
+import { loanSchedule } from "./loan";
 import { parseModificationParameters } from "./modification-parameters";
 import type { PlannedItemOccurrences, ProjectionAccount } from "./projection";
 import { nominalDates, type DateRange, type Repetition } from "./recurrence";
@@ -46,8 +47,23 @@ export interface SubscriptionChange extends ModificationBase {
   };
 }
 
+export interface Loan extends ModificationBase {
+  type: "loan";
+  parameters: {
+    /** Positive minor units. */
+    principal: number;
+    months: number;
+    annualRateBp: number;
+    receivedOn: string;
+    paymentAccountId: number;
+    /** Null for instalments: nothing is received. */
+    principalAccountId: number | null;
+    categoryId: number | null;
+  };
+}
+
 /** Each type issue adds its interface to this union. */
-export type Modification = OneOffPurchase | SubscriptionChange;
+export type Modification = OneOffPurchase | SubscriptionChange | Loan;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -208,6 +224,47 @@ function subscriptionChange(
   return { items, flows: [...state.flows, ...added] };
 }
 
+// The whole schedule is computed, so that the payments inside the range keep their amounts, but
+// only the flows dated inside the range are added. The principal received carries no category: it
+// is not an income, and the total cost leaves it out (D10).
+function loan(
+  state: StageAState,
+  { id, parameters }: Loan,
+  { today, range }: ModificationContext,
+): StageAState | ModificationProblemReason {
+  const { principal, months, annualRateBp, receivedOn, paymentAccountId, principalAccountId } =
+    parameters;
+  if (receivedOn <= today) return "dateNotAfterToday";
+  const source = { kind: "modification", modificationId: id } as const;
+  const received: SimulatedFlow[] =
+    principalAccountId === null
+      ? []
+      : [
+          {
+            accountId: principalAccountId,
+            date: receivedOn,
+            amount: principal,
+            categoryId: null,
+            external: true,
+            source,
+          },
+        ];
+  const payments = loanSchedule(principal, months, annualRateBp, receivedOn).map(
+    ({ date, amount }): SimulatedFlow => ({
+      accountId: paymentAccountId,
+      date,
+      amount: -amount,
+      categoryId: parameters.categoryId,
+      external: true,
+      source,
+    }),
+  );
+  const added = [...received, ...payments].filter(
+    (flow) => flow.date >= range.from && flow.date <= range.to,
+  );
+  return { ...state, flows: [...state.flows, ...added] };
+}
+
 /** One entry per type of the union: adding a type adds one entry and touches no other branch. */
 const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> } = {
   one_off_purchase: {
@@ -219,6 +276,15 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     apply: oneOffPurchase,
   },
   subscription_change: { references: subscriptionReferences, apply: subscriptionChange },
+  loan: {
+    references: ({ parameters: { paymentAccountId, principalAccountId, categoryId } }) => ({
+      accountIds:
+        principalAccountId === null ? [paymentAccountId] : [paymentAccountId, principalAccountId],
+      categoryIds: categoryId === null ? [] : [categoryId],
+      plannedItemIds: [],
+    }),
+    apply: loan,
+  },
 };
 
 function transformOf(type: string): ModificationTransform<Modification> | undefined {
