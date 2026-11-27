@@ -3,11 +3,17 @@
 // modification is reported with its reason and adds nothing; it never throws. Pure: "today" and
 // the data are arguments.
 
+import type { AccountKind } from "./account";
 import { parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
 import { parseModificationParameters } from "./modification-parameters";
 import { provisionRemaining, type ResolvedOccurrence } from "./occurrence-resolution";
-import type { PlannedItemOccurrences, ProjectionAccount } from "./projection";
+import type {
+  BalanceAwareSteps,
+  PlannedItemOccurrences,
+  ProjectionAccount,
+  SimulatedTransfer,
+} from "./projection";
 import { nominalDates, type DateRange, type Repetition } from "./recurrence";
 import type { SimulatedFlow } from "./simulation";
 
@@ -73,8 +79,21 @@ export interface IncomeChange extends ModificationBase {
   };
 }
 
+export interface SavingsGoal extends ModificationBase {
+  type: "savings_goal";
+  parameters: {
+    sourceAccountId: number;
+    savingsAccountId: number;
+    firstTransferDate: string;
+    /** Amounts are positive minor units; a null end date runs to the end of the range. */
+    mode:
+      | { kind: "monthly"; amount: number; endDate: string | null }
+      | { kind: "target"; targetAmount: number; targetDate: string };
+  };
+}
+
 /** Each type issue adds its interface to this union. */
-export type Modification = OneOffPurchase | SubscriptionChange | Loan | IncomeChange;
+export type Modification = OneOffPurchase | SubscriptionChange | Loan | IncomeChange | SavingsGoal;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -82,6 +101,7 @@ export type ModificationProblemReason =
   | "categoryMissing"
   | "plannedItemMissing"
   | "plannedItemKind"
+  | "accountKind"
   | "dateNotAfterToday"
   | "parametersInvalid"
   | "goalUnreachable";
@@ -96,6 +116,8 @@ export interface ModificationContext {
   items: readonly PlannedItemOccurrences[];
   itemCategories: ReadonlyMap<number, number | null>;
   categoryIds: ReadonlySet<number>;
+  /** An account missing from it has no known kind: a savings goal into it is refused. */
+  accountKinds: ReadonlyMap<number, AccountKind>;
   today: string;
   range: DateRange;
 }
@@ -171,11 +193,15 @@ function targetReferences(
   };
 }
 
+function monthlyOnDay(date: string): Repetition {
+  return { kind: "monthly_on_day", day: parseDate(date).day };
+}
+
 const SUBSCRIPTION_REPETITIONS: Record<
   Exclude<SubscriptionChange["parameters"]["mode"], "none">,
   (startDate: string) => Repetition
 > = {
-  monthly: (startDate) => ({ kind: "monthly_on_day", day: parseDate(startDate).day }),
+  monthly: monthlyOnDay,
   yearly: () => ({ kind: "yearly" }),
 };
 
@@ -258,8 +284,7 @@ function newIncomeFlows(
   effectiveDate: string,
   range: DateRange,
 ): SimulatedFlow[] {
-  const repetition: Repetition = { kind: "monthly_on_day", day: parseDate(effectiveDate).day };
-  return nominalDates(repetition, effectiveDate, range).map((date) =>
+  return nominalDates(monthlyOnDay(effectiveDate), effectiveDate, range).map((date) =>
     modificationFlow(modificationId, { accountId, date, amount, categoryId }),
   );
 }
@@ -339,6 +364,17 @@ function loan(
   return { ...state, flows: [...state.flows, ...added] };
 }
 
+// A savings goal adds nothing in stage A: its transfers depend on the running balances, so they are
+// generated in stage B by `balanceAwareSteps`. Checking it here reports its problems with the others.
+function savingsGoalProblem(
+  { parameters }: SavingsGoal,
+  { accountKinds, today }: ModificationContext,
+): ModificationProblemReason | null {
+  if (accountKinds.get(parameters.savingsAccountId) !== "savings") return "accountKind";
+  if (parameters.firstTransferDate <= today) return "dateNotAfterToday";
+  return null;
+}
+
 /** One entry per type of the union: adding a type adds one entry and touches no other branch. */
 const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> } = {
   one_off_purchase: {
@@ -360,6 +396,14 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     apply: loan,
   },
   income_change: { references: targetReferences, apply: incomeChange },
+  savings_goal: {
+    references: ({ parameters: { sourceAccountId, savingsAccountId } }) => ({
+      accountIds: [sourceAccountId, savingsAccountId],
+      categoryIds: [],
+      plannedItemIds: [],
+    }),
+    apply: (state, goal, context) => savingsGoalProblem(goal, context) ?? state,
+  },
 };
 
 function transformOf(type: string): ModificationTransform<Modification> | undefined {
@@ -389,28 +433,82 @@ function byPositionThenId(a: Modification, b: Modification): number {
   return a.position - b.position || a.id - b.id;
 }
 
+/** The transform of a modification whose parameters and references pass, or the reason they do not. */
+function checkedTransform(
+  modification: Modification,
+  context: ModificationContext,
+): ModificationTransform<Modification> | ModificationProblemReason {
+  const transform = transformOf(modification.type);
+  if (
+    transform === undefined ||
+    !parseModificationParameters(modification.type, modification.parameters).ok
+  )
+    return "parametersInvalid";
+  return referenceProblem(transform.references(modification, context), context) ?? transform;
+}
+
 /**
  * Stage A (D5): applies the modifications by position, then id. Each one has its parameters
  * checked against the schema of its type, then its references, then its own transformation.
+ * `applied` lists the valid modifications in that order, savings goals included.
  */
 export function applyFlowModifications(
   state: StageAState,
   modifications: readonly Modification[],
   context: ModificationContext,
-): StageAState & { problems: ModificationProblem[] } {
+): StageAState & { problems: ModificationProblem[]; applied: Modification[] } {
   const problems: ModificationProblem[] = [];
+  const applied: Modification[] = [];
   let current = state;
   for (const modification of [...modifications].sort(byPositionThenId)) {
-    const transform = transformOf(modification.type);
+    const transform = checkedTransform(modification, context);
     const outcome =
-      transform === undefined ||
-      !parseModificationParameters(modification.type, modification.parameters).ok
-        ? "parametersInvalid"
-        : (referenceProblem(transform.references(modification, context), context) ??
-          transform.apply(current, modification, context));
-    if (typeof outcome === "string")
+      typeof transform === "string" ? transform : transform.apply(current, modification, context);
+    if (typeof outcome === "string") {
       problems.push({ modificationId: modification.id, reason: outcome });
-    else current = outcome;
+    } else {
+      current = outcome;
+      applied.push(modification);
+    }
   }
-  return { ...current, problems };
+  return { ...current, problems, applied };
+}
+
+/**
+ * Stage B (D5): the monthly transfers of the savings goals, routed by the projection loop along
+ * the overflow chain of the savings account. They repeat on the day of the first transfer, up to
+ * the end date or the end of the range; the projection asks only for the days of the range.
+ */
+export function balanceAwareSteps(
+  modifications: readonly Modification[],
+  context: ModificationContext,
+): BalanceAwareSteps {
+  const transfersByDate = new Map<string, SimulatedTransfer[]>();
+  for (const modification of [...modifications].sort(byPositionThenId)) {
+    if (
+      modification.type !== "savings_goal" ||
+      typeof checkedTransform(modification, context) === "string" ||
+      savingsGoalProblem(modification, context) !== null
+    )
+      continue;
+    const { id, parameters } = modification;
+    const { sourceAccountId, savingsAccountId, firstTransferDate, mode } = parameters;
+    if (mode.kind !== "monthly") continue;
+    // An end date before the range leaves `to` before `from`: no date then.
+    const to =
+      mode.endDate !== null && mode.endDate < context.range.to ? mode.endDate : context.range.to;
+    const range = { from: context.range.from, to };
+    for (const date of nominalDates(monthlyOnDay(firstTransferDate), firstTransferDate, range)) {
+      const transfers = transfersByDate.get(date) ?? [];
+      transfers.push({
+        sourceAccountId,
+        destinationAccountId: savingsAccountId,
+        amount: mode.amount,
+        date,
+        source: { kind: "modification", modificationId: id },
+      });
+      transfersByDate.set(date, transfers);
+    }
+  }
+  return { transfersOn: (date) => transfersByDate.get(date) ?? [], creditsOn: () => [] };
 }

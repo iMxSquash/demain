@@ -9,6 +9,7 @@ import type {
   Loan,
   ModificationType,
   OneOffPurchase,
+  SavingsGoal,
   SubscriptionChange,
 } from "./modification";
 
@@ -71,6 +72,31 @@ export const incomeChangeParameters = z.union([
   z.strictObject({ target: newTarget, change: newAmount, effectiveDate: z.iso.date() }),
 ]) satisfies z.ZodType<IncomeChange["parameters"]>;
 
+// The first transfer is compared with today when the goal applies, since the schema has no today.
+export const savingsGoalParameters = z
+  .strictObject({
+    sourceAccountId: id,
+    savingsAccountId: id,
+    firstTransferDate: z.iso.date(),
+    mode: z.discriminatedUnion("kind", [
+      z.strictObject({
+        kind: z.literal("monthly"),
+        amount: z.int().positive(),
+        endDate: z.iso.date().nullable(),
+      }),
+      z.strictObject({
+        kind: z.literal("target"),
+        targetAmount: z.int().positive(),
+        targetDate: z.iso.date(),
+      }),
+    ]),
+  })
+  .refine(({ sourceAccountId, savingsAccountId }) => sourceAccountId !== savingsAccountId)
+  .refine(({ firstTransferDate, mode }) => {
+    const lastDate = mode.kind === "monthly" ? mode.endDate : mode.targetDate;
+    return lastDate === null || lastDate >= firstTransferDate;
+  }) satisfies z.ZodType<SavingsGoal["parameters"]>;
+
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
 const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ModificationType,
@@ -80,6 +106,7 @@ const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ["subscription_change", subscriptionChangeParameters],
   ["loan", loanParameters],
   ["income_change", incomeChangeParameters],
+  ["savings_goal", savingsGoalParameters],
 ]);
 
 export function parseModificationParameters(
