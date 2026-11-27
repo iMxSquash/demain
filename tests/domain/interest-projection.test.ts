@@ -172,6 +172,29 @@ describe("interest projection", () => {
     expect(gainOn(result, "2028-12-31")).toBe(27073972603);
   });
 
+  it("a first period that starts before the range is not credited", () => {
+    const result = evaluateScenario(input({ from: "2027-01-16", to: "2027-02-28" }), [interest()]);
+
+    expect(balanceOn(result, "2027-01-31")).toBe(1000000);
+    expect(gainOn(result, "2027-02-28")).toBe(2301);
+  });
+
+  it("a range that starts on the first day of a period credits that period", () => {
+    const result = evaluateScenario(input({ from: "2027-02-01", to: "2027-02-28" }), [interest()]);
+
+    expect(gainOn(result, "2027-02-28")).toBe(2301);
+  });
+
+  it("a product past the float precision is rounded exactly", () => {
+    const result = evaluateScenario(
+      input({ to: "2028-12-31" }, { openingBalance: 90000000000084 }),
+      [interest({ frequency: "yearly", startDate: "2028-01-01" })],
+    );
+
+    // A float64 computation gives 2707397260277.
+    expect(gainOn(result, "2028-12-31")).toBe(2707397260276);
+  });
+
   it("a start date on today is refused with dateNotAfterToday", () => {
     const result = evaluateScenario(input({ to: "2027-01-31" }), [interest({ startDate: TODAY })]);
 

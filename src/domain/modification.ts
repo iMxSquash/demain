@@ -4,7 +4,7 @@
 // the data are arguments.
 
 import type { AccountKind } from "./account";
-import { addDays, parseDate } from "./calendar-date";
+import { daysInMonth, parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
 import { divideRoundBig } from "./money";
 import { parseModificationParameters } from "./modification-parameters";
@@ -512,18 +512,31 @@ const IS_CREDIT_DAY: Record<
   InterestProjection["parameters"]["frequency"],
   (date: string) => boolean
 > = {
-  monthly: (date) => parseDate(addDays(date, 1)).day === 1,
+  monthly: (date) => {
+    const { year, month, day } = parseDate(date);
+    return day === daysInMonth(year, month);
+  },
   yearly: (date) => date.endsWith("-12-31"),
+};
+
+const STARTS_PERIOD: Record<
+  InterestProjection["parameters"]["frequency"],
+  (date: string) => boolean
+> = {
+  monthly: (date) => date.endsWith("-01"),
+  yearly: (date) => date.endsWith("-01-01"),
 };
 
 /** An interest projection being accrued: the sum of the end-of-day balances of its open period. */
 interface InterestAccrual {
   projection: InterestProjection;
   sum: bigint;
+  /** False while the open period started before the range, so that some of its days are missing. */
+  complete: boolean;
 }
 
 // D9: a negative day counts as zero, the denominator is 365 even in a leap year, and the period
-// ends on its credit day. A period the range cuts never reaches its credit day, so it adds nothing.
+// ends on its credit day. A period the range cuts, at its end or its start, is not credited.
 function interestCredit(
   accrual: InterestAccrual,
   date: string,
@@ -537,7 +550,10 @@ function interestCredit(
     accrual.sum * BigInt(parameters.annualRateBp),
     INTEREST_DENOMINATOR,
   );
+  const { complete } = accrual;
   accrual.sum = 0n;
+  accrual.complete = true;
+  if (!complete) return null;
   return {
     accountId: parameters.accountId,
     date,
@@ -553,8 +569,7 @@ function interestCredit(
  * Then the interest projections, credited last on their day and never routed (D9).
  *
  * The result holds the interest accrued so far: it serves one projection, which asks for each day
- * of the range once, in order. The range starts no later than today (the horizon starts with the
- * current month), so a start date after today has every day of its first period.
+ * of the range once, in order.
  */
 export function balanceAwareSteps(
   modifications: readonly Modification[],
@@ -568,7 +583,13 @@ export function balanceAwareSteps(
       typeof checkedTransform(modification, context) !== "string" &&
       interestProjectionProblem(modification, context) === null
     )
-      accruals.push({ projection: modification, sum: 0n });
+      accruals.push({
+        projection: modification,
+        sum: 0n,
+        complete:
+          modification.parameters.startDate >= context.range.from ||
+          STARTS_PERIOD[modification.parameters.frequency](context.range.from),
+      });
     if (
       modification.type !== "savings_goal" ||
       typeof checkedTransform(modification, context) === "string" ||
