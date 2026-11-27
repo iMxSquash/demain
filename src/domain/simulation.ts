@@ -7,6 +7,7 @@ import type { AccountKind } from "./account";
 import {
   applyFlowModifications,
   balanceAwareSteps,
+  estimateFlow,
   type Modification,
   type ModificationContext,
   type ModificationProblem,
@@ -26,7 +27,7 @@ import {
   type SimulatedTransferRouting,
 } from "./projection";
 import type { DateRange } from "./recurrence";
-import type { EstimatedFlow } from "./variable-estimate";
+import type { EstimatedFlow, EstimateLine, EstimateTransaction } from "./variable-estimate";
 
 export interface SimulatedFlow extends ProjectionFlow {
   categoryId: number | null;
@@ -49,6 +50,8 @@ export interface SimulationInput {
   /** The kind of each account. Without it, every savings goal is invalid (D6). */
   accountKinds?: ReadonlyMap<number, AccountKind>;
   estimates: readonly EstimatedFlow[];
+  /** The inputs of `estimates`. Without them, a category budget change has no line or spending to start from. */
+  estimateInputs?: { lines: readonly EstimateLine[]; transactions: readonly EstimateTransaction[] };
   today: string;
   range: DateRange;
 }
@@ -204,17 +207,6 @@ function resolveTargetGoals(
   return resolutions;
 }
 
-function estimateFlow({ accountId, categoryId, date, amount }: EstimatedFlow): SimulatedFlow {
-  return {
-    accountId,
-    date,
-    amount,
-    source: { kind: "estimate", categoryId },
-    categoryId,
-    external: true,
-  };
-}
-
 function transferKey(plannedItemId: number, nominalDate: string): string {
   return `${plannedItemId}:${nominalDate}`;
 }
@@ -263,6 +255,24 @@ function plannedFlowsApplied(
 }
 
 /**
+ * Stage A over the extended range of the target search. A category budget change spreads its new
+ * amount up to the range it gets, so its estimates past `rangeEnd` are dropped: past the range,
+ * the search sees only the estimates the input carries.
+ */
+function withinInputEstimates(
+  initial: StageAState,
+  modifications: readonly Modification[],
+  context: ModificationContext,
+  rangeEnd: string,
+): StageAState {
+  const extended = applyFlowModifications(initial, modifications, context);
+  const flows = extended.flows.filter(
+    (flow) => flow.source.kind !== "estimate" || flow.date <= rangeEnd,
+  );
+  return { ...extended, flows };
+}
+
+/**
  * Evaluates a scenario on the one balance loop of the projection: real flows, planned occurrences,
  * the estimates, then the flows of stage A of each day (DOMAIN, D5). Simulated flows never join
  * the real flows. An invalid modification is reported in `problems` and adds nothing (D6).
@@ -278,6 +288,7 @@ export function evaluateScenario(
     itemCategories,
     categoryIds: input.categoryIds ?? new Set(),
     accountKinds: input.accountKinds ?? new Map(),
+    estimates: input.estimateInputs ?? { lines: [], transactions: [] },
     today,
     range,
   };
@@ -306,7 +317,7 @@ export function evaluateScenario(
   const horizonState =
     horizonEnd === range.to
       ? stageA
-      : applyFlowModifications(initial, appliedModifications, until(horizonEnd));
+      : withinInputEstimates(initial, appliedModifications, until(horizonEnd), range.to);
   const resolutions = resolveTargetGoals(appliedModifications, accounts, (stepped, targetDate) =>
     project(until(targetDate), horizonState, stepped).days.at(-1),
   );

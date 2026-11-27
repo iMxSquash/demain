@@ -18,6 +18,12 @@ import type {
 } from "./projection";
 import { nominalDates, type DateRange, type Repetition } from "./recurrence";
 import type { SimulatedFlow } from "./simulation";
+import {
+  estimatedFlows,
+  type EstimatedFlow,
+  type EstimateLine,
+  type EstimateTransaction,
+} from "./variable-estimate";
 
 export const MODIFICATION_TYPES = [
   "subscription_change",
@@ -105,9 +111,28 @@ export interface InterestProjection extends ModificationBase {
   };
 }
 
+export interface CategoryBudgetChange extends ModificationBase {
+  type: "category_budget_change";
+  parameters: {
+    accountId: number;
+    /** Null for the uncategorized line of the account. */
+    categoryId: number | null;
+    /** YYYY-MM. */
+    startMonth: string;
+    /** Basis points from -10000 to 100000, or a monthly amount of zero or more in minor units. */
+    change: { kind: "percent"; basisPoints: number } | { kind: "amount"; monthlyAmount: number };
+  };
+}
+
 /** Each type issue adds its interface to this union. */
 export type Modification =
-  OneOffPurchase | SubscriptionChange | Loan | IncomeChange | SavingsGoal | InterestProjection;
+  | OneOffPurchase
+  | SubscriptionChange
+  | Loan
+  | IncomeChange
+  | SavingsGoal
+  | InterestProjection
+  | CategoryBudgetChange;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -132,6 +157,8 @@ export interface ModificationContext {
   categoryIds: ReadonlySet<number>;
   /** An account missing from it has no known kind: a savings goal into it is refused. */
   accountKinds: ReadonlyMap<number, AccountKind>;
+  /** The inputs of the estimated flows, so that a category budget change can spread a new amount. */
+  estimates: { lines: readonly EstimateLine[]; transactions: readonly EstimateTransaction[] };
   today: string;
   range: DateRange;
 }
@@ -378,6 +405,81 @@ function loan(
   return { ...state, flows: [...state.flows, ...added] };
 }
 
+export function estimateFlow({
+  accountId,
+  categoryId,
+  date,
+  amount,
+}: EstimatedFlow): SimulatedFlow {
+  return {
+    accountId,
+    date,
+    amount,
+    source: { kind: "estimate", categoryId },
+    categoryId,
+    external: true,
+  };
+}
+
+const BASIS_POINTS = 10000;
+
+// A percentage scales each flow on its own (D4 rule 5), so in the current month it scales what
+// remains. A new amount is spread again by `estimatedFlows`, which keeps the current-month rule
+// (D4 rule 2). Only estimated flows change, never a planned item.
+function categoryBudgetChange(
+  state: StageAState,
+  { parameters }: CategoryBudgetChange,
+  { estimates, today, range }: ModificationContext,
+): StageAState | ModificationProblemReason {
+  const { accountId, categoryId, startMonth, change } = parameters;
+  // Checked first: an earlier month would give `estimatedFlows` a date it refuses.
+  if (startMonth < today.slice(0, 7)) return "dateNotAfterToday";
+  const monthStart = `${startMonth}-01`;
+  const isChanged = (flow: SimulatedFlow) =>
+    flow.source.kind === "estimate" &&
+    flow.accountId === accountId &&
+    flow.categoryId === categoryId &&
+    flow.date >= monthStart;
+
+  if (change.kind === "percent") {
+    const factor = BigInt(BASIS_POINTS + change.basisPoints);
+    const flows: SimulatedFlow[] = [];
+    for (const flow of state.flows) {
+      if (!isChanged(flow)) {
+        flows.push(flow);
+        continue;
+      }
+      // Stacked changes can scale a flow past the safe integer range: reported, never thrown.
+      const amount = Number(divideRoundBig(BigInt(flow.amount) * factor, BigInt(BASIS_POINTS)));
+      if (!Number.isSafeInteger(amount)) return "parametersInvalid";
+      if (amount !== 0) flows.push({ ...flow, amount });
+    }
+    return { ...state, flows };
+  }
+
+  const line = estimates.lines.find(
+    (candidate) => candidate.accountId === accountId && candidate.categoryId === categoryId,
+  ) ?? {
+    accountId,
+    categoryId,
+    monthlySpending: 0,
+    monthsUsed: 0,
+    averageSpending: 0,
+    overridden: false,
+  };
+  // The range start too, so that no flow lands before the range.
+  const from = [monthStart, today, range.from].reduce((latest, date) =>
+    date > latest ? date : latest,
+  );
+  const added = estimatedFlows(
+    [{ ...line, monthlySpending: change.monthlyAmount }],
+    estimates.transactions,
+    { from, to: range.to },
+    today,
+  ).map(estimateFlow);
+  return { ...state, flows: [...state.flows.filter((flow) => !isChanged(flow)), ...added] };
+}
+
 // A savings goal adds nothing in stage A: its transfers depend on the running balances, so they are
 // generated in stage B by `balanceAwareSteps`. Checking it here reports its problems with the others.
 function savingsGoalProblem(
@@ -435,6 +537,14 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
       plannedItemIds: [],
     }),
     apply: (state, projection, context) => interestProjectionProblem(projection, context) ?? state,
+  },
+  category_budget_change: {
+    references: ({ parameters: { accountId, categoryId } }) => ({
+      accountIds: [accountId],
+      categoryIds: categoryId === null ? [] : [categoryId],
+      plannedItemIds: [],
+    }),
+    apply: categoryBudgetChange,
   },
 };
 
