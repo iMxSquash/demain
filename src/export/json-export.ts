@@ -43,6 +43,30 @@ export async function createJsonExport(
   return password === undefined ? bytes : encryptPayload(bytes, password, "json-export");
 }
 
+// The columns of the published format. `source_scenario_id` is not part of it yet: the export of
+// scenarios adds it (#234).
+function exportPlannedItems(db: AppDatabase) {
+  return db
+    .select({
+      id: plannedItems.id,
+      name: plannedItems.name,
+      kind: plannedItems.kind,
+      accountId: plannedItems.accountId,
+      destinationAccountId: plannedItems.destinationAccountId,
+      categoryId: plannedItems.categoryId,
+      startDate: plannedItems.startDate,
+      endDate: plannedItems.endDate,
+      acceptsMultipleTransactions: plannedItems.acceptsMultipleTransactions,
+      provisionLabelFilter: plannedItems.provisionLabelFilter,
+      matchWindowDays: plannedItems.matchWindowDays,
+      matchAmountToleranceBp: plannedItems.matchAmountToleranceBp,
+      cancelled: plannedItems.cancelled,
+    })
+    .from(plannedItems)
+    .orderBy(asc(plannedItems.id))
+    .all();
+}
+
 type MoneyOf = (accountId: number, minorUnits: number) => Money;
 type ItemMoneyOf = (plannedItemId: number, minorUnits: number) => Money;
 
@@ -62,7 +86,7 @@ function buildExport(db: AppDatabase, now: Date): DemainExport {
       .orderBy(asc(categorizationRules.id))
       .all(),
     importBatches: exportImportBatches(db),
-    plannedItems: db.select().from(plannedItems).orderBy(asc(plannedItems.id)).all(),
+    plannedItems: exportPlannedItems(db),
     plannedItemVersions: exportPlannedItemVersions(db, itemMoneyOf),
     occurrenceOverrides: exportOccurrenceOverrides(db, itemMoneyOf),
     transactions: exportTransactions(db, moneyOf),

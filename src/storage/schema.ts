@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  index,
   integer,
   sqliteTable,
   text,
@@ -175,7 +176,64 @@ export const plannedItems = sqliteTable("planned_items", {
   // Basis points, so that no percentage is ever a float: 500 is 5%.
   matchAmountToleranceBp: integer("match_amount_tolerance_bp").notNull().default(500),
   cancelled: integer("cancelled", { mode: "boolean" }).notNull().default(false),
+  // The scenario whose validation created the item. Set null: deleting the scenario keeps the
+  // item (DOMAIN, Life of a scenario).
+  sourceScenarioId: integer("source_scenario_id").references(() => scenarios.id, {
+    onDelete: "set null",
+  }),
 });
+
+// A named list of modifications (DOMAIN, Scenario and modification). The constant-pace simulation
+// is the evaluation with no modification: it is never stored.
+export const scenarios = sqliteTable("scenarios", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  status: text("status", { enum: ["draft", "validated"] })
+    .notNull()
+    .default("draft"),
+  // Calendar dates as YYYY-MM-DD.
+  validatedAt: text("validated_at"),
+  createdAt: text("created_at").notNull(),
+});
+
+// A modification of a scenario, or a child of a life event when `parent_id` is set. Parameters
+// are JSON, checked against the schema of their type on every write and read (D6).
+export const modifications = sqliteTable(
+  "modifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    scenarioId: integer("scenario_id")
+      .notNull()
+      .references(() => scenarios.id, { onDelete: "cascade" }),
+    parentId: integer("parent_id").references((): AnySQLiteColumn => modifications.id, {
+      onDelete: "cascade",
+    }),
+    // Order in its list: the modifications of the scenario, or the children of a life event.
+    position: integer("position").notNull(),
+    // The `MODIFICATION_TYPES` of the domain, which storage does not import (Module boundaries).
+    type: text("type", {
+      enum: [
+        "subscription_change",
+        "one_off_purchase",
+        "loan",
+        "income_change",
+        "savings_goal",
+        "interest_projection",
+        "category_budget_change",
+        "life_event",
+      ],
+    }).notNull(),
+    label: text("label").notNull(),
+    parameters: text("parameters").notNull(),
+  },
+  (table) => [
+    index("modifications_scenario_parent_position").on(
+      table.scenarioId,
+      table.parentId,
+      table.position,
+    ),
+  ],
+);
 
 // A version applies from `effective_from` until the next one.
 export const plannedItemVersions = sqliteTable(
