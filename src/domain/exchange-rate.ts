@@ -6,7 +6,7 @@
 
 import { isCalendarDate, isKnownCurrency } from "./account";
 import { messageRef, type MessageRef } from "./message";
-import { currencyDecimals } from "./money";
+import { currencyDecimals, divideRoundBig } from "./money";
 
 const RATE_DECIMALS = 8;
 /** Rates are integers counting 1/RATE_SCALE of a unit: 1.0821 is 108_210_000. */
@@ -134,17 +134,6 @@ export function validateExchangeRateInput(input: ExchangeRateInput): ExchangeRat
     }
     throw error;
   }
-}
-
-/** Divides and rounds to the nearest integer, ties away from zero. */
-function divideRoundBig(numerator: bigint, denominator: bigint): bigint {
-  const quotient = numerator / denominator;
-  const remainder = numerator % denominator;
-  const absRemainder = remainder < 0n ? -remainder : remainder;
-  if (absRemainder * 2n < denominator) {
-    return quotient;
-  }
-  return numerator < 0n ? quotient - 1n : quotient + 1n;
 }
 
 /**

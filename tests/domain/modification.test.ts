@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { OneOffPurchase, SubscriptionChange } from "../../src/domain/modification";
+import type { Loan, OneOffPurchase, SubscriptionChange } from "../../src/domain/modification";
 import {
   modificationLabelSchema,
   parseModificationParameters,
@@ -494,6 +494,170 @@ describe("subscription change", () => {
   });
 });
 
+describe("loan", () => {
+  const LOAN_RANGE: DateRange = { from: "2026-12-01", to: "2027-02-28" };
+  const RECEIVED_ON = "2026-12-20";
+
+  function loan(
+    overrides: Partial<Omit<Loan, "parameters">> = {},
+    parameters: Partial<Loan["parameters"]> = {},
+  ): Loan {
+    return {
+      id: 1,
+      position: 0,
+      label: "Car loan",
+      type: "loan",
+      parameters: {
+        principal: 120000,
+        months: 12,
+        annualRateBp: 0,
+        receivedOn: RECEIVED_ON,
+        paymentAccountId: CHECKING,
+        principalAccountId: CHECKING,
+        categoryId: LEISURE,
+        ...parameters,
+      },
+      ...overrides,
+    };
+  }
+
+  const loanInput = () => input({ estimates: [], range: LOAN_RANGE });
+  const source = { kind: "modification", modificationId: 1 } as const;
+  const payment = (date: string) => ({
+    accountId: CHECKING,
+    date,
+    amount: -10000,
+    categoryId: LEISURE,
+    external: true,
+    source,
+  });
+
+  it("the principal arrives on the receiving account on the date received", () => {
+    const result = evaluateScenario(loanInput(), [loan()]);
+
+    expect(result.problems).toEqual([]);
+    expect(modificationFlows(result)).toEqual([
+      {
+        accountId: CHECKING,
+        date: RECEIVED_ON,
+        amount: 120000,
+        categoryId: null,
+        external: true,
+        source,
+      },
+      payment("2027-01-20"),
+      payment("2027-02-20"),
+    ]);
+    expect(balanceOn(result, RECEIVED_ON)).toBe(100000 + 120000);
+    expect(balanceOn(result, "2027-02-20")).toBe(100000 + 120000 - 2 * 10000);
+  });
+
+  it("no receiving account adds no inflow (instalments)", () => {
+    const result = evaluateScenario(loanInput(), [loan({}, { principalAccountId: null })]);
+
+    expect(result.problems).toEqual([]);
+    expect(modificationFlows(result)).toEqual([payment("2027-01-20"), payment("2027-02-20")]);
+  });
+
+  it("payments after the range end are not added", () => {
+    const result = evaluateScenario(loanInput(), [loan({}, { receivedOn: "2027-02-10" })]);
+
+    expect(modificationFlows(result).map((flow) => [flow.date, flow.amount])).toEqual([
+      ["2027-02-10", 120000],
+    ]);
+  });
+
+  it("the principal and the payments go to their own accounts, with the amounts of the schedule", () => {
+    const LOAN_ACCOUNT = 3;
+    const result = evaluateScenario(
+      input({
+        estimates: [],
+        range: LOAN_RANGE,
+        accounts: [account(), account({ id: LOAN_ACCOUNT, openingBalance: 0 })],
+      }),
+      [loan({}, { principal: 1000000, annualRateBp: 500, principalAccountId: LOAN_ACCOUNT })],
+    );
+
+    expect(result.problems).toEqual([]);
+    expect(
+      modificationFlows(result).map((flow) => [flow.accountId, flow.date, flow.amount]),
+    ).toEqual([
+      [LOAN_ACCOUNT, RECEIVED_ON, 1000000],
+      [CHECKING, "2027-01-20", -85607],
+      [CHECKING, "2027-02-20", -85607],
+    ]);
+  });
+
+  it("a payment of zero adds no flow", () => {
+    // 2 over 5 months at a zero rate: four payments of 0, then 2.
+    const result = evaluateScenario(
+      input({ estimates: [], range: { from: "2026-12-01", to: "2027-05-31" } }),
+      [loan({}, { principal: 2, months: 5, principalAccountId: null })],
+    );
+
+    expect(modificationFlows(result).map((flow) => [flow.date, flow.amount])).toEqual([
+      ["2027-05-20", -2],
+    ]);
+  });
+
+  it("a loan received today or earlier is reported as dateNotAfterToday", () => {
+    const result = evaluateScenario(loanInput(), [
+      loan({ id: 1 }, { receivedOn: TODAY }),
+      loan({ id: 2, position: 1 }, { receivedOn: "2026-11-15" }),
+    ]);
+
+    expect(result.problems).toEqual([
+      { modificationId: 1, reason: "dateNotAfterToday" },
+      { modificationId: 2, reason: "dateNotAfterToday" },
+    ]);
+    expect(modificationFlows(result)).toEqual([]);
+  });
+
+  it("an archived receiving account or a missing category is refused", () => {
+    const result = evaluateScenario(loanInput(), [
+      loan({ id: 1 }, { principalAccountId: SAVINGS }),
+      loan({ id: 2, position: 1 }, { categoryId: MISSING_CATEGORY }),
+      loan({ id: 3, position: 2 }, { paymentAccountId: SAVINGS, principalAccountId: null }),
+    ]);
+
+    expect(result.problems).toEqual([
+      { modificationId: 1, reason: "accountArchived" },
+      { modificationId: 2, reason: "categoryMissing" },
+      { modificationId: 3, reason: "accountArchived" },
+    ]);
+    expect(modificationFlows(result)).toEqual([]);
+  });
+
+  it("the schema refuses 0 or 601 months and a rate above 10000", () => {
+    const valid = loan().parameters;
+    for (const value of [
+      valid,
+      { ...valid, months: 1 },
+      { ...valid, months: 600, annualRateBp: 10000 },
+      { ...valid, principalAccountId: null, categoryId: null },
+    ]) {
+      expect(parseModificationParameters("loan", value)).toEqual({ ok: true, parameters: value });
+    }
+    for (const value of [
+      { ...valid, months: 0 },
+      { ...valid, months: 601 },
+      { ...valid, months: 12.5 },
+      { ...valid, annualRateBp: 10001 },
+      { ...valid, annualRateBp: -1 },
+      { ...valid, principal: 0 },
+      { ...valid, principal: 1200.5 },
+      { ...valid, principal: Number.MAX_SAFE_INTEGER },
+      { ...valid, receivedOn: "2027-02-30" },
+      { ...valid, frequency: "weekly" },
+    ]) {
+      expect(parseModificationParameters("loan", value)).toEqual({
+        ok: false,
+        reason: "parametersInvalid",
+      });
+    }
+  });
+});
+
 describe("parseModificationParameters", () => {
   const valid = { accountId: CHECKING, date: PURCHASE_DAY, amount: 50000, categoryId: null };
 
@@ -518,13 +682,13 @@ describe("parseModificationParameters", () => {
   });
 
   it("a type without a schema yet is refused as parametersInvalid", () => {
-    expect(parseModificationParameters("loan", valid)).toEqual({
+    expect(parseModificationParameters("income_change", valid)).toEqual({
       ok: false,
       reason: "parametersInvalid",
     });
     // Stored rows are not trusted: an unknown type or corrupted parameters are reported, never thrown.
     const stored = [
-      { ...purchase({ id: 1 }), type: "loan" },
+      { ...purchase({ id: 1 }), type: "income_change" },
       { ...purchase({ id: 2 }), type: "constructor" },
       { ...purchase({ id: 3 }), parameters: null },
       { ...purchase({ id: 4 }), parameters: "corrupted" },
