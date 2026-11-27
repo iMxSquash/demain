@@ -36,10 +36,14 @@ const savings: IndicatorAccount = {
   archived: false,
 };
 const other: IndicatorAccount = { id: OTHER, currency: "EUR", kind: "other", archived: false };
+const usChecking: IndicatorAccount = { ...checking, id: US_CHECKING, currency: "USD" };
+const chfSavings: IndicatorAccount = { ...savings, id: CHF_SAVINGS, currency: "CHF" };
+const archived: IndicatorAccount = { ...checking, id: ARCHIVED, archived: true };
 
 const rates: ExchangeRate[] = [
   { date: "2026-01-01", base: "USD", quote: "EUR", rate: 50_000_000 },
-  { date: "2026-12-01", base: "USD", quote: "EUR", rate: USD_TO_EUR },
+  { date: "2026-12-05", base: "USD", quote: "EUR", rate: USD_TO_EUR },
+  { date: "2027-01-01", base: "USD", quote: "EUR", rate: 150_000_000 },
 ];
 
 function options(overrides: Partial<IndicatorOptions> = {}): IndicatorOptions {
@@ -95,7 +99,6 @@ function flow(overrides: Partial<SimulatedFlow> = {}): SimulatedFlow {
 
 describe("computeIndicators", () => {
   it("the final balance is the total of active accounts on the last day", () => {
-    const archived: IndicatorAccount = { ...checking, id: ARCHIVED, archived: true };
     const result = simulation(
       days({
         [CHECKING]: (date) => (date === RANGE_TO ? 120000 : 100000),
@@ -181,7 +184,6 @@ describe("computeIndicators", () => {
   });
 
   it("converts each account with the latest known rate", () => {
-    const usChecking: IndicatorAccount = { ...checking, id: US_CHECKING, currency: "USD" };
     const result = simulation(days({ [US_CHECKING]: constant(10000) }));
 
     const indicators = computeIndicators(result, [usChecking], options());
@@ -192,7 +194,6 @@ describe("computeIndicators", () => {
   });
 
   it("leaves out an account without rate and names its currency", () => {
-    const chfSavings: IndicatorAccount = { ...savings, id: CHF_SAVINGS, currency: "CHF" };
     const chfOther: IndicatorAccount = { ...other, id: 8, currency: "CHF" };
     const result = simulation(
       days({
@@ -227,15 +228,15 @@ describe("computeIndicators", () => {
     expect(indicators.externalOutflows).toBe(21500);
   });
 
-  it("external outflows leave out flows before today, of archived or unknown accounts, or without rate", () => {
-    const usChecking: IndicatorAccount = { ...checking, id: US_CHECKING, currency: "USD" };
-    const chfSavings: IndicatorAccount = { ...savings, id: CHF_SAVINGS, currency: "CHF" };
-    const archived: IndicatorAccount = { ...checking, id: ARCHIVED, archived: true };
+  it("external outflows leave out flows outside today to the range end, of archived or unknown accounts, or without rate", () => {
     const result = simulation(days({ [CHECKING]: constant(0) }), [
       flow({ date: "2026-12-09", amount: -100 }),
       flow({ date: TODAY, amount: -1000 }),
       flow({ date: RANGE_TO, amount: -2000 }),
+      flow({ date: "2027-04-01", amount: -400 }),
       flow({ accountId: US_CHECKING, amount: -10000 }),
+      flow({ accountId: US_CHECKING, date: "2027-02-01", amount: -5 }),
+      flow({ accountId: US_CHECKING, date: "2027-02-02", amount: -5 }),
       flow({ accountId: CHF_SAVINGS, amount: -5000 }),
       flow({ accountId: ARCHIVED, amount: -7000 }),
       flow({ accountId: 99, amount: -8000 }),
@@ -247,7 +248,8 @@ describe("computeIndicators", () => {
       options(),
     );
 
-    expect(indicators.externalOutflows).toBe(1000 + 2000 + 9200);
+    // Each flow converts on its own at the rate of today: 5 USD cents give 5 EUR cents twice.
+    expect(indicators.externalOutflows).toBe(1000 + 2000 + 9200 + 10);
     expect(indicators.missingRates).toEqual(["CHF"]);
   });
 
@@ -282,6 +284,26 @@ describe("computeIndicators", () => {
     expect(() => computeIndicators(result, [checking], options({ today: "2026-11-30" }))).toThrow(
       new RangeError("Today 2026-11-30 is outside the range 2026-12-01 to 2027-03-31"),
     );
+  });
+});
+
+describe("computeIndicators input checks", () => {
+  it("refuses a simulation that misses a day of the range", () => {
+    const result = simulation(
+      days({ [CHECKING]: constant(0) }, { from: RANGE_FROM, to: "2026-12-31" }),
+    );
+
+    expect(() => computeIndicators(result, [checking], options())).toThrow(
+      new RangeError("The simulation has no balance on 2027-01-01"),
+    );
+  });
+
+  it("refuses a savings date that is not a calendar date", () => {
+    const result = simulation(days({ [CHECKING]: constant(0) }));
+
+    expect(() =>
+      computeIndicators(result, [checking], options({ savingsDate: "2027-02-29" })),
+    ).toThrow(new RangeError("Savings date expects a calendar date, got 2027-02-29"));
   });
 });
 

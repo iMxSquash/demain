@@ -2,15 +2,18 @@
 // D10), in the reference currency. They read a SimulationResult only, so nothing here reaches the
 // real views (ADR-011). Pure: "today", the rates and the data are arguments.
 
+import { isCalendarDate, type AccountKind } from "./account";
+import { addDays } from "./calendar-date";
 import { convertAmount, type ExchangeRate } from "./exchange-rate";
 import type { DailyBalance } from "./projection";
 import type { DateRange } from "./recurrence";
 import type { SimulationResult } from "./simulation";
+import { monthOf } from "./synthesis";
 
 export interface IndicatorAccount {
   id: number;
   currency: string;
-  kind: "checking" | "savings" | "other";
+  kind: AccountKind;
   archived: boolean;
 }
 
@@ -41,11 +44,15 @@ export interface SimulationIndicators {
   missingRates: string[];
 }
 
-type Kind = IndicatorAccount["kind"];
 /** Converts an amount of one counted account to the reference currency. */
 type Converter = (amount: number) => number;
 
-function assertInRange(label: string, date: string, range: DateRange): void {
+function assertCalendarDate(label: string, date: string): void {
+  if (!isCalendarDate(date)) throw new RangeError(`${label} expects a calendar date, got ${date}`);
+}
+
+function assertDateInRange(label: string, date: string, range: DateRange): void {
+  assertCalendarDate(label, date);
   if (date < range.from || date > range.to) {
     throw new RangeError(`${label} ${date} is outside the range ${range.from} to ${range.to}`);
   }
@@ -59,8 +66,8 @@ function assertInRange(label: string, date: string, range: DateRange): void {
 function countedAccounts(
   accounts: readonly IndicatorAccount[],
   { referenceCurrency, rates, today }: IndicatorOptions,
-): { counted: Map<number, { kind: Kind; convert: Converter }>; missingRates: string[] } {
-  const counted = new Map<number, { kind: Kind; convert: Converter }>();
+): { counted: Map<number, { kind: AccountKind; convert: Converter }>; missingRates: string[] } {
+  const counted = new Map<number, { kind: AccountKind; convert: Converter }>();
   const missing = new Set<string>();
   for (const account of accounts) {
     if (account.archived) continue;
@@ -70,9 +77,20 @@ function countedAccounts(
       missing.add(account.currency);
       continue;
     }
+    // The probe above proved the rate exists, so the fallback is never taken.
     counted.set(account.id, { kind: account.kind, convert: (amount) => convert(amount) ?? 0 });
   }
   return { counted, missingRates: [...missing] };
+}
+
+/** The day of a date, refused when the simulation did not evaluate it. */
+function dayLookup(result: SimulationResult): (date: string) => DailyBalance {
+  const byDate = new Map(result.days.map((day) => [day.date, day]));
+  return (date) => {
+    const day = byDate.get(date);
+    if (day === undefined) throw new RangeError(`The simulation has no balance on ${date}`);
+    return day;
+  };
 }
 
 export function computeIndicators(
@@ -81,12 +99,15 @@ export function computeIndicators(
   options: IndicatorOptions,
 ): SimulationIndicators {
   const { range, today, savingsDate } = options;
-  assertInRange("Today", today, range);
-  assertInRange("Savings date", savingsDate, range);
+  assertCalendarDate("Range start", range.from);
+  assertCalendarDate("Range end", range.to);
+  assertDateInRange("Today", today, range);
+  assertDateInRange("Savings date", savingsDate, range);
   const { counted, missingRates } = countedAccounts(accounts, options);
+  const dayOn = dayLookup(result);
 
   // An account absent from a day (not open yet) adds nothing to that day.
-  const total = (day: DailyBalance, kind?: Kind): number => {
+  const total = (day: DailyBalance, kind?: AccountKind): number => {
     let sum = 0;
     for (const [accountId, balance] of day.balances) {
       const account = counted.get(accountId);
@@ -96,28 +117,15 @@ export function computeIndicators(
     return sum;
   };
 
-  const days = result.days.filter((day) => day.date >= range.from && day.date <= range.to);
-  const ahead = days.filter((day) => day.date >= today);
-  const last = ahead.at(-1);
-  if (last === undefined) throw new RangeError(`The simulation has no day from today ${today}`);
-
-  let minimum = { amount: total(ahead[0] ?? last), date: (ahead[0] ?? last).date };
-  for (const day of ahead) {
+  let minimum = { amount: total(dayOn(today)), date: today };
+  const lastDayOfMonth = new Map<string, DailyBalance>();
+  for (let date = range.from; date <= range.to; date = addDays(date, 1)) {
+    const day = dayOn(date);
+    lastDayOfMonth.set(monthOf(date), day);
+    if (date <= today) continue;
     const amount = total(day);
     // Strictly lower only: the first day of the low is kept.
-    if (amount < minimum.amount) minimum = { amount, date: day.date };
-  }
-
-  const savingsDay = days.find((day) => day.date === savingsDate);
-  const monthEnds = new Map<string, MonthEnd>();
-  for (const day of days) {
-    // Days come in date order: the last day of each month overwrites the earlier ones.
-    const month = day.date.slice(0, 7);
-    monthEnds.set(month, {
-      month,
-      checking: total(day, "checking"),
-      savings: total(day, "savings"),
-    });
+    if (amount < minimum.amount) minimum = { amount, date };
   }
 
   let externalOutflows = 0;
@@ -128,13 +136,14 @@ export function computeIndicators(
   }
 
   return {
-    finalBalance: total(last),
+    finalBalance: total(dayOn(range.to)),
     minimum,
-    savingsAt: {
-      date: savingsDate,
-      amount: savingsDay === undefined ? 0 : total(savingsDay, "savings"),
-    },
-    monthEnds: [...monthEnds.values()],
+    savingsAt: { date: savingsDate, amount: total(dayOn(savingsDate), "savings") },
+    monthEnds: [...lastDayOfMonth].map(([month, day]) => ({
+      month,
+      checking: total(day, "checking"),
+      savings: total(day, "savings"),
+    })),
     externalOutflows,
     missingRates,
   };
