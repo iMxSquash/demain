@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { Loan, OneOffPurchase, SubscriptionChange } from "../../src/domain/modification";
+import {
+  applyFlowModifications,
+  type IncomeChange,
+  type Loan,
+  type ModificationContext,
+  type OneOffPurchase,
+  type SubscriptionChange,
+} from "../../src/domain/modification";
 import {
   modificationLabelSchema,
   parseModificationParameters,
@@ -494,6 +501,278 @@ describe("subscription change", () => {
   });
 });
 
+describe("income change", () => {
+  // A synthetic salary: +250000 every month on day 28, from the first one after today.
+  const SALARY_AMOUNT = 250000;
+
+  /** Day 28 of each month from 2026-12 to 2028-11: 24 dates, all after today. */
+  function salaryDates(): string[] {
+    return Array.from({ length: 24 }, (_, index) => {
+      const month = index + 11;
+      const year = 2026 + Math.floor(month / 12);
+      return `${year}-${String((month % 12) + 1).padStart(2, "0")}-28`;
+    });
+  }
+
+  function salaryOccurrence(
+    nominalDate: string,
+    overrides: Partial<ResolvedOccurrence> = {},
+  ): ResolvedOccurrence {
+    return {
+      ...occurrence(nominalDate),
+      amount: SALARY_AMOUNT,
+      expectedAmount: SALARY_AMOUNT,
+      remaining: SALARY_AMOUNT,
+      ...overrides,
+    };
+  }
+
+  function salaryItem(occurrences = salaryDates().map((date) => salaryOccurrence(date))) {
+    return streamingItem({ plannedItemId: SALARY_ITEM, kind: "income", occurrences });
+  }
+
+  function salaryInput(overrides: Partial<SimulationInput> = {}): SimulationInput {
+    return subscriptionInput({
+      items: [streamingItem(), salaryItem()],
+      itemCategories: new Map([
+        [STREAMING_ITEM, LEISURE],
+        [SALARY_ITEM, null],
+      ]),
+      ...overrides,
+    });
+  }
+
+  function incomeChange(
+    overrides: Partial<Omit<IncomeChange, "parameters">> = {},
+    parameters: Partial<IncomeChange["parameters"]> = {},
+  ): IncomeChange {
+    return {
+      id: 1,
+      position: 0,
+      label: "Salary",
+      type: "income_change",
+      parameters: {
+        target: { kind: "existing", plannedItemId: SALARY_ITEM },
+        change: { kind: "amount", amount: 260000 },
+        effectiveDate: "2027-03-01",
+        ...parameters,
+      },
+      ...overrides,
+    };
+  }
+
+  function salaryFlows(result: SimulationResult): [string, number][] {
+    return result.flows.flatMap((flow) =>
+      flow.source.kind === "occurrence" && flow.source.plannedItemId === SALARY_ITEM
+        ? [[flow.source.nominalDate, flow.amount] as [string, number]]
+        : [],
+    );
+  }
+
+  function changedOccurrences(occurrences: ResolvedOccurrence[], modification: IncomeChange) {
+    const context: ModificationContext = {
+      accounts: [account()],
+      items: [salaryItem(occurrences)],
+      itemCategories: new Map([[SALARY_ITEM, null]]),
+      categoryIds: new Set([GROCERIES, LEISURE]),
+      today: TODAY,
+      range: HORIZON,
+    };
+    const { items, problems } = applyFlowModifications(
+      { items: [...context.items], flows: [] },
+      [modification],
+      context,
+    );
+    expect(problems).toEqual([]);
+    return items[0]?.occurrences ?? [];
+  }
+
+  it("a new amount of 260000 from 2027-03-01 changes the occurrences from March", () => {
+    const result = evaluateScenario(salaryInput(), [incomeChange()]);
+
+    expect(result.problems).toEqual([]);
+    expect(salaryFlows(result)).toEqual(
+      salaryDates().map((date) => [date, date < "2027-03-01" ? SALARY_AMOUNT : 260000]),
+    );
+    expect(modificationFlows(result)).toEqual([]);
+    // The other items are left alone.
+    expect(itemFlowDates(result)).toEqual(streamingDates());
+  });
+
+  it("an end from 2027-06-01 removes the occurrences from June", () => {
+    const result = evaluateScenario(salaryInput(), [
+      incomeChange({}, { change: { kind: "end" }, effectiveDate: "2027-06-01" }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(salaryFlows(result)).toEqual(
+      ["2026-12-28", "2027-01-28", "2027-02-28", "2027-03-28", "2027-04-28", "2027-05-28"].map(
+        (date) => [date, SALARY_AMOUNT],
+      ),
+    );
+    expect(modificationFlows(result)).toEqual([]);
+  });
+
+  it("a rolling-average income takes the fixed new amount from the effective date", () => {
+    // Estimates that differ from one month to the next, as a rolling average gives them.
+    const estimated = salaryDates().map((date, index) =>
+      salaryOccurrence(date, { expectedAmount: 240000 + index, remaining: 240000 + index }),
+    );
+    const result = evaluateScenario(salaryInput({ items: [salaryItem(estimated)] }), [
+      incomeChange(),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(salaryFlows(result)).toEqual(
+      salaryDates().map((date, index) => [date, date < "2027-03-01" ? 240000 + index : 260000]),
+    );
+  });
+
+  it("a new income of 50000 from 2027-02-10 adds a monthly inflow on day 10", () => {
+    const result = evaluateScenario(salaryInput(), [
+      incomeChange(
+        { label: "Second job" },
+        {
+          target: { kind: "new", accountId: CHECKING, categoryId: GROCERIES },
+          change: { kind: "amount", amount: 50000 },
+          effectiveDate: "2027-02-10",
+        },
+      ),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    const flows = modificationFlows(result);
+    expect(flows).toHaveLength(22);
+    expect(flows.slice(0, 2).map((flow) => flow.date)).toEqual(["2027-02-10", "2027-03-10"]);
+    expect(flows.at(-1)?.date).toBe("2028-11-10");
+    for (const flow of flows) {
+      expect(flow).toEqual({
+        accountId: CHECKING,
+        date: flow.date,
+        amount: 50000,
+        categoryId: GROCERIES,
+        external: true,
+        source: { kind: "modification", modificationId: 1 },
+      });
+    }
+    // A new income leaves the existing salary alone.
+    expect(salaryFlows(result)).toEqual(salaryDates().map((date) => [date, SALARY_AMOUNT]));
+  });
+
+  it("an end on a new income is refused by the schema", () => {
+    const newTarget = { kind: "new", accountId: CHECKING, categoryId: null };
+    const existing = { kind: "existing", plannedItemId: SALARY_ITEM };
+    const amount = { kind: "amount", amount: 260000 };
+    for (const value of [
+      { target: existing, change: amount, effectiveDate: "2027-03-01" },
+      { target: existing, change: { kind: "end" }, effectiveDate: "2027-03-01" },
+      { target: newTarget, change: amount, effectiveDate: "2027-03-01" },
+    ]) {
+      expect(parseModificationParameters("income_change", value)).toEqual({
+        ok: true,
+        parameters: value,
+      });
+    }
+    for (const value of [
+      { target: newTarget, change: { kind: "end" }, effectiveDate: "2027-03-01" },
+      { target: existing, change: { kind: "amount", amount: 0 }, effectiveDate: "2027-03-01" },
+      { target: existing, change: { kind: "amount", amount: 2600.5 }, effectiveDate: "2027-03-01" },
+      { target: existing, change: { kind: "amount" }, effectiveDate: "2027-03-01" },
+      { target: existing, change: { kind: "end", amount: 1 }, effectiveDate: "2027-03-01" },
+      { target: existing, change: amount, effectiveDate: "2027-02-30" },
+      { target: existing, change: amount, effectiveDate: "2027-03-01", note: "raise" },
+    ]) {
+      expect(parseModificationParameters("income_change", value)).toEqual({
+        ok: false,
+        reason: "parametersInvalid",
+      });
+    }
+    const stored = incomeChange(
+      {},
+      { target: { kind: "new", accountId: CHECKING, categoryId: null } },
+    );
+    const ended = { ...stored, parameters: { ...stored.parameters, change: { kind: "end" } } };
+    expect(evaluateScenario(salaryInput(), [ended as IncomeChange]).problems).toEqual([
+      { modificationId: 1, reason: "parametersInvalid" },
+    ]);
+  });
+
+  it("a target of kind expense is refused as plannedItemKind", () => {
+    const result = evaluateScenario(salaryInput(), [
+      incomeChange({}, { target: { kind: "existing", plannedItemId: STREAMING_ITEM } }),
+    ]);
+
+    expect(result.problems).toEqual([{ modificationId: 1, reason: "plannedItemKind" }]);
+    expect(itemFlowDates(result)).toEqual(streamingDates());
+    expect(salaryFlows(result)).toEqual(salaryDates().map((date) => [date, SALARY_AMOUNT]));
+  });
+
+  it("an effective date on or before today is refused as dateNotAfterToday", () => {
+    const result = evaluateScenario(salaryInput(), [
+      incomeChange({ id: 1 }, { effectiveDate: TODAY }),
+      incomeChange(
+        { id: 2, position: 1 },
+        { change: { kind: "end" }, effectiveDate: "2026-11-01" },
+      ),
+      incomeChange(
+        { id: 3, position: 2 },
+        { target: { kind: "new", accountId: CHECKING, categoryId: null }, effectiveDate: TODAY },
+      ),
+    ]);
+
+    expect(result.problems).toEqual(
+      [1, 2, 3].map((modificationId) => ({
+        modificationId,
+        reason: "dateNotAfterToday",
+      })),
+    );
+    expect(salaryFlows(result)).toEqual(salaryDates().map((date) => [date, SALARY_AMOUNT]));
+    expect(modificationFlows(result)).toEqual([]);
+  });
+
+  it("a settled occurrence keeps 0 remaining", () => {
+    // Received early, and a provision whose period passed without any transaction.
+    const occurrences = [
+      salaryOccurrence("2027-03-28", {
+        status: "confirmed",
+        linkedSum: SALARY_AMOUNT,
+        remaining: 0,
+      }),
+      salaryOccurrence("2027-04-28", { status: "overdue", remaining: 0 }),
+      salaryOccurrence("2027-05-28"),
+    ];
+
+    expect(
+      changedOccurrences(occurrences, incomeChange()).map(({ expectedAmount, remaining }) => [
+        expectedAmount,
+        remaining,
+      ]),
+    ).toEqual([
+      [260000, 0],
+      [260000, 0],
+      [260000, 260000],
+    ]);
+  });
+
+  it("a partial occurrence keeps only what is not yet received", () => {
+    const partial = (linkedSum: number) =>
+      salaryOccurrence("2027-03-28", {
+        status: "partial",
+        linkedSum,
+        remaining: SALARY_AMOUNT - linkedSum,
+      });
+
+    const [raised] = changedOccurrences([partial(100000)], incomeChange());
+    const [lowered] = changedOccurrences(
+      [partial(200000)],
+      incomeChange({}, { change: { kind: "amount", amount: 150000 } }),
+    );
+
+    expect([raised?.expectedAmount, raised?.remaining]).toEqual([260000, 160000]);
+    expect([lowered?.expectedAmount, lowered?.remaining]).toEqual([150000, 0]);
+  });
+});
+
 describe("loan", () => {
   const LOAN_RANGE: DateRange = { from: "2026-12-01", to: "2027-02-28" };
   const RECEIVED_ON = "2026-12-20";
@@ -682,13 +961,13 @@ describe("parseModificationParameters", () => {
   });
 
   it("a type without a schema yet is refused as parametersInvalid", () => {
-    expect(parseModificationParameters("income_change", valid)).toEqual({
+    expect(parseModificationParameters("savings_goal", valid)).toEqual({
       ok: false,
       reason: "parametersInvalid",
     });
     // Stored rows are not trusted: an unknown type or corrupted parameters are reported, never thrown.
     const stored = [
-      { ...purchase({ id: 1 }), type: "income_change" },
+      { ...purchase({ id: 1 }), type: "savings_goal" },
       { ...purchase({ id: 2 }), type: "constructor" },
       { ...purchase({ id: 3 }), parameters: null },
       { ...purchase({ id: 4 }), parameters: "corrupted" },

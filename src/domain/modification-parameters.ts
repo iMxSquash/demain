@@ -4,7 +4,13 @@
 
 import { z } from "zod";
 
-import type { Loan, ModificationType, OneOffPurchase, SubscriptionChange } from "./modification";
+import type {
+  IncomeChange,
+  Loan,
+  ModificationType,
+  OneOffPurchase,
+  SubscriptionChange,
+} from "./modification";
 
 const MAX_LABEL_LENGTH = 80;
 const MAX_LOAN_MONTHS = 600;
@@ -24,10 +30,13 @@ export const oneOffPurchaseParameters = z.strictObject({
   categoryId: id.nullable(),
 }) satisfies z.ZodType<OneOffPurchase["parameters"]>;
 
-const subscriptionTarget = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("existing"), plannedItemId: id }),
-  z.strictObject({ kind: z.literal("new"), accountId: id, categoryId: id.nullable() }),
-]);
+const existingTarget = z.strictObject({ kind: z.literal("existing"), plannedItemId: id });
+const newTarget = z.strictObject({
+  kind: z.literal("new"),
+  accountId: id,
+  categoryId: id.nullable(),
+});
+const subscriptionTarget = z.discriminatedUnion("kind", [existingTarget, newTarget]);
 
 // The amount is required with a rhythm and refused without one, even as an undefined key.
 export const subscriptionChangeParameters = z.discriminatedUnion("mode", [
@@ -50,6 +59,18 @@ export const loanParameters = z.strictObject({
   categoryId: id.nullable(),
 }) satisfies z.ZodType<Loan["parameters"]>;
 
+const newAmount = z.strictObject({ kind: z.literal("amount"), amount: z.int().positive() });
+
+// An end has no meaning for a new income: only an existing target accepts it.
+export const incomeChangeParameters = z.union([
+  z.strictObject({
+    target: existingTarget,
+    change: z.discriminatedUnion("kind", [newAmount, z.strictObject({ kind: z.literal("end") })]),
+    effectiveDate: z.iso.date(),
+  }),
+  z.strictObject({ target: newTarget, change: newAmount, effectiveDate: z.iso.date() }),
+]) satisfies z.ZodType<IncomeChange["parameters"]>;
+
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
 const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ModificationType,
@@ -58,6 +79,7 @@ const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ["one_off_purchase", oneOffPurchaseParameters],
   ["subscription_change", subscriptionChangeParameters],
   ["loan", loanParameters],
+  ["income_change", incomeChangeParameters],
 ]);
 
 export function parseModificationParameters(

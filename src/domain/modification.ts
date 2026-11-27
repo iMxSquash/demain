@@ -6,6 +6,7 @@
 import { parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
 import { parseModificationParameters } from "./modification-parameters";
+import { provisionRemaining, type ResolvedOccurrence } from "./occurrence-resolution";
 import type { PlannedItemOccurrences, ProjectionAccount } from "./projection";
 import { nominalDates, type DateRange, type Repetition } from "./recurrence";
 import type { SimulatedFlow } from "./simulation";
@@ -62,8 +63,18 @@ export interface Loan extends ModificationBase {
   };
 }
 
+export interface IncomeChange extends ModificationBase {
+  type: "income_change";
+  parameters: {
+    target: SubscriptionChange["parameters"]["target"];
+    /** The amount is positive minor units. */
+    change: { kind: "amount"; amount: number } | { kind: "end" };
+    effectiveDate: string;
+  };
+}
+
 /** Each type issue adds its interface to this union. */
-export type Modification = OneOffPurchase | SubscriptionChange | Loan;
+export type Modification = OneOffPurchase | SubscriptionChange | Loan | IncomeChange;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -141,8 +152,8 @@ function plannedItemOf(
   return items.find((item) => item.plannedItemId === plannedItemId);
 }
 
-function subscriptionReferences(
-  { parameters: { target } }: SubscriptionChange,
+function targetReferences(
+  { parameters: { target } }: SubscriptionChange | IncomeChange,
   context: ModificationContext,
 ): References {
   if (target.kind === "new") {
@@ -225,6 +236,60 @@ function subscriptionChange(
   return { items, flows: [...state.flows, ...added] };
 }
 
+// What is already received stays received: a settled occurrence keeps nothing expected, and a
+// partial one only what its linked sum leaves of the new amount (owner, 27 Nov 2026, #224).
+function withIncomeAmount(occurrence: ResolvedOccurrence, amount: number): ResolvedOccurrence {
+  const remaining =
+    occurrence.remaining === 0
+      ? 0
+      : occurrence.status === "partial"
+        ? provisionRemaining(amount, occurrence.linkedSum)
+        : amount;
+  return { ...occurrence, expectedAmount: amount, remaining };
+}
+
+// Only the occurrences of the planned item change: the flows already added are left alone (D2).
+function incomeChange(
+  state: StageAState,
+  { id, parameters }: IncomeChange,
+  context: ModificationContext,
+): StageAState | ModificationProblemReason {
+  const { target, change, effectiveDate } = parameters;
+  if (target.kind === "existing" && plannedItemOf(target.plannedItemId, context)?.kind !== "income")
+    return "plannedItemKind";
+  if (effectiveDate <= context.today) return "dateNotAfterToday";
+
+  if (target.kind === "new") {
+    // The schema refuses an end on a new income.
+    if (change.kind === "end") return "parametersInvalid";
+    const repetition: Repetition = { kind: "monthly_on_day", day: parseDate(effectiveDate).day };
+    const added = nominalDates(repetition, effectiveDate, context.range).map((date) =>
+      modificationFlow(id, {
+        accountId: target.accountId,
+        date,
+        amount: change.amount,
+        categoryId: target.categoryId,
+      }),
+    );
+    return { ...state, flows: [...state.flows, ...added] };
+  }
+
+  const changed = (occurrences: readonly ResolvedOccurrence[]) =>
+    change.kind === "end"
+      ? occurrences.filter((occurrence) => occurrence.nominalDate < effectiveDate)
+      : occurrences.map((occurrence) =>
+          occurrence.nominalDate < effectiveDate
+            ? occurrence
+            : withIncomeAmount(occurrence, change.amount),
+        );
+  const items = state.items.map((item) =>
+    item.plannedItemId === target.plannedItemId
+      ? { ...item, occurrences: changed(item.occurrences) }
+      : item,
+  );
+  return { ...state, items };
+}
+
 // The whole schedule is computed, so that the payments inside the range keep their amounts, but
 // only the flows dated inside the range are added. The principal received carries no category: it
 // is not an income, and the total cost leaves it out (D10).
@@ -276,7 +341,7 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     }),
     apply: oneOffPurchase,
   },
-  subscription_change: { references: subscriptionReferences, apply: subscriptionChange },
+  subscription_change: { references: targetReferences, apply: subscriptionChange },
   loan: {
     references: ({ parameters: { paymentAccountId, principalAccountId, categoryId } }) => ({
       accountIds:
@@ -286,6 +351,7 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     }),
     apply: loan,
   },
+  income_change: { references: targetReferences, apply: incomeChange },
 };
 
 function transformOf(type: string): ModificationTransform<Modification> | undefined {
