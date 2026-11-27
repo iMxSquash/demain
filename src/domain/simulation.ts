@@ -10,7 +10,10 @@ import {
   type Modification,
   type ModificationContext,
   type ModificationProblem,
+  type SavingsGoal,
+  type StageAState,
 } from "./modification";
+import { overflowChainAccounts } from "./overflow";
 import {
   orderedEvents,
   projectWithRouting,
@@ -61,13 +64,13 @@ export interface SimulationResult {
 /** What a savings goal did over the range (D8). */
 export interface GoalOutcome {
   modificationId: number;
-  /** The monthly amount used (the given one, or the inverse one from #227). */
+  /** The monthly amount used: the given one, or the one the target mode found (0 when it moves nothing). */
   monthlyAmount: number;
   /** Routing of each transfer, from the `simulatedTransfers` of the projection with this modification as source. */
   transfers: SimulatedTransferRouting[];
   /** What stayed in the source account: the unplaced part of each transfer, all of an invalid one. */
   unplacedTotal: number;
-  /** A monthly goal is always "applied"; the other statuses belong to the target mode (#227). */
+  /** A monthly goal is always "applied"; the other statuses belong to the target mode (D8). */
   status: "applied" | "reached" | "alreadyReached" | "unreachable";
 }
 
@@ -75,28 +78,136 @@ function unplacedOf({ amount, routing }: SimulatedTransferRouting): number {
   return routing.status === "ok" ? routing.unplaced : amount;
 }
 
-/** One outcome per valid goal in monthly mode, in the order the goals applied (D5). */
+/** How a goal in target mode was resolved (D8). Only a reached goal moves money. */
+type GoalResolution = Pick<GoalOutcome, "monthlyAmount" | "status">;
+
+const UNREACHABLE: GoalResolution = { monthlyAmount: 0, status: "unreachable" };
+
+/** One outcome per valid goal, in the order the goals applied (D5). */
 function goalOutcomes(
   applied: readonly Modification[],
   simulatedTransfers: readonly SimulatedTransferRouting[],
+  resolutions: ReadonlyMap<number, GoalResolution>,
 ): GoalOutcome[] {
   const outcomes: GoalOutcome[] = [];
   for (const modification of applied) {
-    if (modification.type !== "savings_goal" || modification.parameters.mode.kind !== "monthly")
-      continue;
-    const { id } = modification;
+    if (modification.type !== "savings_goal") continue;
+    const { id, parameters } = modification;
+    const { monthlyAmount, status } =
+      parameters.mode.kind === "monthly"
+        ? { monthlyAmount: parameters.mode.amount, status: "applied" as const }
+        : (resolutions.get(id) ?? UNREACHABLE);
     const transfers = simulatedTransfers.filter(
       ({ source }) => source.kind === "modification" && source.modificationId === id,
     );
     outcomes.push({
       modificationId: id,
-      monthlyAmount: modification.parameters.mode.amount,
+      monthlyAmount,
       transfers,
       unplacedTotal: transfers.reduce((total, transfer) => total + unplacedOf(transfer), 0),
-      status: "applied",
+      status,
     });
   }
   return outcomes;
+}
+
+/**
+ * The modifications stage B runs with: each goal in target mode becomes a goal in monthly mode
+ * with its resolved amount up to its target date, or is dropped when it moves nothing. With
+ * `probe`, the goal at `probe.index` of `applied` takes `probe.amount` and every goal after it is
+ * left out (D8).
+ */
+function stepModifications(
+  applied: readonly Modification[],
+  resolutions: ReadonlyMap<number, GoalResolution>,
+  probe?: { index: number; amount: number },
+): Modification[] {
+  return applied.flatMap((modification, index): Modification[] => {
+    if (modification.type !== "savings_goal") return [modification];
+    if (probe !== undefined && index > probe.index) return [];
+    const { mode } = modification.parameters;
+    if (mode.kind === "monthly") return [modification];
+    const amount =
+      index === probe?.index
+        ? probe.amount
+        : (resolutions.get(modification.id)?.monthlyAmount ?? 0);
+    if (amount === 0) return [];
+    const monthly: SavingsGoal["parameters"]["mode"] = {
+      kind: "monthly",
+      amount,
+      endDate: mode.targetDate,
+    };
+    return [{ ...modification, parameters: { ...modification.parameters, mode: monthly } }];
+  });
+}
+
+/** The latest target date of the goals in target mode, when it is after `to`; else `to`. */
+function latestTargetDate(applied: readonly Modification[], to: string): string {
+  return applied.reduce(
+    (latest, modification) =>
+      modification.type === "savings_goal" &&
+      modification.parameters.mode.kind === "target" &&
+      modification.parameters.mode.targetDate > latest
+        ? modification.parameters.mode.targetDate
+        : latest,
+    to,
+  );
+}
+
+/** The end-of-day total of the accounts of `chain` on `date`, an account without balance counting as 0. */
+function chainTotal(days: readonly DailyBalance[], chain: readonly number[], date: string): number {
+  const day = days.find((candidate) => candidate.date === date);
+  return chain.reduce((total, accountId) => total + (day?.balances.get(accountId) ?? 0), 0);
+}
+
+/**
+ * D8: 0 when the target is reached without transfer; unreachable when transfers of the target
+ * amount miss it; otherwise the smallest whole amount that reaches it, by bisection on minor
+ * units, which rounds up by construction (D4, rule 6). `reaches` runs the engine, never a formula.
+ */
+function resolveAmount(targetAmount: number, reaches: (amount: number) => boolean): GoalResolution {
+  if (reaches(0)) return { monthlyAmount: 0, status: "alreadyReached" };
+  if (!reaches(targetAmount)) return UNREACHABLE;
+  let low = 1;
+  let high = targetAmount;
+  while (low < high) {
+    const middle = low + Math.floor((high - low) / 2);
+    if (reaches(middle)) high = middle;
+    else low = middle + 1;
+  }
+  return { monthlyAmount: low, status: "reached" };
+}
+
+/**
+ * Resolves the goals in target mode by position (D8): goal k sees the goals before it resolved and
+ * none after it. A chain that loops is unreachable (owner, 27 Nov 2026, #227).
+ */
+function resolveTargetGoals(
+  applied: readonly Modification[],
+  accounts: readonly ProjectionAccount[],
+  project: (modifications: readonly Modification[]) => readonly DailyBalance[],
+): Map<number, GoalResolution> {
+  const resolutions = new Map<number, GoalResolution>();
+  applied.forEach((modification, index) => {
+    if (modification.type !== "savings_goal" || modification.parameters.mode.kind !== "target")
+      return;
+    const { savingsAccountId, mode } = modification.parameters;
+    const chain = overflowChainAccounts(savingsAccountId, accounts);
+    const resolution =
+      chain === null
+        ? UNREACHABLE
+        : resolveAmount(
+            mode.targetAmount,
+            (amount) =>
+              chainTotal(
+                project(stepModifications(applied, resolutions, { index, amount })),
+                chain,
+                mode.targetDate,
+              ) >= mode.targetAmount,
+          );
+    resolutions.set(modification.id, resolution);
+  });
+  return resolutions;
 }
 
 function estimateFlow({ accountId, categoryId, date, amount }: EstimatedFlow): SimulatedFlow {
@@ -176,23 +287,45 @@ export function evaluateScenario(
     today,
     range,
   };
-  const {
-    items,
-    flows: simulatedFlows,
-    problems,
-    applied: appliedModifications,
-  } = applyFlowModifications(
-    { items: [...input.items], flows: input.estimates.map(estimateFlow) },
-    modifications,
-    context,
-  );
-  const { days, transfers, simulatedTransfers } = projectWithRouting(
+  const initial: StageAState = {
+    items: [...input.items],
+    flows: input.estimates.map(estimateFlow),
+  };
+  const stageA = applyFlowModifications(initial, modifications, context);
+  const { items, flows: simulatedFlows, applied: appliedModifications } = stageA;
+  // The one balance loop of the engine. Each run gets its own steps: they hold accrued interest.
+  const project = (
+    runContext: ModificationContext,
+    state: StageAState,
+    stepped: readonly Modification[],
+  ) =>
+    projectWithRouting(accounts, realFlows, state.items, today, runContext.range, {
+      simulatedFlows: state.flows,
+      steps: balanceAwareSteps(stepped, runContext),
+    });
+
+  // A target date after the range extends the search to it, never the result (owner, 27 Nov
+  // 2026, #227). Past the range, the search sees only the flows the input carries.
+  const horizonEnd = latestTargetDate(appliedModifications, range.to);
+  const horizonContext =
+    horizonEnd === range.to ? context : { ...context, range: { from: range.from, to: horizonEnd } };
+  const horizonState =
+    horizonContext === context
+      ? stageA
+      : applyFlowModifications(initial, modifications, horizonContext);
+  const resolutions = resolveTargetGoals(
+    appliedModifications,
     accounts,
-    realFlows,
-    items,
-    today,
-    range,
-    { simulatedFlows, steps: balanceAwareSteps(modifications, context) },
+    (stepped) => project(horizonContext, horizonState, stepped).days,
+  );
+  const problems: ModificationProblem[] = [...stageA.problems];
+  for (const [modificationId, { status }] of resolutions)
+    if (status === "unreachable") problems.push({ modificationId, reason: "goalUnreachable" });
+
+  const { days, transfers, simulatedTransfers } = project(
+    context,
+    stageA,
+    stepModifications(appliedModifications, resolutions),
   );
 
   const routings = new Map(
@@ -214,7 +347,7 @@ export function evaluateScenario(
         : [event.flow],
     )
     .filter((flow) => accountIds.has(flow.accountId));
-  const goals = goalOutcomes(appliedModifications, simulatedTransfers);
+  const goals = goalOutcomes(appliedModifications, simulatedTransfers, resolutions);
   return { days, transfers, simulatedTransfers, flows, problems, goals };
 }
 

@@ -565,7 +565,8 @@ function interestCredit(
 /**
  * Stage B (D5): the monthly transfers of the savings goals, routed by the projection loop along
  * the overflow chain of the savings account. They repeat on the day of the first transfer, up to
- * the end date or the end of the range; the projection asks only for the days of the range.
+ * the end date or the end of the range; the projection asks only for the days of the range. A goal
+ * in target mode is skipped: `evaluateScenario` hands it over in monthly mode once resolved (D8).
  * Then the interest projections, credited last on their day and never routed (D9).
  *
  * The result holds the interest accrued so far: it serves one projection, which asks for each day
