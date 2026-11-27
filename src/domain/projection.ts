@@ -25,7 +25,9 @@ export interface ProjectionAccount {
 
 export type FlowSource =
   | { kind: "transaction"; transactionId: number }
-  | { kind: "occurrence"; plannedItemId: number; nominalDate: string };
+  | { kind: "occurrence"; plannedItemId: number; nominalDate: string }
+  | { kind: "estimate"; categoryId: number | null }
+  | { kind: "modification"; modificationId: number };
 
 export interface ProjectionFlow {
   accountId: number;
@@ -59,6 +61,41 @@ export interface PlannedTransferRouting {
   routing:
     | Extract<OverflowRouting, { status: "ok" }>
     | { status: "invalid"; reason: OverflowChainProblem };
+}
+
+/** A transfer between two of the user's accounts that a simulation adds from the running balances. */
+export interface SimulatedTransfer {
+  sourceAccountId: number;
+  destinationAccountId: number;
+  /** Positive minor units. */
+  amount: number;
+  date: string;
+  source: FlowSource;
+}
+
+/**
+ * Flows of a simulation that depend on the running balances (DOMAIN, D5 stage B). Both are called
+ * once per day of the range only: the events before it are applied in one block on its first day.
+ */
+export interface BalanceAwareSteps {
+  /** Called once per day, after every ordinary flow of the day; the transfers are routed in the order returned. */
+  transfersOn(date: string, balances: ReadonlyMap<number, number>): readonly SimulatedTransfer[];
+  /** Called once per day with the end-of-day balances, after the transfers; the flows are applied last (interest). */
+  creditsOn(date: string, balances: ReadonlyMap<number, number>): readonly ProjectionFlow[];
+}
+
+/** How one simulated transfer was spread along the overflow chain of its destination. */
+export interface SimulatedTransferRouting {
+  source: FlowSource;
+  date: string;
+  amount: number;
+  routing: PlannedTransferRouting["routing"];
+}
+
+export interface ProjectionSimulation {
+  /** Future flows of a simulation, applied after the planned occurrences of their day, in the order given. */
+  simulatedFlows?: readonly ProjectionFlow[];
+  steps?: BalanceAwareSteps;
 }
 
 // Only what is still expected counts: a settled, overdue or cancelled occurrence has no remaining.
@@ -159,9 +196,17 @@ export function projectDailyBalances(
   return days;
 }
 
-type ProjectionEvent =
-  | { kind: "real"; date: string; flow: ProjectionFlow }
-  | { kind: "planned"; date: string; item: PlannedItemOccurrences; occurrence: ResolvedOccurrence };
+export type ProjectionEvent<F extends ProjectionFlow = ProjectionFlow> =
+  | { kind: "real"; date: string; flow: F }
+  | { kind: "planned"; date: string; item: PlannedItemOccurrences; occurrence: ResolvedOccurrence }
+  | { kind: "simulated"; date: string; flow: F };
+
+// Same-day order (DOMAIN, D5): real flows, planned occurrences, then simulated flows.
+const EVENT_RANK: Readonly<Record<ProjectionEvent["kind"], number>> = {
+  real: 0,
+  planned: 1,
+  simulated: 2,
+};
 
 // ISO dates sort as plain strings.
 function compareIsoDates(a: string, b: string): number {
@@ -171,29 +216,43 @@ function compareIsoDates(a: string, b: string): number {
 
 function compareEvents(a: ProjectionEvent, b: ProjectionEvent): number {
   if (a.date !== b.date) return compareIsoDates(a.date, b.date);
-  if (a.kind !== b.kind) return a.kind === "real" ? -1 : 1;
-  if (a.kind === "real" || b.kind === "real") return 0;
+  if (a.kind !== b.kind) return EVENT_RANK[a.kind] - EVENT_RANK[b.kind];
+  if (a.kind !== "planned" || b.kind !== "planned") return 0;
   if (a.item.plannedItemId !== b.item.plannedItemId)
     return a.item.plannedItemId - b.item.plannedItemId;
   return compareIsoDates(a.occurrence.nominalDate, b.occurrence.nominalDate);
 }
 
-function buildEvents(
-  realFlows: readonly ProjectionFlow[],
+/**
+ * The events of a projection in the order `projectWithRouting` applies them, so that a caller can
+ * list what was applied without restating that order.
+ */
+export function orderedEvents<F extends ProjectionFlow>(
+  realFlows: readonly F[],
   items: readonly PlannedItemOccurrences[],
   today: string,
-): ProjectionEvent[] {
-  const real = realFlows.map((flow): ProjectionEvent => ({ kind: "real", date: flow.date, flow }));
+  simulatedFlows: readonly F[] = [],
+): ProjectionEvent<F>[] {
+  const real = realFlows.map((flow): ProjectionEvent<F> => ({
+    kind: "real",
+    date: flow.date,
+    flow,
+  }));
   const planned = items.flatMap((item) =>
-    projectedOccurrences(item).map((occurrence): ProjectionEvent => ({
+    projectedOccurrences(item).map((occurrence): ProjectionEvent<F> => ({
       kind: "planned",
       date: effectiveDate(occurrence, today),
       item,
       occurrence,
     })),
   );
-  // Array.prototype.sort is stable: real flows of the same day keep their input order.
-  return [...real, ...planned].sort(compareEvents);
+  const simulated = simulatedFlows.map((flow): ProjectionEvent<F> => ({
+    kind: "simulated",
+    date: flow.date,
+    flow,
+  }));
+  // Array.prototype.sort is stable: real and simulated flows of the same day keep their input order.
+  return [...real, ...planned, ...simulated].sort(compareEvents);
 }
 
 // An account missing from the list belongs to another currency or scope, so its flows are the caller's concern.
@@ -203,14 +262,25 @@ function addToTotal(totals: Map<number, number>, accountId: number, amount: numb
   totals.set(accountId, total + amount);
 }
 
+/**
+ * Moves `moved` from the source along the overflow chain of the destination, from the running
+ * balances: the one router of planned and simulated transfers (ADR-013). Null when the destination
+ * is outside the accounts: the source is debited in full and nothing is routed.
+ */
 function routeTransfer(
   accounts: readonly ProjectionAccount[],
   totals: Map<number, number>,
-  event: Extract<ProjectionEvent, { kind: "planned" }>,
+  sourceAccountId: number,
   destinationId: number,
-): PlannedTransferRouting["routing"] {
-  const { item, occurrence } = event;
-  const moved = Math.abs(occurrence.remaining);
+  moved: number,
+): PlannedTransferRouting["routing"] | null {
+  if (!Number.isSafeInteger(moved) || moved < 0) {
+    throw new RangeError("The amount of a transfer must be a non-negative integer");
+  }
+  if (!accounts.some((account) => account.id === destinationId)) {
+    addToTotal(totals, sourceAccountId, -moved);
+    return null;
+  }
   const problem = overflowChainProblem(destinationId, accounts);
   if (problem !== null) return { status: "invalid", reason: problem };
 
@@ -224,7 +294,7 @@ function routeTransfer(
   // The unplaced part never leaves the source account.
   addToTotal(
     totals,
-    item.accountId,
+    sourceAccountId,
     -routing.placements.reduce((sum, { amount }) => sum + amount, 0),
   );
   for (const { accountId, amount } of routing.placements) addToTotal(totals, accountId, amount);
@@ -241,22 +311,35 @@ function applyPlanned(
     addToTotal(totals, item.accountId, occurrence.remaining);
     return null;
   }
-  if (!Number.isSafeInteger(occurrence.remaining)) {
-    throw new RangeError("The amount of a planned transfer must be an integer");
-  }
-  const destinationId = transferDestination(item);
-  if (!accounts.some((account) => account.id === destinationId)) {
-    addToTotal(totals, item.accountId, -Math.abs(occurrence.remaining));
-    return null;
-  }
-  const routing = routeTransfer(accounts, totals, event, destinationId);
+  const moved = Math.abs(occurrence.remaining);
+  const routing = routeTransfer(accounts, totals, item.accountId, transferDestination(item), moved);
+  if (routing === null) return null;
   return {
     plannedItemId: item.plannedItemId,
     nominalDate: occurrence.nominalDate,
     date,
-    amount: Math.abs(occurrence.remaining),
+    amount: moved,
     routing,
   };
+}
+
+function applySteps(
+  accounts: readonly ProjectionAccount[],
+  totals: Map<number, number>,
+  steps: BalanceAwareSteps,
+  date: string,
+): SimulatedTransferRouting[] {
+  const routings: SimulatedTransferRouting[] = [];
+  for (const transfer of steps.transfersOn(date, snapshotDay(accounts, totals, date).balances)) {
+    const { sourceAccountId, destinationAccountId, amount, source } = transfer;
+    const routing = routeTransfer(accounts, totals, sourceAccountId, destinationAccountId, amount);
+    if (routing !== null) routings.push({ source, date, amount, routing });
+  }
+  // Credits are not routed: interest may leave a balance above its ceiling.
+  for (const flow of steps.creditsOn(date, snapshotDay(accounts, totals, date).balances)) {
+    addToTotal(totals, flow.accountId, flow.amount);
+  }
+  return routings;
 }
 
 /**
@@ -265,6 +348,10 @@ function applyPlanned(
  * reached on its day (DOMAIN, deposit ceiling and overflow). Events are applied in one
  * global order, by real effective date; only the output days are bucketed on the range.
  * Events after `range.to` are not applied, so their transfers are not recorded.
+ *
+ * A simulation adds its future flows after the planned occurrences of their day, then
+ * the balance-aware steps of each day of the range (DOMAIN, D5). Without it, nothing
+ * estimated or simulated is applied (ADR-011).
  */
 export function projectWithRouting(
   accounts: readonly ProjectionAccount[],
@@ -272,26 +359,34 @@ export function projectWithRouting(
   items: readonly PlannedItemOccurrences[],
   today: string,
   range: DateRange,
-): { days: DailyBalance[]; transfers: PlannedTransferRouting[] } {
-  const events = buildEvents(realFlows, items, today);
+  simulation: ProjectionSimulation = {},
+): {
+  days: DailyBalance[];
+  transfers: PlannedTransferRouting[];
+  simulatedTransfers: SimulatedTransferRouting[];
+} {
+  const { simulatedFlows = [], steps } = simulation;
+  const events = orderedEvents(realFlows, items, today, simulatedFlows);
   const totals = new Map<number, number>(accounts.map((account) => [account.id, 0]));
   const days: DailyBalance[] = [];
   const transfers: PlannedTransferRouting[] = [];
+  const simulatedTransfers: SimulatedTransferRouting[] = [];
 
   let next = 0;
   for (let date = range.from; date <= range.to; date = addDays(date, 1)) {
     for (; next < events.length && events[next]!.date <= date; next += 1) {
       const event = events[next]!;
-      if (event.kind === "real") {
+      if (event.kind !== "planned") {
         addToTotal(totals, event.flow.accountId, event.flow.amount);
         continue;
       }
       const transfer = applyPlanned(accounts, totals, event);
       if (transfer !== null) transfers.push(transfer);
     }
+    if (steps !== undefined) simulatedTransfers.push(...applySteps(accounts, totals, steps, date));
     days.push(snapshotDay(accounts, totals, date));
   }
-  return { days, transfers };
+  return { days, transfers, simulatedTransfers };
 }
 
 export function firstDayBelowZero(
