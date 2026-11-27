@@ -106,6 +106,26 @@ describe("loanSchedule", () => {
     expect(dates).toEqual(["2027-02-28", "2027-03-31", "2027-04-30"]);
   });
 
+  it("payments in the last supported year are kept", () => {
+    const dates = loanSchedule(60000, 6, 0, "9999-06-15").map((payment) => payment.date);
+
+    expect(dates).toEqual([
+      "9999-07-15",
+      "9999-08-15",
+      "9999-09-15",
+      "9999-10-15",
+      "9999-11-15",
+      "9999-12-15",
+    ]);
+  });
+
+  it("a schedule cut by the last supported date still closes the principal on its last payment", () => {
+    const schedule = loanSchedule(90000, 3, 500, "9999-11-15");
+
+    expect(schedule.map((payment) => payment.date)).toEqual(["9999-12-15"]);
+    expect(schedule[0]?.principal).toBe(90000);
+  });
+
   it("the first payment comes the month after the date received", () => {
     const dates = loanSchedule(20000, 2, 500, "2027-12-05").map((payment) => payment.date);
 
