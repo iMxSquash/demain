@@ -7,7 +7,7 @@ import type { AccountKind } from "./account";
 import { daysInMonth, parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
 import { divideRoundBig } from "./money";
-import { parseModificationParameters } from "./modification-parameters";
+import { MAX_LIFE_EVENT_CHILDREN, parseModificationParameters } from "./modification-parameters";
 import { provisionRemaining, type ResolvedOccurrence } from "./occurrence-resolution";
 import type {
   BalanceAwareSteps,
@@ -124,6 +124,13 @@ export interface CategoryBudgetChange extends ModificationBase {
   };
 }
 
+/** Groups 1 to 20 modifications of types 1 to 7, applied at its place in their own order (D5). */
+export interface LifeEvent extends ModificationBase {
+  type: "life_event";
+  parameters: Record<string, never>;
+  children: readonly ChildModification[];
+}
+
 /** Each type issue adds its interface to this union. */
 export type Modification =
   | OneOffPurchase
@@ -132,7 +139,11 @@ export type Modification =
   | IncomeChange
   | SavingsGoal
   | InterestProjection
-  | CategoryBudgetChange;
+  | CategoryBudgetChange
+  | LifeEvent;
+
+/** A life event never contains another one. */
+export type ChildModification = Exclude<Modification, LifeEvent>;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -176,7 +187,7 @@ interface References {
   plannedItemIds: readonly number[];
 }
 
-interface ModificationTransform<M extends Modification> {
+interface ModificationTransform<M extends ChildModification> {
   /** The context lets a modification on an existing item refer to the account of that item. */
   references(modification: M, context: ModificationContext): References;
   /** The new state, or the reason the modification cannot apply. */
@@ -501,8 +512,11 @@ function interestProjectionProblem(
   return null;
 }
 
-/** One entry per type of the union: adding a type adds one entry and touches no other branch. */
-const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> } = {
+/**
+ * One entry per type of the union: adding a type adds one entry and touches no other branch. A
+ * life event has none: it is expanded before, so a stored child of that type is refused.
+ */
+const TRANSFORMS: { [M in ChildModification as M["type"]]: ModificationTransform<M> } = {
   one_off_purchase: {
     references: ({ parameters: { accountId, categoryId } }) => ({
       accountIds: [accountId],
@@ -548,10 +562,10 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
   },
 };
 
-function transformOf(type: string): ModificationTransform<Modification> | undefined {
+function transformOf(type: string): ModificationTransform<ChildModification> | undefined {
   if (!Object.hasOwn(TRANSFORMS, type)) return undefined;
   // The mapped table pairs each type with the transform of that type.
-  return TRANSFORMS[type as Modification["type"]] as ModificationTransform<Modification>;
+  return TRANSFORMS[type as ChildModification["type"]] as ModificationTransform<ChildModification>;
 }
 
 function referenceProblem(
@@ -575,11 +589,38 @@ function byPositionThenId(a: Modification, b: Modification): number {
   return a.position - b.position || a.id - b.id;
 }
 
+// Stored rows are not trusted: the children may be missing or too many.
+function isValidLifeEvent({ parameters, children }: LifeEvent): boolean {
+  return (
+    parseModificationParameters("life_event", parameters).ok &&
+    Array.isArray(children) &&
+    children.length >= 1 &&
+    children.length <= MAX_LIFE_EVENT_CHILDREN
+  );
+}
+
+/**
+ * The modifications in the order they apply (D5): by position, then id, each life event replaced
+ * by its children by their own position, then id. An invalid life event is reported in `problems`
+ * and none of its children applies.
+ */
+function inApplicationOrder(
+  modifications: readonly Modification[],
+  problems: ModificationProblem[],
+): ChildModification[] {
+  return [...modifications].sort(byPositionThenId).flatMap((modification) => {
+    if (modification.type !== "life_event") return [modification];
+    if (isValidLifeEvent(modification)) return [...modification.children].sort(byPositionThenId);
+    problems.push({ modificationId: modification.id, reason: "parametersInvalid" });
+    return [];
+  });
+}
+
 /** The transform of a modification whose parameters and references pass, or the reason they do not. */
 function checkedTransform(
-  modification: Modification,
+  modification: ChildModification,
   context: ModificationContext,
-): ModificationTransform<Modification> | ModificationProblemReason {
+): ModificationTransform<ChildModification> | ModificationProblemReason {
   const transform = transformOf(modification.type);
   if (
     transform === undefined ||
@@ -590,19 +631,20 @@ function checkedTransform(
 }
 
 /**
- * Stage A (D5): applies the modifications by position, then id. Each one has its parameters
- * checked against the schema of its type, then its references, then its own transformation.
- * `applied` lists the valid modifications in that order, savings goals included.
+ * Stage A (D5): applies the modifications by position, then id, a life event expanded in place.
+ * Each one has its parameters checked against the schema of its type, then its references, then
+ * its own transformation. `applied` lists the valid modifications in that order, savings goals
+ * included, the children of a life event in place of it.
  */
 export function applyFlowModifications(
   state: StageAState,
   modifications: readonly Modification[],
   context: ModificationContext,
-): StageAState & { problems: ModificationProblem[]; applied: Modification[] } {
+): StageAState & { problems: ModificationProblem[]; applied: ChildModification[] } {
   const problems: ModificationProblem[] = [];
-  const applied: Modification[] = [];
+  const applied: ChildModification[] = [];
   let current = state;
-  for (const modification of [...modifications].sort(byPositionThenId)) {
+  for (const modification of inApplicationOrder(modifications, problems)) {
     const transform = checkedTransform(modification, context);
     const outcome =
       typeof transform === "string" ? transform : transform.apply(current, modification, context);
@@ -679,6 +721,8 @@ function interestCredit(
  * in target mode is skipped: `evaluateScenario` hands it over in monthly mode once resolved (D8).
  * Then the interest projections, credited last on their day and never routed (D9).
  *
+ * The modifications come in the order they apply, as `applied` of stage A lists them: sorting
+ * them again by position would mix the children of a life event with the other modifications.
  * The result holds the interest accrued so far: it serves one projection, which asks for each day
  * of the range once, in order.
  */
@@ -688,7 +732,7 @@ export function balanceAwareSteps(
 ): BalanceAwareSteps {
   const transfersByDate = new Map<string, SimulatedTransfer[]>();
   const accruals: InterestAccrual[] = [];
-  for (const modification of [...modifications].sort(byPositionThenId)) {
+  for (const modification of modifications) {
     if (
       modification.type === "interest_projection" &&
       typeof checkedTransform(modification, context) !== "string" &&

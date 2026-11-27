@@ -317,7 +317,7 @@ export function evaluateScenario(
   const horizonState =
     horizonEnd === range.to
       ? stageA
-      : withinInputEstimates(initial, appliedModifications, until(horizonEnd), range.to);
+      : withinInputEstimates(initial, modifications, until(horizonEnd), range.to);
   const resolutions = resolveTargetGoals(appliedModifications, accounts, (stepped, targetDate) =>
     project(until(targetDate), horizonState, stepped).days.at(-1),
   );

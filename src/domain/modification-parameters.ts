@@ -8,6 +8,7 @@ import type {
   CategoryBudgetChange,
   IncomeChange,
   InterestProjection,
+  LifeEvent,
   Loan,
   ModificationType,
   OneOffPurchase,
@@ -20,6 +21,7 @@ const MAX_LOAN_MONTHS = 600;
 const MAX_RATE_BP = 10000;
 const MIN_BUDGET_CHANGE_BP = -10000;
 const MAX_BUDGET_CHANGE_BP = 100000;
+export const MAX_LIFE_EVENT_CHILDREN = 20;
 // At the highest rate, a month of interest is a twelfth of what remains: the principal plus that
 // interest must stay a safe integer.
 const MAX_LOAN_PRINCIPAL = Math.floor((Number.MAX_SAFE_INTEGER / 13) * 12);
@@ -124,6 +126,9 @@ export const categoryBudgetChangeParameters = z.strictObject({
   ]),
 }) satisfies z.ZodType<CategoryBudgetChange["parameters"]>;
 
+/** A life event carries nothing but its label and its children. */
+export const lifeEventParameters = z.strictObject({}) satisfies z.ZodType<LifeEvent["parameters"]>;
+
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
 const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ModificationType,
@@ -136,6 +141,7 @@ const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ["savings_goal", savingsGoalParameters],
   ["interest_projection", interestProjectionParameters],
   ["category_budget_change", categoryBudgetChangeParameters],
+  ["life_event", lifeEventParameters],
 ]);
 
 export function parseModificationParameters(

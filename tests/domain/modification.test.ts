@@ -3,10 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   applyFlowModifications,
   type CategoryBudgetChange,
+  type ChildModification,
   type IncomeChange,
+  type LifeEvent,
   type Loan,
+  type Modification,
   type ModificationContext,
+  type ModificationType,
   type OneOffPurchase,
+  type SavingsGoal,
   type SubscriptionChange,
 } from "../../src/domain/modification";
 import {
@@ -1289,6 +1294,241 @@ describe("category budget change", () => {
   });
 });
 
+describe("life event", () => {
+  const JANUARY = "2027-01";
+
+  function lifeEvent(
+    children: readonly ChildModification[],
+    overrides: Partial<Omit<LifeEvent, "children">> = {},
+  ): LifeEvent {
+    return {
+      id: 100,
+      position: 0,
+      label: "Moving out",
+      type: "life_event",
+      parameters: {},
+      children,
+      ...overrides,
+    };
+  }
+
+  function groceries(
+    id: number,
+    position: number,
+    change: CategoryBudgetChange["parameters"]["change"],
+  ): CategoryBudgetChange {
+    return {
+      id,
+      position,
+      label: "Groceries",
+      type: "category_budget_change",
+      parameters: { accountId: CHECKING, categoryId: GROCERIES, startMonth: JANUARY, change },
+    };
+  }
+
+  const half = { kind: "percent", basisPoints: -5000 } as const;
+  /** 31000 over the 31 days of January: 1000 a day. */
+  const thousandADay = { kind: "amount", monthlyAmount: 31000 } as const;
+
+  function januaryGroceries(result: SimulationResult): number[] {
+    return result.flows
+      .filter(
+        (flow) =>
+          flow.source.kind === "estimate" &&
+          flow.categoryId === GROCERIES &&
+          flow.date.startsWith(JANUARY),
+      )
+      .map((flow) => flow.amount);
+  }
+
+  function contextOf(simulation: SimulationInput): ModificationContext {
+    return {
+      ...simulation,
+      categoryIds: simulation.categoryIds ?? new Set(),
+      accountKinds: simulation.accountKinds ?? new Map(),
+      estimates: simulation.estimateInputs ?? { lines: [], transactions: [] },
+    };
+  }
+
+  function stageA(modifications: readonly Modification[]) {
+    const context = contextOf(input());
+    return applyFlowModifications({ items: [], flows: [] }, modifications, context);
+  }
+
+  it("a life event applies a one-off purchase and a category budget change at its position", () => {
+    const result = evaluateScenario(input(), [
+      lifeEvent([purchase({ id: 11, position: 0 }), groceries(12, 1, half)]),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(modificationFlows(result)).toEqual([
+      expect.objectContaining({
+        amount: -50000,
+        source: { kind: "modification", modificationId: 11 },
+      }),
+    ]);
+    expect(januaryGroceries(result)).toEqual([-1500]);
+  });
+
+  it("children apply in their own order", () => {
+    // Neither the list order nor the ids follow the positions: the new amount applies first, then
+    // the percentage halves it.
+    const result = evaluateScenario(input(), [
+      lifeEvent([groceries(21, 1, half), groceries(22, 0, thousandADay)]),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(januaryGroceries(result)).toEqual(Array.from({ length: 31 }, () => -500));
+  });
+
+  it("a modification after the life event sees its flows", () => {
+    const result = evaluateScenario(input(), [
+      groceries(42, 2, half),
+      lifeEvent([groceries(41, 0, thousandADay)], { id: 40, position: 1 }),
+      groceries(43, 0, { kind: "amount", monthlyAmount: 62000 }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(januaryGroceries(result)).toEqual(Array.from({ length: 31 }, () => -500));
+  });
+
+  it("the target search past the range keeps the children in place", () => {
+    const savingsLine = (id: number, position: number, monthlyAmount: number) => {
+      const change = groceries(id, position, { kind: "amount", monthlyAmount });
+      return {
+        ...change,
+        parameters: { ...change.parameters, accountId: SAVINGS, categoryId: null },
+      };
+    };
+    const goal: SavingsGoal = {
+      id: 50,
+      position: 2,
+      label: "Deposit",
+      type: "savings_goal",
+      parameters: {
+        sourceAccountId: CHECKING,
+        savingsAccountId: SAVINGS,
+        firstTransferDate: "2027-01-05",
+        mode: { kind: "target", targetAmount: 100000, targetDate: "2027-03-31" },
+      },
+    };
+    const goalInput = input({
+      accounts: [account(), account({ id: SAVINGS, openingBalance: 0 })],
+      accountKinds: new Map([[SAVINGS, "savings"]]),
+      estimates: [],
+    });
+
+    // The child replaces the line set at position 0: 31000 leaves the account in January, so 3
+    // transfers of ceil(131000 / 3) reach the target.
+    const result = evaluateScenario(goalInput, [
+      savingsLine(43, 0, 62000),
+      lifeEvent([savingsLine(41, 0, 31000)], { id: 40, position: 1 }),
+      goal,
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(result.goals.map(({ monthlyAmount }) => monthlyAmount)).toEqual([43667]);
+  });
+
+  it("a savings goal child is routed in stage B with the parent's position", () => {
+    const goalInput = input({
+      accounts: [account(), account({ id: SAVINGS, openingBalance: 0, ceiling: 10000 })],
+      accountKinds: new Map([[SAVINGS, "savings"]]),
+    });
+    const goal = (id: number, position: number): SavingsGoal => ({
+      id,
+      position,
+      label: "Rainy day",
+      type: "savings_goal",
+      parameters: {
+        sourceAccountId: CHECKING,
+        savingsAccountId: SAVINGS,
+        firstTransferDate: "2027-01-05",
+        mode: { kind: "monthly", amount: 10000, endDate: null },
+      },
+    });
+    // The child sorts before the top-level goal by its own position and its id: only the position
+    // of its parent puts it after, where the ceiling is already reached.
+    const result = evaluateScenario(goalInput, [
+      lifeEvent([goal(51, 0)], { id: 70, position: 2 }),
+      goal(60, 1),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(
+      result.goals.map(({ modificationId, unplacedTotal }) => [modificationId, unplacedTotal]),
+    ).toEqual([
+      [60, 0],
+      [51, 10000],
+    ]);
+  });
+
+  it("an invalid child is reported with its id and its siblings still apply", () => {
+    const result = evaluateScenario(input(), [
+      lifeEvent([
+        purchase({ id: 81, position: 0 }, { categoryId: MISSING_CATEGORY }),
+        purchase({ id: 82, position: 1 }),
+      ]),
+    ]);
+
+    expect(result.problems).toEqual([{ modificationId: 81, reason: "categoryMissing" }]);
+    expect(modificationFlows(result).map((flow) => flow.source)).toEqual([
+      { kind: "modification", modificationId: 82 },
+    ]);
+  });
+
+  it("a life event without children is invalid", () => {
+    const { problems, applied } = stageA([lifeEvent([], { id: 90 })]);
+
+    expect(problems).toEqual([{ modificationId: 90, reason: "parametersInvalid" }]);
+    expect(applied).toEqual([]);
+  });
+
+  it("applied lists the valid children flat in effective order, never the parent", () => {
+    // At an equal position, the parent and a top-level modification are ordered by id.
+    const { applied } = stageA([
+      purchase({ id: 3, position: 2 }),
+      purchase({ id: 4, position: 1 }),
+      lifeEvent([purchase({ id: 12, position: 1 }), purchase({ id: 11, position: 0 })], {
+        id: 2,
+        position: 1,
+      }),
+      purchase({ id: 1, position: 0 }),
+    ]);
+
+    expect(applied.map(({ id }) => id)).toEqual([1, 11, 12, 4, 3]);
+  });
+
+  it("a parent with 21 children or other parameters is refused as a whole", () => {
+    const children = Array.from({ length: 21 }, (_, index) =>
+      purchase({ id: 200 + index, position: index }),
+    );
+    const stored = [
+      lifeEvent(children, { id: 91 }),
+      { ...lifeEvent([purchase({ id: 300 })], { id: 92, position: 1 }), parameters: { note: "x" } },
+    ] as unknown as Modification[];
+
+    const { problems, applied, flows } = stageA(stored);
+
+    expect(problems).toEqual([
+      { modificationId: 91, reason: "parametersInvalid" },
+      { modificationId: 92, reason: "parametersInvalid" },
+    ]);
+    expect(applied).toEqual([]);
+    expect(flows).toEqual([]);
+    expect(stageA([lifeEvent(children.slice(0, 20))]).applied).toHaveLength(20);
+  });
+
+  it("a stored child of type life_event is reported with its own id and its siblings apply", () => {
+    const nested = lifeEvent([purchase({ id: 31 })], { id: 30 }) as unknown as ChildModification;
+
+    const { problems, applied } = stageA([lifeEvent([nested, purchase({ id: 32, position: 1 })])]);
+
+    expect(problems).toEqual([{ modificationId: 30, reason: "parametersInvalid" }]);
+    expect(applied.map(({ id }) => id)).toEqual([32]);
+  });
+});
+
 describe("parseModificationParameters", () => {
   const valid = { accountId: CHECKING, date: PURCHASE_DAY, amount: 50000, categoryId: null };
 
@@ -1312,8 +1552,8 @@ describe("parseModificationParameters", () => {
     }
   });
 
-  it("a type without a schema yet is refused as parametersInvalid", () => {
-    expect(parseModificationParameters("life_event", valid)).toEqual({
+  it("an unknown type is refused as parametersInvalid", () => {
+    expect(parseModificationParameters("constructor" as ModificationType, valid)).toEqual({
       ok: false,
       reason: "parametersInvalid",
     });
