@@ -1547,7 +1547,15 @@
     "occurrenceReceivedAboveCeiling": "{name} marked as received. Warning: it exceeds the deposit ceiling of the account by {excess}.",
     "horizonInvalid": "Choose a horizon of 6, 12 or 24 months, or an end date from {min} to {max}",
     "comparisonSize": "Compare 1 to 3 draft scenarios with the constant-pace simulation",
-    "scenarioValidated": "A validated scenario cannot be compared: its effects are already real"
+    "scenarioValidated": "A validated scenario cannot be changed or compared: its effects are already real",
+    "scenarioMissing": "The scenario does not exist",
+    "scenarioNameInvalid": "A scenario name has 1 to 80 characters",
+    "modificationMissing": "The modification does not exist",
+    "modificationLabelInvalid": "A modification name has 1 to 80 characters",
+    "modificationParametersInvalid": "The values of this modification are not valid",
+    "modificationParentNotLifeEvent": "Only a life event can contain other modifications",
+    "lifeEventNested": "A life event cannot contain another life event",
+    "lifeEventFull": "A life event holds {max} modifications at most"
   },
   "auth": {
     "signOut": "Sign out",
