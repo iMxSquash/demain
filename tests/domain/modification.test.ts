@@ -569,18 +569,17 @@ describe("income change", () => {
     );
   }
 
-  function changedOccurrences(occurrences: ResolvedOccurrence[], modification: IncomeChange) {
+  function changedOccurrences(
+    occurrences: ResolvedOccurrence[],
+    ...modifications: IncomeChange[]
+  ): readonly ResolvedOccurrence[] {
     const context: ModificationContext = {
-      accounts: [account()],
-      items: [salaryItem(occurrences)],
-      itemCategories: new Map([[SALARY_ITEM, null]]),
+      ...salaryInput({ items: [salaryItem(occurrences)] }),
       categoryIds: new Set([GROCERIES, LEISURE]),
-      today: TODAY,
-      range: HORIZON,
     };
     const { items, problems } = applyFlowModifications(
       { items: [...context.items], flows: [] },
-      [modification],
+      modifications,
       context,
     );
     expect(problems).toEqual([]);
@@ -660,13 +659,12 @@ describe("income change", () => {
   });
 
   it("an end on a new income is refused by the schema", () => {
-    const newTarget = { kind: "new", accountId: CHECKING, categoryId: null };
-    const existing = { kind: "existing", plannedItemId: SALARY_ITEM };
-    const amount = { kind: "amount", amount: 260000 };
+    const newTarget = { kind: "new", accountId: CHECKING, categoryId: null } as const;
+    const valid = incomeChange().parameters;
     for (const value of [
-      { target: existing, change: amount, effectiveDate: "2027-03-01" },
-      { target: existing, change: { kind: "end" }, effectiveDate: "2027-03-01" },
-      { target: newTarget, change: amount, effectiveDate: "2027-03-01" },
+      valid,
+      { ...valid, change: { kind: "end" } },
+      { ...valid, target: newTarget },
     ]) {
       expect(parseModificationParameters("income_change", value)).toEqual({
         ok: true,
@@ -674,35 +672,37 @@ describe("income change", () => {
       });
     }
     for (const value of [
-      { target: newTarget, change: { kind: "end" }, effectiveDate: "2027-03-01" },
-      { target: existing, change: { kind: "amount", amount: 0 }, effectiveDate: "2027-03-01" },
-      { target: existing, change: { kind: "amount", amount: 2600.5 }, effectiveDate: "2027-03-01" },
-      { target: existing, change: { kind: "amount" }, effectiveDate: "2027-03-01" },
-      { target: existing, change: { kind: "end", amount: 1 }, effectiveDate: "2027-03-01" },
-      { target: existing, change: amount, effectiveDate: "2027-02-30" },
-      { target: existing, change: amount, effectiveDate: "2027-03-01", note: "raise" },
+      { ...valid, target: newTarget, change: { kind: "end" } },
+      { ...valid, change: { kind: "amount", amount: 0 } },
+      { ...valid, change: { kind: "amount", amount: 2600.5 } },
+      { ...valid, change: { kind: "amount" } },
+      { ...valid, change: { kind: "end", amount: 1 } },
+      { ...valid, effectiveDate: "2027-02-30" },
+      { ...valid, note: "raise" },
     ]) {
       expect(parseModificationParameters("income_change", value)).toEqual({
         ok: false,
         reason: "parametersInvalid",
       });
     }
-    const stored = incomeChange(
-      {},
-      { target: { kind: "new", accountId: CHECKING, categoryId: null } },
-    );
-    const ended = { ...stored, parameters: { ...stored.parameters, change: { kind: "end" } } };
-    expect(evaluateScenario(salaryInput(), [ended as IncomeChange]).problems).toEqual([
+    const ended = incomeChange({}, { target: newTarget, change: { kind: "end" } });
+    expect(evaluateScenario(salaryInput(), [ended]).problems).toEqual([
       { modificationId: 1, reason: "parametersInvalid" },
     ]);
   });
 
   it("a target of kind expense is refused as plannedItemKind", () => {
+    const expense = { kind: "existing", plannedItemId: STREAMING_ITEM } as const;
     const result = evaluateScenario(salaryInput(), [
-      incomeChange({}, { target: { kind: "existing", plannedItemId: STREAMING_ITEM } }),
+      incomeChange({ id: 1 }, { target: expense }),
+      // The kind is checked before the date.
+      incomeChange({ id: 2, position: 1 }, { target: expense, effectiveDate: TODAY }),
     ]);
 
-    expect(result.problems).toEqual([{ modificationId: 1, reason: "plannedItemKind" }]);
+    expect(result.problems).toEqual([
+      { modificationId: 1, reason: "plannedItemKind" },
+      { modificationId: 2, reason: "plannedItemKind" },
+    ]);
     expect(itemFlowDates(result)).toEqual(streamingDates());
     expect(salaryFlows(result)).toEqual(salaryDates().map((date) => [date, SALARY_AMOUNT]));
   });
@@ -728,6 +728,32 @@ describe("income change", () => {
     );
     expect(salaryFlows(result)).toEqual(salaryDates().map((date) => [date, SALARY_AMOUNT]));
     expect(modificationFlows(result)).toEqual([]);
+  });
+
+  it("the nominal date decides, not the date shown after an override", () => {
+    // Nominally before the effective date but shown after it, and the other way round.
+    const occurrences = [
+      salaryOccurrence("2027-02-28", { date: "2027-03-02" }),
+      salaryOccurrence("2027-03-28", { date: "2027-02-27" }),
+    ];
+
+    expect(
+      changedOccurrences(occurrences, incomeChange()).map((occurrence) => occurrence.remaining),
+    ).toEqual([SALARY_AMOUNT, 260000]);
+    expect(
+      changedOccurrences(occurrences, incomeChange({}, { change: { kind: "end" } })).map(
+        (occurrence) => occurrence.nominalDate,
+      ),
+    ).toEqual(["2027-02-28"]);
+  });
+
+  it("a planned occurrence whose estimate was 0 takes the new amount", () => {
+    const [changed] = changedOccurrences(
+      [salaryOccurrence("2027-03-28", { expectedAmount: 0, remaining: 0 })],
+      incomeChange(),
+    );
+
+    expect([changed?.expectedAmount, changed?.remaining]).toEqual([260000, 260000]);
   });
 
   it("a settled occurrence keeps 0 remaining", () => {
@@ -768,8 +794,19 @@ describe("income change", () => {
       incomeChange({}, { change: { kind: "amount", amount: 150000 } }),
     );
 
+    // A link of the opposite sign does not add to what is still expected.
+    const [reversed] = changedOccurrences([partial(-20000)], incomeChange());
+    // A second change still sees the partial occurrence, lowered to 0 remaining by the first.
+    const [raisedAgain] = changedOccurrences(
+      [partial(200000)],
+      incomeChange({ id: 1 }, { change: { kind: "amount", amount: 150000 } }),
+      incomeChange({ id: 2, position: 1 }, { effectiveDate: "2027-03-15" }),
+    );
+
     expect([raised?.expectedAmount, raised?.remaining]).toEqual([260000, 160000]);
     expect([lowered?.expectedAmount, lowered?.remaining]).toEqual([150000, 0]);
+    expect([reversed?.expectedAmount, reversed?.remaining]).toEqual([260000, 260000]);
+    expect([raisedAgain?.expectedAmount, raisedAgain?.remaining]).toEqual([260000, 60000]);
   });
 });
 

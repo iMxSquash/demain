@@ -236,16 +236,32 @@ function subscriptionChange(
   return { items, flows: [...state.flows, ...added] };
 }
 
-// What is already received stays received: a settled occurrence keeps nothing expected, and a
-// partial one only what its linked sum leaves of the new amount (owner, 27 Nov 2026, #224).
+// What is already received stays received (owner, 27 Nov 2026, #224): a partial occurrence keeps
+// what its linked sum leaves of the new amount, and a closed one with nothing left (settled, or a
+// provision whose period has passed) keeps 0. The status comes first: an open occurrence can have
+// 0 remaining after an earlier change or a zero estimate.
+function incomeRemaining(occurrence: ResolvedOccurrence, amount: number): number {
+  if (occurrence.status === "planned") return amount;
+  if (occurrence.status === "partial") return provisionRemaining(amount, occurrence.linkedSum);
+  return occurrence.remaining === 0 ? 0 : amount;
+}
+
 function withIncomeAmount(occurrence: ResolvedOccurrence, amount: number): ResolvedOccurrence {
-  const remaining =
-    occurrence.remaining === 0
-      ? 0
-      : occurrence.status === "partial"
-        ? provisionRemaining(amount, occurrence.linkedSum)
-        : amount;
+  const remaining = incomeRemaining(occurrence, amount);
   return { ...occurrence, expectedAmount: amount, remaining };
+}
+
+function newIncomeFlows(
+  modificationId: number,
+  { accountId, categoryId }: { accountId: number; categoryId: number | null },
+  amount: number,
+  effectiveDate: string,
+  range: DateRange,
+): SimulatedFlow[] {
+  const repetition: Repetition = { kind: "monthly_on_day", day: parseDate(effectiveDate).day };
+  return nominalDates(repetition, effectiveDate, range).map((date) =>
+    modificationFlow(modificationId, { accountId, date, amount, categoryId }),
+  );
 }
 
 // Only the occurrences of the planned item change: the flows already added are left alone (D2).
@@ -262,15 +278,7 @@ function incomeChange(
   if (target.kind === "new") {
     // The schema refuses an end on a new income.
     if (change.kind === "end") return "parametersInvalid";
-    const repetition: Repetition = { kind: "monthly_on_day", day: parseDate(effectiveDate).day };
-    const added = nominalDates(repetition, effectiveDate, context.range).map((date) =>
-      modificationFlow(id, {
-        accountId: target.accountId,
-        date,
-        amount: change.amount,
-        categoryId: target.categoryId,
-      }),
-    );
+    const added = newIncomeFlows(id, target, change.amount, effectiveDate, context.range);
     return { ...state, flows: [...state.flows, ...added] };
   }
 
