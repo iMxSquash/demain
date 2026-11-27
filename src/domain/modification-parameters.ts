@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 
-import type { ModificationType, OneOffPurchase } from "./modification";
+import type { ModificationType, OneOffPurchase, SubscriptionChange } from "./modification";
 
 const MAX_LABEL_LENGTH = 80;
 
@@ -19,9 +19,29 @@ export const oneOffPurchaseParameters = z.strictObject({
   categoryId: id.nullable(),
 }) satisfies z.ZodType<OneOffPurchase["parameters"]>;
 
+const subscriptionTarget = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("existing"), plannedItemId: id }),
+  z.strictObject({ kind: z.literal("new"), accountId: id, categoryId: id.nullable() }),
+]);
+
+// The amount is required with a rhythm and refused without one, even as an undefined key.
+export const subscriptionChangeParameters = z.discriminatedUnion("mode", [
+  z.strictObject({
+    target: subscriptionTarget,
+    mode: z.enum(["monthly", "yearly"]),
+    amount: z.int().positive(),
+    startDate: z.iso.date(),
+  }),
+  z.strictObject({ target: subscriptionTarget, mode: z.literal("none"), startDate: z.iso.date() }),
+]) satisfies z.ZodType<SubscriptionChange["parameters"]>;
+
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
-const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map([
+const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
+  ModificationType,
+  z.ZodType
+>([
   ["one_off_purchase", oneOffPurchaseParameters],
+  ["subscription_change", subscriptionChangeParameters],
 ]);
 
 export function parseModificationParameters(

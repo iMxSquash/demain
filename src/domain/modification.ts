@@ -3,9 +3,10 @@
 // modification is reported with its reason and adds nothing; it never throws. Pure: "today" and
 // the data are arguments.
 
+import { parseDate } from "./calendar-date";
 import { parseModificationParameters } from "./modification-parameters";
 import type { PlannedItemOccurrences, ProjectionAccount } from "./projection";
-import type { DateRange } from "./recurrence";
+import { nominalDates, type DateRange, type Repetition } from "./recurrence";
 import type { SimulatedFlow } from "./simulation";
 
 export const MODIFICATION_TYPES = [
@@ -32,8 +33,21 @@ export interface OneOffPurchase extends ModificationBase {
   parameters: { accountId: number; date: string; amount: number; categoryId: number | null };
 }
 
+export interface SubscriptionChange extends ModificationBase {
+  type: "subscription_change";
+  parameters: {
+    target:
+      | { kind: "existing"; plannedItemId: number }
+      | { kind: "new"; accountId: number; categoryId: number | null };
+    mode: "monthly" | "yearly" | "none";
+    /** Positive minor units; absent when mode is "none". */
+    amount?: number;
+    startDate: string;
+  };
+}
+
 /** Each type issue adds its interface to this union. */
-export type Modification = OneOffPurchase;
+export type Modification = OneOffPurchase | SubscriptionChange;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -73,7 +87,8 @@ interface References {
 }
 
 interface ModificationTransform<M extends Modification> {
-  references(modification: M): References;
+  /** The context lets a modification on an existing item refer to the account of that item. */
+  references(modification: M, context: ModificationContext): References;
   /** The new state, or the reason the modification cannot apply. */
   apply(
     state: StageAState,
@@ -102,6 +117,97 @@ function oneOffPurchase(
   return { ...state, flows: [...state.flows, flow] };
 }
 
+function plannedItemOf(
+  plannedItemId: number,
+  { items }: ModificationContext,
+): PlannedItemOccurrences | undefined {
+  return items.find((item) => item.plannedItemId === plannedItemId);
+}
+
+function subscriptionReferences(
+  { parameters: { target } }: SubscriptionChange,
+  context: ModificationContext,
+): References {
+  if (target.kind === "new") {
+    return {
+      accountIds: [target.accountId],
+      categoryIds: target.categoryId === null ? [] : [target.categoryId],
+      plannedItemIds: [],
+    };
+  }
+  const item = plannedItemOf(target.plannedItemId, context);
+  return {
+    accountIds: item === undefined ? [] : [item.accountId],
+    categoryIds: [],
+    plannedItemIds: [target.plannedItemId],
+  };
+}
+
+const SUBSCRIPTION_REPETITIONS: Record<
+  Exclude<SubscriptionChange["parameters"]["mode"], "none">,
+  (startDate: string) => Repetition
+> = {
+  monthly: (startDate) => ({ kind: "monthly_on_day", day: parseDate(startDate).day }),
+  yearly: () => ({ kind: "yearly" }),
+};
+
+/** Where the new flows go: the account and category of the target. */
+function subscriptionDestination(
+  target: SubscriptionChange["parameters"]["target"],
+  context: ModificationContext,
+): { accountId: number; categoryId: number | null } | ModificationProblemReason {
+  if (target.kind === "new") return target;
+  // Present: its reference was checked before.
+  const item = plannedItemOf(target.plannedItemId, context);
+  if (item?.kind !== "expense") return "plannedItemKind";
+  return {
+    accountId: item.accountId,
+    categoryId: context.itemCategories.get(item.plannedItemId) ?? null,
+  };
+}
+
+// Removes the occurrences of the planned item from the start date, by nominal date, then adds the
+// flows of the new rhythm. The flows already added, by an earlier change too, are left alone (D2).
+function subscriptionChange(
+  state: StageAState,
+  { id, parameters }: SubscriptionChange,
+  context: ModificationContext,
+): StageAState | ModificationProblemReason {
+  const { target, mode, amount, startDate } = parameters;
+  const destination = subscriptionDestination(target, context);
+  if (typeof destination === "string") return destination;
+  if (startDate <= context.today) return "dateNotAfterToday";
+
+  const items =
+    target.kind === "new"
+      ? state.items
+      : state.items.map((item) =>
+          item.plannedItemId === target.plannedItemId
+            ? {
+                ...item,
+                occurrences: item.occurrences.filter(
+                  (occurrence) => occurrence.nominalDate < startDate,
+                ),
+              }
+            : item,
+        );
+  if (mode === "none" || amount === undefined) return { ...state, items };
+
+  const added = nominalDates(
+    SUBSCRIPTION_REPETITIONS[mode](startDate),
+    startDate,
+    context.range,
+  ).map((date): SimulatedFlow => ({
+    accountId: destination.accountId,
+    date,
+    amount: -amount,
+    categoryId: destination.categoryId,
+    external: true,
+    source: { kind: "modification", modificationId: id },
+  }));
+  return { items, flows: [...state.flows, ...added] };
+}
+
 /** One entry per type of the union: adding a type adds one entry and touches no other branch. */
 const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> } = {
   one_off_purchase: {
@@ -112,6 +218,7 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     }),
     apply: oneOffPurchase,
   },
+  subscription_change: { references: subscriptionReferences, apply: subscriptionChange },
 };
 
 function transformOf(type: string): ModificationTransform<Modification> | undefined {
@@ -158,7 +265,7 @@ export function applyFlowModifications(
       transform === undefined ||
       !parseModificationParameters(modification.type, modification.parameters).ok
         ? "parametersInvalid"
-        : (referenceProblem(transform.references(modification), context) ??
+        : (referenceProblem(transform.references(modification, context), context) ??
           transform.apply(current, modification, context));
     if (typeof outcome === "string")
       problems.push({ modificationId: modification.id, reason: outcome });
