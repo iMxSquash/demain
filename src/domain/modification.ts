@@ -166,8 +166,8 @@ function subscriptionDestination(
   };
 }
 
-// Removes the occurrences of the planned item from the start date, by nominal date, then adds the
-// flows of the new rhythm. The flows already added, by an earlier change too, are left alone (D2).
+// Only the occurrences of the planned item go: the flows already added, by an earlier change on the
+// same target too, are left alone (D2).
 function subscriptionChange(
   state: StageAState,
   { id, parameters }: SubscriptionChange,
