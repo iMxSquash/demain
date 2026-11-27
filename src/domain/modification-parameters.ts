@@ -5,6 +5,7 @@
 import { z } from "zod";
 
 import type {
+  CategoryBudgetChange,
   IncomeChange,
   InterestProjection,
   Loan,
@@ -17,6 +18,8 @@ import type {
 const MAX_LABEL_LENGTH = 80;
 const MAX_LOAN_MONTHS = 600;
 const MAX_RATE_BP = 10000;
+const MIN_BUDGET_CHANGE_BP = -10000;
+const MAX_BUDGET_CHANGE_BP = 100000;
 // At the highest rate, a month of interest is a twelfth of what remains: the principal plus that
 // interest must stay a safe integer.
 const MAX_LOAN_PRINCIPAL = Math.floor((Number.MAX_SAFE_INTEGER / 13) * 12);
@@ -106,6 +109,21 @@ export const interestProjectionParameters = z.strictObject({
   startDate: z.iso.date(),
 }) satisfies z.ZodType<InterestProjection["parameters"]>;
 
+// The start month is compared with the month of today when the change applies, since the schema has
+// no today.
+export const categoryBudgetChangeParameters = z.strictObject({
+  accountId: id,
+  categoryId: id.nullable(),
+  startMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  change: z.discriminatedUnion("kind", [
+    z.strictObject({
+      kind: z.literal("percent"),
+      basisPoints: z.int().min(MIN_BUDGET_CHANGE_BP).max(MAX_BUDGET_CHANGE_BP),
+    }),
+    z.strictObject({ kind: z.literal("amount"), monthlyAmount: z.int().min(0) }),
+  ]),
+}) satisfies z.ZodType<CategoryBudgetChange["parameters"]>;
+
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
 const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ModificationType,
@@ -117,6 +135,7 @@ const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ["income_change", incomeChangeParameters],
   ["savings_goal", savingsGoalParameters],
   ["interest_projection", interestProjectionParameters],
+  ["category_budget_change", categoryBudgetChangeParameters],
 ]);
 
 export function parseModificationParameters(

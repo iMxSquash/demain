@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyFlowModifications,
+  type CategoryBudgetChange,
   type IncomeChange,
   type Loan,
   type ModificationContext,
@@ -21,6 +22,11 @@ import {
   type SimulationInput,
   type SimulationResult,
 } from "../../src/domain/simulation";
+import {
+  estimatedFlows,
+  type EstimateLine,
+  type EstimateTransaction,
+} from "../../src/domain/variable-estimate";
 
 const TODAY = "2026-12-10";
 const CHECKING = 1;
@@ -578,6 +584,7 @@ describe("income change", () => {
       ...salaryInput({ items: [salaryItem(occurrences)] }),
       categoryIds: new Set([GROCERIES, LEISURE]),
       accountKinds: new Map(),
+      estimates: { lines: [], transactions: [] },
     };
     const { items, problems } = applyFlowModifications(
       { items: [...context.items], flows: [] },
@@ -976,6 +983,276 @@ describe("loan", () => {
   });
 });
 
+describe("category budget change", () => {
+  const BUDGET_RANGE: DateRange = { from: TODAY, to: "2027-03-31" };
+  const UNCATEGORIZED = null;
+
+  function line(categoryId: number | null, monthlySpending = 28000): EstimateLine {
+    return {
+      accountId: CHECKING,
+      categoryId,
+      monthlySpending,
+      monthsUsed: 3,
+      averageSpending: monthlySpending,
+      overridden: false,
+    };
+  }
+
+  function budgetInput(
+    lines: EstimateLine[] = [line(GROCERIES)],
+    transactions: EstimateTransaction[] = [],
+  ): SimulationInput {
+    return input({
+      estimates: estimatedFlows(lines, transactions, BUDGET_RANGE, TODAY),
+      estimateInputs: { lines, transactions },
+      range: BUDGET_RANGE,
+    });
+  }
+
+  function budgetChange(
+    change: CategoryBudgetChange["parameters"]["change"],
+    parameters: Partial<Omit<CategoryBudgetChange["parameters"], "change">> = {},
+  ): CategoryBudgetChange {
+    return {
+      id: 7,
+      position: 0,
+      label: "Fewer groceries",
+      type: "category_budget_change",
+      parameters: {
+        accountId: CHECKING,
+        categoryId: GROCERIES,
+        startMonth: "2027-02",
+        change,
+        ...parameters,
+      },
+    };
+  }
+
+  /** The estimated amounts of one line in one month, by day. */
+  function lineAmounts(
+    result: SimulationResult,
+    month: string,
+    categoryId: number | null = GROCERIES,
+  ): number[] {
+    return result.flows
+      .filter(
+        (flow) =>
+          flow.source.kind === "estimate" &&
+          flow.categoryId === categoryId &&
+          flow.date.startsWith(month),
+      )
+      .map((flow) => flow.amount);
+  }
+
+  const sum = (amounts: number[]) => amounts.reduce((total, amount) => total + amount, 0);
+
+  it("-2000 basis points from 2027-02 turns 1000 a day into 800 a day in February 2027", () => {
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "percent", basisPoints: -2000 }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    const february = lineAmounts(result, "2027-02");
+    expect(february).toEqual(Array.from({ length: 28 }, () => -800));
+    expect(sum(february)).toBe(-22400);
+    expect(
+      result.flows.filter((flow) => flow.date.startsWith("2027-02")).map((flow) => flow.source),
+    ).toEqual(Array.from({ length: 28 }, () => ({ kind: "estimate", categoryId: GROCERIES })));
+  });
+
+  it("a new monthly amount of 14000 from 2027-02 gives 500 a day", () => {
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "amount", monthlyAmount: 14000 }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(lineAmounts(result, "2027-02")).toEqual(Array.from({ length: 28 }, () => -500));
+    expect(lineAmounts(result, "2027-03")).toHaveLength(31);
+    expect(sum(lineAmounts(result, "2027-03"))).toBe(-14000);
+  });
+
+  it("a change from the current month keeps what was already spent", () => {
+    const spent: EstimateTransaction = {
+      accountId: CHECKING,
+      categoryId: GROCERIES,
+      date: "2026-12-04",
+      amount: -10000,
+      type: "expense",
+      linkedToPlannedItem: false,
+    };
+    const result = evaluateScenario(budgetInput([line(GROCERIES)], [spent]), [
+      budgetChange({ kind: "amount", monthlyAmount: 31000 }, { startMonth: "2026-12" }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    // 31000 minus the 10000 already spent, over the 22 days from today to 31 December.
+    const december = lineAmounts(result, "2026-12");
+    expect(december).toHaveLength(22);
+    expect(sum(december)).toBe(-21000);
+  });
+
+  it("months before the start month are unchanged", () => {
+    const before = evaluateConstantPace(budgetInput());
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "percent", basisPoints: -2000 }),
+    ]);
+
+    for (const month of ["2026-12", "2027-01"])
+      expect(lineAmounts(result, month)).toEqual(lineAmounts(before, month));
+    expect(sum(lineAmounts(result, "2027-01"))).toBe(-28000);
+  });
+
+  it("-10000 basis points removes the line from the start month", () => {
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "percent", basisPoints: -10000 }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(lineAmounts(result, "2027-01")).toHaveLength(31);
+    expect(lineAmounts(result, "2027-02")).toEqual([]);
+    expect(lineAmounts(result, "2027-03")).toEqual([]);
+  });
+
+  it("a new amount on a line without estimate creates it", () => {
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "amount", monthlyAmount: 3100 }, { categoryId: LEISURE }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(lineAmounts(result, "2027-01", LEISURE)).toEqual([]);
+    expect(lineAmounts(result, "2027-03", LEISURE)).toEqual(Array.from({ length: 31 }, () => -100));
+    expect(result.flows.find((flow) => flow.categoryId === LEISURE)?.source).toEqual({
+      kind: "estimate",
+      categoryId: LEISURE,
+    });
+    // The Groceries line is left alone.
+    expect(sum(lineAmounts(result, "2027-02"))).toBe(-28000);
+  });
+
+  it("rounds each scaled flow on its own, ties away from zero", () => {
+    const flow = (date: string, amount: number) => ({
+      accountId: CHECKING,
+      date,
+      amount,
+      source: { kind: "estimate", categoryId: GROCERIES } as const,
+      categoryId: GROCERIES,
+      external: true,
+    });
+    const budgetInputs = budgetInput();
+    const context: ModificationContext = {
+      ...budgetInputs,
+      categoryIds: new Set([GROCERIES]),
+      accountKinds: new Map(),
+      estimates: { lines: [line(GROCERIES)], transactions: [] },
+    };
+    const { flows, problems } = applyFlowModifications(
+      {
+        items: [],
+        flows: [flow("2027-02-01", -1001), flow("2027-02-02", -1003), flow("2027-02-03", -999)],
+      },
+      [budgetChange({ kind: "percent", basisPoints: -5000 })],
+      context,
+    );
+
+    expect(problems).toEqual([]);
+    // Rounding the total instead would give -1502.
+    expect(flows.map((scaled) => scaled.amount)).toEqual([-501, -502, -500]);
+  });
+
+  it("the uncategorized line is a line like the others", () => {
+    const lines = [line(GROCERIES), line(UNCATEGORIZED, 14000)];
+    const result = evaluateScenario({ ...budgetInput(lines), categoryIds: new Set() }, [
+      budgetChange({ kind: "percent", basisPoints: -5000 }, { categoryId: UNCATEGORIZED }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    expect(lineAmounts(result, "2027-02", UNCATEGORIZED)).toEqual(
+      Array.from({ length: 28 }, () => -250),
+    );
+    expect(lineAmounts(result, "2027-01", UNCATEGORIZED)).toHaveLength(31);
+    expect(lineAmounts(result, "2027-02")).toEqual(Array.from({ length: 28 }, () => -1000));
+  });
+
+  it("a start month before the month of today is reported as dateNotAfterToday", () => {
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "amount", monthlyAmount: 0 }, { startMonth: "2026-11" }),
+    ]);
+
+    expect(result.problems).toEqual([{ modificationId: 7, reason: "dateNotAfterToday" }]);
+    expect(result.flows).toEqual(evaluateConstantPace(budgetInput()).flows);
+  });
+
+  it("the current month is accepted as start month", () => {
+    const result = evaluateScenario(budgetInput(), [
+      budgetChange({ kind: "percent", basisPoints: -5000 }, { startMonth: "2026-12" }),
+    ]);
+
+    expect(result.problems).toEqual([]);
+    // What remains of December, 28000 over 22 days (16 days of 1273, then 6 of 1272), is scaled
+    // day by day, -636.5 rounding to -637.
+    expect(lineAmounts(result, "2026-12")).toEqual([
+      ...Array.from({ length: 16 }, () => -637),
+      ...Array.from({ length: 6 }, () => -636),
+    ]);
+    // Each day of January, 903 or 904, halves to 452: the month is not rounded as a whole.
+    expect(sum(lineAmounts(result, "2027-01"))).toBe(-14012);
+  });
+
+  it("a missing or archived account and a missing category are reported", () => {
+    const result = evaluateScenario(budgetInput(), [
+      { ...budgetChange({ kind: "percent", basisPoints: 1000 }, { accountId: 404 }), id: 1 },
+      { ...budgetChange({ kind: "percent", basisPoints: 1000 }, { accountId: SAVINGS }), id: 2 },
+      {
+        ...budgetChange({ kind: "percent", basisPoints: 1000 }, { categoryId: MISSING_CATEGORY }),
+        id: 3,
+      },
+    ]);
+
+    expect(result.problems).toEqual([
+      { modificationId: 1, reason: "accountMissing" },
+      { modificationId: 2, reason: "accountArchived" },
+      { modificationId: 3, reason: "categoryMissing" },
+    ]);
+  });
+
+  it("the schema refuses out-of-range or decimal basis points, a negative amount, a bad month and an unknown key", () => {
+    const valid = {
+      accountId: CHECKING,
+      categoryId: null,
+      startMonth: "2027-02",
+      change: { kind: "percent", basisPoints: -10000 },
+    };
+    for (const value of [
+      valid,
+      { ...valid, change: { kind: "percent", basisPoints: 100000 } },
+      { ...valid, change: { kind: "amount", monthlyAmount: 0 } },
+    ]) {
+      expect(parseModificationParameters("category_budget_change", value)).toEqual({
+        ok: true,
+        parameters: value,
+      });
+    }
+    for (const value of [
+      { ...valid, change: { kind: "percent", basisPoints: -10001 } },
+      { ...valid, change: { kind: "percent", basisPoints: 100001 } },
+      { ...valid, change: { kind: "percent", basisPoints: 12.5 } },
+      { ...valid, change: { kind: "amount", monthlyAmount: -1 } },
+      { ...valid, change: { kind: "amount", monthlyAmount: 100.5 } },
+      { ...valid, change: { kind: "amount", basisPoints: 1000 } },
+      { ...valid, startMonth: "2027-13" },
+      { ...valid, startMonth: "2027-2" },
+      { ...valid, startMonth: "2027-02-01" },
+      { ...valid, note: "fewer treats" },
+      { ...valid, change: { kind: "percent", basisPoints: 1000, note: "x" } },
+    ]) {
+      expect(parseModificationParameters("category_budget_change", value)).toEqual({
+        ok: false,
+        reason: "parametersInvalid",
+      });
+    }
+  });
+});
+
 describe("parseModificationParameters", () => {
   const valid = { accountId: CHECKING, date: PURCHASE_DAY, amount: 50000, categoryId: null };
 
@@ -1000,13 +1277,13 @@ describe("parseModificationParameters", () => {
   });
 
   it("a type without a schema yet is refused as parametersInvalid", () => {
-    expect(parseModificationParameters("category_budget_change", valid)).toEqual({
+    expect(parseModificationParameters("life_event", valid)).toEqual({
       ok: false,
       reason: "parametersInvalid",
     });
     // Stored rows are not trusted: an unknown type or corrupted parameters are reported, never thrown.
     const stored = [
-      { ...purchase({ id: 1 }), type: "category_budget_change" },
+      { ...purchase({ id: 1 }), type: "life_event" },
       { ...purchase({ id: 2 }), type: "constructor" },
       { ...purchase({ id: 3 }), parameters: null },
       { ...purchase({ id: 4 }), parameters: "corrupted" },

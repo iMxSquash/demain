@@ -7,6 +7,7 @@ import type { AccountKind } from "./account";
 import {
   applyFlowModifications,
   balanceAwareSteps,
+  estimateFlow,
   type Modification,
   type ModificationContext,
   type ModificationProblem,
@@ -26,7 +27,7 @@ import {
   type SimulatedTransferRouting,
 } from "./projection";
 import type { DateRange } from "./recurrence";
-import type { EstimatedFlow } from "./variable-estimate";
+import type { EstimatedFlow, EstimateLine, EstimateTransaction } from "./variable-estimate";
 
 export interface SimulatedFlow extends ProjectionFlow {
   categoryId: number | null;
@@ -49,6 +50,8 @@ export interface SimulationInput {
   /** The kind of each account. Without it, every savings goal is invalid (D6). */
   accountKinds?: ReadonlyMap<number, AccountKind>;
   estimates: readonly EstimatedFlow[];
+  /** The inputs of `estimates`. Without them, a category budget change has no line or spending to start from. */
+  estimateInputs?: { lines: readonly EstimateLine[]; transactions: readonly EstimateTransaction[] };
   today: string;
   range: DateRange;
 }
@@ -204,17 +207,6 @@ function resolveTargetGoals(
   return resolutions;
 }
 
-function estimateFlow({ accountId, categoryId, date, amount }: EstimatedFlow): SimulatedFlow {
-  return {
-    accountId,
-    date,
-    amount,
-    source: { kind: "estimate", categoryId },
-    categoryId,
-    external: true,
-  };
-}
-
 function transferKey(plannedItemId: number, nominalDate: string): string {
   return `${plannedItemId}:${nominalDate}`;
 }
@@ -278,6 +270,7 @@ export function evaluateScenario(
     itemCategories,
     categoryIds: input.categoryIds ?? new Set(),
     accountKinds: input.accountKinds ?? new Map(),
+    estimates: input.estimateInputs ?? { lines: [], transactions: [] },
     today,
     range,
   };
