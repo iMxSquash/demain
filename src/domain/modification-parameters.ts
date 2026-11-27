@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 
-import type { ModificationType } from "./modification";
+import type { ModificationType, OneOffPurchase } from "./modification";
 
 const MAX_LABEL_LENGTH = 80;
 
@@ -17,7 +17,7 @@ export const oneOffPurchaseParameters = z.strictObject({
   date: z.iso.date(),
   amount: z.int().positive(),
   categoryId: id.nullable(),
-});
+}) satisfies z.ZodType<OneOffPurchase["parameters"]>;
 
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
 const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map([
