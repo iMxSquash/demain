@@ -131,9 +131,13 @@ describe("evaluateScenario", () => {
     const result = evaluateScenario(input(), [
       purchase({ id: 1, position: 0 }, { accountId: SAVINGS }),
       purchase({ id: 2, position: 1 }),
+      purchase({ id: 3, position: 2 }, { accountId: 404 }),
     ]);
 
-    expect(result.problems).toEqual([{ modificationId: 1, reason: "accountArchived" }]);
+    expect(result.problems).toEqual([
+      { modificationId: 1, reason: "accountArchived" },
+      { modificationId: 3, reason: "accountMissing" },
+    ]);
     expect(modificationFlows(result).map((flow) => flow.source)).toEqual([
       { kind: "modification", modificationId: 2 },
     ]);
@@ -144,6 +148,14 @@ describe("evaluateScenario", () => {
 
     expect(result.problems).toEqual([{ modificationId: 1, reason: "categoryMissing" }]);
     expect(modificationFlows(result)).toEqual([]);
+    // Without the list of categories, a categorized modification cannot be checked, so it is invalid.
+    const withoutCategories = input({ categoryIds: undefined });
+    expect(
+      evaluateScenario(withoutCategories, [
+        purchase({ id: 1 }),
+        purchase({ id: 2, position: 1 }, { categoryId: null }),
+      ]).problems,
+    ).toEqual([{ modificationId: 1, reason: "categoryMissing" }]);
   });
 
   it("modifications apply by position, then id", () => {
@@ -192,6 +204,16 @@ describe("parseModificationParameters", () => {
       ok: false,
       reason: "parametersInvalid",
     });
+    // Stored rows are not trusted: an unknown type or corrupted parameters are reported, never thrown.
+    const stored = [
+      { ...purchase({ id: 1 }), type: "loan" },
+      { ...purchase({ id: 2 }), type: "constructor" },
+      { ...purchase({ id: 3 }), parameters: null },
+      { ...purchase({ id: 4 }), parameters: "corrupted" },
+    ] as unknown as OneOffPurchase[];
+    expect(evaluateScenario(input(), stored).problems).toEqual(
+      [1, 2, 3, 4].map((modificationId) => ({ modificationId, reason: "parametersInvalid" })),
+    );
   });
 });
 
