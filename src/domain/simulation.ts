@@ -81,12 +81,13 @@ function plannedFlowsApplied(
       },
     ];
   }
+  // A transfer between the user's accounts never carries a category (DOMAIN, Transaction).
   const leg = (accountId: number, amount: number): SimulatedFlow => ({
     accountId,
     date,
     amount,
     source,
-    categoryId,
+    categoryId: null,
     external: false,
   });
   const transfer = routings.get(transferKey(item.plannedItemId, occurrence.nominalDate));

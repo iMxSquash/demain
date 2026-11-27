@@ -274,10 +274,10 @@ function routeTransfer(
   destinationId: number,
   moved: number,
 ): PlannedTransferRouting["routing"] | null {
-  if (!Number.isSafeInteger(moved) || moved < 0) {
-    throw new RangeError("The amount of a transfer must be a non-negative integer");
+  if (!Number.isSafeInteger(moved) || moved <= 0) {
+    throw new RangeError("The amount of a transfer must be a positive integer");
   }
-  if (!accounts.some((account) => account.id === destinationId)) {
+  if (!totals.has(destinationId)) {
     addToTotal(totals, sourceAccountId, -moved);
     return null;
   }
@@ -292,12 +292,10 @@ function routeTransfer(
   if (routing.status !== "ok") return routing;
 
   // The unplaced part never leaves the source account.
-  addToTotal(
-    totals,
-    sourceAccountId,
-    -routing.placements.reduce((sum, { amount }) => sum + amount, 0),
-  );
-  for (const { accountId, amount } of routing.placements) addToTotal(totals, accountId, amount);
+  for (const { accountId, amount } of routing.placements) {
+    addToTotal(totals, sourceAccountId, -amount);
+    addToTotal(totals, accountId, amount);
+  }
   return routing;
 }
 
@@ -323,6 +321,13 @@ function applyPlanned(
   };
 }
 
+// A step answers for the day it is asked about: a movement dated elsewhere is a caller bug.
+function assertStepDate(entryDate: string, date: string): void {
+  if (entryDate !== date) {
+    throw new RangeError(`A balance-aware step of ${date} returned a movement dated ${entryDate}`);
+  }
+}
+
 function applySteps(
   accounts: readonly ProjectionAccount[],
   totals: Map<number, number>,
@@ -332,11 +337,13 @@ function applySteps(
   const routings: SimulatedTransferRouting[] = [];
   for (const transfer of steps.transfersOn(date, snapshotDay(accounts, totals, date).balances)) {
     const { sourceAccountId, destinationAccountId, amount, source } = transfer;
+    assertStepDate(transfer.date, date);
     const routing = routeTransfer(accounts, totals, sourceAccountId, destinationAccountId, amount);
     if (routing !== null) routings.push({ source, date, amount, routing });
   }
   // Credits are not routed: interest may leave a balance above its ceiling.
   for (const flow of steps.creditsOn(date, snapshotDay(accounts, totals, date).balances)) {
+    assertStepDate(flow.date, date);
     addToTotal(totals, flow.accountId, flow.amount);
   }
   return routings;

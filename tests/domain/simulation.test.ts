@@ -202,7 +202,8 @@ describe("evaluateConstantPace", () => {
         items: [transferItem(20000, LIVRET_JEUNE), rentItem(PLANNED_DAY, -45000)],
         itemCategories: new Map([
           [RENT_ITEM, HOUSING],
-          [TRANSFER_ITEM, null],
+          // A transfer leg never carries a category, even when the map gives one.
+          [TRANSFER_ITEM, GROCERIES],
         ]),
         estimates: [estimate(PLANNED_DAY, -500)],
       }),
@@ -285,5 +286,69 @@ describe("evaluateConstantPace", () => {
       "estimate",
     ]);
     expect(balanceOn(result.days, PLANNED_DAY, LIVRET_JEUNE)).toBe(155000);
+  });
+
+  it("reports only the placed part of a planned transfer; the unplaced part stays on the source", () => {
+    const cappedLivretA = account({ id: LIVRET_A, openingBalance: 0, ceiling: 10000 });
+
+    const result = evaluateConstantPace(
+      input({
+        accounts: [account(), livretJeune, cappedLivretA],
+        items: [transferItem(20000, LIVRET_JEUNE)],
+      }),
+    );
+
+    expect(result.flows.map(({ accountId, amount }) => [accountId, amount])).toEqual([
+      [CHECKING, -5000],
+      [LIVRET_JEUNE, 5000],
+      [CHECKING, -10000],
+      [LIVRET_A, 10000],
+    ]);
+    expect(balanceOn(result.days, PLANNED_DAY)).toBe(85000);
+  });
+
+  it("reports no flow for a planned transfer on an invalid chain", () => {
+    const cyclic = [
+      account(),
+      account({ id: LIVRET_JEUNE, openingBalance: 0, ceiling: 1000, overflowAccountId: LIVRET_A }),
+      account({ id: LIVRET_A, openingBalance: 0, ceiling: 1000, overflowAccountId: LIVRET_JEUNE }),
+    ];
+
+    const result = evaluateConstantPace(
+      input({ accounts: cyclic, items: [transferItem(5000, LIVRET_JEUNE)] }),
+    );
+
+    expect(result.transfers[0]?.routing).toEqual({ status: "invalid", reason: "cycle" });
+    expect(result.flows).toEqual([]);
+  });
+
+  it("reports no flow after the range, and none for an empty range", () => {
+    const simulation = input({
+      realFlows: [realFlow(1, "2026-12-03", -11000)],
+      estimates: [estimate("2026-12-31", -500), estimate("2027-01-01", -500)],
+    });
+
+    expect(evaluateConstantPace(simulation).flows.map((flow) => flow.date)).toEqual([
+      "2026-12-03",
+      "2026-12-31",
+    ]);
+    expect(
+      evaluateConstantPace({ ...simulation, range: { from: "2026-12-31", to: "2026-12-01" } })
+        .flows,
+    ).toEqual([]);
+  });
+
+  it("reports no flow on an account out of the list, and only the source leg of a transfer to one", () => {
+    const result = evaluateConstantPace(
+      input({
+        items: [transferItem(5000, 99)],
+        estimates: [estimate(PLANNED_DAY, -500, 99)],
+      }),
+    );
+
+    expect(
+      result.flows.map(({ accountId, amount, external }) => [accountId, amount, external]),
+    ).toEqual([[CHECKING, -5000, false]]);
+    expect(balanceOn(result.days, PLANNED_DAY)).toBe(95000);
   });
 });

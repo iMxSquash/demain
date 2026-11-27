@@ -1263,6 +1263,84 @@ describe("projectWithRouting", () => {
       expect(balanceOn(result.days, TRANSFER_DAY, LIVRET_JEUNE)).toBe(155000);
       expect(result.simulatedTransfers).toEqual([]);
     });
+
+    it.each([0, -1000, 100.5])("refuses a simulated transfer of %s", (amount) => {
+      const steps: BalanceAwareSteps = {
+        transfersOn: transfersOnDay([simulatedTransfer(amount, LIVRET_A)]),
+        creditsOn: noCredits,
+      };
+
+      expect(() =>
+        projectWithRouting([account(), livretA()], [], [], SIM_TODAY, DECEMBER, { steps }),
+      ).toThrow(RangeError);
+    });
+
+    it("refuses a step movement dated another day than the one asked", () => {
+      const lateTransfer = { ...simulatedTransfer(1000, LIVRET_A), date: "2026-12-16" };
+      const lateCredit: ProjectionFlow = {
+        ...transactionFlow(1, "2026-12-16", 100),
+        source: MODIFICATION,
+      };
+      const run = (steps: BalanceAwareSteps) => () =>
+        projectWithRouting([account(), livretA()], [], [], SIM_TODAY, DECEMBER, { steps });
+
+      expect(run({ transfersOn: transfersOnDay([lateTransfer]), creditsOn: noCredits })).toThrow(
+        RangeError,
+      );
+      expect(
+        run({
+          transfersOn: () => [],
+          creditsOn: (date) => (date === TRANSFER_DAY ? [lateCredit] : []),
+        }),
+      ).toThrow(RangeError);
+    });
+
+    it("debits the source in full and records nothing for a simulated transfer out of the accounts", () => {
+      const result = projectWithRouting([account()], [], [], SIM_TODAY, DECEMBER, {
+        steps: { transfersOn: transfersOnDay([simulatedTransfer(5000, 99)]), creditsOn: noCredits },
+      });
+
+      expect(result.simulatedTransfers).toEqual([]);
+      expect(balanceOn(result.days, TRANSFER_DAY)).toBe(95000);
+    });
+
+    it("calls no step for an empty range", () => {
+      let calls = 0;
+      const count = () => {
+        calls += 1;
+        return [];
+      };
+
+      projectWithRouting(
+        [account()],
+        [],
+        [],
+        SIM_TODAY,
+        { from: "2026-12-31", to: "2026-12-01" },
+        {
+          steps: { transfersOn: count, creditsOn: count },
+        },
+      );
+
+      expect(calls).toBe(0);
+    });
+
+    it("leaves an account out of the balances a step sees before its opening date", () => {
+      const seen: boolean[] = [];
+      const late = livretA({ openingDate: TRANSFER_DAY });
+
+      projectWithRouting([account(), late], [], [], SIM_TODAY, DECEMBER, {
+        steps: {
+          transfersOn: (date, balances) => {
+            if (date === "2026-12-14" || date === TRANSFER_DAY) seen.push(balances.has(LIVRET_A));
+            return [];
+          },
+          creditsOn: noCredits,
+        },
+      });
+
+      expect(seen).toEqual([false, true]);
+    });
   });
 });
 
