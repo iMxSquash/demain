@@ -3,9 +3,13 @@
 // constant-pace simulation is a scenario with no modification. Estimation exists only here, never
 // in the real views (ADR-011). Pure: "today" and the data are arguments.
 
+import type { AccountKind } from "./account";
 import {
   applyFlowModifications,
+  balanceAwareSteps,
+  monthlySavingsGoals,
   type Modification,
+  type ModificationContext,
   type ModificationProblem,
 } from "./modification";
 import {
@@ -40,6 +44,8 @@ export interface SimulationInput {
    * categorized modification is invalid; the constant-pace simulation does not need it.
    */
   categoryIds?: ReadonlySet<number>;
+  /** The kind of each account. Without it, every savings goal is invalid (D6). */
+  accountKinds?: ReadonlyMap<number, AccountKind>;
   estimates: readonly EstimatedFlow[];
   today: string;
   range: DateRange;
@@ -51,6 +57,23 @@ export interface SimulationResult {
   simulatedTransfers: SimulatedTransferRouting[];
   /** Every flow applied, real, planned, estimated or simulated, with its source, in application order. */
   flows: SimulatedFlow[];
+}
+
+/** What a savings goal did over the range (D8). */
+export interface GoalOutcome {
+  modificationId: number;
+  /** The monthly amount used (the given one, or the inverse one from #227). */
+  monthlyAmount: number;
+  /** Routing of each transfer, from the `simulatedTransfers` of the projection with this modification as source. */
+  transfers: SimulatedTransferRouting[];
+  /** What stayed in the source account: the unplaced part of each transfer, all of an invalid one. */
+  unplacedTotal: number;
+  /** A monthly goal is always "applied"; the other statuses belong to the target mode (#227). */
+  status: "applied" | "reached" | "alreadyReached" | "unreachable";
+}
+
+function unplacedOf({ amount, routing }: SimulatedTransferRouting): number {
+  return routing.status === "ok" ? routing.unplaced : amount;
 }
 
 function estimateFlow({ accountId, categoryId, date, amount }: EstimatedFlow): SimulatedFlow {
@@ -119,8 +142,17 @@ function plannedFlowsApplied(
 export function evaluateScenario(
   input: SimulationInput,
   modifications: readonly Modification[],
-): SimulationResult & { problems: ModificationProblem[] } {
+): SimulationResult & { problems: ModificationProblem[]; goals: GoalOutcome[] } {
   const { accounts, realFlows, itemCategories, today, range } = input;
+  const context: ModificationContext = {
+    accounts,
+    items: input.items,
+    itemCategories,
+    categoryIds: input.categoryIds ?? new Set(),
+    accountKinds: input.accountKinds ?? new Map(),
+    today,
+    range,
+  };
   const {
     items,
     flows: simulatedFlows,
@@ -128,14 +160,7 @@ export function evaluateScenario(
   } = applyFlowModifications(
     { items: [...input.items], flows: input.estimates.map(estimateFlow) },
     modifications,
-    {
-      accounts,
-      items: input.items,
-      itemCategories,
-      categoryIds: input.categoryIds ?? new Set(),
-      today,
-      range,
-    },
+    context,
   );
   const { days, transfers, simulatedTransfers } = projectWithRouting(
     accounts,
@@ -143,8 +168,20 @@ export function evaluateScenario(
     items,
     today,
     range,
-    { simulatedFlows },
+    { simulatedFlows, steps: balanceAwareSteps(modifications, context) },
   );
+  const goals = monthlySavingsGoals(modifications, context).map(({ id, parameters }) => {
+    const goalTransfers = simulatedTransfers.filter(
+      ({ source }) => source.kind === "modification" && source.modificationId === id,
+    );
+    return {
+      modificationId: id,
+      monthlyAmount: parameters.mode.amount,
+      transfers: goalTransfers,
+      unplacedTotal: goalTransfers.reduce((total, transfer) => total + unplacedOf(transfer), 0),
+      status: "applied" as const,
+    };
+  });
 
   const routings = new Map(
     transfers.map((transfer) => [
@@ -165,7 +202,7 @@ export function evaluateScenario(
         : [event.flow],
     )
     .filter((flow) => accountIds.has(flow.accountId));
-  return { days, transfers, simulatedTransfers, flows, problems };
+  return { days, transfers, simulatedTransfers, flows, problems, goals };
 }
 
 /** The constant-pace simulation: the scenario with no modification. */

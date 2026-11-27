@@ -88,9 +88,10 @@ function balanceOn(result: SimulationResult, date: string): number | undefined {
 
 describe("evaluateScenario", () => {
   it("an empty list gives the constant-pace simulation", () => {
-    const { problems, ...result } = evaluateScenario(input(), []);
+    const { problems, goals, ...result } = evaluateScenario(input(), []);
 
     expect(problems).toEqual([]);
+    expect(goals).toEqual([]);
     expect(result).toEqual(evaluateConstantPace(input()));
     expect(result.flows.map((flow) => flow.source.kind)).toEqual(["estimate"]);
     expect(balanceOn(result, PURCHASE_DAY)).toBe(97000);
@@ -576,6 +577,7 @@ describe("income change", () => {
     const context: ModificationContext = {
       ...salaryInput({ items: [salaryItem(occurrences)] }),
       categoryIds: new Set([GROCERIES, LEISURE]),
+      accountKinds: new Map(),
     };
     const { items, problems } = applyFlowModifications(
       { items: [...context.items], flows: [] },
@@ -998,13 +1000,13 @@ describe("parseModificationParameters", () => {
   });
 
   it("a type without a schema yet is refused as parametersInvalid", () => {
-    expect(parseModificationParameters("savings_goal", valid)).toEqual({
+    expect(parseModificationParameters("interest_projection", valid)).toEqual({
       ok: false,
       reason: "parametersInvalid",
     });
     // Stored rows are not trusted: an unknown type or corrupted parameters are reported, never thrown.
     const stored = [
-      { ...purchase({ id: 1 }), type: "savings_goal" },
+      { ...purchase({ id: 1 }), type: "interest_projection" },
       { ...purchase({ id: 2 }), type: "constructor" },
       { ...purchase({ id: 3 }), parameters: null },
       { ...purchase({ id: 4 }), parameters: "corrupted" },
