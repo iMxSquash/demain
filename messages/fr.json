@@ -1547,7 +1547,15 @@
     "occurrenceReceivedAboveCeiling": "{name} marqué comme reçu. Attention : il dépasse le plafond de dépôt du compte de {excess}.",
     "horizonInvalid": "Choisissez un horizon de 6, 12 ou 24 mois, ou une date de fin du {min} au {max}",
     "comparisonSize": "Comparez 1 à 3 scénarios brouillons avec la simulation à rythme constant",
-    "scenarioValidated": "Un scénario validé ne peut pas être comparé : ses effets sont déjà réels"
+    "scenarioValidated": "Un scénario validé ne peut être ni modifié ni comparé : ses effets sont déjà réels",
+    "scenarioMissing": "Le scénario n'existe pas",
+    "scenarioNameInvalid": "Le nom d'un scénario compte de 1 à 80 caractères",
+    "modificationMissing": "La modification n'existe pas",
+    "modificationLabelInvalid": "Le nom d'une modification compte de 1 à 80 caractères",
+    "modificationParametersInvalid": "Les valeurs de cette modification ne sont pas valides",
+    "modificationParentNotLifeEvent": "Seul un événement de vie peut contenir d'autres modifications",
+    "lifeEventNested": "Un événement de vie ne peut pas contenir un autre événement de vie",
+    "lifeEventFull": "Un événement de vie contient {max} modifications au plus"
   },
   "auth": {
     "signOut": "Se déconnecter",
