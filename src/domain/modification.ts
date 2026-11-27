@@ -113,6 +113,14 @@ interface ModificationTransform<M extends Modification> {
   ): StageAState | ModificationProblemReason;
 }
 
+/** A flow to or from outside the user's accounts, added by modification `modificationId`. */
+function modificationFlow(
+  modificationId: number,
+  flow: Omit<SimulatedFlow, "external" | "source">,
+): SimulatedFlow {
+  return { ...flow, external: true, source: { kind: "modification", modificationId } };
+}
+
 function oneOffPurchase(
   state: StageAState,
   { id, parameters }: OneOffPurchase,
@@ -122,14 +130,7 @@ function oneOffPurchase(
   // Checked before the range, so that a past purchase is reported rather than silently dropped.
   if (date <= today) return "dateNotAfterToday";
   if (date < range.from || date > range.to) return state;
-  const flow: SimulatedFlow = {
-    accountId,
-    date,
-    amount: -amount,
-    categoryId,
-    external: true,
-    source: { kind: "modification", modificationId: id },
-  };
+  const flow = modificationFlow(id, { accountId, date, amount: -amount, categoryId });
   return { ...state, flows: [...state.flows, flow] };
 }
 
@@ -213,14 +214,14 @@ function subscriptionChange(
     SUBSCRIPTION_REPETITIONS[mode](startDate),
     startDate,
     context.range,
-  ).map((date): SimulatedFlow => ({
-    accountId: destination.accountId,
-    date,
-    amount: -amount,
-    categoryId: destination.categoryId,
-    external: true,
-    source: { kind: "modification", modificationId: id },
-  }));
+  ).map((date) =>
+    modificationFlow(id, {
+      accountId: destination.accountId,
+      date,
+      amount: -amount,
+      categoryId: destination.categoryId,
+    }),
+  );
   return { items, flows: [...state.flows, ...added] };
 }
 
@@ -242,31 +243,23 @@ function loan(
     categoryId,
   } = parameters;
   if (receivedOn <= today) return "dateNotAfterToday";
-  const source = { kind: "modification", modificationId: id } as const;
-  const received: SimulatedFlow[] =
+  const received =
     principalAccountId === null
       ? []
       : [
-          {
+          modificationFlow(id, {
             accountId: principalAccountId,
             date: receivedOn,
             amount: principal,
             categoryId: null,
-            external: true,
-            source,
-          },
+          }),
         ];
   // A payment of zero, a small principal over many months, moves nothing.
   const payments = loanSchedule(principal, months, annualRateBp, receivedOn)
     .filter(({ amount }) => amount > 0)
-    .map(({ date, amount }): SimulatedFlow => ({
-      accountId: paymentAccountId,
-      date,
-      amount: -amount,
-      categoryId,
-      external: true,
-      source,
-    }));
+    .map(({ date, amount }) =>
+      modificationFlow(id, { accountId: paymentAccountId, date, amount: -amount, categoryId }),
+    );
   const added = [...received, ...payments].filter(
     (flow) => flow.date >= range.from && flow.date <= range.to,
   );
