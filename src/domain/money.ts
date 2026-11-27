@@ -52,6 +52,17 @@ export function divideRound(numerator: number, denominator: number): number {
   return rounded === 0 ? 0 : rounded;
 }
 
+/** `divideRound` for products that leave the safe integer range, with the same rounding. */
+export function divideRoundBig(numerator: bigint, denominator: bigint): bigint {
+  const quotient = numerator / denominator;
+  const remainder = numerator % denominator;
+  const absRemainder = remainder < 0n ? -remainder : remainder;
+  if (absRemainder * 2n < denominator) {
+    return quotient;
+  }
+  return numerator < 0n ? quotient - 1n : quotient + 1n;
+}
+
 /** The symbol of a currency as `locale` writes it ("€"), or its code when it has none. */
 export function currencySymbol(currency: string, locale: string): string {
   const parts = getCurrencyFormatter(locale, currency).formatToParts(0);
