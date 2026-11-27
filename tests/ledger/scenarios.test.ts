@@ -166,6 +166,11 @@ describe("scenarios", () => {
     const event = addModification(db, id, LIFE_EVENT);
     const kept = addModification(db, id, { ...purchase("Deposit"), parentId: event.id });
     const stale = addModification(db, id, { ...purchase("Stale"), parentId: event.id });
+    const orphan = addModification(db, id, { ...purchase("Orphan"), parentId: event.id });
+    db.update(modifications)
+      .set({ parentId: car.id, position: 0 })
+      .where(eq(modifications.id, orphan.id))
+      .run();
     db.update(modifications)
       .set({ parameters: JSON.stringify({ amount: -5 }) })
       .where(eq(modifications.id, broken.id))
@@ -180,12 +185,14 @@ describe("scenarios", () => {
 
     expect(stored.map(({ label, valid }) => [label, valid])).toEqual([
       ["Car", true],
+      ["Orphan", true],
       ["Broken", false],
       ["Moving out", true],
       ["Deposit", true],
       ["Stale", false],
     ]);
     expect(loaded.invalid).toEqual([
+      { modificationId: orphan.id, reason: "parametersInvalid" },
       { modificationId: broken.id, reason: "parametersInvalid" },
       { modificationId: stale.id, reason: "parametersInvalid" },
     ]);

@@ -1,12 +1,7 @@
 import { and, asc, count, desc, eq, gt, isNull, lt, max, sql, type SQL } from "drizzle-orm";
 
 import { messageRef, type FeedbackKey, type MessageRef } from "../domain/message";
-import type {
-  ChildModification,
-  Modification,
-  ModificationProblem,
-  ModificationType,
-} from "../domain/modification";
+import type { Modification, ModificationProblem, ModificationType } from "../domain/modification";
 import {
   MAX_LIFE_EVENT_CHILDREN,
   modificationLabelSchema,
@@ -133,24 +128,30 @@ function toSummary(row: ScenarioRow, modificationCount: number): ScenarioSummary
   return { id, name, status, validatedAt, createdAt, modificationCount };
 }
 
-/** Rows in display order: the scenario's list by position, each life event followed by its children. */
-function orderedRows(db: Reader, scenarioId: number): ModificationRow[] {
+/** The scenario's own list by position, and the children of each modification by position. */
+function scenarioRows(db: Reader, scenarioId: number) {
   const rows = db
     .select()
     .from(modifications)
     .where(eq(modifications.scenarioId, scenarioId))
     .orderBy(asc(modifications.position), asc(modifications.id))
     .all();
-  const children = Map.groupBy(
-    rows.filter(({ parentId }) => parentId !== null),
-    ({ parentId }) => parentId,
-  );
-  return rows
-    .filter(({ parentId }) => parentId === null)
-    .flatMap((row) => [row, ...(children.get(row.id) ?? [])]);
+  return {
+    top: rows.filter(({ parentId }) => parentId === null),
+    children: Map.groupBy(
+      rows.filter(({ parentId }) => parentId !== null),
+      ({ parentId }) => parentId,
+    ),
+  };
 }
 
-/** The parameters of a row once the schema of its type accepts them, or undefined (D6). */
+/** Rows in display order: the scenario's list, each life event followed by its children. */
+function orderedRows(db: Reader, scenarioId: number): ModificationRow[] {
+  const { top, children } = scenarioRows(db, scenarioId);
+  return top.flatMap((row) => [row, ...(children.get(row.id) ?? [])]);
+}
+
+/** The stored parameters, and the parsed ones once the schema of the type accepts them (D6). */
 function readParameters(row: ModificationRow): { raw: unknown; parsed: unknown } {
   let raw: unknown;
   try {
@@ -206,30 +207,30 @@ export function loadScenarioModifications(
   id: number,
 ): { modifications: Modification[]; invalid: ModificationProblem[] } {
   findScenario(db, id);
+  const { top, children } = scenarioRows(db, id);
   const invalid: ModificationProblem[] = [];
-  const parsedRows = new Map<number, Modification>();
-  const result: Modification[] = [];
-  for (const row of orderedRows(db, id)) {
+  const report = (row: ModificationRow) =>
+    invalid.push({ modificationId: row.id, reason: "parametersInvalid" });
+  const parse = (row: ModificationRow): Omit<StoredModification, "parentId" | "valid">[] => {
     const { parsed } = readParameters(row);
     if (parsed === undefined) {
-      invalid.push({ modificationId: row.id, reason: "parametersInvalid" });
-      continue;
+      report(row);
+      return [];
     }
     const { id: modificationId, position, type, label } = row;
-    // The schema of the type has accepted the parameters, so they have the shape of that type.
-    const modification = { id: modificationId, position, type, label, parameters: parsed };
-    if (row.parentId === null) {
-      const top = (
-        type === "life_event" ? { ...modification, children: [] } : modification
-      ) as Modification;
-      parsedRows.set(row.id, top);
-      result.push(top);
-      continue;
-    }
-    const parent = parsedRows.get(row.parentId);
-    if (parent?.type === "life_event")
-      (parent.children as ChildModification[]).push(modification as ChildModification);
-  }
+    return [{ id: modificationId, position, type, label, parameters: parsed }];
+  };
+  // The casts hold: the schema of each type has accepted the parameters it keeps.
+  const result = top.flatMap((row) =>
+    parse(row).map((modification) => {
+      const rows = children.get(row.id) ?? [];
+      if (row.type === "life_event")
+        return { ...modification, children: rows.flatMap(parse) } as Modification;
+      // Only a life event has children: one found under anything else is reported, not applied.
+      rows.forEach(report);
+      return modification as Modification;
+    }),
+  );
   return { modifications: result, invalid };
 }
 
@@ -325,7 +326,7 @@ export function addModification(
       .from(modifications)
       .where(sameList(scenarioId, parentId))
       .get();
-    const position = last?.value === null || last?.value === undefined ? 0 : last.value + 1;
+    const position = (last?.value ?? -1) + 1;
     const row = tx
       .insert(modifications)
       .values({ scenarioId, parentId, position, type: input.type, label, parameters })
