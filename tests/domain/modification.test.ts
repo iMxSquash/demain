@@ -234,20 +234,19 @@ function change(
   overrides: Partial<Omit<SubscriptionChange, "parameters">> = {},
   parameters: Partial<SubscriptionChange["parameters"]> = {},
 ): SubscriptionChange {
-  const { amount, ...rest }: SubscriptionChange["parameters"] = {
-    target: { kind: "existing", plannedItemId: STREAMING_ITEM },
-    mode: "yearly",
-    amount: 12990,
-    startDate: "2027-01-05",
-    ...parameters,
-  };
   return {
     id: 1,
     position: 0,
     label: "Music streaming",
     type: "subscription_change",
-    // An amount passed as undefined drops the key, which the schema refuses with the mode none.
-    parameters: amount === undefined ? rest : { ...rest, amount },
+    parameters: {
+      target: { kind: "existing", plannedItemId: STREAMING_ITEM },
+      mode: "yearly",
+      // The schema refuses an amount key with the mode none, so the default is only set without it.
+      ...(parameters.mode === "none" ? {} : { amount: 12990 }),
+      startDate: "2027-01-05",
+      ...parameters,
+    },
     ...overrides,
   };
 }
@@ -287,9 +286,7 @@ describe("subscription change", () => {
   });
 
   it("none from 2027-01-05 removes every occurrence from that date", () => {
-    const result = evaluateScenario(subscriptionInput(), [
-      change({}, { mode: "none", amount: undefined }),
-    ]);
+    const result = evaluateScenario(subscriptionInput(), [change({}, { mode: "none" })]);
 
     expect(result.problems).toEqual([]);
     expect(itemFlowDates(result)).toEqual([]);
@@ -303,7 +300,7 @@ describe("subscription change", () => {
     );
     const result = evaluateScenario(
       subscriptionInput({ items: [streamingItem({ occurrences })] }),
-      [change({}, { mode: "none", amount: undefined, startDate: "2027-06-05" })],
+      [change({}, { mode: "none", startDate: "2027-06-05" })],
     );
 
     expect(itemFlowDates(result)).toEqual([
@@ -322,7 +319,7 @@ describe("subscription change", () => {
     );
     const result = evaluateScenario(
       subscriptionInput({ items: [streamingItem({ occurrences })] }),
-      [change({}, { mode: "none", amount: undefined })],
+      [change({}, { mode: "none" })],
     );
 
     expect(itemFlowDates(result)).toEqual([]);
@@ -358,11 +355,30 @@ describe("subscription change", () => {
       change({}, { mode: "monthly", amount: 999, startDate: "2027-01-31" }),
     ]);
 
-    expect(
-      addedFlows(result)
-        .slice(0, 3)
-        .map((flow) => flow.date),
-    ).toEqual(["2027-01-31", "2027-02-28", "2027-03-31"]);
+    const dates = addedFlows(result).map((flow) => flow.date);
+    expect(dates.slice(0, 4)).toEqual(["2027-01-31", "2027-02-28", "2027-03-31", "2027-04-30"]);
+    expect(dates).toContain("2028-02-29");
+  });
+
+  it("yearly from a 29 February falls on 28 February in the other years", () => {
+    const result = evaluateScenario(
+      subscriptionInput({ range: { from: HORIZON.from, to: "2030-12-31" } }),
+      [change({}, { startDate: "2028-02-29" })],
+    );
+
+    expect(addedFlows(result).map((flow) => flow.date)).toEqual([
+      "2028-02-29",
+      "2029-02-28",
+      "2030-02-28",
+    ]);
+  });
+
+  it("a start date after the range end removes nothing and adds nothing", () => {
+    const result = evaluateScenario(subscriptionInput(), [change({}, { startDate: "2029-01-05" })]);
+
+    expect(result.problems).toEqual([]);
+    expect(itemFlowDates(result)).toEqual(streamingDates());
+    expect(modificationFlows(result)).toEqual([]);
   });
 
   it("a target of kind income is refused as plannedItemKind", () => {
@@ -389,7 +405,7 @@ describe("subscription change", () => {
   it("a start date on or before today is refused as dateNotAfterToday", () => {
     const result = evaluateScenario(subscriptionInput(), [
       change({ id: 1 }, { startDate: TODAY }),
-      change({ id: 2, position: 1 }, { mode: "none", amount: undefined, startDate: "2026-11-05" }),
+      change({ id: 2, position: 1 }, { mode: "none", startDate: "2026-11-05" }),
     ]);
 
     expect(result.problems).toEqual([
@@ -440,6 +456,7 @@ describe("subscription change", () => {
       { modificationId: 1, reason: "accountArchived" },
       { modificationId: 2, reason: "accountMissing" },
     ]);
+    expect(itemFlowDates(result)).toEqual(streamingDates());
     expect(modificationFlows(result)).toEqual([]);
   });
 
@@ -461,9 +478,7 @@ describe("subscription change", () => {
   it("the three variants of journey 4 give the expected flows over 24 months", () => {
     const monthly = evaluateScenario(subscriptionInput(), []);
     const yearly = evaluateScenario(subscriptionInput(), [change()]);
-    const none = evaluateScenario(subscriptionInput(), [
-      change({}, { mode: "none", amount: undefined }),
-    ]);
+    const none = evaluateScenario(subscriptionInput(), [change({}, { mode: "none" })]);
     const outflow = (result: SimulationResult) =>
       result.flows.reduce((total, flow) => total + flow.amount, 0);
 
