@@ -9,10 +9,13 @@ import {
   plannedFlows,
   projectDailyBalances,
   projectWithRouting,
+  type BalanceAwareSteps,
   type DailyBalance,
+  type FlowSource,
   type PlannedItemOccurrences,
   type ProjectionAccount,
   type ProjectionFlow,
+  type SimulatedTransfer,
 } from "../../src/domain/projection";
 import type { DateRange } from "../../src/domain/recurrence";
 
@@ -1054,6 +1057,289 @@ describe("projectWithRouting", () => {
       expect(balanceOn(days, "2026-03-20", LIVRET_JEUNE)).toBe(159000);
       expect(balanceOn(days, MARCH.to, LIVRET_A)).toBe(3000);
       expect(balanceOn(days, MARCH.to, CHECKING)).toBe(90000);
+    });
+  });
+
+  describe("with a simulation", () => {
+    const SIM_TODAY = "2026-12-10";
+    const DECEMBER: DateRange = { from: "2026-12-01", to: "2026-12-31" };
+    const TRANSFER_DAY = "2026-12-15";
+    const MODIFICATION: FlowSource = { kind: "modification", modificationId: 1 };
+
+    function decemberOccurrence(amount: number): Partial<ResolvedOccurrence> {
+      return {
+        nominalDate: TRANSFER_DAY,
+        date: TRANSFER_DAY,
+        amount,
+        expectedAmount: amount,
+        remaining: amount,
+      };
+    }
+
+    function simulatedTransfer(amount: number, destinationAccountId: number): SimulatedTransfer {
+      return {
+        sourceAccountId: CHECKING,
+        destinationAccountId,
+        amount,
+        date: TRANSFER_DAY,
+        source: MODIFICATION,
+      };
+    }
+
+    function transfersOnDay(
+      transfers: readonly SimulatedTransfer[],
+    ): BalanceAwareSteps["transfersOn"] {
+      return (date) => (date === TRANSFER_DAY ? transfers : []);
+    }
+
+    const noCredits: BalanceAwareSteps["creditsOn"] = () => [];
+
+    it("projectWithRouting without steps gives the same days and routings as before", () => {
+      const accounts = [account(), livretJeune(), livretA()];
+      const real = [
+        transactionFlow(1, "2026-11-20", -2000),
+        transactionFlow(2, "2026-12-03", 3000, LIVRET_JEUNE),
+      ];
+      const items = [
+        item([occurrence(decemberOccurrence(-45000))]),
+        transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE, decemberOccurrence(-10000)),
+      ];
+
+      const before = projectWithRouting(accounts, real, items, SIM_TODAY, DECEMBER);
+      const empty = projectWithRouting(accounts, real, items, SIM_TODAY, DECEMBER, {
+        simulatedFlows: [],
+        steps: { transfersOn: () => [], creditsOn: noCredits },
+      });
+
+      expect(placementsOf(before)).toEqual([
+        { accountId: LIVRET_JEUNE, amount: 2000 },
+        { accountId: LIVRET_A, amount: 8000 },
+      ]);
+      expect(before.simulatedTransfers).toEqual([]);
+      expect(empty).toEqual(before);
+    });
+
+    it("a simulated transfer is routed along the overflow chain like a planned transfer", () => {
+      const accounts = [account(), livretJeune(), livretA()];
+
+      const result = projectWithRouting(accounts, [], [], SIM_TODAY, DECEMBER, {
+        steps: {
+          transfersOn: transfersOnDay([simulatedTransfer(20000, LIVRET_JEUNE)]),
+          creditsOn: noCredits,
+        },
+      });
+
+      expect(result.simulatedTransfers).toEqual([
+        {
+          source: MODIFICATION,
+          date: TRANSFER_DAY,
+          amount: 20000,
+          routing: {
+            status: "ok",
+            placements: [
+              { accountId: LIVRET_JEUNE, amount: 5000 },
+              { accountId: LIVRET_A, amount: 15000 },
+            ],
+            unplaced: 0,
+            stoppedAt: LIVRET_A,
+          },
+        },
+      ]);
+      expect(result.transfers).toEqual([]);
+      expect(balanceOn(result.days, TRANSFER_DAY, LIVRET_JEUNE)).toBe(160000);
+      expect(balanceOn(result.days, TRANSFER_DAY, LIVRET_A)).toBe(15000);
+      expect(balanceOn(result.days, TRANSFER_DAY, CHECKING)).toBe(80000);
+      expect(balanceOn(result.days, "2026-12-14", CHECKING)).toBe(100000);
+    });
+
+    it("transfersOn sees the balances after the ordinary flows of the day", () => {
+      const seen: [string, number | undefined][] = [];
+      const real = [
+        transactionFlow(1, "2026-11-20", -2000),
+        transactionFlow(2, "2026-12-12", 3000),
+      ];
+      const rent = item([occurrence(decemberOccurrence(-45000))]);
+      const simulated: ProjectionFlow = {
+        accountId: CHECKING,
+        date: TRANSFER_DAY,
+        amount: -1000,
+        source: MODIFICATION,
+      };
+
+      projectWithRouting([account()], real, [rent], SIM_TODAY, DECEMBER, {
+        simulatedFlows: [simulated],
+        steps: {
+          transfersOn: (date, balances) => {
+            seen.push([date, balances.get(CHECKING)]);
+            return [];
+          },
+          creditsOn: noCredits,
+        },
+      });
+
+      expect(seen).toHaveLength(31);
+      expect(seen[0]).toEqual(["2026-12-01", 98000]);
+      expect(seen.find(([date]) => date === "2026-12-12")).toEqual(["2026-12-12", 101000]);
+      expect(seen.find(([date]) => date === TRANSFER_DAY)).toEqual([TRANSFER_DAY, 55000]);
+      expect(seen.map(([date]) => date)).toEqual(
+        Array.from({ length: 31 }, (_, index) => addDays(DECEMBER.from, index)),
+      );
+    });
+
+    it("creditsOn sees the balances after the transfers of the day and its flows apply last", () => {
+      const accounts = [account(), livretJeune(), livretA()];
+      const seen: number[] = [];
+      const interest: ProjectionFlow = {
+        accountId: LIVRET_JEUNE,
+        date: TRANSFER_DAY,
+        amount: 100,
+        source: MODIFICATION,
+      };
+
+      const result = projectWithRouting(accounts, [], [], SIM_TODAY, DECEMBER, {
+        steps: {
+          transfersOn: transfersOnDay([simulatedTransfer(20000, LIVRET_JEUNE)]),
+          creditsOn: (date, balances) => {
+            if (date !== TRANSFER_DAY) return [];
+            seen.push(balances.get(LIVRET_JEUNE) ?? 0);
+            return [interest];
+          },
+        },
+      });
+
+      expect(seen).toEqual([160000]);
+      // Interest is credited, not routed: it may leave the balance above the ceiling.
+      expect(balanceOn(result.days, TRANSFER_DAY, LIVRET_JEUNE)).toBe(160100);
+      expect(balanceOn(result.days, TRANSFER_DAY, LIVRET_A)).toBe(15000);
+      expect(balanceOn(result.days, DECEMBER.to, LIVRET_JEUNE)).toBe(160100);
+    });
+
+    it("a cycle in stored data makes a simulated transfer invalid and it places nothing", () => {
+      const accounts = [
+        account(),
+        livretJeune({ openingBalance: 0, overflowAccountId: LIVRET_A }),
+        livretA({ ceiling: 1000, overflowAccountId: LIVRET_JEUNE }),
+      ];
+
+      const result = projectWithRouting(accounts, [], [], SIM_TODAY, DECEMBER, {
+        steps: {
+          transfersOn: transfersOnDay([simulatedTransfer(5000, LIVRET_JEUNE)]),
+          creditsOn: noCredits,
+        },
+      });
+
+      expect(result.simulatedTransfers).toHaveLength(1);
+      expect(result.simulatedTransfers[0]?.routing).toEqual({ status: "invalid", reason: "cycle" });
+      expect(result.days).toEqual(projectDailyBalances(accounts, [], DECEMBER));
+    });
+
+    it("simulated flows passed in simulatedFlows apply after the planned occurrences of their day, real flows before", () => {
+      const accounts = [account(), livretJeune(), livretA()];
+      const simulatedWithdrawal: ProjectionFlow = {
+        accountId: LIVRET_JEUNE,
+        date: TRANSFER_DAY,
+        amount: -5000,
+        source: MODIFICATION,
+      };
+      const realWithdrawal = transactionFlow(1, TRANSFER_DAY, -3000, LIVRET_JEUNE);
+      const transfer = transferItem(TRANSFER_ITEM, 10000, LIVRET_JEUNE, decemberOccurrence(-10000));
+
+      const result = projectWithRouting(
+        accounts,
+        [realWithdrawal],
+        [transfer],
+        SIM_TODAY,
+        DECEMBER,
+        {
+          simulatedFlows: [simulatedWithdrawal],
+        },
+      );
+
+      // The real withdrawal frees 3000 of room before the transfer; the simulated one frees nothing.
+      expect(placementsOf(result)).toEqual([
+        { accountId: LIVRET_JEUNE, amount: 8000 },
+        { accountId: LIVRET_A, amount: 2000 },
+      ]);
+      expect(balanceOn(result.days, TRANSFER_DAY, LIVRET_JEUNE)).toBe(155000);
+      expect(result.simulatedTransfers).toEqual([]);
+    });
+
+    it.each([0, -1000, 100.5])("refuses a simulated transfer of %s", (amount) => {
+      const steps: BalanceAwareSteps = {
+        transfersOn: transfersOnDay([simulatedTransfer(amount, LIVRET_A)]),
+        creditsOn: noCredits,
+      };
+
+      expect(() =>
+        projectWithRouting([account(), livretA()], [], [], SIM_TODAY, DECEMBER, { steps }),
+      ).toThrow(RangeError);
+    });
+
+    it("refuses a step movement dated another day than the one asked", () => {
+      const lateTransfer = { ...simulatedTransfer(1000, LIVRET_A), date: "2026-12-16" };
+      const lateCredit: ProjectionFlow = {
+        ...transactionFlow(1, "2026-12-16", 100),
+        source: MODIFICATION,
+      };
+      const run = (steps: BalanceAwareSteps) => () =>
+        projectWithRouting([account(), livretA()], [], [], SIM_TODAY, DECEMBER, { steps });
+
+      expect(run({ transfersOn: transfersOnDay([lateTransfer]), creditsOn: noCredits })).toThrow(
+        RangeError,
+      );
+      expect(
+        run({
+          transfersOn: () => [],
+          creditsOn: (date) => (date === TRANSFER_DAY ? [lateCredit] : []),
+        }),
+      ).toThrow(RangeError);
+    });
+
+    it("debits the source in full and records nothing for a simulated transfer out of the accounts", () => {
+      const result = projectWithRouting([account()], [], [], SIM_TODAY, DECEMBER, {
+        steps: { transfersOn: transfersOnDay([simulatedTransfer(5000, 99)]), creditsOn: noCredits },
+      });
+
+      expect(result.simulatedTransfers).toEqual([]);
+      expect(balanceOn(result.days, TRANSFER_DAY)).toBe(95000);
+    });
+
+    it("calls no step for an empty range", () => {
+      let calls = 0;
+      const count = () => {
+        calls += 1;
+        return [];
+      };
+
+      projectWithRouting(
+        [account()],
+        [],
+        [],
+        SIM_TODAY,
+        { from: "2026-12-31", to: "2026-12-01" },
+        {
+          steps: { transfersOn: count, creditsOn: count },
+        },
+      );
+
+      expect(calls).toBe(0);
+    });
+
+    it("leaves an account out of the balances a step sees before its opening date", () => {
+      const seen: boolean[] = [];
+      const late = livretA({ openingDate: TRANSFER_DAY });
+
+      projectWithRouting([account(), late], [], [], SIM_TODAY, DECEMBER, {
+        steps: {
+          transfersOn: (date, balances) => {
+            if (date === "2026-12-14" || date === TRANSFER_DAY) seen.push(balances.has(LIVRET_A));
+            return [];
+          },
+          creditsOn: noCredits,
+        },
+      });
+
+      expect(seen).toEqual([false, true]);
     });
   });
 });
