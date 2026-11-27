@@ -200,4 +200,19 @@ describe("compareSimulations", () => {
       ).toThrow(RangeError);
     }
   });
+
+  it("refuses a malformed savings date before any evaluation", () => {
+    expect(() =>
+      compareSimulations(input, [scenario(1)], SIX_MONTHS, {
+        ...OPTIONS,
+        savingsDate: "2027-02-30",
+      }),
+    ).toThrow("Savings date 2027-02-30 is not a calendar date");
+  });
+
+  it("refuses indicator options with another today than the input", () => {
+    expect(() =>
+      compareSimulations(input, [scenario(1)], SIX_MONTHS, { ...OPTIONS, today: "2026-12-10" }),
+    ).toThrow(RangeError);
+  });
 });

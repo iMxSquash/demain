@@ -40,6 +40,11 @@ describe("customEndBounds", () => {
   it("clamps the bounds to the end of a shorter month", () => {
     expect(customEndBounds("2027-01-31")).toEqual({ min: "2027-02-28", max: "2037-01-31" });
   });
+
+  it("keeps 29 February only in a leap year", () => {
+    expect(customEndBounds("2028-02-29")).toEqual({ min: "2028-03-29", max: "2038-02-28" });
+    expect(horizonRange({ kind: "months", months: 6 }, "2027-08-31").to).toBe("2028-02-29");
+  });
 });
 
 describe("parseHorizon", () => {

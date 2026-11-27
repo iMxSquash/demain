@@ -3,6 +3,7 @@
 // same input and the same horizon. Estimation stays inside the simulations (ADR-011). Pure: "today"
 // and the data are arguments.
 
+import { isCalendarDate } from "./account";
 import { horizonRange, type HorizonChoice } from "./horizon";
 import { messageRef, type MessageRef } from "./message";
 import type { Modification, ModificationProblem } from "./modification";
@@ -86,7 +87,8 @@ function indicatorAccounts(input: Omit<SimulationInput, "range">): IndicatorAcco
 /**
  * Evaluates the constant-pace simulation and each scenario on the same input and range, so the
  * real part of every result is identical and each one diverges from today (D11). The savings date
- * defaults to the end of the range and is refused outside it, never clamped (#220).
+ * defaults to the end of the range and is refused outside it, never clamped (#220). `choice` is
+ * trusted: a horizon read from a request goes through `parseHorizon` first.
  */
 export function compareSimulations(
   input: Omit<SimulationInput, "range">,
@@ -95,8 +97,16 @@ export function compareSimulations(
   options: Omit<IndicatorOptions, "range" | "savingsDate"> & { savingsDate?: string },
 ): Comparison {
   assertComparable(scenarios);
+  // The indicators read their own today: another day would shift the outflows and the minimum.
+  if (options.today !== input.today) {
+    throw new RangeError(`Indicator today ${options.today} differs from ${input.today}`);
+  }
   const range = horizonRange(choice, input.today);
   const savingsDate = options.savingsDate ?? range.to;
+  // Checked before any evaluation, which the indicators would only refuse after it.
+  if (!isCalendarDate(savingsDate)) {
+    throw new RangeError(`Savings date ${savingsDate} is not a calendar date`);
+  }
   if (savingsDate < range.from || savingsDate > range.to) {
     throw new RangeError(
       `Savings date ${savingsDate} is outside the range ${range.from} to ${range.to}`,
