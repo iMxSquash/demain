@@ -638,16 +638,26 @@ Rules 1, 2 and 5 of D4 are in [Estimated variable spending](#estimated-variable-
 - **Shared real history.** All simulations share the same real months up to today, drawn once. Each simulation diverges from today, including the constant-pace simulation, which is always present as the fair reference. The real chart of the app is therefore the left part of every simulation chart.
 - **Diagrams** available for a simulation and in the comparison: (1) the month-end checking and savings curves, the main one; (2) income and expenses per month as bars; (3) breakdown of expenses by category; (4) a comparison table (final balance, minimum balance and its date, total cost). Every diagram has an equivalent data table and never relies on color alone.
 
-**Validation (D13).** Validating a scenario is refused as a whole, with every reason listed, if one of its modifications is invalid (D6) or if a savings goal is unreachable (D8). Otherwise each modification becomes:
+**Validation (D13).** Validating a scenario is refused as a whole, with every reason listed, if one of its modifications is invalid (D6) or if a savings goal is unreachable (D8). Otherwise `planScenarioValidation` (`src/domain/scenario-validation.ts`) turns the modifications, in the order they apply (D5), into planned item changes (`create`, `end`, `version`) and notes; it writes nothing, the ledger applies the plan. Every created item has the label of the modification as its name, a `fixed` amount and the business-day rule `none`, and its amount is signed: an expense negative, an income positive, a transfer negative from its source account.
 
-- type 1, an end date the day before the start date on an existing target, then, unless the mode is `none`, a new planned item with a fixed amount;
-- type 2, a one-off planned item;
-- type 3, a monthly planned item from the first to the last payment with the regular payment, an occurrence override on the last payment when its amount differs, and a one-off income on the date received when a receiving account is set;
-- type 4, a new version of the existing item from the effective date (fixed amount), or its end date the day before the effective date, or a new planned item for a new income;
-- type 5, a monthly planned transfer with a fixed amount (the monthly amount, or the one the inverse mode computed);
-- type 6, nothing: it is listed as "not converted, interest stays an estimate";
-- type 7, the estimate override of its line in the shared settings (for a percentage, the current monthly estimate of the line scaled with rule 5 of D4);
-- type 8, its children.
+| Type | Changes |
+| --- | --- |
+| 1, existing target | `end` the day before the start date, unless the item already ends before; then, unless the mode is `none`, `create` an expense on the account and category of the target, `monthly_on_day` on the day of the start date or `yearly`, from the start date. |
+| 1, new | `create` as above, unless the mode is `none` (nothing). |
+| 2 | `create` a one-off expense on its date. |
+| 3 | `create` the payments: an expense on the paying account, `monthly_on_day` on the day of the date received, from the first to the last payment of `loanSchedule` with a payment above zero, at the regular payment, with an override of the last occurrence when its amount differs (the schedule cut by the last supported date included). When a receiving account is set, `create` a one-off income of the principal, without category, on the date received. |
+| 4, existing | `version` from the effective date at the new amount, with the repetition and business-day rule of the version in effect at that date, or `end` the day before the effective date. |
+| 4, new | `create` an income, `monthly_on_day` on the day of the effective date. |
+| 5 | `create` a transfer from the source to the savings account, `monthly_on_day` on the day of the first transfer, at the monthly amount (the given one, or the one the inverse mode found), ending on the given end date or never in monthly mode, and on the last monthly date on or before the target date in target mode, the dates the simulation gives the goal. A goal already reached creates nothing. |
+| 6 | Nothing: the note `interestNotConverted`, "not converted, interest stays an estimate". |
+| 7 | The note `estimateOverride`: the estimate override of its line in the shared settings, the new monthly amount, or `divideRound(monthlySpending x (10000 + basis points), 10000)` for a percentage (rule 5 of D4), a line without estimate starting from 0. |
+| 8 | Its children, in their order. |
+
+Decisions of the owner on 27 Nov 2026 (#231):
+
+- **D-A.** The estimate override shared by the settings has no date, so a type 7 applies from the validation on. Its note carries the start month only so that the confirmation screen can show it.
+- **D-B.** Two type 7 on the same line (same account and category) are not a problem: both notes stay, in the order the modifications apply, and the ledger applies them in that order, the last one winning.
+- **D-C.** On an existing item that already ends before the effective date, a type 4 end produces nothing, as type 1 does; a raise is the problem `plannedItemEnded`.
 
 Every planned item created carries the `source_scenario_id` of the scenario. The list of changes and of what is not converted is shown before the confirmation.
 
