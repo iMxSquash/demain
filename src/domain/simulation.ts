@@ -7,7 +7,6 @@ import type { AccountKind } from "./account";
 import {
   applyFlowModifications,
   balanceAwareSteps,
-  monthlySavingsGoals,
   type Modification,
   type ModificationContext,
   type ModificationProblem,
@@ -74,6 +73,30 @@ export interface GoalOutcome {
 
 function unplacedOf({ amount, routing }: SimulatedTransferRouting): number {
   return routing.status === "ok" ? routing.unplaced : amount;
+}
+
+/** One outcome per valid goal in monthly mode, in the order the goals applied (D5). */
+function goalOutcomes(
+  applied: readonly Modification[],
+  simulatedTransfers: readonly SimulatedTransferRouting[],
+): GoalOutcome[] {
+  const outcomes: GoalOutcome[] = [];
+  for (const modification of applied) {
+    if (modification.type !== "savings_goal" || modification.parameters.mode.kind !== "monthly")
+      continue;
+    const { id } = modification;
+    const transfers = simulatedTransfers.filter(
+      ({ source }) => source.kind === "modification" && source.modificationId === id,
+    );
+    outcomes.push({
+      modificationId: id,
+      monthlyAmount: modification.parameters.mode.amount,
+      transfers,
+      unplacedTotal: transfers.reduce((total, transfer) => total + unplacedOf(transfer), 0),
+      status: "applied",
+    });
+  }
+  return outcomes;
 }
 
 function estimateFlow({ accountId, categoryId, date, amount }: EstimatedFlow): SimulatedFlow {
@@ -157,6 +180,7 @@ export function evaluateScenario(
     items,
     flows: simulatedFlows,
     problems,
+    applied: appliedModifications,
   } = applyFlowModifications(
     { items: [...input.items], flows: input.estimates.map(estimateFlow) },
     modifications,
@@ -170,18 +194,6 @@ export function evaluateScenario(
     range,
     { simulatedFlows, steps: balanceAwareSteps(modifications, context) },
   );
-  const goals = monthlySavingsGoals(modifications, context).map(({ id, parameters }) => {
-    const goalTransfers = simulatedTransfers.filter(
-      ({ source }) => source.kind === "modification" && source.modificationId === id,
-    );
-    return {
-      modificationId: id,
-      monthlyAmount: parameters.mode.amount,
-      transfers: goalTransfers,
-      unplacedTotal: goalTransfers.reduce((total, transfer) => total + unplacedOf(transfer), 0),
-      status: "applied" as const,
-    };
-  });
 
   const routings = new Map(
     transfers.map((transfer) => [
@@ -202,6 +214,7 @@ export function evaluateScenario(
         : [event.flow],
     )
     .filter((flow) => accountIds.has(flow.accountId));
+  const goals = goalOutcomes(appliedModifications, simulatedTransfers);
   return { days, transfers, simulatedTransfers, flows, problems, goals };
 }
 

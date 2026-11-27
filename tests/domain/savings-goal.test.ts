@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AccountKind } from "../../src/domain/account";
-import type { SavingsGoal } from "../../src/domain/modification";
+import type { OneOffPurchase, SavingsGoal } from "../../src/domain/modification";
 import { parseModificationParameters } from "../../src/domain/modification-parameters";
 import type { ProjectionAccount } from "../../src/domain/projection";
 import type { DateRange } from "../../src/domain/recurrence";
@@ -12,6 +12,7 @@ const CHECKING = 1;
 const LIVRET_A = 3;
 const LIVRET_JEUNE = 4;
 const OTHER_CHECKING = 5;
+const OTHER_KIND = 6;
 const RANGE: DateRange = { from: "2026-12-01", to: "2027-03-31" };
 const FIRST_TRANSFER = "2026-12-15";
 
@@ -48,6 +49,7 @@ const ACCOUNT_KINDS: ReadonlyMap<number, AccountKind> = new Map([
   [OTHER_CHECKING, "checking"],
   [LIVRET_A, "savings"],
   [LIVRET_JEUNE, "savings"],
+  [OTHER_KIND, "other"],
 ]);
 
 function input(overrides: Partial<SimulationInput> = {}): SimulationInput {
@@ -55,6 +57,7 @@ function input(overrides: Partial<SimulationInput> = {}): SimulationInput {
     accounts: [
       account(),
       account({ id: OTHER_CHECKING, openingBalance: 0 }),
+      account({ id: OTHER_KIND, openingBalance: 0 }),
       livretA(),
       livretJeune(),
     ],
@@ -130,6 +133,8 @@ describe("savings goal with a monthly amount", () => {
     expect(balanceOn(result, CHECKING, FIRST_TRANSFER)).toBe(80000);
     expect(balanceOn(result, LIVRET_JEUNE, FIRST_TRANSFER)).toBe(160000);
     expect(balanceOn(result, LIVRET_A, FIRST_TRANSFER)).toBe(15000);
+    // The legs of a transfer between the user's accounts are not flows to or from outside.
+    expect(result.flows).toEqual([]);
   });
 
   it("with the Livret A at 2290000, it sends 5000, 5000 and leaves 10000 unplaced in checking", () => {
@@ -229,35 +234,62 @@ describe("savings goal with a monthly amount", () => {
   });
 
   it("two goals on the same day are routed by position", () => {
-    // Given in reverse order and with the larger id first: only the position decides.
-    const second = goal({ id: 2, position: 1 }, { mode: monthly(4000, FIRST_TRANSFER) });
-    const first = goal({ id: 1, position: 0 }, { mode: monthly(4000, FIRST_TRANSFER) });
-    const result = evaluateScenario(input(), [second, first]);
+    // Given out of order, the lower position with the larger id: the position decides, then the id.
+    const last = goal({ id: 3, position: 1 }, { mode: monthly(2000, FIRST_TRANSFER) });
+    const tied = goal({ id: 1, position: 1 }, { mode: monthly(2000, FIRST_TRANSFER) });
+    const first = goal({ id: 2, position: 0 }, { mode: monthly(2000, FIRST_TRANSFER) });
+    const result = evaluateScenario(input(), [last, tied, first]);
 
-    expect(result.goals.map(({ modificationId }) => modificationId)).toEqual([1, 2]);
-    expect(placementsOf(result, 1)).toEqual([
-      {
-        date: FIRST_TRANSFER,
-        placements: [{ accountId: LIVRET_JEUNE, amount: 4000 }],
-        unplaced: 0,
-      },
+    expect(result.goals.map(({ modificationId }) => modificationId)).toEqual([2, 1, 3]);
+    expect(result.simulatedTransfers.map(({ source }) => source)).toEqual(
+      [2, 1, 3].map((modificationId) => ({ kind: "modification", modificationId })),
+    );
+    expect([2, 1, 3].map((id) => placementsOf(result, id)?.[0]?.placements)).toEqual([
+      [{ accountId: LIVRET_JEUNE, amount: 2000 }],
+      [{ accountId: LIVRET_JEUNE, amount: 2000 }],
+      [
+        { accountId: LIVRET_JEUNE, amount: 1000 },
+        { accountId: LIVRET_A, amount: 1000 },
+      ],
     ]);
-    expect(placementsOf(result, 2)).toEqual([
+  });
+
+  it("a flow of stage A on the same day applies before the goal", () => {
+    const withdrawal: OneOffPurchase = {
+      id: 9,
+      position: 5,
+      label: "Withdrawal",
+      type: "one_off_purchase",
+      parameters: { accountId: LIVRET_JEUNE, date: FIRST_TRANSFER, amount: 3000, categoryId: null },
+    };
+    const result = evaluateScenario(input(), [goal(), withdrawal]);
+
+    // The withdrawal frees 3000 of room before the transfer is routed, whatever the positions.
+    expect(placementsOf(result)).toEqual([
       {
         date: FIRST_TRANSFER,
         placements: [
-          { accountId: LIVRET_JEUNE, amount: 1000 },
-          { accountId: LIVRET_A, amount: 3000 },
+          { accountId: LIVRET_JEUNE, amount: 8000 },
+          { accountId: LIVRET_A, amount: 12000 },
         ],
         unplaced: 0,
       },
     ]);
+    expect(result.flows.map(({ source }) => source)).toEqual([
+      { kind: "modification", modificationId: 9 },
+    ]);
   });
 
   it("a goal into a checking account is refused as accountKind", () => {
-    const result = evaluateScenario(input(), [goal({}, { savingsAccountId: OTHER_CHECKING })]);
+    const result = evaluateScenario(input(), [
+      goal({ id: 1 }, { savingsAccountId: OTHER_CHECKING }),
+      goal({ id: 2 }, { savingsAccountId: OTHER_KIND }),
+    ]);
 
-    expect(result.problems).toEqual([{ modificationId: 1, reason: "accountKind" }]);
+    expect(result.problems).toEqual([
+      { modificationId: 1, reason: "accountKind" },
+      { modificationId: 2, reason: "accountKind" },
+    ]);
     expect(result.simulatedTransfers).toEqual([]);
     expect(balanceOn(result, CHECKING, "2027-03-31")).toBe(100000);
   });

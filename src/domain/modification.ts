@@ -193,11 +193,15 @@ function targetReferences(
   };
 }
 
+function monthlyOnDay(date: string): Repetition {
+  return { kind: "monthly_on_day", day: parseDate(date).day };
+}
+
 const SUBSCRIPTION_REPETITIONS: Record<
   Exclude<SubscriptionChange["parameters"]["mode"], "none">,
   (startDate: string) => Repetition
 > = {
-  monthly: (startDate) => ({ kind: "monthly_on_day", day: parseDate(startDate).day }),
+  monthly: monthlyOnDay,
   yearly: () => ({ kind: "yearly" }),
 };
 
@@ -280,8 +284,7 @@ function newIncomeFlows(
   effectiveDate: string,
   range: DateRange,
 ): SimulatedFlow[] {
-  const repetition: Repetition = { kind: "monthly_on_day", day: parseDate(effectiveDate).day };
-  return nominalDates(repetition, effectiveDate, range).map((date) =>
+  return nominalDates(monthlyOnDay(effectiveDate), effectiveDate, range).map((date) =>
     modificationFlow(modificationId, { accountId, date, amount, categoryId }),
   );
 }
@@ -447,39 +450,28 @@ function checkedTransform(
 /**
  * Stage A (D5): applies the modifications by position, then id. Each one has its parameters
  * checked against the schema of its type, then its references, then its own transformation.
+ * `applied` lists the valid modifications in that order, savings goals included.
  */
 export function applyFlowModifications(
   state: StageAState,
   modifications: readonly Modification[],
   context: ModificationContext,
-): StageAState & { problems: ModificationProblem[] } {
+): StageAState & { problems: ModificationProblem[]; applied: Modification[] } {
   const problems: ModificationProblem[] = [];
+  const applied: Modification[] = [];
   let current = state;
   for (const modification of [...modifications].sort(byPositionThenId)) {
     const transform = checkedTransform(modification, context);
     const outcome =
       typeof transform === "string" ? transform : transform.apply(current, modification, context);
-    if (typeof outcome === "string")
+    if (typeof outcome === "string") {
       problems.push({ modificationId: modification.id, reason: outcome });
-    else current = outcome;
+    } else {
+      current = outcome;
+      applied.push(modification);
+    }
   }
-  return { ...current, problems };
-}
-
-/** The savings goals in monthly mode that pass every check, by position then id (D5). */
-export function monthlySavingsGoals(
-  modifications: readonly Modification[],
-  context: ModificationContext,
-): (SavingsGoal & { parameters: { mode: { kind: "monthly" } } })[] {
-  return [...modifications]
-    .sort(byPositionThenId)
-    .filter(
-      (modification): modification is SavingsGoal & { parameters: { mode: { kind: "monthly" } } } =>
-        modification.type === "savings_goal" &&
-        typeof checkedTransform(modification, context) !== "string" &&
-        savingsGoalProblem(modification, context) === null &&
-        modification.parameters.mode.kind === "monthly",
-    );
+  return { ...current, problems, applied };
 }
 
 /**
@@ -492,14 +484,21 @@ export function balanceAwareSteps(
   context: ModificationContext,
 ): BalanceAwareSteps {
   const transfersByDate = new Map<string, SimulatedTransfer[]>();
-  for (const { id, parameters } of monthlySavingsGoals(modifications, context)) {
+  for (const modification of [...modifications].sort(byPositionThenId)) {
+    if (
+      modification.type !== "savings_goal" ||
+      typeof checkedTransform(modification, context) === "string" ||
+      savingsGoalProblem(modification, context) !== null
+    )
+      continue;
+    const { id, parameters } = modification;
     const { sourceAccountId, savingsAccountId, firstTransferDate, mode } = parameters;
-    const repetition: Repetition = {
-      kind: "monthly_on_day",
-      day: parseDate(firstTransferDate).day,
-    };
-    for (const date of nominalDates(repetition, firstTransferDate, context.range)) {
-      if (mode.endDate !== null && date > mode.endDate) break;
+    if (mode.kind !== "monthly") continue;
+    // An end date before the range leaves `to` before `from`: no date then.
+    const to =
+      mode.endDate !== null && mode.endDate < context.range.to ? mode.endDate : context.range.to;
+    const range = { from: context.range.from, to };
+    for (const date of nominalDates(monthlyOnDay(firstTransferDate), firstTransferDate, range)) {
       const transfers = transfersByDate.get(date) ?? [];
       transfers.push({
         sourceAccountId,
