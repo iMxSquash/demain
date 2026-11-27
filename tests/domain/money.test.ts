@@ -5,6 +5,7 @@ import {
   currencySymbol,
   detectDecimalMark,
   divideRound,
+  divideRoundBig,
   formatAmount,
   formatEditableAmount,
   MoneyParseError,
@@ -62,6 +63,31 @@ describe("divideRound", () => {
     expect(() => divideRound(1.5, 2)).toThrow(RangeError);
     expect(() => divideRound(1, 0.5)).toThrow(RangeError);
     expect(() => divideRound(Number.NaN, 2)).toThrow(RangeError);
+  });
+});
+
+describe("divideRoundBig", () => {
+  it("rounds like divideRound, ties away from zero, whatever the signs", () => {
+    for (const [numerator, denominator, expected] of [
+      [10n, 3n, 3n],
+      [11n, 3n, 4n],
+      [5n, 2n, 3n],
+      [-5n, 2n, -3n],
+      [5n, -2n, -3n],
+      [-5n, -2n, 3n],
+      [1n, -10n, 0n],
+      [0n, -7n, 0n],
+    ] as const) {
+      expect(divideRoundBig(numerator, denominator)).toBe(expected);
+    }
+  });
+
+  it("stays exact past the safe integer range", () => {
+    expect(divideRoundBig(10n ** 20n + 60000n, 120000n)).toBe(833333333333334n);
+  });
+
+  it("rejects a zero denominator", () => {
+    expect(() => divideRoundBig(1n, 0n)).toThrow(RangeError);
   });
 });
 
