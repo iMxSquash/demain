@@ -6,6 +6,7 @@ import { addDays } from "./calendar-date";
 import { loanSchedule } from "./loan";
 import {
   applyFlowModifications,
+  BASIS_POINTS,
   monthlyOnDay,
   SUBSCRIPTION_REPETITIONS,
   subscriptionDestination,
@@ -85,7 +86,6 @@ type Planner<M extends ChildModification> = (
 ) => Planned | ModificationProblemReason;
 
 const NOTHING: Planned = { changes: [], notes: [] };
-const BASIS_POINTS = 10000;
 
 function created(
   modificationId: number,
@@ -369,11 +369,20 @@ export function planScenarioValidation(
     context,
   );
   const plan: ValidationPlan = { changes: [], notes: [], problems: [...stageA.problems] };
+  // Each end planned is seen by the modifications after it, as stage A sees the occurrences an
+  // earlier change removed: ending an item again later would bring them back.
+  const schedules = new Map(context.schedules);
   for (const modification of stageA.applied) {
-    const planned = planOne(modification, context);
+    const planned = planOne(modification, { ...context, schedules });
     if (typeof planned === "string") {
       plan.problems.push({ modificationId: modification.id, reason: planned });
       continue;
+    }
+    for (const change of planned.changes) {
+      if (change.kind !== "end") continue;
+      const schedule = schedules.get(change.plannedItemId);
+      if (schedule !== undefined)
+        schedules.set(change.plannedItemId, { ...schedule, endDate: change.endDate });
     }
     plan.changes.push(...planned.changes);
     plan.notes.push(...planned.notes);

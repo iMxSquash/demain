@@ -659,6 +659,8 @@ Decisions of the owner on 27 Nov 2026 (#231):
 - **D-B.** Two type 7 on the same line (same account and category) are not a problem: both notes stay, in the order the modifications apply, and the ledger applies them in that order, the last one winning.
 - **D-C.** On an existing item that already ends before the effective date, a type 4 end produces nothing, as type 1 does; a raise is the problem `plannedItemEnded`.
 
+An end planned by a modification counts for the modifications after it, as in stage A: a later change on the same item does not end it again later, which would bring back the occurrences in between, and a raise after an end of the same income is `plannedItemEnded`.
+
 Every planned item created carries the `source_scenario_id` of the scenario. The list of changes and of what is not converted is shown before the confirmation.
 
 ## Guessing the type of an imported row

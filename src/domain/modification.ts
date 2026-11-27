@@ -434,7 +434,7 @@ export function estimateFlow({
   };
 }
 
-const BASIS_POINTS = 10000;
+export const BASIS_POINTS = 10000;
 
 // A percentage scales each flow on its own (D4 rule 5), so in the current month it scales what
 // remains. A new amount is spread again by `estimatedFlows`, which keeps the current-month rule

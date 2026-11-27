@@ -14,7 +14,10 @@ import type {
   SubscriptionChange,
 } from "../../src/domain/modification";
 import type { PlannedSchedule, PlannedVersion } from "../../src/domain/occurrences";
-import { validatePlannedItemInput } from "../../src/domain/planned-item";
+import {
+  validatePlannedItemInput,
+  validatePlannedItemVersion,
+} from "../../src/domain/planned-item";
 import type { PlannedItemOccurrences, ProjectionAccount } from "../../src/domain/projection";
 import { nominalDates } from "../../src/domain/recurrence";
 import {
@@ -655,6 +658,65 @@ describe("planScenarioValidation", () => {
       ["interestNotConverted", 6],
       ["estimateOverride", 8],
     ]);
+  });
+
+  it("a second change on the same item does not end it again later", () => {
+    const result = plan([
+      subscription({}),
+      {
+        ...subscription({ mode: "monthly", amount: 1499, startDate: "2027-06-01" }),
+        id: 2,
+        position: 1,
+      },
+    ]);
+
+    // Ending the item on 2027-05-31 too would bring back its occurrences until then.
+    expect(result.changes.map((change) => [change.kind, change.modificationId])).toEqual([
+      ["end", 1],
+      ["create", 1],
+      ["create", 2],
+    ]);
+  });
+
+  it("a raise after an end of the same income is the problem plannedItemEnded", () => {
+    const result = plan([
+      incomeChange({ change: { kind: "end" } }),
+      { ...incomeChange({ effectiveDate: "2027-06-01" }), id: 2, position: 1 },
+    ]);
+
+    expect(result.changes).toEqual([
+      { kind: "end", modificationId: 1, plannedItemId: SALARY, endDate: "2027-02-28" },
+    ]);
+    expect(result.problems).toEqual([{ modificationId: 2, reason: "plannedItemEnded" }]);
+  });
+
+  it("a raise passes validatePlannedItemVersion", () => {
+    const [change] = plan([incomeChange()]).changes;
+    if (change?.kind !== "version") throw new Error("expected a version");
+
+    expect(() =>
+      validatePlannedItemVersion(change.input, {
+        item: { ...SALARY_SCHEDULE, kind: "income" },
+        accountArchived: false,
+        settledNominalDates: [],
+        overrides: [],
+      }),
+    ).not.toThrow();
+  });
+
+  it("a goal in target mode that the evaluation did not resolve is unreachable", () => {
+    const result = plan([savingsGoal(TARGET_MODE)]);
+
+    expect(result.problems).toEqual([{ modificationId: 1, reason: "goalUnreachable" }]);
+    expect(result.changes).toEqual([]);
+  });
+
+  it("a percentage on a line without estimate becomes an override of 0", () => {
+    const result = plan([budgetChange({ kind: "percent", basisPoints: 5000 })], {
+      estimates: { lines: [], transactions: [] },
+    });
+
+    expect(result.notes).toEqual([expect.objectContaining({ monthlyAmount: 0 })]);
   });
 
   it("every created input passes validatePlannedItemInput", () => {
