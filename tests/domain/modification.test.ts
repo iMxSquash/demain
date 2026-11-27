@@ -1000,13 +1000,13 @@ describe("parseModificationParameters", () => {
   });
 
   it("a type without a schema yet is refused as parametersInvalid", () => {
-    expect(parseModificationParameters("interest_projection", valid)).toEqual({
+    expect(parseModificationParameters("category_budget_change", valid)).toEqual({
       ok: false,
       reason: "parametersInvalid",
     });
     // Stored rows are not trusted: an unknown type or corrupted parameters are reported, never thrown.
     const stored = [
-      { ...purchase({ id: 1 }), type: "interest_projection" },
+      { ...purchase({ id: 1 }), type: "category_budget_change" },
       { ...purchase({ id: 2 }), type: "constructor" },
       { ...purchase({ id: 3 }), parameters: null },
       { ...purchase({ id: 4 }), parameters: "corrupted" },

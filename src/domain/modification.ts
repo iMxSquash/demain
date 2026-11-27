@@ -4,14 +4,16 @@
 // the data are arguments.
 
 import type { AccountKind } from "./account";
-import { parseDate } from "./calendar-date";
+import { daysInMonth, parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
+import { divideRoundBig } from "./money";
 import { parseModificationParameters } from "./modification-parameters";
 import { provisionRemaining, type ResolvedOccurrence } from "./occurrence-resolution";
 import type {
   BalanceAwareSteps,
   PlannedItemOccurrences,
   ProjectionAccount,
+  ProjectionFlow,
   SimulatedTransfer,
 } from "./projection";
 import { nominalDates, type DateRange, type Repetition } from "./recurrence";
@@ -92,8 +94,20 @@ export interface SavingsGoal extends ModificationBase {
   };
 }
 
+export interface InterestProjection extends ModificationBase {
+  type: "interest_projection";
+  parameters: {
+    accountId: number;
+    annualRateBp: number;
+    /** Credited on the last day of each month, or on 31 December. */
+    frequency: "monthly" | "yearly";
+    startDate: string;
+  };
+}
+
 /** Each type issue adds its interface to this union. */
-export type Modification = OneOffPurchase | SubscriptionChange | Loan | IncomeChange | SavingsGoal;
+export type Modification =
+  OneOffPurchase | SubscriptionChange | Loan | IncomeChange | SavingsGoal | InterestProjection;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -375,6 +389,16 @@ function savingsGoalProblem(
   return null;
 }
 
+// Interest adds nothing in stage A either: it is computed on the projected balances in stage B.
+function interestProjectionProblem(
+  { parameters }: InterestProjection,
+  { accountKinds, today }: ModificationContext,
+): ModificationProblemReason | null {
+  if (accountKinds.get(parameters.accountId) !== "savings") return "accountKind";
+  if (parameters.startDate <= today) return "dateNotAfterToday";
+  return null;
+}
+
 /** One entry per type of the union: adding a type adds one entry and touches no other branch. */
 const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> } = {
   one_off_purchase: {
@@ -403,6 +427,14 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
       plannedItemIds: [],
     }),
     apply: (state, goal, context) => savingsGoalProblem(goal, context) ?? state,
+  },
+  interest_projection: {
+    references: ({ parameters: { accountId } }) => ({
+      accountIds: [accountId],
+      categoryIds: [],
+      plannedItemIds: [],
+    }),
+    apply: (state, projection, context) => interestProjectionProblem(projection, context) ?? state,
   },
 };
 
@@ -474,17 +506,90 @@ export function applyFlowModifications(
   return { ...current, problems, applied };
 }
 
+const INTEREST_DENOMINATOR = 10000n * 365n;
+
+const IS_CREDIT_DAY: Record<
+  InterestProjection["parameters"]["frequency"],
+  (date: string) => boolean
+> = {
+  monthly: (date) => {
+    const { year, month, day } = parseDate(date);
+    return day === daysInMonth(year, month);
+  },
+  yearly: (date) => date.endsWith("-12-31"),
+};
+
+const STARTS_PERIOD: Record<
+  InterestProjection["parameters"]["frequency"],
+  (date: string) => boolean
+> = {
+  monthly: (date) => date.endsWith("-01"),
+  yearly: (date) => date.endsWith("-01-01"),
+};
+
+/** An interest projection being accrued: the sum of the end-of-day balances of its open period. */
+interface InterestAccrual {
+  projection: InterestProjection;
+  sum: bigint;
+  /** False while the open period started before the range, so that some of its days are missing. */
+  complete: boolean;
+}
+
+// D9: a negative day counts as zero, the denominator is 365 even in a leap year, and the period
+// ends on its credit day. A period the range cuts, at its end or its start, is not credited.
+function interestCredit(
+  accrual: InterestAccrual,
+  date: string,
+  balances: ReadonlyMap<number, number>,
+): ProjectionFlow | null {
+  const { id, parameters } = accrual.projection;
+  if (date < parameters.startDate) return null;
+  accrual.sum += BigInt(Math.max(0, balances.get(parameters.accountId) ?? 0));
+  if (!IS_CREDIT_DAY[parameters.frequency](date)) return null;
+  const amount = divideRoundBig(
+    accrual.sum * BigInt(parameters.annualRateBp),
+    INTEREST_DENOMINATOR,
+  );
+  const { complete } = accrual;
+  accrual.sum = 0n;
+  accrual.complete = true;
+  if (!complete) return null;
+  return {
+    accountId: parameters.accountId,
+    date,
+    amount: Number(amount),
+    source: { kind: "modification", modificationId: id },
+  };
+}
+
 /**
  * Stage B (D5): the monthly transfers of the savings goals, routed by the projection loop along
  * the overflow chain of the savings account. They repeat on the day of the first transfer, up to
  * the end date or the end of the range; the projection asks only for the days of the range.
+ * Then the interest projections, credited last on their day and never routed (D9).
+ *
+ * The result holds the interest accrued so far: it serves one projection, which asks for each day
+ * of the range once, in order.
  */
 export function balanceAwareSteps(
   modifications: readonly Modification[],
   context: ModificationContext,
 ): BalanceAwareSteps {
   const transfersByDate = new Map<string, SimulatedTransfer[]>();
+  const accruals: InterestAccrual[] = [];
   for (const modification of [...modifications].sort(byPositionThenId)) {
+    if (
+      modification.type === "interest_projection" &&
+      typeof checkedTransform(modification, context) !== "string" &&
+      interestProjectionProblem(modification, context) === null
+    )
+      accruals.push({
+        projection: modification,
+        sum: 0n,
+        complete:
+          modification.parameters.startDate >= context.range.from ||
+          STARTS_PERIOD[modification.parameters.frequency](context.range.from),
+      });
     if (
       modification.type !== "savings_goal" ||
       typeof checkedTransform(modification, context) === "string" ||
@@ -510,5 +615,9 @@ export function balanceAwareSteps(
       transfersByDate.set(date, transfers);
     }
   }
-  return { transfersOn: (date) => transfersByDate.get(date) ?? [], creditsOn: () => [] };
+  return {
+    transfersOn: (date) => transfersByDate.get(date) ?? [],
+    creditsOn: (date, balances) =>
+      accruals.flatMap((accrual) => interestCredit(accrual, date, balances) ?? []),
+  };
 }

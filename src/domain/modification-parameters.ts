@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import type {
   IncomeChange,
+  InterestProjection,
   Loan,
   ModificationType,
   OneOffPurchase,
@@ -97,6 +98,14 @@ export const savingsGoalParameters = z
     return lastDate === null || lastDate >= firstTransferDate;
   }) satisfies z.ZodType<SavingsGoal["parameters"]>;
 
+// The start date is compared with today when the projection applies, since the schema has no today.
+export const interestProjectionParameters = z.strictObject({
+  accountId: id,
+  annualRateBp: z.int().min(0).max(MAX_RATE_BP),
+  frequency: z.enum(["monthly", "yearly"]),
+  startDate: z.iso.date(),
+}) satisfies z.ZodType<InterestProjection["parameters"]>;
+
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */
 const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ModificationType,
@@ -107,6 +116,7 @@ const PARAMETER_SCHEMAS: ReadonlyMap<ModificationType, z.ZodType> = new Map<
   ["loan", loanParameters],
   ["income_change", incomeChangeParameters],
   ["savings_goal", savingsGoalParameters],
+  ["interest_projection", interestProjectionParameters],
 ]);
 
 export function parseModificationParameters(
