@@ -53,11 +53,37 @@ describe("loanSchedule", () => {
   it("the principal parts add up to the principal exactly", () => {
     for (const principal of [1, 999, 100000, 1234567, 50000000]) {
       for (const annualRateBp of [0, 1, 350, 500, 1999, 10000]) {
-        for (const months of [1, 7, 12, 60, 240]) {
+        for (const months of [1, 7, 12, 60, 240, 600]) {
+          const schedule = loanSchedule(principal, months, annualRateBp, RECEIVED_ON);
+          expect(schedule).toHaveLength(months);
           expect(principalTotal(principal, months, annualRateBp)).toBe(principal);
+          for (const { amount, interest, principal: part } of schedule) {
+            expect(amount).toBe(interest + part);
+            expect(Math.min(amount, interest, part)).toBeGreaterThanOrEqual(0);
+            expect(Number.isSafeInteger(amount)).toBe(true);
+          }
         }
       }
     }
+  });
+
+  it("the regular payment never falls below the interest of the first month", () => {
+    // In float64, 7764 / 10000 / 12 and (1 + r) ** -600 round the annuity to 8087, below the exact
+    // first interest of 125000 x 7764 / 120000 = 8087.5, rounded to 8088.
+    const schedule = loanSchedule(125000, 600, 7764, RECEIVED_ON);
+
+    expect(schedule[0]).toMatchObject({ amount: 8088, interest: 8088, principal: 0 });
+    expect(schedule.every(({ principal }) => principal >= 0)).toBe(true);
+    expect(principalTotal(125000, 600, 7764)).toBe(125000);
+  });
+
+  it("no payment goes past what remains, so a rounded-up payment never overpays", () => {
+    // 59 payments of 17 would repay 1003 of a principal of 999.
+    const schedule = loanSchedule(999, 60, 1, RECEIVED_ON);
+
+    expect(schedule.reduce((total, { amount }) => total + amount, 0)).toBe(999);
+    expect(schedule.at(-1)).toMatchObject({ amount: 0, interest: 0, principal: 0 });
+    expect(schedule.every(({ amount }) => amount >= 0)).toBe(true);
   });
 
   it("a principal whose interest product leaves the safe integer range keeps exact integer interest", () => {

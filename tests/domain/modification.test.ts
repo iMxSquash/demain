@@ -567,6 +567,39 @@ describe("loan", () => {
     ]);
   });
 
+  it("the principal and the payments go to their own accounts, with the amounts of the schedule", () => {
+    const LOAN_ACCOUNT = 3;
+    const result = evaluateScenario(
+      input({
+        estimates: [],
+        range: LOAN_RANGE,
+        accounts: [account(), account({ id: LOAN_ACCOUNT, openingBalance: 0 })],
+      }),
+      [loan({}, { principal: 1000000, annualRateBp: 500, principalAccountId: LOAN_ACCOUNT })],
+    );
+
+    expect(result.problems).toEqual([]);
+    expect(
+      modificationFlows(result).map((flow) => [flow.accountId, flow.date, flow.amount]),
+    ).toEqual([
+      [LOAN_ACCOUNT, RECEIVED_ON, 1000000],
+      [CHECKING, "2027-01-20", -85607],
+      [CHECKING, "2027-02-20", -85607],
+    ]);
+  });
+
+  it("a payment of zero adds no flow", () => {
+    // 2 over 5 months at a zero rate: four payments of 0, then 2.
+    const result = evaluateScenario(
+      input({ estimates: [], range: { from: "2026-12-01", to: "2027-05-31" } }),
+      [loan({}, { principal: 2, months: 5, principalAccountId: null })],
+    );
+
+    expect(modificationFlows(result).map((flow) => [flow.date, flow.amount])).toEqual([
+      ["2027-05-20", -2],
+    ]);
+  });
+
   it("a loan received today or earlier is reported as dateNotAfterToday", () => {
     const result = evaluateScenario(loanInput(), [
       loan({ id: 1 }, { receivedOn: TODAY }),
@@ -613,6 +646,7 @@ describe("loan", () => {
       { ...valid, annualRateBp: -1 },
       { ...valid, principal: 0 },
       { ...valid, principal: 1200.5 },
+      { ...valid, principal: Number.MAX_SAFE_INTEGER },
       { ...valid, receivedOn: "2027-02-30" },
       { ...valid, frequency: "weekly" },
     ]) {

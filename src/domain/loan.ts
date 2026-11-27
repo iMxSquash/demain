@@ -50,12 +50,20 @@ export function loanSchedule(
   annualRateBp: number,
   receivedOn: string,
 ): LoanPayment[] {
+  // The exact annuity is never below the first interest; the float64 result can be, by one unit.
   const payment =
-    annualRateBp === 0 ? Math.floor(principal / months) : annuity(principal, months, annualRateBp);
+    annualRateBp === 0
+      ? Math.floor(principal / months)
+      : Math.max(
+          annuity(principal, months, annualRateBp),
+          monthlyInterest(principal, annualRateBp),
+        );
   let remaining = principal;
   return paymentDates(months, receivedOn).map((date, index) => {
     const interest = monthlyInterest(remaining, annualRateBp);
-    const amount = index === months - 1 ? remaining + interest : payment;
+    const payoff = remaining + interest;
+    // Rounded up over many months, the regular payment could repay more than remains.
+    const amount = index === months - 1 ? payoff : Math.min(payment, payoff);
     const principalPart = amount - interest;
     remaining -= principalPart;
     return { date, amount, interest, principal: principalPart };

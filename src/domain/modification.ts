@@ -232,8 +232,15 @@ function loan(
   { id, parameters }: Loan,
   { today, range }: ModificationContext,
 ): StageAState | ModificationProblemReason {
-  const { principal, months, annualRateBp, receivedOn, paymentAccountId, principalAccountId } =
-    parameters;
+  const {
+    principal,
+    months,
+    annualRateBp,
+    receivedOn,
+    paymentAccountId,
+    principalAccountId,
+    categoryId,
+  } = parameters;
   if (receivedOn <= today) return "dateNotAfterToday";
   const source = { kind: "modification", modificationId: id } as const;
   const received: SimulatedFlow[] =
@@ -249,16 +256,17 @@ function loan(
             source,
           },
         ];
-  const payments = loanSchedule(principal, months, annualRateBp, receivedOn).map(
-    ({ date, amount }): SimulatedFlow => ({
+  // A payment of zero, a small principal over many months, moves nothing.
+  const payments = loanSchedule(principal, months, annualRateBp, receivedOn)
+    .filter(({ amount }) => amount > 0)
+    .map(({ date, amount }): SimulatedFlow => ({
       accountId: paymentAccountId,
       date,
       amount: -amount,
-      categoryId: parameters.categoryId,
+      categoryId,
       external: true,
       source,
-    }),
-  );
+    }));
   const added = [...received, ...payments].filter(
     (flow) => flow.date >= range.from && flow.date <= range.to,
   );
