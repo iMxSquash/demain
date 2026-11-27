@@ -111,33 +111,29 @@ function goalOutcomes(
   return outcomes;
 }
 
+/** The goal in monthly mode that moves `amount` on each date up to the target date. */
+function asMonthlyGoal(goal: SavingsGoal, amount: number, targetDate: string): SavingsGoal {
+  const mode: SavingsGoal["parameters"]["mode"] = { kind: "monthly", amount, endDate: targetDate };
+  return { ...goal, parameters: { ...goal.parameters, mode } };
+}
+
 /**
- * The modifications stage B runs with: each goal in target mode becomes a goal in monthly mode
- * with its resolved amount up to its target date, or is dropped when it moves nothing. With
- * `probe`, the goal at `probe.index` of `applied` takes `probe.amount` and every goal after it is
- * left out (D8).
+ * The modifications stage B runs with: each goal in target mode becomes a goal in monthly mode with
+ * its resolved amount, or is dropped when it moves nothing. Every savings goal from `beforeIndex`
+ * of `applied` on is left out (D8).
  */
 function stepModifications(
   applied: readonly Modification[],
   resolutions: ReadonlyMap<number, GoalResolution>,
-  probe?: { index: number; amount: number },
+  beforeIndex = applied.length,
 ): Modification[] {
   return applied.flatMap((modification, index): Modification[] => {
     if (modification.type !== "savings_goal") return [modification];
-    if (probe !== undefined && index > probe.index) return [];
+    if (index >= beforeIndex) return [];
     const { mode } = modification.parameters;
     if (mode.kind === "monthly") return [modification];
-    const amount =
-      index === probe?.index
-        ? probe.amount
-        : (resolutions.get(modification.id)?.monthlyAmount ?? 0);
-    if (amount === 0) return [];
-    const monthly: SavingsGoal["parameters"]["mode"] = {
-      kind: "monthly",
-      amount,
-      endDate: mode.targetDate,
-    };
-    return [{ ...modification, parameters: { ...modification.parameters, mode: monthly } }];
+    const amount = resolutions.get(modification.id)?.monthlyAmount ?? 0;
+    return amount === 0 ? [] : [asMonthlyGoal(modification, amount, mode.targetDate)];
   });
 }
 
@@ -154,9 +150,8 @@ function latestTargetDate(applied: readonly Modification[], to: string): string 
   );
 }
 
-/** The end-of-day total of the accounts of `chain` on `date`, an account without balance counting as 0. */
-function chainTotal(days: readonly DailyBalance[], chain: readonly number[], date: string): number {
-  const day = days.find((candidate) => candidate.date === date);
+/** The end-of-day total of the accounts of `chain` on `day`, an account without balance counting as 0. */
+function chainTotal(day: DailyBalance | undefined, chain: readonly number[]): number {
   return chain.reduce((total, accountId) => total + (day?.balances.get(accountId) ?? 0), 0);
 }
 
@@ -185,7 +180,8 @@ function resolveAmount(targetAmount: number, reaches: (amount: number) => boolea
 function resolveTargetGoals(
   applied: readonly Modification[],
   accounts: readonly ProjectionAccount[],
-  project: (modifications: readonly Modification[]) => readonly DailyBalance[],
+  /** The end-of-day balances of `until`, the last day of the run. */
+  project: (modifications: readonly Modification[], until: string) => DailyBalance | undefined,
 ): Map<number, GoalResolution> {
   const resolutions = new Map<number, GoalResolution>();
   applied.forEach((modification, index) => {
@@ -193,19 +189,17 @@ function resolveTargetGoals(
       return;
     const { savingsAccountId, mode } = modification.parameters;
     const chain = overflowChainAccounts(savingsAccountId, accounts);
-    const resolution =
-      chain === null
-        ? UNREACHABLE
-        : resolveAmount(
-            mode.targetAmount,
-            (amount) =>
-              chainTotal(
-                project(stepModifications(applied, resolutions, { index, amount })),
-                chain,
-                mode.targetDate,
-              ) >= mode.targetAmount,
-          );
-    resolutions.set(modification.id, resolution);
+    if (chain === null) {
+      resolutions.set(modification.id, UNREACHABLE);
+      return;
+    }
+    const before = stepModifications(applied, resolutions, index);
+    const reaches = (amount: number) => {
+      const stepped =
+        amount === 0 ? before : [...before, asMonthlyGoal(modification, amount, mode.targetDate)];
+      return chainTotal(project(stepped, mode.targetDate), chain) >= mode.targetAmount;
+    };
+    resolutions.set(modification.id, resolveAmount(mode.targetAmount, reaches));
   });
   return resolutions;
 }
@@ -305,18 +299,16 @@ export function evaluateScenario(
     });
 
   // A target date after the range extends the search to it, never the result (owner, 27 Nov
-  // 2026, #227). Past the range, the search sees only the flows the input carries.
+  // 2026, #227). Past the range, the search sees only the flows the input carries. The loop is
+  // causal, so each run of the search stops on the target date.
+  const until = (to: string) => ({ ...context, range: { from: range.from, to } });
   const horizonEnd = latestTargetDate(appliedModifications, range.to);
-  const horizonContext =
-    horizonEnd === range.to ? context : { ...context, range: { from: range.from, to: horizonEnd } };
   const horizonState =
-    horizonContext === context
+    horizonEnd === range.to
       ? stageA
-      : applyFlowModifications(initial, modifications, horizonContext);
-  const resolutions = resolveTargetGoals(
-    appliedModifications,
-    accounts,
-    (stepped) => project(horizonContext, horizonState, stepped).days,
+      : applyFlowModifications(initial, appliedModifications, until(horizonEnd));
+  const resolutions = resolveTargetGoals(appliedModifications, accounts, (stepped, targetDate) =>
+    project(until(targetDate), horizonState, stepped).days.at(-1),
   );
   const problems: ModificationProblem[] = [...stageA.problems];
   for (const [modificationId, { status }] of resolutions)
