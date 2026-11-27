@@ -131,9 +131,9 @@ function referenceProblem(
   }
   if (categoryIds.some((categoryId) => !context.categoryIds.has(categoryId)))
     return "categoryMissing";
-  const itemIds = new Set(context.items.map((item) => item.plannedItemId));
-  if (plannedItemIds.some((plannedItemId) => !itemIds.has(plannedItemId)))
-    return "plannedItemMissing";
+  const isPlannedItem = (plannedItemId: number) =>
+    context.items.some((item) => item.plannedItemId === plannedItemId);
+  if (!plannedItemIds.every(isPlannedItem)) return "plannedItemMissing";
   return null;
 }
 
@@ -154,9 +154,9 @@ export function applyFlowModifications(
   let current = state;
   for (const modification of [...modifications].sort(byPositionThenId)) {
     const transform = transformOf(modification.type);
-    const parsed = parseModificationParameters(modification.type, modification.parameters);
     const outcome =
-      transform === undefined || !parsed.ok
+      transform === undefined ||
+      !parseModificationParameters(modification.type, modification.parameters).ok
         ? "parametersInvalid"
         : (referenceProblem(transform.references(modification), context) ??
           transform.apply(current, modification, context));
