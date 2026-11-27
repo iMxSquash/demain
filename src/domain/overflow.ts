@@ -107,6 +107,19 @@ function walkOverflowChain<
   return { accounts, hasLoop: false };
 }
 
+/**
+ * The ids along the overflow chain from `startId`: the start account, then each overflow account
+ * in order. Null when the chain loops; empty when `startId` is unknown.
+ */
+export function overflowChainAccounts<Id extends AccountRef>(
+  startId: Id,
+  accounts: readonly Pick<OverflowAccount<Id>, "id" | "overflowAccountId">[],
+): Id[] | null {
+  const byId = new Map(accounts.map((account) => [account.id, account]));
+  const { accounts: chain, hasLoop } = walkOverflowChain(startId, byId);
+  return hasLoop ? null : chain.map(({ id }) => id);
+}
+
 export function routeAlongOverflowChain<Id extends AccountRef = number>(
   amount: number,
   destinationId: Id,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertOverflowTargetAllowed,
+  overflowChainAccounts,
   overflowChainProblem,
   overflowTargetsOf,
   routeAlongOverflowChain,
@@ -328,5 +329,35 @@ describe("overflowChainProblem", () => {
     ];
 
     expect(overflowChainProblem(CHECKING_ID, accounts)).toBe("cycle");
+  });
+});
+
+describe("overflowChainAccounts", () => {
+  it("lists the start account then each overflow account in order", () => {
+    const accounts = [
+      account({ id: LIVRET_A_ID }),
+      account({ id: CHECKING_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+    ];
+
+    expect(overflowChainAccounts(CHECKING_ID, accounts)).toEqual([
+      CHECKING_ID,
+      LIVRET_JEUNE_ID,
+      LIVRET_A_ID,
+    ]);
+  });
+
+  it("returns null for a cycle", () => {
+    const accounts = [
+      account({ id: CHECKING_ID, overflowAccountId: LIVRET_A_ID }),
+      account({ id: LIVRET_A_ID, overflowAccountId: LIVRET_JEUNE_ID }),
+      account({ id: LIVRET_JEUNE_ID, overflowAccountId: LIVRET_A_ID }),
+    ];
+
+    expect(overflowChainAccounts(CHECKING_ID, accounts)).toBeNull();
+  });
+
+  it("returns an empty chain for an unknown start account", () => {
+    expect(overflowChainAccounts(99, [account({ id: LIVRET_A_ID })])).toEqual([]);
   });
 });

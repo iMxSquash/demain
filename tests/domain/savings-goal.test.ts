@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { AccountKind } from "../../src/domain/account";
-import type { OneOffPurchase, SavingsGoal } from "../../src/domain/modification";
+import type {
+  InterestProjection,
+  OneOffPurchase,
+  SavingsGoal,
+} from "../../src/domain/modification";
 import { parseModificationParameters } from "../../src/domain/modification-parameters";
 import type { ProjectionAccount } from "../../src/domain/projection";
 import type { DateRange } from "../../src/domain/recurrence";
@@ -395,15 +399,330 @@ describe("savings goal with a monthly amount", () => {
     expect(result.simulatedTransfers).toEqual([]);
     expect(balanceOn(result, CHECKING, "2027-03-31")).toBe(100000);
   });
+});
 
-  it("a goal in target mode is accepted but applies nothing in this slice", () => {
-    const result = evaluateScenario(input(), [
-      goal({}, { mode: { kind: "target", targetAmount: 50000, targetDate: "2027-03-15" } }),
+describe("savings goal in target mode (inverse)", () => {
+  const YEAR: DateRange = { from: "2026-12-01", to: "2027-12-31" };
+  const FIRST = "2027-01-15";
+
+  function inverseGoal(
+    targetAmount: number,
+    targetDate: string,
+    parameters: Partial<SavingsGoal["parameters"]> = {},
+    overrides: Partial<Omit<SavingsGoal, "parameters">> = {},
+  ): SavingsGoal {
+    return goal(overrides, {
+      savingsAccountId: LIVRET_A,
+      firstTransferDate: FIRST,
+      mode: { kind: "target", targetAmount, targetDate },
+      ...parameters,
+    });
+  }
+
+  function outcomeOf(result: ReturnType<typeof evaluateScenario>, modificationId = 1) {
+    return result.goals.find((outcome) => outcome.modificationId === modificationId);
+  }
+
+  function chainTotalOn(
+    result: ReturnType<typeof evaluateScenario>,
+    accountIds: readonly number[],
+    date: string,
+  ): number {
+    return accountIds.reduce((total, id) => total + (balanceOn(result, id, date) ?? 0), 0);
+  }
+
+  const unreachableAccounts = () => [
+    account(),
+    livretA({ openingBalance: 2290000 }),
+    livretJeune({ openingBalance: 150000 }),
+  ];
+
+  it("12 transfers from 2027-01-15 reach 120000 by 2027-12-15 with 10000 a month", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const result = evaluateScenario(input({ accounts, range: YEAR }), [
+      inverseGoal(120000, "2027-12-15"),
     ]);
 
     expect(result.problems).toEqual([]);
-    expect(result.goals).toEqual([]);
+    expect(outcomeOf(result)?.status).toBe("reached");
+    expect(outcomeOf(result)?.monthlyAmount).toBe(10000);
+    expect(outcomeOf(result)?.transfers.map(({ date }) => date)).toEqual(
+      Array.from({ length: 12 }, (_, index) => `2027-${String(index + 1).padStart(2, "0")}-15`),
+    );
+    expect(balanceOn(result, LIVRET_A, "2027-12-15")).toBe(120000);
+  });
+
+  it("rounds up: 100000 over 3 transfers needs 33334", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const result = evaluateScenario(input({ accounts }), [inverseGoal(100000, "2027-03-15")]);
+
+    expect(outcomeOf(result)?.monthlyAmount).toBe(33334);
+    expect(balanceOn(result, LIVRET_A, "2027-03-15")).toBe(100002);
+  });
+
+  it("follows the chain: a Livret Jeune at 150000 (ceiling 160000) overflowing to a Livret A reaches a chain total of 300000 with 3 transfers of 50000", () => {
+    const accounts = [account(), livretA(), livretJeune({ openingBalance: 150000 })];
+    const result = evaluateScenario(input({ accounts }), [
+      inverseGoal(300000, "2027-03-15", { savingsAccountId: LIVRET_JEUNE }),
+    ]);
+
+    expect(outcomeOf(result)?.monthlyAmount).toBe(50000);
+    expect(placementsOf(result)).toEqual([
+      {
+        date: "2027-01-15",
+        placements: [
+          { accountId: LIVRET_JEUNE, amount: 10000 },
+          { accountId: LIVRET_A, amount: 40000 },
+        ],
+        unplaced: 0,
+      },
+      { date: "2027-02-15", placements: [{ accountId: LIVRET_A, amount: 50000 }], unplaced: 0 },
+      { date: "2027-03-15", placements: [{ accountId: LIVRET_A, amount: 50000 }], unplaced: 0 },
+    ]);
+    expect(chainTotalOn(result, [LIVRET_JEUNE, LIVRET_A], "2027-03-15")).toBe(300000);
+  });
+
+  it("already reached gives 0 and no transfer", () => {
+    const accounts = [account(), livretA({ openingBalance: 200000 })];
+    const result = evaluateScenario(input({ accounts }), [inverseGoal(150000, "2027-03-15")]);
+
+    expect(result.problems).toEqual([]);
+    expect(result.goals).toEqual([
+      {
+        modificationId: 1,
+        monthlyAmount: 0,
+        transfers: [],
+        unplacedTotal: 0,
+        status: "alreadyReached",
+      },
+    ]);
     expect(result.simulatedTransfers).toEqual([]);
+    expect(balanceOn(result, CHECKING, "2027-03-31")).toBe(100000);
+  });
+
+  it("a chain whose ceilings stay below the target is unreachable and applies nothing", () => {
+    const result = evaluateScenario(input({ accounts: unreachableAccounts() }), [
+      inverseGoal(3000000, "2027-03-15", { savingsAccountId: LIVRET_JEUNE }),
+    ]);
+
+    expect(result.problems).toEqual([{ modificationId: 1, reason: "goalUnreachable" }]);
+    expect(outcomeOf(result)?.status).toBe("unreachable");
+    expect(result.simulatedTransfers).toEqual([]);
+    expect(balanceOn(result, CHECKING, "2027-03-31")).toBe(100000);
+    expect(balanceOn(result, LIVRET_JEUNE, "2027-03-31")).toBe(150000);
+  });
+
+  it("an unreachable goal reports a monthly amount of 0, no transfer and nothing unplaced", () => {
+    const result = evaluateScenario(input({ accounts: unreachableAccounts() }), [
+      inverseGoal(3000000, "2027-03-15", { savingsAccountId: LIVRET_JEUNE }),
+    ]);
+
+    expect(result.goals).toEqual([
+      {
+        modificationId: 1,
+        monthlyAmount: 0,
+        transfers: [],
+        unplacedTotal: 0,
+        status: "unreachable",
+      },
+    ]);
+  });
+
+  it("a cycle in the overflow chain makes the goal unreachable, even when the target looks reached", () => {
+    const accounts = [
+      account(),
+      livretA({ overflowAccountId: LIVRET_JEUNE }),
+      livretJeune({ overflowAccountId: LIVRET_A }),
+    ];
+    const result = evaluateScenario(input({ accounts }), [
+      inverseGoal(1, "2027-03-15", { savingsAccountId: LIVRET_JEUNE }),
+    ]);
+
+    expect(result.problems).toEqual([{ modificationId: 1, reason: "goalUnreachable" }]);
+    expect(outcomeOf(result)?.status).toBe("unreachable");
+    expect(result.simulatedTransfers).toEqual([]);
+  });
+
+  it("a target date after the end of the range extends the search, and only the transfers of the range are returned", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const result = evaluateScenario(input({ accounts }), [inverseGoal(120000, "2027-12-15")]);
+
+    expect(outcomeOf(result)?.status).toBe("reached");
+    expect(outcomeOf(result)?.monthlyAmount).toBe(10000);
+    expect(outcomeOf(result)?.transfers.map(({ date }) => date)).toEqual([
+      "2027-01-15",
+      "2027-02-15",
+      "2027-03-15",
+    ]);
+    expect(result.days.at(-1)?.date).toBe(RANGE.to);
+  });
+
+  it("the search past the range sees the flows of stage A after the range", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const purchase: OneOffPurchase = {
+      id: 2,
+      position: 0,
+      label: "Withdrawal",
+      type: "one_off_purchase",
+      parameters: { accountId: LIVRET_A, date: "2027-06-01", amount: 50000, categoryId: null },
+    };
+    const result = evaluateScenario(input({ accounts }), [
+      purchase,
+      inverseGoal(120000, "2027-12-15", {}, { position: 1 }),
+    ]);
+
+    // 12 transfers must cover 120000 plus the 50000 withdrawn: 170000 / 12, rounded up.
+    expect(outcomeOf(result)?.monthlyAmount).toBe(14167);
+  });
+
+  it("a goal inside the range and a goal past it are resolved in turn", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const result = evaluateScenario(input({ accounts }), [
+      inverseGoal(30000, "2027-03-15"),
+      inverseGoal(120000, "2027-12-15", {}, { id: 2, position: 1 }),
+    ]);
+
+    // The first goal brings 30000 by March, the second 90000 over 12 transfers.
+    expect(outcomeOf(result)?.monthlyAmount).toBe(10000);
+    expect(outcomeOf(result, 2)?.monthlyAmount).toBe(7500);
+  });
+
+  it("a resolved goal is taken into account by the next one", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const result = evaluateScenario(input({ accounts }), [
+      inverseGoal(90000, "2027-03-15", {}, { id: 2, position: 1 }),
+      inverseGoal(60000, "2027-03-15"),
+    ]);
+
+    expect(
+      result.goals.map(({ modificationId, monthlyAmount, status }) => ({
+        modificationId,
+        monthlyAmount,
+        status,
+      })),
+    ).toEqual([
+      { modificationId: 1, monthlyAmount: 20000, status: "reached" },
+      { modificationId: 2, monthlyAmount: 10000, status: "reached" },
+    ]);
+    expect(balanceOn(result, LIVRET_A, "2027-03-15")).toBe(90000);
+  });
+
+  it("the goals after a target goal are left out of its resolution", () => {
+    const accounts = [account(), livretA({ ceiling: null })];
+    const later = goal(
+      { id: 2, position: 1 },
+      { savingsAccountId: LIVRET_A, firstTransferDate: FIRST, mode: monthly(50000, null) },
+    );
+    const result = evaluateScenario(input({ accounts }), [inverseGoal(30000, "2027-03-15"), later]);
+
+    expect(outcomeOf(result)?.monthlyAmount).toBe(10000);
+    expect(outcomeOf(result, 2)?.status).toBe("applied");
+  });
+
+  it("an interest projection placed before the goal lowers the amount needed", () => {
+    const accounts = [account(), livretA({ openingBalance: 1000000, ceiling: null })];
+    const interest: InterestProjection = {
+      id: 2,
+      position: 0,
+      label: "Livret A interest",
+      type: "interest_projection",
+      parameters: {
+        accountId: LIVRET_A,
+        annualRateBp: 300,
+        frequency: "monthly",
+        startDate: "2027-01-01",
+      },
+    };
+    const target = inverseGoal(1300000, "2027-03-31", {}, { position: 1 });
+
+    const without = evaluateScenario(input({ accounts }), [target]);
+    const withInterest = evaluateScenario(input({ accounts }), [interest, target]);
+
+    const found = outcomeOf(withInterest)?.monthlyAmount ?? 0;
+    const balanceWith = (amount: number) =>
+      balanceOn(
+        evaluateScenario(input({ accounts }), [
+          interest,
+          goal(
+            { position: 1 },
+            {
+              savingsAccountId: LIVRET_A,
+              firstTransferDate: FIRST,
+              mode: monthly(amount, "2027-03-31"),
+            },
+          ),
+        ]),
+        LIVRET_A,
+        "2027-03-31",
+      ) ?? 0;
+
+    expect(outcomeOf(without)?.monthlyAmount).toBe(100000);
+    expect(found).toBeLessThan(100000);
+    expect(balanceWith(found)).toBeGreaterThanOrEqual(1300000);
+    expect(balanceWith(found - 1)).toBeLessThan(1300000);
+  });
+
+  it("a reached goal reports the surplus that fits nowhere", () => {
+    const accounts = [account(), livretA({ ceiling: 100000 })];
+    const result = evaluateScenario(input({ accounts }), [inverseGoal(100000, "2027-03-15")]);
+
+    expect(outcomeOf(result)).toMatchObject({
+      monthlyAmount: 33334,
+      unplacedTotal: 2,
+      status: "reached",
+    });
+    expect(balanceOn(result, LIVRET_A, "2027-03-15")).toBe(100000);
+  });
+
+  it("the amount found reaches the target and the amount minus one does not", () => {
+    const cases = [
+      {
+        accounts: [account(), livretA({ ceiling: null })],
+        chain: [LIVRET_A],
+        parameters: { savingsAccountId: LIVRET_A, firstTransferDate: FIRST },
+        targetAmount: 100000,
+        targetDate: "2027-03-15",
+      },
+      {
+        accounts: [account(), livretA(), livretJeune({ openingBalance: 150000 })],
+        chain: [LIVRET_JEUNE, LIVRET_A],
+        parameters: { savingsAccountId: LIVRET_JEUNE, firstTransferDate: FIRST },
+        targetAmount: 300001,
+        targetDate: "2027-06-15",
+      },
+      {
+        accounts: [account(), livretA({ openingBalance: 12345, ceiling: null })],
+        chain: [LIVRET_A],
+        parameters: { savingsAccountId: LIVRET_A, firstTransferDate: "2027-01-31" },
+        targetAmount: 777777,
+        targetDate: "2027-11-20",
+      },
+      {
+        accounts: [account(), livretA({ ceiling: 250000 }), livretJeune({ openingBalance: 0 })],
+        chain: [LIVRET_JEUNE, LIVRET_A],
+        parameters: { savingsAccountId: LIVRET_JEUNE, firstTransferDate: FIRST },
+        targetAmount: 400000,
+        targetDate: "2027-12-15",
+      },
+    ];
+    for (const { accounts, chain, parameters, targetAmount, targetDate } of cases) {
+      const simulation = input({ accounts, range: YEAR });
+      const found = outcomeOf(
+        evaluateScenario(simulation, [inverseGoal(targetAmount, targetDate, parameters)]),
+      )?.monthlyAmount;
+      expect(found).toBeGreaterThan(1);
+      const totalWith = (amount: number) =>
+        chainTotalOn(
+          evaluateScenario(simulation, [
+            goal({}, { ...parameters, mode: monthly(amount, targetDate) }),
+          ]),
+          chain,
+          targetDate,
+        );
+
+      expect(totalWith(found!)).toBeGreaterThanOrEqual(targetAmount);
+      expect(totalWith(found! - 1)).toBeLessThan(targetAmount);
+    }
   });
 });
 
