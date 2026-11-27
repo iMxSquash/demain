@@ -1544,7 +1544,10 @@
     "occurrenceMarkedTransferred": "{name} marked as transferred.",
     "occurrenceLinkedTo": "{transaction} linked to {name}.",
     "occurrenceLinkFailed": "the transaction could not be linked. Try again.",
-    "occurrenceReceivedAboveCeiling": "{name} marked as received. Warning: it exceeds the deposit ceiling of the account by {excess}."
+    "occurrenceReceivedAboveCeiling": "{name} marked as received. Warning: it exceeds the deposit ceiling of the account by {excess}.",
+    "horizonInvalid": "Choose a horizon of 6, 12 or 24 months, or an end date from {min} to {max}",
+    "comparisonSize": "Compare 1 to 3 draft scenarios with the constant-pace simulation",
+    "scenarioValidated": "A validated scenario cannot be compared: its effects are already real"
   },
   "auth": {
     "signOut": "Sign out",
