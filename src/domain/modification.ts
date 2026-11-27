@@ -6,6 +6,7 @@
 import { parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
 import { parseModificationParameters } from "./modification-parameters";
+import { provisionRemaining, type ResolvedOccurrence } from "./occurrence-resolution";
 import type { PlannedItemOccurrences, ProjectionAccount } from "./projection";
 import { nominalDates, type DateRange, type Repetition } from "./recurrence";
 import type { SimulatedFlow } from "./simulation";
@@ -62,8 +63,18 @@ export interface Loan extends ModificationBase {
   };
 }
 
+export interface IncomeChange extends ModificationBase {
+  type: "income_change";
+  parameters: {
+    target: SubscriptionChange["parameters"]["target"];
+    /** The amount is positive minor units. */
+    change: { kind: "amount"; amount: number } | { kind: "end" };
+    effectiveDate: string;
+  };
+}
+
 /** Each type issue adds its interface to this union. */
-export type Modification = OneOffPurchase | SubscriptionChange | Loan;
+export type Modification = OneOffPurchase | SubscriptionChange | Loan | IncomeChange;
 
 export type ModificationProblemReason =
   | "accountMissing"
@@ -141,8 +152,8 @@ function plannedItemOf(
   return items.find((item) => item.plannedItemId === plannedItemId);
 }
 
-function subscriptionReferences(
-  { parameters: { target } }: SubscriptionChange,
+function targetReferences(
+  { parameters: { target } }: SubscriptionChange | IncomeChange,
   context: ModificationContext,
 ): References {
   if (target.kind === "new") {
@@ -225,6 +236,68 @@ function subscriptionChange(
   return { items, flows: [...state.flows, ...added] };
 }
 
+// What is already received stays received (owner, 27 Nov 2026, #224): a partial occurrence keeps
+// what its linked sum leaves of the new amount, and a closed one with nothing left (settled, or a
+// provision whose period has passed) keeps 0. The status comes first: an open occurrence can have
+// 0 remaining after an earlier change or a zero estimate.
+function incomeRemaining(occurrence: ResolvedOccurrence, amount: number): number {
+  if (occurrence.status === "planned") return amount;
+  if (occurrence.status === "partial") return provisionRemaining(amount, occurrence.linkedSum);
+  return occurrence.remaining === 0 ? 0 : amount;
+}
+
+function withIncomeAmount(occurrence: ResolvedOccurrence, amount: number): ResolvedOccurrence {
+  const remaining = incomeRemaining(occurrence, amount);
+  return { ...occurrence, expectedAmount: amount, remaining };
+}
+
+function newIncomeFlows(
+  modificationId: number,
+  { accountId, categoryId }: { accountId: number; categoryId: number | null },
+  amount: number,
+  effectiveDate: string,
+  range: DateRange,
+): SimulatedFlow[] {
+  const repetition: Repetition = { kind: "monthly_on_day", day: parseDate(effectiveDate).day };
+  return nominalDates(repetition, effectiveDate, range).map((date) =>
+    modificationFlow(modificationId, { accountId, date, amount, categoryId }),
+  );
+}
+
+// Only the occurrences of the planned item change: the flows already added are left alone (D2).
+function incomeChange(
+  state: StageAState,
+  { id, parameters }: IncomeChange,
+  context: ModificationContext,
+): StageAState | ModificationProblemReason {
+  const { target, change, effectiveDate } = parameters;
+  if (target.kind === "existing" && plannedItemOf(target.plannedItemId, context)?.kind !== "income")
+    return "plannedItemKind";
+  if (effectiveDate <= context.today) return "dateNotAfterToday";
+
+  if (target.kind === "new") {
+    // The schema refuses an end on a new income.
+    if (change.kind === "end") return "parametersInvalid";
+    const added = newIncomeFlows(id, target, change.amount, effectiveDate, context.range);
+    return { ...state, flows: [...state.flows, ...added] };
+  }
+
+  const changed = (occurrences: readonly ResolvedOccurrence[]) =>
+    change.kind === "end"
+      ? occurrences.filter((occurrence) => occurrence.nominalDate < effectiveDate)
+      : occurrences.map((occurrence) =>
+          occurrence.nominalDate < effectiveDate
+            ? occurrence
+            : withIncomeAmount(occurrence, change.amount),
+        );
+  const items = state.items.map((item) =>
+    item.plannedItemId === target.plannedItemId
+      ? { ...item, occurrences: changed(item.occurrences) }
+      : item,
+  );
+  return { ...state, items };
+}
+
 // The whole schedule is computed, so that the payments inside the range keep their amounts, but
 // only the flows dated inside the range are added. The principal received carries no category: it
 // is not an income, and the total cost leaves it out (D10).
@@ -276,7 +349,7 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     }),
     apply: oneOffPurchase,
   },
-  subscription_change: { references: subscriptionReferences, apply: subscriptionChange },
+  subscription_change: { references: targetReferences, apply: subscriptionChange },
   loan: {
     references: ({ parameters: { paymentAccountId, principalAccountId, categoryId } }) => ({
       accountIds:
@@ -286,6 +359,7 @@ const TRANSFORMS: { [M in Modification as M["type"]]: ModificationTransform<M> }
     }),
     apply: loan,
   },
+  income_change: { references: targetReferences, apply: incomeChange },
 };
 
 function transformOf(type: string): ModificationTransform<Modification> | undefined {

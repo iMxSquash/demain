@@ -71,7 +71,7 @@ function resolveRegular(
 
 // A link of the opposite sign to the expected amount does not reduce what is left: the leftover is
 // bounded by the expected amount, never above it.
-function provisionRemaining(expectedAmount: number, linkedSum: number): number {
+export function provisionRemaining(expectedAmount: number, linkedSum: number): number {
   const direction = Math.sign(expectedAmount);
   const covered = Math.max(0, direction * linkedSum);
   const left = Math.max(0, Math.abs(expectedAmount) - covered);
