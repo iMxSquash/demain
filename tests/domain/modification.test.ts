@@ -1499,13 +1499,25 @@ describe("life event", () => {
     expect(applied.map(({ id }) => id)).toEqual([1, 11, 12, 4, 3]);
   });
 
-  it("a parent with 21 children or other parameters is refused as a whole", () => {
+  it("an invalid parent is reported at its place among the problems", () => {
+    const { problems } = stageA([
+      lifeEvent([], { id: 92, position: 1 }),
+      purchase({ id: 81, position: 0 }, { categoryId: MISSING_CATEGORY }),
+      purchase({ id: 82, position: 2 }, { categoryId: MISSING_CATEGORY }),
+    ]);
+
+    expect(problems.map(({ modificationId }) => modificationId)).toEqual([81, 92, 82]);
+  });
+
+  it("a parent with 21 children, other parameters or stored children that are not a list is refused as a whole", () => {
     const children = Array.from({ length: 21 }, (_, index) =>
       purchase({ id: 200 + index, position: index }),
     );
     const stored = [
       lifeEvent(children, { id: 91 }),
       { ...lifeEvent([purchase({ id: 300 })], { id: 92, position: 1 }), parameters: { note: "x" } },
+      { ...lifeEvent([], { id: 93, position: 2 }), children: null },
+      { ...lifeEvent([], { id: 94, position: 3 }), children: { 0: purchase({ id: 301 }) } },
     ] as unknown as Modification[];
 
     const { problems, applied, flows } = stageA(stored);
@@ -1513,6 +1525,8 @@ describe("life event", () => {
     expect(problems).toEqual([
       { modificationId: 91, reason: "parametersInvalid" },
       { modificationId: 92, reason: "parametersInvalid" },
+      { modificationId: 93, reason: "parametersInvalid" },
+      { modificationId: 94, reason: "parametersInvalid" },
     ]);
     expect(applied).toEqual([]);
     expect(flows).toEqual([]);

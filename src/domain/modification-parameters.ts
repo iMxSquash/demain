@@ -126,7 +126,7 @@ export const categoryBudgetChangeParameters = z.strictObject({
   ]),
 }) satisfies z.ZodType<CategoryBudgetChange["parameters"]>;
 
-/** A life event carries nothing but its label and its children. */
+/** A life event has no parameters of its own: its children carry the changes. */
 export const lifeEventParameters = z.strictObject({}) satisfies z.ZodType<LifeEvent["parameters"]>;
 
 /** Each type issue adds its schema here. A map, so that a stored type never reads a prototype key. */

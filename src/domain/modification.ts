@@ -602,18 +602,19 @@ function isValidLifeEvent({ parameters, children }: LifeEvent): boolean {
 /**
  * The modifications in the order they apply (D5): by position, then id, each life event replaced
  * by its children by their own position, then id. An invalid life event is reported in `problems`
- * and none of its children applies.
+ * and none of its children applies. A generator, so that its problem comes at its place among the
+ * problems of the modifications the caller applies.
  */
-function inApplicationOrder(
+function* inApplicationOrder(
   modifications: readonly Modification[],
   problems: ModificationProblem[],
-): ChildModification[] {
-  return [...modifications].sort(byPositionThenId).flatMap((modification) => {
-    if (modification.type !== "life_event") return [modification];
-    if (isValidLifeEvent(modification)) return [...modification.children].sort(byPositionThenId);
-    problems.push({ modificationId: modification.id, reason: "parametersInvalid" });
-    return [];
-  });
+): Generator<ChildModification> {
+  for (const modification of [...modifications].sort(byPositionThenId)) {
+    if (modification.type !== "life_event") yield modification;
+    else if (isValidLifeEvent(modification))
+      yield* [...modification.children].sort(byPositionThenId);
+    else problems.push({ modificationId: modification.id, reason: "parametersInvalid" });
+  }
 }
 
 /** The transform of a modification whose parameters and references pass, or the reason they do not. */
