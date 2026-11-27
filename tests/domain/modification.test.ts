@@ -1132,31 +1132,21 @@ describe("category budget change", () => {
   it("rounds each scaled flow on its own, ties away from zero", () => {
     const flow = (date: string, amount: number) => ({
       accountId: CHECKING,
+      categoryId: GROCERIES,
       date,
       amount,
-      source: { kind: "estimate", categoryId: GROCERIES } as const,
-      categoryId: GROCERIES,
-      external: true,
     });
-    const budgetInputs = budgetInput();
-    const context: ModificationContext = {
-      ...budgetInputs,
-      categoryIds: new Set([GROCERIES]),
-      accountKinds: new Map(),
-      estimates: { lines: [line(GROCERIES)], transactions: [] },
-    };
-    const { flows, problems } = applyFlowModifications(
+    const result = evaluateScenario(
       {
-        items: [],
-        flows: [flow("2027-02-01", -1001), flow("2027-02-02", -1003), flow("2027-02-03", -999)],
+        ...budgetInput(),
+        estimates: [flow("2027-02-01", -1001), flow("2027-02-02", -1003), flow("2027-02-03", -999)],
       },
       [budgetChange({ kind: "percent", basisPoints: -5000 })],
-      context,
     );
 
-    expect(problems).toEqual([]);
+    expect(result.problems).toEqual([]);
     // Rounding the total instead would give -1502.
-    expect(flows.map((scaled) => scaled.amount)).toEqual([-501, -502, -500]);
+    expect(lineAmounts(result, "2027-02")).toEqual([-501, -502, -500]);
   });
 
   it("the uncategorized line is a line like the others", () => {
@@ -1196,6 +1186,52 @@ describe("category budget change", () => {
     ]);
     // Each day of January, 903 or 904, halves to 452: the month is not rounded as a whole.
     expect(sum(lineAmounts(result, "2027-01"))).toBe(-14012);
+  });
+
+  it("a scaled flow beyond the safe integer range is reported instead of thrown", () => {
+    const result = evaluateScenario(budgetInput(), [
+      { ...budgetChange({ kind: "amount", monthlyAmount: 9e15 }), id: 1 },
+      { ...budgetChange({ kind: "percent", basisPoints: 100000 }), id: 2, position: 1 },
+      { ...budgetChange({ kind: "percent", basisPoints: 100000 }), id: 3, position: 2 },
+    ]);
+
+    expect(result.problems).toEqual([{ modificationId: 3, reason: "parametersInvalid" }]);
+    // The product leaves the safe range, the result does not: 11 x 321428571428572, exactly.
+    expect(lineAmounts(result, "2027-02")[0]).toBe(-3535714285714292);
+  });
+
+  it("the target search of a savings goal sees no new estimate past the range", () => {
+    const savingsLine: EstimateLine = { ...line(UNCATEGORIZED, 30000), accountId: SAVINGS };
+    const goalInput: SimulationInput = {
+      ...budgetInput([savingsLine]),
+      accounts: [account(), account({ id: SAVINGS, openingBalance: 0 })],
+      accountKinds: new Map([[SAVINGS, "savings"]]),
+    };
+    const goal = {
+      id: 1,
+      position: 0,
+      label: "Save for a car",
+      type: "savings_goal",
+      parameters: {
+        sourceAccountId: CHECKING,
+        savingsAccountId: SAVINGS,
+        firstTransferDate: "2027-01-05",
+        mode: { kind: "target", targetAmount: 1200000, targetDate: "2027-12-31" },
+      },
+    } as const;
+    // The same monthly amount as the line: the change moves nothing.
+    const sameAmount = budgetChange(
+      { kind: "amount", monthlyAmount: 30000 },
+      { accountId: SAVINGS, categoryId: UNCATEGORIZED, startMonth: "2027-01" },
+    );
+
+    const without = evaluateScenario(goalInput, [goal]);
+    const result = evaluateScenario(goalInput, [goal, { ...sameAmount, position: 1 }]);
+
+    expect(result.problems).toEqual([]);
+    expect(result.goals.map(({ monthlyAmount }) => monthlyAmount)).toEqual(
+      without.goals.map(({ monthlyAmount }) => monthlyAmount),
+    );
   });
 
   it("a missing or archived account and a missing category are reported", () => {

@@ -255,6 +255,24 @@ function plannedFlowsApplied(
 }
 
 /**
+ * Stage A over the extended range of the target search. A category budget change spreads its new
+ * amount up to the range it gets, so its estimates past `rangeEnd` are dropped: past the range,
+ * the search sees only the estimates the input carries.
+ */
+function withinInputEstimates(
+  initial: StageAState,
+  modifications: readonly Modification[],
+  context: ModificationContext,
+  rangeEnd: string,
+): StageAState {
+  const extended = applyFlowModifications(initial, modifications, context);
+  const flows = extended.flows.filter(
+    (flow) => flow.source.kind !== "estimate" || flow.date <= rangeEnd,
+  );
+  return { ...extended, flows };
+}
+
+/**
  * Evaluates a scenario on the one balance loop of the projection: real flows, planned occurrences,
  * the estimates, then the flows of stage A of each day (DOMAIN, D5). Simulated flows never join
  * the real flows. An invalid modification is reported in `problems` and adds nothing (D6).
@@ -299,7 +317,7 @@ export function evaluateScenario(
   const horizonState =
     horizonEnd === range.to
       ? stageA
-      : applyFlowModifications(initial, appliedModifications, until(horizonEnd));
+      : withinInputEstimates(initial, appliedModifications, until(horizonEnd), range.to);
   const resolutions = resolveTargetGoals(appliedModifications, accounts, (stepped, targetDate) =>
     project(until(targetDate), horizonState, stepped).days.at(-1),
   );

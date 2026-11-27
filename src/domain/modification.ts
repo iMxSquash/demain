@@ -6,7 +6,7 @@
 import type { AccountKind } from "./account";
 import { daysInMonth, parseDate } from "./calendar-date";
 import { loanSchedule } from "./loan";
-import { divideRound, divideRoundBig } from "./money";
+import { divideRoundBig } from "./money";
 import { parseModificationParameters } from "./modification-parameters";
 import { provisionRemaining, type ResolvedOccurrence } from "./occurrence-resolution";
 import type {
@@ -442,11 +442,18 @@ function categoryBudgetChange(
     flow.date >= monthStart;
 
   if (change.kind === "percent") {
-    const flows = state.flows.flatMap((flow) => {
-      if (!isChanged(flow)) return [flow];
-      const amount = divideRound(flow.amount * (BASIS_POINTS + change.basisPoints), BASIS_POINTS);
-      return amount === 0 ? [] : [{ ...flow, amount }];
-    });
+    const factor = BigInt(BASIS_POINTS + change.basisPoints);
+    const flows: SimulatedFlow[] = [];
+    for (const flow of state.flows) {
+      if (!isChanged(flow)) {
+        flows.push(flow);
+        continue;
+      }
+      // Stacked changes can scale a flow past the safe integer range: reported, never thrown.
+      const amount = Number(divideRoundBig(BigInt(flow.amount) * factor, BigInt(BASIS_POINTS)));
+      if (!Number.isSafeInteger(amount)) return "parametersInvalid";
+      if (amount !== 0) flows.push({ ...flow, amount });
+    }
     return { ...state, flows };
   }
 
