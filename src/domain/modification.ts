@@ -154,7 +154,9 @@ export type ModificationProblemReason =
   | "accountKind"
   | "dateNotAfterToday"
   | "parametersInvalid"
-  | "goalUnreachable";
+  | "goalUnreachable"
+  /** A raise on an existing item that ends before the effective date (owner, 27 Nov 2026, #231). */
+  | "plannedItemEnded";
 
 export interface ModificationProblem {
   modificationId: number;
@@ -245,11 +247,11 @@ function targetReferences(
   };
 }
 
-function monthlyOnDay(date: string): Repetition {
+export function monthlyOnDay(date: string): Repetition {
   return { kind: "monthly_on_day", day: parseDate(date).day };
 }
 
-const SUBSCRIPTION_REPETITIONS: Record<
+export const SUBSCRIPTION_REPETITIONS: Record<
   Exclude<SubscriptionChange["parameters"]["mode"], "none">,
   (startDate: string) => Repetition
 > = {
@@ -258,7 +260,7 @@ const SUBSCRIPTION_REPETITIONS: Record<
 };
 
 /** Where the new flows go: the account and category of the target. */
-function subscriptionDestination(
+export function subscriptionDestination(
   target: SubscriptionChange["parameters"]["target"],
   context: ModificationContext,
 ): { accountId: number; categoryId: number | null } | ModificationProblemReason {
@@ -432,7 +434,7 @@ export function estimateFlow({
   };
 }
 
-const BASIS_POINTS = 10000;
+export const BASIS_POINTS = 10000;
 
 // A percentage scales each flow on its own (D4 rule 5), so in the current month it scales what
 // remains. A new amount is spread again by `estimatedFlows`, which keeps the current-month rule
