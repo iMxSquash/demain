@@ -1,7 +1,13 @@
-// The constant-pace simulation (DOMAIN, Scenario evaluation pipeline, step 1): the real trajectory
-// plus the estimated variable spending, with no modification. Estimation exists only here, never
+// The evaluation of a simulation (DOMAIN, Scenario evaluation pipeline): the real trajectory, plus
+// the estimated variable spending (step 1), plus the modifications of the scenario (step 2). The
+// constant-pace simulation is a scenario with no modification. Estimation exists only here, never
 // in the real views (ADR-011). Pure: "today" and the data are arguments.
 
+import {
+  applyFlowModifications,
+  type Modification,
+  type ModificationProblem,
+} from "./modification";
 import {
   orderedEvents,
   projectWithRouting,
@@ -29,6 +35,11 @@ export interface SimulationInput {
   items: readonly PlannedItemOccurrences[];
   /** Category of each planned item, for the diagrams. */
   itemCategories: ReadonlyMap<number, number | null>;
+  /**
+   * The categories that exist, to check the references of modifications (D6). Without it, every
+   * categorized modification is invalid; the constant-pace simulation does not need it.
+   */
+  categoryIds?: ReadonlySet<number>;
   estimates: readonly EstimatedFlow[];
   today: string;
   range: DateRange;
@@ -101,19 +112,38 @@ function plannedFlowsApplied(
 }
 
 /**
- * Evaluates the constant-pace simulation on the one balance loop of the projection: real flows,
- * planned occurrences, then the estimates of each day (DOMAIN, D5).
+ * Evaluates a scenario on the one balance loop of the projection: real flows, planned occurrences,
+ * the estimates, then the flows of stage A of each day (DOMAIN, D5). Simulated flows never join
+ * the real flows. An invalid modification is reported in `problems` and adds nothing (D6).
  */
-export function evaluateConstantPace(input: SimulationInput): SimulationResult {
-  const { accounts, realFlows, items, itemCategories, today, range } = input;
-  const estimates = input.estimates.map(estimateFlow);
+export function evaluateScenario(
+  input: SimulationInput,
+  modifications: readonly Modification[],
+): SimulationResult & { problems: ModificationProblem[] } {
+  const { accounts, realFlows, itemCategories, today, range } = input;
+  const {
+    items,
+    flows: simulatedFlows,
+    problems,
+  } = applyFlowModifications(
+    { items: [...input.items], flows: input.estimates.map(estimateFlow) },
+    modifications,
+    {
+      accounts,
+      items: input.items,
+      itemCategories,
+      categoryIds: input.categoryIds ?? new Set(),
+      today,
+      range,
+    },
+  );
   const { days, transfers, simulatedTransfers } = projectWithRouting(
     accounts,
     realFlows,
     items,
     today,
     range,
-    { simulatedFlows: estimates },
+    { simulatedFlows },
   );
 
   const routings = new Map(
@@ -123,7 +153,7 @@ export function evaluateConstantPace(input: SimulationInput): SimulationResult {
     ]),
   );
   // The loop applies nothing when the range is empty, and nothing after its last day.
-  const applied = orderedEvents(realFlows, items, today, estimates).filter(
+  const applied = orderedEvents(realFlows, items, today, simulatedFlows).filter(
     (event) => range.from <= range.to && event.date <= range.to,
   );
   // The loop skips the flows of accounts outside the list, so they are not reported either.
@@ -135,5 +165,11 @@ export function evaluateConstantPace(input: SimulationInput): SimulationResult {
         : [event.flow],
     )
     .filter((flow) => accountIds.has(flow.accountId));
+  return { days, transfers, simulatedTransfers, flows, problems };
+}
+
+/** The constant-pace simulation: the scenario with no modification. */
+export function evaluateConstantPace(input: SimulationInput): SimulationResult {
+  const { days, transfers, simulatedTransfers, flows } = evaluateScenario(input, []);
   return { days, transfers, simulatedTransfers, flows };
 }
