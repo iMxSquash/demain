@@ -1,5 +1,5 @@
 # One image for linux/amd64 and linux/arm64 (ADR-004).
-FROM node:24-bookworm-slim AS build
+FROM node:26-bookworm-slim AS build
 
 # Next.js sends anonymous telemetry unless told otherwise: nothing leaves the
 # server by default.
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build && npm prune --omit=dev
 
 
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
